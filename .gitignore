@@ -44,3 +44,18 @@ next-env.d.ts
 
 # Claude Code
 .claude/
+
+node_modules
+.next
+dist
+build
+coverage
+
+# Expo / React Native
+android
+ios
+.expo
+.expo-shared
+
+apps/mobile/android
+apps/mobile/ios

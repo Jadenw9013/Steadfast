@@ -36,9 +36,19 @@ model User {
   activeRole Role     @default(CLIENT) @map("role")
   isCoach    Boolean  @default(false)
   isClient   Boolean  @default(true)
-  coachCode  String?  @unique
-  emailMealPlanUpdates  Boolean @default(true)
-  emailCheckInReminders Boolean @default(true)
+  coachCode             String?  @unique
+  phoneNumber           String?
+  smsOptIn              Boolean  @default(false)
+  smsMealPlanUpdates    Boolean  @default(false)
+  smsDailyCheckInReminder Boolean @default(false)
+  smsCoachMessages      Boolean  @default(false)
+  smsCheckInFeedback    Boolean  @default(false)
+  smsCheckInReminderTime String  @default("19:00")
+  smsClientCheckIns     Boolean  @default(false)
+  smsMissedCheckInAlerts Boolean @default(false)
+  smsClientMessages     Boolean  @default(false)
+  smsNewClientSignups   Boolean  @default(false)
+  smsMissedCheckInAlertTime String @default("21:00")
   defaultNotifyOnPublish Boolean @default(true)
   checkInDaysOfWeek     Int[]   @default([1])   // 0=Sun..6=Sat. Default: Monday
   timezone              String  @default("America/New_York")

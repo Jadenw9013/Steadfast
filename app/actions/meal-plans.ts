@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { parseWeekStartDate } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { revalidatePath } from "next/cache";
-import { notifyMealPlanUpdate } from "@/lib/email/notify";
+import { notifyMealPlanUpdated } from "@/lib/sms/notify";
+import { getCurrentDbUser } from "@/lib/auth/roles";
 
 const mealPlanItemSchema = z.object({
   mealName: z.string().min(1).max(100),
@@ -164,12 +165,10 @@ export async function publishMealPlan(input: unknown) {
 
   if (parsed.data.notifyClient) {
     try {
-      await notifyMealPlanUpdate({
-        clientId: plan.clientId,
-        mealPlanId: parsed.data.mealPlanId,
-      });
-    } catch {
-      // Email failure must not fail the publish
+      const user = await getCurrentDbUser();
+      await notifyMealPlanUpdated(plan.clientId, user.firstName);
+    } catch (error) {
+      console.error("[mealplans] Failed to send update notification:", error);
     }
   }
 

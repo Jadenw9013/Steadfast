@@ -60,5 +60,21 @@ export async function sendMessage(input: unknown) {
   revalidatePath("/coach", "layout");
   revalidatePath("/client", "layout");
 
+  try {
+    const senderName = user.firstName || (user.activeRole === "COACH" ? "Your coach" : "Your client");
+    if (user.activeRole === "COACH") {
+      const { notifyCoachMessage } = await import("@/lib/sms/notify");
+      notifyCoachMessage(clientId).catch(console.error);
+    } else {
+      const { notifyClientMessage } = await import("@/lib/sms/notify");
+      const assignment = await db.coachClient.findFirst({ where: { clientId: user.id } });
+      if (assignment?.coachId) {
+        notifyClientMessage(assignment.coachId, senderName).catch(console.error);
+      }
+    }
+  } catch (err) {
+    console.error("Failed to trigger SMS message event", err);
+  }
+
   return { messageId: message.id };
 }

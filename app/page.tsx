@@ -192,37 +192,6 @@ export default async function Home() {
           </div>
         </section>
       </main>
-
-      {/* ── Footer ── */}
-      <footer className="border-t border-zinc-200/60 dark:border-zinc-800/60">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-5 py-10 sm:flex-row sm:justify-between sm:px-8">
-          <div className="flex items-center gap-3">
-            <div className="relative h-5 w-5 opacity-40">
-              <Image
-                src="/brand/Steadfast_logo_pictoral.png"
-                alt=""
-                fill
-                className="object-contain"
-              />
-            </div>
-            <span className="text-xs text-zinc-400">
-              &copy; {new Date().getFullYear()} Steadfast
-            </span>
-            <span className="rounded-full border border-zinc-300 px-2 py-0.5 text-[10px] font-medium text-zinc-400 dark:border-zinc-700">
-              Beta
-            </span>
-          </div>
-          <nav className="flex items-center gap-5 text-xs text-zinc-400" aria-label="Footer navigation">
-            <Link href="/sign-in" className="transition-colors hover:text-zinc-600 dark:hover:text-zinc-300">
-              Sign In
-            </Link>
-            <span className="text-zinc-300 dark:text-zinc-700" aria-hidden="true">&middot;</span>
-            <span>Privacy</span>
-            <span className="text-zinc-300 dark:text-zinc-700" aria-hidden="true">&middot;</span>
-            <span>Terms</span>
-          </nav>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -146,6 +146,14 @@ export async function createCheckIn(input: unknown) {
 
   revalidatePath("/client", "layout");
   revalidatePath("/coach", "layout");
+
+  // Send SMS to assigned coach if it's not an overwrite
+  if (coachAssignment?.coachId) {
+    const { notifyClientCheckInSubmitted } = await import("@/lib/sms/notify");
+    // Background execution
+    notifyClientCheckInSubmitted(coachAssignment.coachId, user.firstName || "Your client").catch(console.error);
+  }
+
   return { checkInId: checkIn.id };
 }
 

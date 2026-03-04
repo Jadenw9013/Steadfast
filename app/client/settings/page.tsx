@@ -24,8 +24,20 @@ export default async function ClientSettingsPage() {
           Email Notifications
         </h2>
         <NotificationSettings
-          initialMealPlanUpdates={user.emailMealPlanUpdates}
-          initialCheckInReminders={user.emailCheckInReminders}
+          role="CLIENT"
+          initialPhoneNumber={user.phoneNumber || ""}
+          initialSmsOptIn={user.smsOptIn}
+          initialSmsMealPlanUpdates={user.smsMealPlanUpdates}
+          initialSmsDailyCheckInReminder={user.smsDailyCheckInReminder}
+          initialSmsCoachMessages={user.smsCoachMessages}
+          initialSmsCheckInFeedback={user.smsCheckInFeedback}
+          initialSmsCheckInReminderTime={user.smsCheckInReminderTime}
+          // The component expects all props regardless of role to satisfy typescript, pass defaults for coach only stuff
+          initialSmsClientCheckIns={user.smsClientCheckIns}
+          initialSmsMissedCheckInAlerts={user.smsMissedCheckInAlerts}
+          initialSmsClientMessages={user.smsClientMessages}
+          initialSmsNewClientSignups={user.smsNewClientSignups}
+          initialSmsMissedCheckInAlertTime={user.smsMissedCheckInAlertTime}
         />
       </div>
 

@@ -2,6 +2,7 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getDefaultTemplate } from "@/lib/queries/check-in-templates";
 import Link from "next/link";
 import { ResetTemplateButton } from "@/components/coach/reset-template-button";
+import { NotificationSettings } from "@/components/client/notification-settings";
 
 const dayNames = [
   "Sunday",
@@ -97,6 +98,33 @@ export default async function CoachSettingsPage() {
               </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* SMS Notifications */}
+      <section aria-labelledby="sms-heading">
+        <h2
+          id="sms-heading"
+          className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+        >
+          SMS Notifications
+        </h2>
+        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+          <NotificationSettings
+            role="COACH"
+            initialPhoneNumber={user.phoneNumber || ""}
+            initialSmsOptIn={user.smsOptIn}
+            initialSmsMealPlanUpdates={user.smsMealPlanUpdates}
+            initialSmsDailyCheckInReminder={user.smsDailyCheckInReminder}
+            initialSmsCoachMessages={user.smsCoachMessages}
+            initialSmsCheckInFeedback={user.smsCheckInFeedback}
+            initialSmsCheckInReminderTime={user.smsCheckInReminderTime}
+            initialSmsClientCheckIns={user.smsClientCheckIns}
+            initialSmsMissedCheckInAlerts={user.smsMissedCheckInAlerts}
+            initialSmsClientMessages={user.smsClientMessages}
+            initialSmsNewClientSignups={user.smsNewClientSignups}
+            initialSmsMissedCheckInAlertTime={user.smsMissedCheckInAlertTime}
+          />
         </div>
       </section>
     </div>

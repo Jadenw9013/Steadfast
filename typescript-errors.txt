@@ -1,0 +1,2 @@
+app/api/cron/checkin-reminders/route.ts(84,7): error TS2353: Object literal may only specify known properties, and 'clients' does not exist in type 'UserSelect<DefaultArgs>'.
+app/api/cron/checkin-reminders/route.ts(103,36): error TS2339: Property 'clients' does not exist on type '{ smsMealPlanUpdates: boolean; smsDailyCheckInReminder: boolean; smsCoachMessages: boolean; smsCheckInFeedback: boolean; smsClientCheckIns: boolean; smsMissedCheckInAlerts: boolean; ... 19 more ...; updatedAt: Date; }'.

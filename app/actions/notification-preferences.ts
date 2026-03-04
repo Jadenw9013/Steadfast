@@ -8,8 +8,10 @@ import { revalidatePath } from "next/cache";
 const dayOfWeek = z.number().int().min(0).max(6);
 
 const clientPrefsSchema = z.object({
-  emailMealPlanUpdates: z.boolean().optional(),
-  emailCheckInReminders: z.boolean().optional(),
+  phoneNumber: z.string().regex(/^\+[1-9]\d{1,14}$/, "Must be a valid E.164 phone number").or(z.literal("")).optional(),
+  smsOptIn: z.boolean().optional(),
+  smsMealPlanUpdates: z.boolean().optional(),
+  smsDailyCheckInReminder: z.boolean().optional(),
 });
 
 export async function updateNotificationPreferences(input: unknown) {
@@ -17,7 +19,7 @@ export async function updateNotificationPreferences(input: unknown) {
   if (!parsed.success) throw new Error("Invalid input");
 
   const user = await getCurrentDbUser();
-  if (user.activeRole !== "CLIENT") throw new Error("Not a client");
+  // Allowed for both coaches and clients.
 
   await db.user.update({
     where: { id: user.id },
@@ -25,6 +27,7 @@ export async function updateNotificationPreferences(input: unknown) {
   });
 
   revalidatePath("/client");
+  revalidatePath("/coach");
   return { success: true };
 }
 
