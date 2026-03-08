@@ -43,13 +43,13 @@ export default async function CoachMarketplaceProfilePage() {
     return (
         <div className="mx-auto max-w-2xl pb-12">
             {/* ── Banner + Avatar Header ── */}
-            <div className="relative mb-20 sm:mb-24">
+            <div className="sm:relative sm:mb-24">
                 {/* Uploadable Banner */}
                 <BannerPhotoUpload currentBannerUrl={bannerUrl} />
 
-                {/* Avatar — overlapping banner */}
-                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 sm:left-8 sm:translate-x-0">
-                    <div className="rounded-full border-4 border-white shadow-lg dark:border-[#09090b]">
+                {/* Avatar — below banner on mobile, overlapping on desktop */}
+                <div className="flex justify-center mt-4 sm:absolute sm:mt-0 sm:-bottom-12 sm:left-8">
+                    <div className="rounded-full border-4 border-[#09090b] shadow-lg">
                         <ProfilePhotoUpload
                             currentPhotoUrl={photoUrl}
                             initials={initials}
