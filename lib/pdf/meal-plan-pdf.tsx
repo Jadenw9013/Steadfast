@@ -96,6 +96,7 @@ export type MealPlanPdfItem = {
 export type MealPlanPdfData = {
   clientName: string;
   coachName?: string;
+  coachHeadline?: string;
   weekLabel?: string;
   items: MealPlanPdfItem[];
 };
@@ -105,7 +106,7 @@ export async function renderMealPlanPdf(data: MealPlanPdfData): Promise<Buffer> 
 }
 
 function MealPlanPdfDocument({ data }: { data: MealPlanPdfData }) {
-  const { clientName, coachName, weekLabel, items } = data;
+  const { clientName, coachName, coachHeadline, weekLabel, items } = data;
 
   // Group items by meal name
   const grouped = new Map<string, MealPlanPdfItem[]>();
@@ -122,13 +123,13 @@ function MealPlanPdfDocument({ data }: { data: MealPlanPdfData }) {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Meal Plan</Text>
+          <Text style={styles.title}>{coachName ? `${coachName}\u2019s Meal Plan` : "Meal Plan"}</Text>
           <Text style={styles.subtitle}>
             {clientName}
             {weekLabel ? ` — Week of ${weekLabel}` : ""}
           </Text>
           {coachName && (
-            <Text style={styles.coachLine}>Coach: {coachName}</Text>
+            <Text style={styles.coachLine}>Coach: {coachName}{coachHeadline ? ` \u2014 ${coachHeadline}` : ""}</Text>
           )}
         </View>
 

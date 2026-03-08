@@ -14,6 +14,7 @@ const profileSchema = z.object({
     pricing: z.string().max(100).optional().nullable(),
     acceptingClients: z.boolean(),
     isPublished: z.boolean(),
+    welcomeMessage: z.string().max(300, "Welcome message max 300 characters").optional().nullable(),
 });
 
 type FormValues = z.infer<typeof profileSchema>;
@@ -26,6 +27,7 @@ type InitialDataProps = {
     pricing?: string | null;
     acceptingClients?: boolean | null;
     isPublished?: boolean | null;
+    welcomeMessage?: string | null;
 } | null;
 
 export function ProfileForm({
@@ -56,6 +58,7 @@ export function ProfileForm({
             pricing: initialData?.pricing || "",
             acceptingClients: initialData?.acceptingClients ?? true,
             isPublished: initialData?.isPublished || false,
+            welcomeMessage: initialData?.welcomeMessage || "",
         },
     });
 
@@ -153,7 +156,7 @@ export function ProfileForm({
                 </button>
             </div>
 
-            {/* ── About Your Coaching (read-only) ── */}
+            {/* ── About Your Coaching ── */}
             <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
                 <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
                     <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">About Your Coaching</h3>
@@ -166,7 +169,6 @@ export function ProfileForm({
                     </button>
                 </div>
                 <div className="p-6 space-y-5">
-                    <DetailRow label="Profile URL" value={initialData?.slug ? `/coaches/${initialData.slug}` : "Not set"} muted={!initialData?.slug} />
                     <DetailRow label="Professional Headline" value={initialData?.headline || "Not set"} muted={!initialData?.headline} />
                     <DetailRow label="About / Coaching Philosophy" value={initialData?.bio || "Not set"} muted={!initialData?.bio} multiline />
                     <div className="grid gap-5 sm:grid-cols-2">
@@ -176,9 +178,34 @@ export function ProfileForm({
                 </div>
             </div>
 
-            {/* ── Public Visibility ── */}
-            <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
+            {/* ── Welcome Message ── */}
+            <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
+                <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
+                    <div>
+                        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Welcome Message</h3>
+                        <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">Shown on your clients&apos; dashboard</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setShowEditModal(true)}
+                        className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+                    >
+                        Edit
+                    </button>
+                </div>
                 <div className="px-6 py-5">
+                    {initialData?.welcomeMessage ? (
+                        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">{initialData.welcomeMessage}</p>
+                    ) : (
+                        <p className="text-sm italic text-zinc-400 dark:text-zinc-500">No welcome message set. Add one to greet your clients.</p>
+                    )}
+                </div>
+            </div>
+
+            {/* ── Visibility & Availability ── */}
+            <div className="mt-4 space-y-px overflow-hidden rounded-2xl border border-zinc-200/80 shadow-sm dark:border-zinc-800/80">
+                {/* Public Visibility */}
+                <div className="bg-white px-6 py-5 dark:bg-[#121215]">
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Public Visibility</h3>
@@ -195,18 +222,17 @@ export function ProfileForm({
                         />
                     </div>
                 </div>
-            </div>
-
-            {/* ── Client Availability ── */}
-            <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
-                <div className="px-6 py-5">
+                {/* Divider */}
+                <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
+                {/* Client Availability */}
+                <div className="bg-white px-6 py-5 dark:bg-[#121215]">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Availability</h3>
+                            <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Accepting New Clients</h3>
                             <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                                 {isAccepting
                                     ? "People can request coaching from your page."
-                                    : "Your page shows \"Currently Full\" and offers a waitlist instead."}
+                                    : "Turn this off if your coaching roster is full."}
                             </p>
                         </div>
                         <ToggleSwitch
@@ -317,6 +343,19 @@ export function ProfileForm({
                                         placeholder="e.g. $150/mo"
                                     />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                    Welcome Message
+                                </label>
+                                <textarea
+                                    {...form.register("welcomeMessage")}
+                                    rows={3}
+                                    className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                    placeholder="e.g. Welcome to coaching — check in every week and message me anytime."
+                                />
+                                <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Shown to your clients on their dashboard</p>
                             </div>
 
                             <div className="flex items-center justify-end gap-3 border-t border-zinc-100 pt-5 dark:border-zinc-800">

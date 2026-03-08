@@ -18,6 +18,7 @@ const profileSchema = z.object({
     pricing: z.string().max(100).optional().nullable(),
     acceptingClients: z.boolean().default(true),
     isPublished: z.boolean().default(false),
+    welcomeMessage: z.string().max(300, "Welcome message max 300 characters").optional().nullable(),
 });
 
 export type ProfileFormData = z.infer<typeof profileSchema>;
@@ -59,6 +60,7 @@ export async function upsertCoachProfile(data: ProfileFormData) {
             pricing: validated.pricing,
             acceptingClients: validated.acceptingClients,
             isPublished: validated.isPublished,
+            welcomeMessage: validated.welcomeMessage,
         },
         update: {
             slug: validated.slug,
@@ -68,6 +70,7 @@ export async function upsertCoachProfile(data: ProfileFormData) {
             pricing: validated.pricing,
             acceptingClients: validated.acceptingClients,
             isPublished: validated.isPublished,
+            welcomeMessage: validated.welcomeMessage,
         },
     });
 

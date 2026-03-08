@@ -26,7 +26,15 @@ export default async function ClientDashboard() {
   const coachAssignment = await db.coachClient.findFirst({
     where: { clientId: user.id },
     include: {
-      coach: { select: { firstName: true, lastName: true, email: true, checkInDaysOfWeek: true } },
+      coach: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          checkInDaysOfWeek: true,
+          coachProfile: { select: { welcomeMessage: true } },
+        },
+      },
     },
   });
 
@@ -42,9 +50,9 @@ export default async function ClientDashboard() {
   const tz = user.timezone || "America/Los_Angeles";
   const checkInDays = coachAssignment
     ? getEffectiveScheduleDays(
-        coachAssignment.coach.checkInDaysOfWeek,
-        coachAssignment.checkInDaysOfWeekOverride
-      )
+      coachAssignment.coach.checkInDaysOfWeek,
+      coachAssignment.checkInDaysOfWeekOverride
+    )
     : [1];
 
   // Banner: show if today is a scheduled day and no check-in exists for today's localDate
@@ -98,6 +106,20 @@ export default async function ClientDashboard() {
         </p>
       </section>
 
+      {/* Coach Welcome Message */}
+      {coachAssignment?.coach.coachProfile?.welcomeMessage && (
+        <section className="animate-fade-in">
+          <div className="rounded-2xl border border-blue-200/60 bg-blue-50/50 px-5 py-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+            <p className="text-sm leading-relaxed text-blue-900 dark:text-blue-200">
+              {coachAssignment.coach.coachProfile.welcomeMessage}
+            </p>
+            <p className="mt-2 text-xs font-medium text-blue-600/70 dark:text-blue-400/60">
+              — Coach {coachAssignment.coach.firstName}
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* Coach connection (only if no coach) */}
       {!coachAssignment && <ConnectCoachBanner />}
 
@@ -143,11 +165,10 @@ export default async function ClientDashboard() {
             <span className="text-sm font-medium text-zinc-400">lbs</span>
             {weightDelta != null && weightDelta !== 0 && (
               <span
-                className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                  weightDelta < 0
-                    ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                    : "bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400"
-                }`}
+                className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold ${weightDelta < 0
+                  ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                  : "bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400"
+                  }`}
               >
                 {weightDelta < 0 ? "\u2193" : "\u2191"} {Math.abs(weightDelta)} lbs
               </span>
@@ -324,11 +345,10 @@ export default async function ClientDashboard() {
                         {dateLabel}
                         {delta != null && delta !== 0 && (
                           <span
-                            className={`ml-2 text-xs font-semibold ${
-                              delta < 0
-                                ? "text-emerald-500"
-                                : "text-red-400"
-                            }`}
+                            className={`ml-2 text-xs font-semibold ${delta < 0
+                              ? "text-emerald-500"
+                              : "text-red-400"
+                              }`}
                           >
                             {delta < 0 ? "\u2193" : "\u2191"} {Math.abs(delta)}
                           </span>
@@ -346,11 +366,10 @@ export default async function ClientDashboard() {
 
                     {/* Status badge */}
                     <span
-                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        checkIn.status === "REVIEWED"
-                          ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                          : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
-                      }`}
+                      className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold ${checkIn.status === "REVIEWED"
+                        ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                        : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+                        }`}
                     >
                       {checkIn.status === "REVIEWED" ? "Reviewed" : "Pending"}
                     </span>

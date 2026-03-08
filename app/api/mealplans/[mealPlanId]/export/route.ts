@@ -39,6 +39,7 @@ export async function GET(
   // Authorization check
   const isClient = mealPlan.clientId === user.id;
   let coachName: string | undefined;
+  let coachHeadline: string | undefined;
 
   if (!isClient) {
     // Check if user is the coach for this client
@@ -54,16 +55,30 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     coachName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || undefined;
+    const coachProfile = await db.coachProfile.findUnique({
+      where: { userId: user.id },
+      select: { headline: true },
+    });
+    coachHeadline = coachProfile?.headline ?? undefined;
   } else {
     // For client export, try to find their coach name
     const assignment = await db.coachClient.findFirst({
       where: { clientId: user.id },
-      include: { coach: { select: { firstName: true, lastName: true } } },
+      include: {
+        coach: {
+          select: {
+            firstName: true,
+            lastName: true,
+            coachProfile: { select: { headline: true } },
+          },
+        },
+      },
     });
     if (assignment) {
       coachName =
         `${assignment.coach.firstName ?? ""} ${assignment.coach.lastName ?? ""}`.trim() ||
         undefined;
+      coachHeadline = assignment.coach.coachProfile?.headline ?? undefined;
     }
   }
 
@@ -73,15 +88,16 @@ export async function GET(
 
   const weekLabel = mealPlan.weekOf
     ? mealPlan.weekOf.toLocaleDateString("en-US", {
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      })
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
     : undefined;
 
   const pdfData: MealPlanPdfData = {
     clientName,
     coachName,
+    coachHeadline,
     weekLabel,
     items: mealPlan.items.map((item) => ({
       mealName: item.mealName,
