@@ -36,7 +36,7 @@ export async function getCurrentDbUser() {
   const activeRole = isCoach ? "COACH" : "CLIENT" as const;
   const coachCode = isCoach ? generateCoachCode() : undefined;
 
-  return db.user.upsert({
+  const newUser = await db.user.upsert({
     where: { clerkId: userId },
     update: {
       email,
@@ -57,6 +57,45 @@ export async function getCurrentDbUser() {
       coachCode,
     },
   });
+
+  // Process any approved marketplace requests pending for this email
+  if (newUser.isClient) {
+    const unhandledRequests = await db.coachingRequest.findMany({
+      where: {
+        prospectEmail: email.toLowerCase(),
+        status: "APPROVED",
+        prospectId: null,
+      },
+      include: {
+        coachProfile: true,
+      },
+    });
+
+    for (const req of unhandledRequests) {
+      const existingConnection = await db.coachClient.findUnique({
+        where: {
+          coachId_clientId: { coachId: req.coachProfile.userId, clientId: newUser.id },
+        },
+      });
+
+      if (!existingConnection) {
+        await db.coachClient.create({
+          data: {
+            coachId: req.coachProfile.userId,
+            clientId: newUser.id,
+            coachNotes: `Converted from marketplace request.`,
+          },
+        });
+      }
+
+      await db.coachingRequest.update({
+        where: { id: req.id },
+        data: { prospectId: newUser.id },
+      });
+    }
+  }
+
+  return newUser;
 }
 
 export async function ensureCoachCode(userId: string): Promise<string> {

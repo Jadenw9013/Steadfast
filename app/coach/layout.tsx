@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { NavBar } from "@/components/ui/nav-bar";
+import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav";
 
 export default async function CoachLayout({
   children,
@@ -19,7 +20,8 @@ export default async function CoachLayout({
         role="coach"
         canSwitchRole={user.isCoach && user.isClient}
       />
-      <main id="main-content" className="mx-auto max-w-7xl px-5 py-8 sm:px-8">{children}</main>
+      <main id="main-content" className="mx-auto max-w-7xl px-5 pb-24 pt-8 sm:px-8 sm:pb-8">{children}</main>
+      <MobileBottomNav role="coach" />
     </div>
   );
 }

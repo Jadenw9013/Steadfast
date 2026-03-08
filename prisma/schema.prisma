@@ -33,6 +33,9 @@ model User {
   email      String   @unique
   firstName  String?
   lastName   String?
+  profilePhotoPath String?
+  clientBio        String?  @db.Text
+  fitnessGoal      String?
   activeRole Role     @default(CLIENT) @map("role")
   isCoach    Boolean  @default(false)
   isClient   Boolean  @default(true)
@@ -70,6 +73,11 @@ model User {
   trainingPrograms  TrainingProgram[] @relation("TrainingPrograms")
   trainingTemplates TrainingTemplate[] @relation("TrainingTemplates")
   workoutImports    WorkoutImport[]    @relation("WorkoutImports")
+  coachProfile      CoachProfile?      @relation("MarketplaceProfile")
+  prospectRequests  CoachingRequest[]  @relation("ProspectRequests")
+  
+  onboardingForm     OnboardingForm?     @relation("CoachOnboardingForm")
+  onboardingResponse OnboardingResponse? @relation("ClientOnboardingResponse")
 }
 
 model CoachClient {
@@ -495,4 +503,96 @@ model NotificationLog {
 
   @@unique([clientId, windowStartDate, type, stage], name: "reminder_dedupe")
   @@index([clientId, type])
+}
+
+// ── Marketplace ─────────────────────────────────────────────────────────────
+
+model CoachProfile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  slug             String   @unique
+  headline         String?  @db.Text
+  bio              String?  @db.Text
+  specialties      String[] @default([])
+  pricing          String?
+  acceptingClients Boolean  @default(true)
+  isPublished      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user             User              @relation("MarketplaceProfile", fields: [userId], references: [id], onDelete: Cascade)
+  requests         CoachingRequest[]
+  portfolioItems   PortfolioItem[]
+}
+
+model PortfolioItem {
+  id             String       @id @default(cuid())
+  coachProfileId String
+  title          String
+  result         String?      @db.Text
+  description    String?      @db.Text
+  category       String?
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+
+  coachProfile   CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+
+  @@index([coachProfileId])
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WAITLISTED
+}
+
+model CoachingRequest {
+  id              String   @id @default(cuid())
+  coachProfileId  String
+  prospectName    String
+  prospectEmail   String
+  intakeAnswers   Json
+  status          RequestStatus @default(PENDING)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  prospectId      String?  // Optional User ID if the prospect has an account
+  prospect        User?    @relation("ProspectRequests", fields: [prospectId], references: [id], onDelete: SetNull)
+
+  coachProfile    CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+
+  @@index([coachProfileId])
+  @@index([status])
+  @@index([prospectId])
+  @@index([prospectEmail, status])
+}
+
+model OnboardingForm {
+  id        String   @id @default(cuid())
+  coachId   String   @unique
+  questions Json     // Array of standard question objects (id, type, label, required)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach     User                 @relation("CoachOnboardingForm", fields: [coachId], references: [id])
+  responses OnboardingResponse[]
+
+  @@index([coachId])
+}
+
+model OnboardingResponse {
+  id        String   @id @default(cuid())
+  clientId  String   @unique
+  coachId   String
+  formId    String
+  answers   Json     // Array of { questionId, answer }
+  createdAt DateTime @default(now())
+
+  client User           @relation("ClientOnboardingResponse", fields: [clientId], references: [id])
+  form   OnboardingForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
+  @@index([formId])
 }

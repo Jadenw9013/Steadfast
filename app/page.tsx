@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { Footer } from "@/components/footer";
 
 export default async function Home() {
   const { userId, sessionClaims } = await auth();
@@ -69,8 +70,8 @@ export default async function Home() {
               <span className="text-zinc-400">Consistent results.</span>
             </h1>
             <p className="mx-auto mt-6 max-w-xl animate-fade-in text-lg leading-relaxed text-zinc-500 dark:text-zinc-400" style={{ animationDelay: "100ms" }}>
-              Weekly check-ins, personalized meal plans, and structured feedback
-              — so nothing falls through the cracks.
+              Weekly check-ins, custom meal plans, a coach directory, and
+              structured feedback — so nothing falls through the cracks.
             </p>
             <div className="mt-10 flex animate-fade-in flex-col items-center justify-center gap-3 sm:flex-row" style={{ animationDelay: "200ms" }}>
               <Link
@@ -79,9 +80,15 @@ export default async function Home() {
               >
                 Create Free Account
               </Link>
+              <Link
+                href="/coaches"
+                className="w-full rounded-xl border border-zinc-300 bg-white px-8 py-3.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-700 dark:bg-[#121215] dark:text-zinc-100 dark:hover:bg-[#1a1a1e] sm:w-auto"
+              >
+                Explore Coaches
+              </Link>
               <a
                 href="#how-it-works"
-                className="w-full rounded-xl border border-zinc-300 px-8 py-3.5 text-sm font-medium transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-700 dark:hover:bg-zinc-800 sm:w-auto"
+                className="w-full text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 sm:w-auto sm:px-4"
               >
                 See How It Works
               </a>
@@ -158,6 +165,18 @@ export default async function Home() {
                 title="Weight Tracking"
                 description="Automatic trend calculation with visual deltas week over week."
               />
+              <FeatureCard
+                title="Find a Coach"
+                description="Browse coaches, submit intake requests, and get matched — all inside the platform."
+              />
+              <FeatureCard
+                title="Onboarding Questionnaires"
+                description="Coaches define intake questions. New clients complete them automatically."
+              />
+              <FeatureCard
+                title="Training Programs"
+                description="Structured workout programming with exercise tracking and progression."
+              />
             </div>
           </div>
         </section>
@@ -181,17 +200,26 @@ export default async function Home() {
               Ready to get started?
             </h2>
             <p className="mt-4 text-base text-zinc-500">
-              Create your free account and connect with your coach today.
+              Create your free account or browse our coach directory to find the right fit.
             </p>
-            <Link
-              href="/sign-up"
-              className="mt-8 inline-block rounded-xl bg-zinc-900 px-10 py-3.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              Create Free Account
-            </Link>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/sign-up"
+                className="w-full rounded-xl bg-zinc-900 px-10 py-3.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 sm:w-auto"
+              >
+                Create Free Account
+              </Link>
+              <Link
+                href="/coaches"
+                className="w-full rounded-xl border border-zinc-300 bg-white px-10 py-3.5 text-sm font-semibold text-zinc-900 transition-all hover:bg-zinc-50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-700 dark:bg-[#121215] dark:text-zinc-100 dark:hover:bg-[#1a1a1e] sm:w-auto"
+              >
+                Explore Coaches
+              </Link>
+            </div>
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

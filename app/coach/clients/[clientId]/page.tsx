@@ -9,6 +9,7 @@ import { getWeightHistory } from "@/lib/queries/weight-history";
 import { formatDateUTC } from "@/lib/utils/date";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { db } from "@/lib/db";
 import { CoachNotesEditor } from "@/components/coach/coach-notes-editor";
 import { WeightProgress } from "@/components/charts/weight-progress";
 import { RemoveClientButton } from "@/components/coach/remove-client-button";
@@ -57,7 +58,7 @@ export default async function ClientProfilePage({
   const weekOf = profile.currentWeekOf;
   const weekDateStr = formatDateUTC(weekOf);
 
-  const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory] =
+  const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory, onboardingResponse] =
     await Promise.all([
       getEffectiveMealPlanForReview(clientId, weekOf),
       getMessages(clientId, weekOf),
@@ -65,6 +66,10 @@ export default async function ClientProfilePage({
       getTrainingProgramForReview(clientId, weekOf),
       getCoachTemplatesForPicker(coach.id),
       getWeightHistory(clientId),
+      db.onboardingResponse.findUnique({
+        where: { clientId },
+        include: { form: true },
+      }),
     ]);
 
   const {
@@ -281,6 +286,39 @@ export default async function ClientProfilePage({
           />
         </div>
       </section>
+
+      {/* Intake Questionnaire */}
+      {onboardingResponse && (
+        <section aria-labelledby="onboarding-heading">
+          <h2 id="onboarding-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            Intake Questionnaire
+          </h2>
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215] space-y-4">
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {(onboardingResponse.form.questions as any[]).map((q) => {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const answerObj = (onboardingResponse.answers as any[]).find((a) => a.questionId === q.id);
+              const answer = answerObj?.answer;
+
+              let displayAnswer = answer;
+              if (typeof answer === "boolean") {
+                displayAnswer = answer ? "Yes" : "No";
+              } else if (Array.isArray(answer)) {
+                displayAnswer = answer.join(", ");
+              } else if (answer === "" || answer === null || answer === undefined) {
+                displayAnswer = "—";
+              }
+
+              return (
+                <div key={q.id}>
+                  <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{q.label}</p>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">{displayAnswer}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Check-in Schedule */}
       <section aria-labelledby="schedule-heading">

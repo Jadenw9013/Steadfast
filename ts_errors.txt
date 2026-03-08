@@ -1,0 +1,1 @@
+﻿components/coach/onboarding/onboarding-editor.tsx(7,50): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.

@@ -1,0 +1,23 @@
+
+> coach-platform@0.1.0 lint
+> eslint
+
+
+C:\Dev\coach-platform\app\coaches\[slug]\page.tsx
+  5:8  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Dev\coach-platform\app\coaches\[slug]\request\page.tsx
+  5:8  warning  'Image' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Dev\coach-platform\apps\mobile\.expo\types\router.d.ts
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+C:\Dev\coach-platform\components\coach\marketplace\request-list.tsx
+  12:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Dev\coach-platform\components\coach\training\training-program-editor.tsx
+  11:33  warning  'TrainingBlock' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 5 problems (1 error, 4 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
