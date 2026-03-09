@@ -19,6 +19,49 @@ type TemplateOption = {
   }[];
 };
 
+// Cardio stored as a special day named "__CARDIO__" using the same pattern as templates
+const CARDIO_DAY_NAME = "__CARDIO__";
+
+function extractCardioFromDays(allDays: TrainingDayGroup[]) {
+  const cardioDay = allDays.find((d) => d.dayName === CARDIO_DAY_NAME);
+  const trainingDays = allDays.filter((d) => d.dayName !== CARDIO_DAY_NAME);
+
+  if (cardioDay && cardioDay.blocks.length > 0) {
+    const b = cardioDay.blocks[0];
+    const parts = b.title.split("|");
+    return {
+      trainingDays,
+      cardio: {
+        modality: parts[0] ?? "",
+        frequency: parts[1] ?? "",
+        duration: parts[2] ?? "",
+        intensity: parts[3] ?? "",
+        notes: b.content,
+      },
+    };
+  }
+  return { trainingDays, cardio: null };
+}
+
+function buildCardioDayBlock(cardio: {
+  modality: string;
+  frequency: string;
+  duration: string;
+  intensity: string;
+  notes: string;
+}): TrainingDayGroup {
+  return {
+    dayName: CARDIO_DAY_NAME,
+    blocks: [
+      {
+        type: "CARDIO" as BlockType,
+        title: `${cardio.modality}|${cardio.frequency}|${cardio.duration}|${cardio.intensity}`,
+        content: cardio.notes,
+      },
+    ],
+  };
+}
+
 type InitialProgram = {
   id: string;
   status: "DRAFT" | "PUBLISHED";
@@ -135,22 +178,28 @@ export function TrainingProgramEditor({
 }) {
   const router = useRouter();
 
+  // Extract cardio from days on load
+  const _extracted = (() => {
+    if (!initialProgram) return { trainingDays: [] as TrainingDayGroup[], cardio: null };
+    return extractCardioFromDays(
+      initialProgram.days.map((d) => ({
+        dayName: d.dayName,
+        blocks: d.blocks.map((b) => ({
+          type: b.type,
+          title: b.title,
+          content: b.content,
+        })),
+      }))
+    );
+  })();
+
   const [mode, setMode] = useState<Mode>(initialProgram ? "edit" : "empty");
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
   const [programId, setProgramId] = useState<string | null>(initialProgram?.id ?? null);
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | null>(
     initialProgram?.status ?? null
   );
-  const [days, setDays] = useState<TrainingDayGroup[]>(
-    initialProgram?.days.map((d) => ({
-      dayName: d.dayName,
-      blocks: d.blocks.map((b) => ({
-        type: b.type,
-        title: b.title,
-        content: b.content,
-      })),
-    })) ?? []
-  );
+  const [days, setDays] = useState<TrainingDayGroup[]>(_extracted.trainingDays);
 
   // Assignment form fields
   const [selectedTemplateId, setSelectedTemplateId] = useState(
@@ -166,6 +215,14 @@ export function TrainingProgramEditor({
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Cardio section
+  const [showCardio, setShowCardio] = useState(!!_extracted.cardio);
+  const [cardioModality, setCardioModality] = useState(_extracted.cardio?.modality ?? "");
+  const [cardioFrequency, setCardioFrequency] = useState(_extracted.cardio?.frequency ?? "");
+  const [cardioDuration, setCardioDuration] = useState(_extracted.cardio?.duration ?? "");
+  const [cardioIntensity, setCardioIntensity] = useState(_extracted.cardio?.intensity ?? "");
+  const [cardioNotes, setCardioNotes] = useState(_extracted.cardio?.notes ?? "");
 
   const activeTemplateName =
     templates.find((t) => t.id === (selectedTemplateId || initialProgram?.templateSourceId))
@@ -183,23 +240,44 @@ export function TrainingProgramEditor({
     setDays((prev) => prev.map((d, i) => (i === index ? updated : d)));
   }
 
+  function getDaysPayload(overrideDays?: TrainingDayGroup[]): TrainingDayGroup[] {
+    const allDays = [...(overrideDays ?? days)];
+    const hasCardioData = cardioModality || cardioFrequency || cardioDuration || cardioIntensity || cardioNotes;
+    console.log("[getDaysPayload] showCardio:", showCardio, "hasCardioData:", hasCardioData, "modality:", cardioModality);
+    if (showCardio && hasCardioData) {
+      allDays.push(
+        buildCardioDayBlock({
+          modality: cardioModality,
+          frequency: cardioFrequency,
+          duration: cardioDuration,
+          intensity: cardioIntensity,
+          notes: cardioNotes,
+        })
+      );
+    }
+    console.log("[getDaysPayload] total days:", allDays.length, "names:", allDays.map(d => d.dayName));
+    return allDays;
+  }
+
   function buildPayload(overrideDays?: TrainingDayGroup[]) {
-    return {
+    const payload = {
       clientId,
       weekStartDate,
-      days: overrideDays ?? days,
+      days: getDaysPayload(overrideDays),
       weeklyFrequency: weeklyFrequency ? Number(weeklyFrequency) : undefined,
       clientNotes: clientNotes || undefined,
       injuries: injuries || undefined,
       equipment: equipment || undefined,
       templateSourceId: selectedTemplateId || undefined,
     };
+    console.log("[buildPayload] days count:", payload.days.length);
+    return payload;
   }
 
   function getTemplateDays(templateId: string): TrainingDayGroup[] {
     const tpl = templates.find((t) => t.id === templateId);
     if (!tpl) return [];
-    return tpl.days.map((d) => ({
+    const allDays = tpl.days.map((d) => ({
       dayName: d.dayName,
       blocks: d.blocks.map((b) => ({
         type: b.type as BlockType,
@@ -207,6 +285,24 @@ export function TrainingProgramEditor({
         content: b.content,
       })),
     }));
+    // Extract cardio from template and populate cardio state
+    const { trainingDays, cardio } = extractCardioFromDays(allDays);
+    if (cardio) {
+      setShowCardio(true);
+      setCardioModality(cardio.modality);
+      setCardioFrequency(cardio.frequency);
+      setCardioDuration(cardio.duration);
+      setCardioIntensity(cardio.intensity);
+      setCardioNotes(cardio.notes);
+    } else {
+      setShowCardio(false);
+      setCardioModality("");
+      setCardioFrequency("");
+      setCardioDuration("");
+      setCardioIntensity("");
+      setCardioNotes("");
+    }
+    return trainingDays;
   }
 
   async function handleSave() {
@@ -245,17 +341,16 @@ export function TrainingProgramEditor({
         setDays(payloadDays);
       }
 
-      let id = programId;
-      if (!id) {
-        const result = await saveTrainingProgram(buildPayload(payloadDays));
-        if ("error" in result) {
-          setError("Failed to save before publishing.");
-          setPublishing(false);
-          return;
-        }
-        id = result.programId;
-        setProgramId(id);
+      // Always save the latest data (including cardio) before publishing
+      const result = await saveTrainingProgram(buildPayload(payloadDays));
+      if ("error" in result) {
+        setError("Failed to save before publishing.");
+        setPublishing(false);
+        return;
       }
+      const id = result.programId;
+      setProgramId(id);
+
       await publishTrainingProgram({ programId: id });
       setStatus("PUBLISHED");
       setMode("edit");
@@ -348,11 +443,10 @@ export function TrainingProgramEditor({
                       type="button"
                       onClick={() => setSelectedTemplateId(t.id)}
                       aria-pressed={isSelected}
-                      className={`w-full px-5 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-500 ${
-                        isSelected
-                          ? "bg-zinc-50 dark:bg-zinc-900/50"
-                          : "hover:bg-zinc-50/60 dark:hover:bg-zinc-900/30"
-                      }`}
+                      className={`w-full px-5 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-500 ${isSelected
+                        ? "bg-zinc-50 dark:bg-zinc-900/50"
+                        : "hover:bg-zinc-50/60 dark:hover:bg-zinc-900/30"
+                        }`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="truncate text-sm font-semibold">{t.name}</span>
@@ -479,11 +573,10 @@ export function TrainingProgramEditor({
           {status && (
             <span
               aria-live="polite"
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                status === "PUBLISHED"
-                  ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                  : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
-              }`}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${status === "PUBLISHED"
+                ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+                }`}
             >
               {status === "PUBLISHED" ? "Published" : "Draft"}
             </span>
@@ -498,22 +591,20 @@ export function TrainingProgramEditor({
             <button
               type="button"
               onClick={() => setViewMode("editor")}
-              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
-                viewMode === "editor"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              }`}
+              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "editor"
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                }`}
             >
               Editor
             </button>
             <button
               type="button"
               onClick={() => setViewMode("preview")}
-              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
-                viewMode === "preview"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              }`}
+              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "preview"
+                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                }`}
             >
               Preview
             </button>
@@ -527,6 +618,23 @@ export function TrainingProgramEditor({
               Change Template
             </button>
           )}
+          {/* Top save/publish */}
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving || publishing}
+            className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={handlePublish}
+            disabled={saving || publishing}
+            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          >
+            {publishing ? "Publishing…" : status === "PUBLISHED" ? "Republish" : "Publish"}
+          </button>
         </div>
       </div>
 
@@ -538,47 +646,156 @@ export function TrainingProgramEditor({
           clientNotes={clientNotes}
         />
       ) : (
-        /* Editor mode */
-        <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
-          <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              Training Days
-            </h3>
+        <>
+          {/* Cardio section — collapsible */}
+          {!showCardio ? (
             <button
               type="button"
-              onClick={addDay}
-              className="rounded-lg px-3 py-2 text-xs font-semibold text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              onClick={() => setShowCardio(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-green-300 py-4 text-sm font-semibold text-green-700 transition-colors hover:border-green-400 hover:bg-green-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-green-800 dark:text-green-400 dark:hover:border-green-700 dark:hover:bg-green-900/20"
             >
-              + Add Day
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Cardio
             </button>
-          </div>
-
-          <div className="divide-y divide-zinc-100/80 dark:divide-zinc-800/60">
-            {days.length === 0 ? (
-              <div className="px-5 py-12 text-center">
-                <p className="text-sm text-zinc-400">No training days yet.</p>
+          ) : (
+            <div className="rounded-2xl border-2 border-green-200 bg-white dark:border-green-900/60 dark:bg-[#121215]">
+              <div className="flex items-center justify-between border-b border-green-100 px-5 py-3 dark:border-green-900/40">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">
+                  Cardio Prescription
+                </h3>
                 <button
                   type="button"
-                  onClick={addDay}
-                  className="mt-3 text-sm font-semibold text-zinc-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:text-zinc-100"
+                  onClick={() => {
+                    setShowCardio(false);
+                    setCardioModality("");
+                    setCardioFrequency("");
+                    setCardioDuration("");
+                    setCardioIntensity("");
+                    setCardioNotes("");
+                  }}
+                  className="rounded-lg px-2 py-1 text-[11px] font-semibold text-red-500 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:hover:bg-red-900/20"
                 >
-                  Add a day to start
+                  Remove
                 </button>
               </div>
-            ) : (
-              days.map((day, i) => (
-                <TrainingDayCard
-                  key={i}
-                  day={day}
-                  index={i}
-                  onChange={(updated) => updateDay(i, updated)}
-                  onRemove={() => removeDay(i)}
-                />
-              ))
-            )}
+              <div className="px-5 py-4 space-y-3">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cardio-modality" className="text-xs font-semibold text-zinc-500">
+                      Type / Machine
+                    </label>
+                    <input
+                      id="cardio-modality"
+                      type="text"
+                      value={cardioModality}
+                      onChange={(e) => setCardioModality(e.target.value)}
+                      placeholder="e.g. Stairmaster, Incline walk"
+                      className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cardio-frequency" className="text-xs font-semibold text-zinc-500">
+                      Frequency
+                    </label>
+                    <input
+                      id="cardio-frequency"
+                      type="text"
+                      value={cardioFrequency}
+                      onChange={(e) => setCardioFrequency(e.target.value)}
+                      placeholder="e.g. 5 days/week"
+                      className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cardio-duration" className="text-xs font-semibold text-zinc-500">
+                      Duration
+                    </label>
+                    <input
+                      id="cardio-duration"
+                      type="text"
+                      value={cardioDuration}
+                      onChange={(e) => setCardioDuration(e.target.value)}
+                      placeholder="e.g. 30 min"
+                      className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label htmlFor="cardio-intensity" className="text-xs font-semibold text-zinc-500">
+                      Intensity
+                    </label>
+                    <input
+                      id="cardio-intensity"
+                      type="text"
+                      value={cardioIntensity}
+                      onChange={(e) => setCardioIntensity(e.target.value)}
+                      placeholder="e.g. Level 5, Zone 2"
+                      className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="cardio-notes" className="text-xs font-semibold text-zinc-500">
+                    Notes
+                  </label>
+                  <textarea
+                    id="cardio-notes"
+                    value={cardioNotes}
+                    onChange={(e) => setCardioNotes(e.target.value)}
+                    placeholder="Any additional cardio instructions"
+                    rows={2}
+                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Training Days */}
+          <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
+            <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Training Days
+              </h3>
+              <button
+                type="button"
+                onClick={addDay}
+                className="rounded-lg px-3 py-2 text-xs font-semibold text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+              >
+                + Add Day
+              </button>
+            </div>
+
+            <div className="divide-y divide-zinc-100/80 dark:divide-zinc-800/60">
+              {days.length === 0 ? (
+                <div className="px-5 py-12 text-center">
+                  <p className="text-sm text-zinc-400">No training days yet.</p>
+                  <button
+                    type="button"
+                    onClick={addDay}
+                    className="mt-3 text-sm font-semibold text-zinc-900 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:text-zinc-100"
+                  >
+                    Add a day to start
+                  </button>
+                </div>
+              ) : (
+                days.map((day, i) => (
+                  <TrainingDayCard
+                    key={i}
+                    day={day}
+                    index={i}
+                    onChange={(updated) => updateDay(i, updated)}
+                    onRemove={() => removeDay(i)}
+                  />
+                ))
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
+
+
 
       {/* Actions */}
       {error && (

@@ -39,15 +39,59 @@ const BLOCK_TYPE_BADGE: Record<BlockType, string> = {
   OPTIONAL: "bg-zinc-50 text-zinc-500 dark:bg-zinc-800/60 dark:text-zinc-400",
 };
 
+// Cardio is stored as a special day named "__CARDIO__" in the template
+const CARDIO_DAY_NAME = "__CARDIO__";
+
+function extractCardioDayFromDays(days: TrainingDayGroup[]) {
+  const cardioDay = days.find((d) => d.dayName === CARDIO_DAY_NAME);
+  const trainingDays = days.filter((d) => d.dayName !== CARDIO_DAY_NAME);
+
+  if (cardioDay && cardioDay.blocks.length > 0) {
+    const b = cardioDay.blocks[0];
+    // Parse "modality|frequency|duration|intensity" from title, notes from content
+    const parts = b.title.split("|");
+    return {
+      trainingDays,
+      cardio: {
+        modality: parts[0] ?? "",
+        frequency: parts[1] ?? "",
+        duration: parts[2] ?? "",
+        intensity: parts[3] ?? "",
+        notes: b.content,
+      },
+    };
+  }
+  return { trainingDays, cardio: null };
+}
+
+function buildCardioDayBlock(cardio: {
+  modality: string;
+  frequency: string;
+  duration: string;
+  intensity: string;
+  notes: string;
+}): TrainingDayGroup {
+  return {
+    dayName: CARDIO_DAY_NAME,
+    blocks: [
+      {
+        type: "CARDIO" as BlockType,
+        title: `${cardio.modality}|${cardio.frequency}|${cardio.duration}|${cardio.intensity}`,
+        content: cardio.notes,
+      },
+    ],
+  };
+}
+
 export function TemplateEditor({
   initialTemplate,
 }: {
   initialTemplate: InitialTemplate;
 }) {
   const router = useRouter();
-  const [name, setName] = useState(initialTemplate.name);
-  const [description, setDescription] = useState(initialTemplate.description ?? "");
-  const [days, setDays] = useState<TrainingDayGroup[]>(
+
+  // Separate cardio from regular training days on load
+  const extracted = extractCardioDayFromDays(
     initialTemplate.days.map((d) => ({
       dayName: d.dayName,
       blocks: d.blocks.map((b) => ({
@@ -57,10 +101,22 @@ export function TemplateEditor({
       })),
     }))
   );
+
+  const [name, setName] = useState(initialTemplate.name);
+  const [description, setDescription] = useState(initialTemplate.description ?? "");
+  const [days, setDays] = useState<TrainingDayGroup[]>(extracted.trainingDays);
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Cardio section
+  const [showCardio, setShowCardio] = useState(!!extracted.cardio);
+  const [cardioModality, setCardioModality] = useState(extracted.cardio?.modality ?? "");
+  const [cardioFrequency, setCardioFrequency] = useState(extracted.cardio?.frequency ?? "");
+  const [cardioDuration, setCardioDuration] = useState(extracted.cardio?.duration ?? "");
+  const [cardioIntensity, setCardioIntensity] = useState(extracted.cardio?.intensity ?? "");
+  const [cardioNotes, setCardioNotes] = useState(extracted.cardio?.notes ?? "");
 
   function addDay() {
     setDays((prev) => [...prev, { dayName: "", blocks: [] }]);
@@ -72,6 +128,24 @@ export function TemplateEditor({
 
   function updateDay(index: number, updated: TrainingDayGroup) {
     setDays((prev) => prev.map((d, i) => (i === index ? updated : d)));
+  }
+
+  function getDaysPayload(): TrainingDayGroup[] {
+    const allDays = [...days];
+    // Append cardio as a special hidden day if filled
+    const hasCardioData = cardioModality || cardioFrequency || cardioDuration || cardioIntensity || cardioNotes;
+    if (showCardio && hasCardioData) {
+      allDays.push(
+        buildCardioDayBlock({
+          modality: cardioModality,
+          frequency: cardioFrequency,
+          duration: cardioDuration,
+          intensity: cardioIntensity,
+          notes: cardioNotes,
+        })
+      );
+    }
+    return allDays;
   }
 
   async function handleSave() {
@@ -86,7 +160,7 @@ export function TemplateEditor({
         templateId: initialTemplate.id,
         name: name.trim(),
         description: description.trim() || undefined,
-        days,
+        days: getDaysPayload(),
       });
       if ("error" in result) {
         setError("Save failed — check your inputs.");
@@ -114,7 +188,7 @@ export function TemplateEditor({
 
   return (
     <div className="space-y-5">
-      {/* Template metadata */}
+      {/* Template metadata + top save */}
       <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
         <div className="space-y-3">
           <div className="flex flex-col gap-1.5">
@@ -144,8 +218,131 @@ export function TemplateEditor({
               className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700"
             />
           </div>
+          {/* Top save bar */}
+          <div className="flex items-center justify-end gap-3 pt-1">
+            {error && (
+              <p className="text-xs font-medium text-red-500" role="alert">
+                {error}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving || deleting}
+              className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            >
+              {saving ? "Saving…" : "Save template"}
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* Cardio section — collapsible */}
+      {viewMode === "editor" && (
+        !showCardio ? (
+          <button
+            type="button"
+            onClick={() => setShowCardio(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-green-300 py-4 text-sm font-semibold text-green-700 transition-colors hover:border-green-400 hover:bg-green-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-green-800 dark:text-green-400 dark:hover:border-green-700 dark:hover:bg-green-900/20"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Cardio
+          </button>
+        ) : (
+          <div className="rounded-2xl border-2 border-green-200 bg-white dark:border-green-900/60 dark:bg-[#121215]">
+            <div className="flex items-center justify-between border-b border-green-100 px-5 py-3 dark:border-green-900/40">
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">
+                Cardio Prescription
+              </h3>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCardio(false);
+                  setCardioModality("");
+                  setCardioFrequency("");
+                  setCardioDuration("");
+                  setCardioIntensity("");
+                  setCardioNotes("");
+                }}
+                className="rounded-lg px-2 py-1 text-[11px] font-semibold text-red-500 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:hover:bg-red-900/20"
+              >
+                Remove
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="cardio-modality" className="text-xs font-semibold text-zinc-500">
+                    Type / Machine
+                  </label>
+                  <input
+                    id="cardio-modality"
+                    type="text"
+                    value={cardioModality}
+                    onChange={(e) => setCardioModality(e.target.value)}
+                    placeholder="e.g. Stairmaster, Incline walk"
+                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="cardio-frequency" className="text-xs font-semibold text-zinc-500">
+                    Frequency
+                  </label>
+                  <input
+                    id="cardio-frequency"
+                    type="text"
+                    value={cardioFrequency}
+                    onChange={(e) => setCardioFrequency(e.target.value)}
+                    placeholder="e.g. 5 days/week"
+                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="cardio-duration" className="text-xs font-semibold text-zinc-500">
+                    Duration
+                  </label>
+                  <input
+                    id="cardio-duration"
+                    type="text"
+                    value={cardioDuration}
+                    onChange={(e) => setCardioDuration(e.target.value)}
+                    placeholder="e.g. 30 min"
+                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="cardio-intensity" className="text-xs font-semibold text-zinc-500">
+                    Intensity
+                  </label>
+                  <input
+                    id="cardio-intensity"
+                    type="text"
+                    value={cardioIntensity}
+                    onChange={(e) => setCardioIntensity(e.target.value)}
+                    placeholder="e.g. Level 5, Zone 2"
+                    className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="cardio-notes" className="text-xs font-semibold text-zinc-500">
+                  Notes
+                </label>
+                <textarea
+                  id="cardio-notes"
+                  value={cardioNotes}
+                  onChange={(e) => setCardioNotes(e.target.value)}
+                  placeholder="Any additional cardio instructions"
+                  rows={2}
+                  className="rounded-lg border border-zinc-200 bg-transparent px-3 py-2 text-sm placeholder-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 dark:border-zinc-700"
+                />
+              </div>
+            </div>
+          </div>
+        )
+      )}
 
       {/* Training days */}
       <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
@@ -157,22 +354,20 @@ export function TemplateEditor({
               <button
                 type="button"
                 onClick={() => setViewMode("editor")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
-                  viewMode === "editor"
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                }`}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "editor"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  }`}
               >
                 Editor
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode("preview")}
-                className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
-                  viewMode === "preview"
-                    ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                    : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                }`}
+                className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "preview"
+                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  }`}
               >
                 Preview
               </button>

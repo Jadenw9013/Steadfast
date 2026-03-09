@@ -32,7 +32,11 @@ const saveSchema = z.object({
 
 export async function saveTrainingProgram(input: unknown) {
   const parsed = saveSchema.safeParse(input);
-  if (!parsed.success) return { error: parsed.error.flatten().fieldErrors };
+  if (!parsed.success) {
+    console.error("[saveTrainingProgram] Zod error:", JSON.stringify(parsed.error.flatten().fieldErrors));
+    return { error: parsed.error.flatten().fieldErrors };
+  }
+  console.log("[saveTrainingProgram] days count:", parsed.data.days.length, "names:", parsed.data.days.map(d => d.dayName));
 
   const {
     clientId,
@@ -49,7 +53,8 @@ export async function saveTrainingProgram(input: unknown) {
   const weekOf = parseWeekStartDate(weekStartDate);
 
   const existing = await db.trainingProgram.findFirst({
-    where: { clientId, weekOf, status: "DRAFT" },
+    where: { clientId, weekOf },
+    orderBy: { updatedAt: "desc" },
     select: { id: true },
   });
 
@@ -59,6 +64,7 @@ export async function saveTrainingProgram(input: unknown) {
     await db.trainingProgram.update({
       where: { id: programId },
       data: {
+        status: "DRAFT",
         weeklyFrequency: weeklyFrequency ?? null,
         clientNotes: clientNotes ?? null,
         injuries: injuries ?? null,
@@ -122,7 +128,6 @@ export async function publishTrainingProgram(input: unknown) {
     select: { clientId: true, status: true },
   });
   if (!program) throw new Error("Training program not found");
-  if (program.status !== "DRAFT") throw new Error("Can only publish drafts");
 
   await verifyCoachAccessToClient(program.clientId);
 

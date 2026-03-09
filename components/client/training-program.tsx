@@ -101,7 +101,46 @@ export function TrainingProgram({ program }: { program: TrainingProgramData }) {
         </div>
       )}
 
-      {program.days.map((day, dayIndex) => {
+      {/* Cardio section — extracted from __CARDIO__ day */}
+      {(() => {
+        const CARDIO_DAY_NAME = "__CARDIO__";
+        const cardioDay = program.days.find((d) => d.dayName === CARDIO_DAY_NAME);
+        if (!cardioDay || cardioDay.blocks.length === 0) return null;
+        const b = cardioDay.blocks[0];
+        const parts = b.title.split("|");
+        const modality = parts[0] ?? "";
+        const frequency = parts[1] ?? "";
+        const duration = parts[2] ?? "";
+        const intensity = parts[3] ?? "";
+        const notes = b.content;
+        const hasData = modality || frequency || duration || intensity || notes;
+        if (!hasData) return null;
+
+        const details = [frequency, duration, intensity].filter(Boolean).join(" \u00b7 ");
+
+        return (
+          <div className="rounded-2xl border border-green-200/60 bg-white shadow-sm dark:border-green-900/40 dark:bg-[#121215] dark:shadow-none">
+            <div className="flex items-center gap-2 border-b border-green-100 px-5 py-3 dark:border-green-900/30">
+              <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                Cardio
+              </span>
+              {modality && (
+                <h3 className="text-sm font-semibold">{modality}</h3>
+              )}
+            </div>
+            <div className="px-5 py-3.5 space-y-1">
+              {details && (
+                <p className="text-sm text-gray-600 dark:text-zinc-400">{details}</p>
+              )}
+              {notes && (
+                <p className="text-xs italic text-gray-400 dark:text-zinc-500">{notes}</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {program.days.filter((d) => d.dayName !== "__CARDIO__").map((day, dayIndex) => {
         // Count actual exercises (not instruction blocks)
         const exerciseCount = day.blocks.filter(
           (b) => EXERCISE_TYPES.has(b.type) || (!BLOCK_TYPE_LABELS[b.type] && b.title)
@@ -244,6 +283,7 @@ export function TrainingProgram({ program }: { program: TrainingProgramData }) {
           </details>
         );
       })}
+
 
       {program.publishedAt && (
         <p className="text-xs text-gray-400 dark:text-zinc-500">

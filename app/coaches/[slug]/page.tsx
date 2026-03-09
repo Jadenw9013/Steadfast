@@ -134,7 +134,7 @@ export default async function CoachProfilePage({ params }: PageProps) {
 
             <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8" id="main-content">
                 {/* ── Banner + Avatar ── */}
-                <div className="relative mb-16">
+                <div className="relative mb-20">
                     {/* Banner */}
                     <div className="h-40 w-full overflow-hidden rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-900 sm:h-52">
                         {bannerUrl && (
@@ -148,15 +148,15 @@ export default async function CoachProfilePage({ params }: PageProps) {
                             />
                         )}
                     </div>
-                    {/* Avatar */}
-                    <div className="absolute -bottom-12 left-6 sm:left-8">
-                        <div className="h-24 w-24 overflow-hidden rounded-full border-4 border-zinc-50 bg-zinc-100 shadow-lg dark:border-[#09090b] dark:bg-zinc-800">
+                    {/* Avatar — anchored to bottom-left of banner */}
+                    <div className="absolute -bottom-14 left-6 sm:left-8">
+                        <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-zinc-50 bg-zinc-100 shadow-lg dark:border-[#09090b] dark:bg-zinc-800">
                             {avatarUrl ? (
                                 <Image
                                     src={avatarUrl}
                                     alt={`${profile.user.firstName} ${profile.user.lastName}`}
-                                    width={96}
-                                    height={96}
+                                    width={112}
+                                    height={112}
                                     className="h-full w-full object-cover"
                                 />
                             ) : (
