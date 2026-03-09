@@ -2,9 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   verifyCoachAccessToClient,
-  getCheckInByClientAndWeek,
   getPreviousBodyweight,
 } from "@/lib/queries/check-ins";
+import { getCheckInsForWeekAuthorized } from "@/lib/security/media-access";
 import { getMessages } from "@/lib/queries/messages";
 import { getEffectiveMealPlanForReview } from "@/lib/queries/meal-plans";
 import { getFoodLibrary } from "@/lib/queries/food-library";
@@ -38,8 +38,9 @@ export default async function ReviewWorkspacePage({
     notFound();
   }
 
-  // Check-in may be null for new clients
-  const checkIn = await getCheckInByClientAndWeek(clientId, weekOf);
+  // Authorized check-in fetch — verifies coach assignment + generates signed URLs
+  const authorizedCheckIns = await getCheckInsForWeekAuthorized(clientId, weekOf);
+  const checkIn = authorizedCheckIns[0] ?? null;
 
   // If no check-in, fetch client record separately for header info
   const client = checkIn
@@ -153,22 +154,22 @@ export default async function ReviewWorkspacePage({
         initialProgram={
           trainingData.program
             ? {
-                id: trainingData.program.id,
-                status: trainingData.program.status,
-                templateSourceId: trainingData.program.templateSourceId,
-                weeklyFrequency: trainingData.program.weeklyFrequency,
-                clientNotes: trainingData.program.clientNotes,
-                injuries: trainingData.program.injuries,
-                equipment: trainingData.program.equipment,
-                days: trainingData.program.days.map((d) => ({
-                  dayName: d.dayName,
-                  blocks: d.blocks.map((b) => ({
-                    type: b.type,
-                    title: b.title,
-                    content: b.content,
-                  })),
+              id: trainingData.program.id,
+              status: trainingData.program.status,
+              templateSourceId: trainingData.program.templateSourceId,
+              weeklyFrequency: trainingData.program.weeklyFrequency,
+              clientNotes: trainingData.program.clientNotes,
+              injuries: trainingData.program.injuries,
+              equipment: trainingData.program.equipment,
+              days: trainingData.program.days.map((d) => ({
+                dayName: d.dayName,
+                blocks: d.blocks.map((b) => ({
+                  type: b.type,
+                  title: b.title,
+                  content: b.content,
                 })),
-              }
+              })),
+            }
             : null
         }
       />

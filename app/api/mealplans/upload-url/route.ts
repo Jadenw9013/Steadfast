@@ -2,10 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
 import { createMealPlanUploadUrl } from "@/lib/supabase/meal-plan-storage";
 import { validateUploadFile } from "@/lib/validations/meal-plan-import";
+import { rateLimitOrReject } from "@/lib/security/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
+    const blocked = await rateLimitOrReject("mealplan-upload");
+    if (blocked) return blocked;
+
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

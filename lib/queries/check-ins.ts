@@ -1,7 +1,11 @@
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
-import { getSignedDownloadUrl } from "@/lib/supabase/storage";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
+
+// ⚠️  SECURITY NOTE: Signed download URL generation has been removed from all
+// query functions in this file. All photo URL signing MUST go through
+// lib/security/media-access.ts which enforces authorization
+// (client→own, coach→assigned) before generating URLs.
 
 export async function getClientCheckIns(clientId: string) {
   return db.checkIn.findMany({
@@ -78,28 +82,6 @@ export async function getLatestCoachMessage(clientId: string) {
     orderBy: { createdAt: "desc" },
     select: { body: true, createdAt: true, weekOf: true },
   });
-}
-
-export async function getCheckInById(checkInId: string) {
-  const checkIn = await db.checkIn.findUnique({
-    where: { id: checkInId },
-    include: {
-      client: true,
-      photos: { orderBy: { sortOrder: "asc" } },
-    },
-  });
-
-  if (!checkIn || checkIn.deletedAt) return null;
-
-  // Generate signed download URLs for photos
-  const photosWithUrls = await Promise.all(
-    checkIn.photos.map(async (photo) => ({
-      ...photo,
-      url: await getSignedDownloadUrl(photo.storagePath),
-    }))
-  );
-
-  return { ...checkIn, photos: photosWithUrls };
 }
 
 export async function getCoachClients(coachId: string) {
@@ -194,60 +176,6 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
       submittedAt: latestCheckIn?.submittedAt ?? null,
     };
   });
-}
-
-export async function getCheckInByClientAndWeek(
-  clientId: string,
-  weekOf: Date
-) {
-  const checkIn = await db.checkIn.findFirst({
-    where: {
-      clientId,
-      weekOf,
-      deletedAt: null,
-      isPrimary: true,
-    },
-    include: {
-      client: true,
-      photos: { orderBy: { sortOrder: "asc" } },
-    },
-  });
-
-  if (!checkIn) return null;
-
-  const photosWithUrls = await Promise.all(
-    checkIn.photos.map(async (photo) => ({
-      ...photo,
-      url: await getSignedDownloadUrl(photo.storagePath),
-    }))
-  );
-
-  return { ...checkIn, photos: photosWithUrls };
-}
-
-export async function getCheckInsByClientAndWeek(
-  clientId: string,
-  weekOf: Date
-) {
-  const checkIns = await db.checkIn.findMany({
-    where: { clientId, weekOf, deletedAt: null },
-    orderBy: [{ isPrimary: "desc" }, { createdAt: "asc" }],
-    include: {
-      photos: { orderBy: { sortOrder: "asc" } },
-    },
-  });
-
-  return Promise.all(
-    checkIns.map(async (checkIn) => ({
-      ...checkIn,
-      photos: await Promise.all(
-        checkIn.photos.map(async (photo) => ({
-          ...photo,
-          url: await getSignedDownloadUrl(photo.storagePath),
-        }))
-      ),
-    }))
-  );
 }
 
 export async function verifyCoachAccessToClient(clientId: string) {
