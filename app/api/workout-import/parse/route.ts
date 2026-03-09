@@ -3,12 +3,16 @@ import { db, prismaErrorMessage } from "@/lib/db";
 import { downloadWorkoutFile } from "@/lib/supabase/workout-storage";
 import { extractText } from "@/lib/ocr/google-vision";
 import { parseWorkoutPlanTextToJson } from "@/lib/llm/parse-workout-plan";
+import { rateLimitOrReject } from "@/lib/security/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
+    const blocked = await rateLimitOrReject("workout-parse");
+    if (blocked) return blocked;
+
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -56,11 +60,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "needs_review" });
     } catch (parseError) {
       const message = parseError instanceof Error ? parseError.message : "Unknown error";
+      console.error("[workout-parse] Processing failed:", message);
       await db.workoutImport.update({
         where: { id: importId },
         data: { status: "FAILED", errorMessage: message },
       });
-      return NextResponse.json({ status: "failed", error: message }, { status: 500 });
+      return NextResponse.json(
+        { status: "failed", error: "Processing failed. Please try again or upload a different file." },
+        { status: 500 }
+      );
     }
   } catch (error) {
     const { message, status } = prismaErrorMessage(error);

@@ -2,10 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
 import { createWorkoutUploadUrl } from "@/lib/supabase/workout-storage";
 import { validateWorkoutUploadFile } from "@/lib/validations/workout-import";
+import { rateLimitOrReject } from "@/lib/security/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
+    const blocked = await rateLimitOrReject("workout-upload");
+    if (blocked) return blocked;
+
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 

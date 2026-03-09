@@ -18,13 +18,6 @@ export async function createMealPlanUploadUrl(
 ): Promise<{ signedUrl: string; token: string }> {
   const supabase = createServiceClient();
 
-  console.log("[meal-plan-storage] createSignedUploadUrl", {
-    bucket: BUCKET,
-    path: storagePath,
-    supabaseHost: process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/https?:\/\//, "").split(".")[0] ?? "unknown",
-    hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-  });
-
   const { data, error } = await supabase.storage
     .from(BUCKET)
     .createSignedUploadUrl(storagePath);
@@ -55,7 +48,7 @@ export async function getMealPlanFileUrl(
 
   const { data, error } = await supabase.storage
     .from(BUCKET)
-    .createSignedUrl(storagePath, 60 * 60); // 1hr TTL
+    .createSignedUrl(storagePath, 15 * 60); // 15 min TTL
 
   if (error || !data) {
     if (isBucketMissing(error?.message)) {

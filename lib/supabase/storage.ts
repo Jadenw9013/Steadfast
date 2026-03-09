@@ -43,6 +43,14 @@ export async function createSignedUploadUrls(
   return results;
 }
 
+/**
+ * Generate a short-lived signed download URL for a storage path.
+ *
+ * ⚠️  SECURITY: This function does NOT perform authorization checks.
+ * It must ONLY be called from lib/security/media-access.ts, which enforces
+ * ownership/assignment verification before generating URLs.
+ * Do NOT call this directly from pages, routes, or actions.
+ */
 export async function getSignedDownloadUrl(
   storagePath: string
 ): Promise<string> {
@@ -50,7 +58,7 @@ export async function getSignedDownloadUrl(
 
   const { data, error } = await supabase.storage
     .from(BUCKET)
-    .createSignedUrl(storagePath, 60 * 60); // 1 hour TTL
+    .createSignedUrl(storagePath, 15 * 60); // 15 min TTL — sensitive photos
 
   if (error || !data) {
     throw new Error(`Failed to get download URL: ${error?.message}`);
