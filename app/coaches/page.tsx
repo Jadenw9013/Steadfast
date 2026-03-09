@@ -4,6 +4,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { Footer } from "@/components/footer";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 export const metadata: Metadata = {
     title: "Find a Coach | Steadfast",
@@ -27,38 +28,41 @@ export default async function CoachesDirectoryPage() {
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b]">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/90 backdrop-blur-md dark:border-zinc-800/60 dark:bg-[#09090b]/90">
-                <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5 sm:px-8">
+            <header className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-950">
+                <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:px-8">
                     <Link
                         href="/"
-                        className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2"
+                        className="group flex items-center gap-2.5"
+                        aria-label="Steadfast home"
                     >
-                        <div className="relative h-8 w-8 sm:h-9 sm:w-9">
+                        <div className="relative h-7 w-7 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8">
                             <Image
                                 src="/brand/Steadfast_logo_pictoral.png"
-                                alt="Steadfast Logo"
+                                alt=""
                                 fill
                                 priority
-                                className="object-contain"
+                                className="object-contain brightness-0 dark:brightness-100"
                             />
                         </div>
-                        <span className="font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">Steadfast</span>
+                        <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] text-gray-900 dark:text-gray-100 sm:inline">Steadfast</span>
                     </Link>
                     <nav className="flex items-center gap-3">
+                        <ThemeToggle />
                         <Link
                             href="/sign-in"
-                            className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                            className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                         >
                             Sign In
                         </Link>
                         <Link
                             href="/sign-up"
-                            className="rounded-lg bg-zinc-900 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                            className="rounded-lg bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-gray-800 hover:shadow-sm active:scale-[0.97] dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
                         >
                             Get Started
                         </Link>
                     </nav>
                 </div>
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/60 to-transparent dark:via-gray-700/40" />
             </header>
 
             <main className="mx-auto max-w-5xl px-5 py-16 sm:px-8" id="main-content">

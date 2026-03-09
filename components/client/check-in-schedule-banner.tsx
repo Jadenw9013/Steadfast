@@ -101,7 +101,7 @@ export function CheckInScheduleBanner({
             Your coach left feedback
           </p>
           <p className="mt-0.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
-            {nextDueLabel || "Tap to view your reviewed check-in"}
+            {nextDueLabel || "Review your latest check-in"}
           </p>
         </div>
         {latestReviewedCheckInId && (

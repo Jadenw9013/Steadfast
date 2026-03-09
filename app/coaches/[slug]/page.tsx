@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Footer } from "@/components/footer";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
@@ -100,7 +101,7 @@ export default async function CoachProfilePage({ params }: PageProps) {
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b]">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 border-b border-gray-200/60 bg-white/70 backdrop-blur-2xl dark:border-white/[0.04] dark:bg-gray-950/60">
+            <header className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-950">
                 <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-5 sm:px-8">
                     <Link
                         href="/coaches"
@@ -108,23 +109,27 @@ export default async function CoachProfilePage({ params }: PageProps) {
                     >
                         ← Directory
                     </Link>
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2.5"
-                        aria-label="Steadfast home"
-                    >
-                        <div className="relative h-7 w-7 sm:h-8 sm:w-8">
-                            <Image
-                                src="/brand/Steadfast_logo_pictoral.png"
-                                alt=""
-                                fill
-                                priority
-                                className="object-contain brightness-0 dark:brightness-100"
-                            />
-                        </div>
-                        <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] sm:inline">Steadfast</span>
-                    </Link>
+                    <div className="flex items-center gap-3">
+                        <ThemeToggle />
+                        <Link
+                            href="/"
+                            className="group flex items-center gap-2.5"
+                            aria-label="Steadfast home"
+                        >
+                            <div className="relative h-7 w-7 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8">
+                                <Image
+                                    src="/brand/Steadfast_logo_pictoral.png"
+                                    alt=""
+                                    fill
+                                    priority
+                                    className="object-contain brightness-0 dark:brightness-100"
+                                />
+                            </div>
+                            <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] text-gray-900 dark:text-gray-100 sm:inline">Steadfast</span>
+                        </Link>
+                    </div>
                 </div>
+                <div className="h-px bg-gradient-to-r from-transparent via-gray-300/60 to-transparent dark:via-gray-700/40" />
             </header>
 
             <main className="mx-auto max-w-4xl px-5 py-8 sm:px-8" id="main-content">
@@ -320,7 +325,6 @@ export default async function CoachProfilePage({ params }: PageProps) {
                     </div>
                 </div>
             </main>
-            <Footer />
         </div>
     );
 }
