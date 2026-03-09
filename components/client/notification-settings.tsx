@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useMemo } from "react";
 import { updateNotificationPreferences } from "@/app/actions/notification-preferences";
+import { Toggle } from "@/components/ui/toggle";
 
 type Role = "CLIENT" | "COACH" | "BOTH";
 
@@ -61,6 +62,23 @@ export function NotificationSettings({
     setToast(msg);
     setTimeout(() => setToast(null), 2000);
   }
+
+  const hasUnsavedChanges = useMemo(() => {
+    return (
+      phoneNumber !== initialPhoneNumber ||
+      smsOptIn !== initialSmsOptIn ||
+      smsMealPlanUpdates !== initialSmsMealPlanUpdates ||
+      smsDailyCheckInReminder !== initialSmsDailyCheckInReminder ||
+      smsCoachMessages !== initialSmsCoachMessages ||
+      smsCheckInFeedback !== initialSmsCheckInFeedback ||
+      smsCheckInReminderTime !== initialSmsCheckInReminderTime ||
+      smsClientCheckIns !== initialSmsClientCheckIns ||
+      smsMissedCheckInAlerts !== initialSmsMissedCheckInAlerts ||
+      smsClientMessages !== initialSmsClientMessages ||
+      smsNewClientSignups !== initialSmsNewClientSignups ||
+      smsMissedCheckInAlertTime !== initialSmsMissedCheckInAlertTime
+    );
+  }, [phoneNumber, smsOptIn, smsMealPlanUpdates, smsDailyCheckInReminder, smsCoachMessages, smsCheckInFeedback, smsCheckInReminderTime, smsClientCheckIns, smsMissedCheckInAlerts, smsClientMessages, smsNewClientSignups, smsMissedCheckInAlertTime, initialPhoneNumber, initialSmsOptIn, initialSmsMealPlanUpdates, initialSmsDailyCheckInReminder, initialSmsCoachMessages, initialSmsCheckInFeedback, initialSmsCheckInReminderTime, initialSmsClientCheckIns, initialSmsMissedCheckInAlerts, initialSmsClientMessages, initialSmsNewClientSignups, initialSmsMissedCheckInAlertTime]);
 
   function handleSave() {
     setError(null);
@@ -135,20 +153,12 @@ export function NotificationSettings({
             Allow text messages to be sent to your phone number.
           </p>
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={smsOptIn}
+        <Toggle
+          checked={smsOptIn}
+          onChange={() => setSmsOptIn(!smsOptIn)}
+          label="Receive SMS Notifications"
           disabled={isPending || !phoneNumber}
-          onClick={() => setSmsOptIn(!smsOptIn)}
-          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsOptIn ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-            }`}
-        >
-          <span
-            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsOptIn ? "translate-x-5" : "translate-x-0"
-              }`}
-          />
-        </button>
+        />
       </div>
 
       {smsOptIn && phoneNumber && (
@@ -182,20 +192,12 @@ export function NotificationSettings({
                   Text me when my coach updates my meal plan.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={smsMealPlanUpdates}
+              <Toggle
+                checked={smsMealPlanUpdates}
+                onChange={() => setSmsMealPlanUpdates(!smsMealPlanUpdates)}
+                label="Meal Plan Updates"
                 disabled={isPending || !canToggleEvents}
-                onClick={() => setSmsMealPlanUpdates(!smsMealPlanUpdates)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsMealPlanUpdates ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                  }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsMealPlanUpdates ? "translate-x-5" : "translate-x-0"
-                    }`}
-                />
-              </button>
+              />
             </div>
 
             <div className="flex items-center justify-between gap-4">
@@ -216,20 +218,12 @@ export function NotificationSettings({
                   aria-label="Daily Check-in Reminder Time"
                   className="rounded border border-zinc-200 px-2 py-1 text-sm bg-white dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
                 />
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={smsDailyCheckInReminder}
+                <Toggle
+                  checked={smsDailyCheckInReminder}
+                  onChange={() => setSmsDailyCheckInReminder(!smsDailyCheckInReminder)}
+                  label="Daily Check-in Reminder"
                   disabled={isPending || !canToggleEvents}
-                  onClick={() => setSmsDailyCheckInReminder(!smsDailyCheckInReminder)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsDailyCheckInReminder ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                    }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsDailyCheckInReminder ? "translate-x-5" : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                />
               </div>
             </div>
 
@@ -242,20 +236,12 @@ export function NotificationSettings({
                   Text me when my coach sends a chat message.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={smsCoachMessages}
+              <Toggle
+                checked={smsCoachMessages}
+                onChange={() => setSmsCoachMessages(!smsCoachMessages)}
+                label="Coach Messages"
                 disabled={isPending || !canToggleEvents}
-                onClick={() => setSmsCoachMessages(!smsCoachMessages)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsCoachMessages ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                  }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsCoachMessages ? "translate-x-5" : "translate-x-0"
-                    }`}
-                />
-              </button>
+              />
             </div>
 
             <div className="flex items-center justify-between gap-4">
@@ -267,20 +253,12 @@ export function NotificationSettings({
                   Text me when my coach reviews my check-in.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={smsCheckInFeedback}
+              <Toggle
+                checked={smsCheckInFeedback}
+                onChange={() => setSmsCheckInFeedback(!smsCheckInFeedback)}
+                label="Check-in Feedback"
                 disabled={isPending || !canToggleEvents}
-                onClick={() => setSmsCheckInFeedback(!smsCheckInFeedback)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsCheckInFeedback ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                  }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsCheckInFeedback ? "translate-x-5" : "translate-x-0"
-                    }`}
-                />
-              </button>
+              />
             </div>
           </div>
         )}
@@ -301,20 +279,12 @@ export function NotificationSettings({
                   Text me when a client submits their check-in.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={smsClientCheckIns}
+              <Toggle
+                checked={smsClientCheckIns}
+                onChange={() => setSmsClientCheckIns(!smsClientCheckIns)}
+                label="Client Check-ins"
                 disabled={isPending || !canToggleEvents}
-                onClick={() => setSmsClientCheckIns(!smsClientCheckIns)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsClientCheckIns ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                  }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsClientCheckIns ? "translate-x-5" : "translate-x-0"
-                    }`}
-                />
-              </button>
+              />
             </div>
 
             <div className="flex items-center justify-between gap-4">
@@ -335,20 +305,12 @@ export function NotificationSettings({
                   aria-label="Missed Check-in Alert Time"
                   className="rounded border border-zinc-200 px-2 py-1 text-sm bg-white dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
                 />
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={smsMissedCheckInAlerts}
+                <Toggle
+                  checked={smsMissedCheckInAlerts}
+                  onChange={() => setSmsMissedCheckInAlerts(!smsMissedCheckInAlerts)}
+                  label="Missed Check-in Alerts"
                   disabled={isPending || !canToggleEvents}
-                  onClick={() => setSmsMissedCheckInAlerts(!smsMissedCheckInAlerts)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsMissedCheckInAlerts ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                    }`}
-                >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsMissedCheckInAlerts ? "translate-x-5" : "translate-x-0"
-                      }`}
-                  />
-                </button>
+                />
               </div>
             </div>
 
@@ -361,20 +323,12 @@ export function NotificationSettings({
                   Text me when a client sends a chat message.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={smsClientMessages}
+              <Toggle
+                checked={smsClientMessages}
+                onChange={() => setSmsClientMessages(!smsClientMessages)}
+                label="Client Messages"
                 disabled={isPending || !canToggleEvents}
-                onClick={() => setSmsClientMessages(!smsClientMessages)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsClientMessages ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                  }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsClientMessages ? "translate-x-5" : "translate-x-0"
-                    }`}
-                />
-              </button>
+              />
             </div>
 
             <div className="flex items-center justify-between gap-4">
@@ -386,40 +340,39 @@ export function NotificationSettings({
                   Text me when a new client joins my roster.
                 </p>
               </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={smsNewClientSignups}
+              <Toggle
+                checked={smsNewClientSignups}
+                onChange={() => setSmsNewClientSignups(!smsNewClientSignups)}
+                label="New Client Signups"
                 disabled={isPending || !canToggleEvents}
-                onClick={() => setSmsNewClientSignups(!smsNewClientSignups)}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 ${smsNewClientSignups ? "bg-zinc-900 dark:bg-zinc-100" : "bg-zinc-200 dark:bg-zinc-700"
-                  }`}
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform dark:bg-zinc-900 ${smsNewClientSignups ? "translate-x-5" : "translate-x-0"
-                    }`}
-                />
-              </button>
+              />
             </div>
           </div>
         )}
 
       </div>
 
-      <div className="flex items-center justify-between pt-4">
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={handleSave}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 whitespace-nowrap"
-        >
-          {isPending ? "Saving..." : "Save Preferences"}
-        </button>
-        {toast && (
-          <p className="text-xs font-medium text-green-600 dark:text-green-400" role="alert">
-            {toast}
+      <div className="flex items-center justify-between gap-3 pt-4">
+        {hasUnsavedChanges && (
+          <p className="text-xs font-medium text-amber-600 dark:text-amber-400" role="status">
+            Unsaved changes
           </p>
         )}
+        <div className="ml-auto flex items-center gap-3">
+          {toast && (
+            <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400" role="alert">
+              {toast}
+            </p>
+          )}
+          <button
+            type="button"
+            disabled={isPending || !hasUnsavedChanges}
+            onClick={handleSave}
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 whitespace-nowrap"
+          >
+            {isPending ? "Saving..." : "Save Preferences"}
+          </button>
+        </div>
       </div>
     </div>
   );

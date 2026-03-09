@@ -67,14 +67,17 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
               tabIndex={activeFilter === f.key ? 0 : -1}
               onClick={() => setActiveFilter(f.key)}
               onKeyDown={(e) => handleKeyDown(e, i)}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
-                activeFilter === f.key
+              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${activeFilter === f.key
                   ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              }`}
+                }`}
             >
               {f.label}
-              <span className="ml-1.5 inline-block min-w-[1.25rem] rounded-md bg-zinc-200/60 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums dark:bg-zinc-700/60">
+              <span className={`ml-1.5 inline-block min-w-[1.25rem] rounded-md px-1.5 py-0.5 text-[11px] font-semibold tabular-nums ${f.key === "new" ? "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400"
+                  : f.key === "reviewed" ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                    : f.key === "missing" ? "bg-zinc-200/60 text-zinc-500 dark:bg-zinc-700/60 dark:text-zinc-400"
+                      : "bg-zinc-200/60 dark:bg-zinc-700/60"
+                }`}>
                 {count}
               </span>
             </button>

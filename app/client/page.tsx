@@ -5,8 +5,10 @@ import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { formatDateUTC, getLocalDate } from "@/lib/utils/date";
 import { getWeightHistory } from "@/lib/queries/weight-history";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
+import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 import { db } from "@/lib/db";
 import Link from "next/link";
+import Image from "next/image";
 import { ConnectCoachBanner } from "@/components/client/connect-coach-banner";
 import { BecomeCoachForm } from "@/components/client/become-coach-form";
 import { DeleteCheckInButton } from "@/components/client/delete-check-in-button";
@@ -33,7 +35,8 @@ export default async function ClientDashboard() {
           email: true,
           checkInDaysOfWeek: true,
           cadenceConfig: true,
-          coachProfile: { select: { welcomeMessage: true } },
+          coachProfile: { select: { welcomeMessage: true, slug: true, isPublished: true, bannerPhotoPath: true } },
+          profilePhotoPath: true,
         },
       },
     },
@@ -104,6 +107,21 @@ export default async function ClientDashboard() {
       ? +(latestWeight.weight - prevWeight.weight).toFixed(1)
       : null;
 
+  // Resolve coach banner/avatar URLs
+  let coachBannerUrl: string | null = null;
+  let coachAvatarUrl: string | null = null;
+  if (coachAssignment) {
+    const bannerPath = coachAssignment.coach.coachProfile?.bannerPhotoPath;
+    const avatarPath = coachAssignment.coach.profilePhotoPath;
+    if (bannerPath) {
+      try { coachBannerUrl = await getProfilePhotoUrl(bannerPath); } catch { /* */ }
+    }
+    if (avatarPath) {
+      try { coachAvatarUrl = await getProfilePhotoUrl(avatarPath); } catch { /* */ }
+    }
+  }
+  const coachInitial = coachAssignment?.coach.firstName?.[0] ?? "C";
+
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -112,16 +130,29 @@ export default async function ClientDashboard() {
           <h1 className="text-3xl font-semibold tracking-tight">
             {user.firstName ? `${user.firstName}\u2019s Week` : "Your Week"}
           </h1>
-          {coachAssignment && (
-            <div className="flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 dark:border-zinc-800 dark:bg-[#121215]">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 text-[11px] font-bold dark:bg-zinc-800">
-                {coachAssignment.coach.firstName?.[0] ?? "C"}
+          {coachAssignment && (() => {
+            const slug = coachAssignment.coach.coachProfile?.slug;
+            const isPublished = coachAssignment.coach.coachProfile?.isPublished;
+            const badge = (
+              <div className={`flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 dark:border-zinc-800 dark:bg-[#121215] ${slug && isPublished ? "transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/80" : ""}`}>
+                <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  {coachAvatarUrl ? (
+                    <Image src={coachAvatarUrl} alt="" width={24} height={24} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-zinc-500">
+                      {coachInitial}
+                    </div>
+                  )}
+                </div>
+                <span className="text-xs font-medium text-zinc-500">
+                  Coach {coachAssignment.coach.firstName}
+                </span>
               </div>
-              <span className="text-xs font-medium text-zinc-500">
-                Coach {coachAssignment.coach.firstName}
-              </span>
-            </div>
-          )}
+            );
+            return slug && isPublished ? (
+              <Link href={`/coaches/${slug}`}>{badge}</Link>
+            ) : badge;
+          })()}
         </div>
         <p className="mt-1.5 text-sm text-zinc-500">
           {todayLabel}
@@ -131,19 +162,7 @@ export default async function ClientDashboard() {
         </p>
       </section>
 
-      {/* Coach Welcome Message */}
-      {coachAssignment?.coach.coachProfile?.welcomeMessage && (
-        <section className="animate-fade-in">
-          <div className="rounded-2xl border border-blue-200/60 bg-blue-50/50 px-5 py-4 dark:border-blue-900/40 dark:bg-blue-950/20">
-            <p className="text-sm leading-relaxed text-blue-900 dark:text-blue-200">
-              {coachAssignment.coach.coachProfile.welcomeMessage}
-            </p>
-            <p className="mt-2 text-xs font-medium text-blue-600/70 dark:text-blue-400/60">
-              — Coach {coachAssignment.coach.firstName}
-            </p>
-          </div>
-        </section>
-      )}
+
 
       {/* Coach connection (only if no coach) */}
       {!coachAssignment && <ConnectCoachBanner />}
@@ -155,6 +174,7 @@ export default async function ClientDashboard() {
             cadenceStatus={cadenceResult.status}
             statusLabel={cadenceResult.label}
             nextDueLabel={nextDueLabel}
+            latestReviewedCheckInId={latestCheckIn?.status === "REVIEWED" ? latestCheckIn.id : undefined}
           />
         </div>
       )}
@@ -258,6 +278,9 @@ export default async function ClientDashboard() {
                 <p className="text-sm font-semibold">
                   {mealPlan.items.length} item{mealPlan.items.length !== 1 ? "s" : ""}
                 </p>
+                {mealPlan.items[0] && (
+                  <p className="text-xs text-zinc-400 truncate">{mealPlan.items[0].foodName}</p>
+                )}
                 <span className="mt-auto text-xs font-medium text-zinc-400 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
                   View &rarr;
                 </span>
@@ -283,6 +306,9 @@ export default async function ClientDashboard() {
                   {trainingProgram.days.length} day
                   {trainingProgram.days.length !== 1 ? "s" : ""} this week
                 </p>
+                {trainingProgram.days[0] && (
+                  <p className="text-xs text-zinc-400 truncate">{trainingProgram.days[0].dayName}</p>
+                )}
                 <span className="mt-auto text-xs font-medium text-zinc-400 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
                   View &rarr;
                 </span>
@@ -313,8 +339,8 @@ export default async function ClientDashboard() {
         </h2>
         {checkIns.length === 0 ? (
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-zinc-300 bg-white px-8 py-16 text-center dark:border-zinc-700 dark:bg-[#121215]">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-xl dark:bg-zinc-800">
-              &#128203;
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /></svg>
             </div>
             <div>
               <p className="text-sm font-semibold">No check-ins yet</p>

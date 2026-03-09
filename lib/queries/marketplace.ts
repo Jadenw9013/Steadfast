@@ -6,7 +6,7 @@ export async function getPublishedCoaches() {
         where: { isPublished: true },
         include: {
             user: {
-                select: { firstName: true, lastName: true },
+                select: { firstName: true, lastName: true, profilePhotoPath: true },
             },
         },
         orderBy: { createdAt: "desc" },
@@ -18,7 +18,7 @@ export async function getCoachProfileBySlug(slug: string) {
         where: { slug, isPublished: true },
         include: {
             user: {
-                select: { firstName: true, lastName: true },
+                select: { firstName: true, lastName: true, profilePhotoPath: true },
             },
             portfolioItems: {
                 orderBy: { sortOrder: "asc" },

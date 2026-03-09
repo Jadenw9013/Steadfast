@@ -32,7 +32,7 @@ export function ConnectCoachBanner() {
   }
 
   return (
-    <div className="rounded-xl border-2 border-amber-300 bg-amber-50 px-5 py-5 dark:border-amber-700 dark:bg-amber-950/50">
+    <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-5 dark:border-zinc-800/80 dark:bg-[#121215]">
       <h2 className="text-base font-semibold">Connect to Your Coach</h2>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
         Enter the coach code provided by your coach to get started.

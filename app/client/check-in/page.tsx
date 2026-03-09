@@ -35,7 +35,7 @@ export default async function ClientCheckInPage() {
           &larr;
         </Link>
         <div>
-          <h1 className="text-lg font-bold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             Weekly Check-In
           </h1>
           <p className="text-xs text-zinc-500">
@@ -43,14 +43,14 @@ export default async function ClientCheckInPage() {
           </p>
         </div>
       </div>
-      <div className="rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800/80 dark:bg-[#121215]">
         <CheckInForm
           previousWeight={
             latest?.weight
               ? {
-                  weight: latest.weight,
-                  date: latest.submittedAt.toISOString(),
-                }
+                weight: latest.weight,
+                date: latest.submittedAt.toISOString(),
+              }
               : null
           }
           templateId={template?.id}

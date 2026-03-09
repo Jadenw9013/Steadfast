@@ -536,8 +536,11 @@ model PortfolioItem {
   result         String?      @db.Text
   description    String?      @db.Text
   category       String?
+  mediaPath      String?
+  mediaType      String?      // "image" or "video"
   sortOrder      Int          @default(0)
   createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   coachProfile   CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
 

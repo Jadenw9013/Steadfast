@@ -1,6 +1,7 @@
 import { getMyCoachProfile } from "@/lib/queries/marketplace";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
+import { getPortfolioMediaUrl } from "@/lib/supabase/portfolio-storage";
 import { ProfileForm } from "@/components/coach/marketplace/profile-form";
 import { ShareLinkCard } from "@/components/coach/marketplace/share-link-card";
 import { PortfolioManager } from "@/components/coach/marketplace/portfolio-manager";
@@ -40,10 +41,26 @@ export default async function CoachMarketplaceProfilePage() {
         }
     }
 
+    // Resolve portfolio media URLs
+    const portfolioItems = profile?.portfolioItems ?? [];
+    const itemsWithMedia = await Promise.all(
+        portfolioItems.map(async (item) => {
+            let mediaUrl: string | null = null;
+            if (item.mediaPath) {
+                try {
+                    mediaUrl = await getPortfolioMediaUrl(item.mediaPath);
+                } catch {
+                    // Gracefully degrade
+                }
+            }
+            return { ...item, mediaUrl };
+        })
+    );
+
     return (
         <div className="mx-auto max-w-2xl pb-12">
             {/* ── Banner + Avatar Header ── */}
-            <div className="sm:relative sm:mb-24">
+            <div className="animate-fade-in sm:relative sm:mb-24">
                 {/* Uploadable Banner */}
                 <BannerPhotoUpload currentBannerUrl={bannerUrl} />
 
@@ -60,7 +77,7 @@ export default async function CoachMarketplaceProfilePage() {
             </div>
 
             {/* ── Name + Headline + Badges ── */}
-            <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
+            <div className="animate-fade-in flex flex-col items-center text-center sm:items-start sm:text-left" style={{ animationDelay: "100ms" }}>
                 <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
                     {displayName}
                 </h1>
@@ -96,7 +113,7 @@ export default async function CoachMarketplaceProfilePage() {
             </div>
 
             {/* ── Action Row + Profile Sections ── */}
-            <div className="mt-6">
+            <div className="animate-fade-in mt-6" style={{ animationDelay: "200ms" }}>
                 <ProfileForm
                     initialData={profile}
                     userName={displayName}
@@ -106,14 +123,14 @@ export default async function CoachMarketplaceProfilePage() {
 
             {/* ── Public Coaching Page Link ── */}
             {profile?.isPublished && profile.slug && (
-                <div className="mt-6">
+                <div className="animate-fade-in mt-6" style={{ animationDelay: "300ms" }}>
                     <ShareLinkCard slug={profile.slug} />
                 </div>
             )}
 
-            {/* ── Portfolio ── */}
-            <div className="mt-6">
-                <PortfolioManager items={profile?.portfolioItems ?? []} />
+            {/* ── Posts ── */}
+            <div className="animate-fade-in mt-6" style={{ animationDelay: "400ms" }}>
+                <PortfolioManager items={itemsWithMedia} />
             </div>
         </div>
     );

@@ -7,10 +7,12 @@ export function CheckInScheduleBanner({
   cadenceStatus,
   statusLabel,
   nextDueLabel,
+  latestReviewedCheckInId,
 }: {
   cadenceStatus: CadenceStatus;
   statusLabel: string;
   nextDueLabel?: string;
+  latestReviewedCheckInId?: string;
 }) {
   // ── Due: blue CTA ──────────────────────────────────────────────────────────
   if (cadenceStatus === "due") {
@@ -87,23 +89,43 @@ export function CheckInScheduleBanner({
     );
   }
 
-  // ── Reviewed: green static ─────────────────────────────────────────────────
+  // ── Reviewed: green CTA → links to the reviewed check-in ─────────────────
   if (cadenceStatus === "reviewed") {
+    const content = (
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-200/80 dark:bg-emerald-800/40">
+          <span className="text-sm" aria-hidden="true">&#10003;</span>
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
+            Your coach left feedback
+          </p>
+          <p className="mt-0.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
+            {nextDueLabel || "Tap to view your reviewed check-in"}
+          </p>
+        </div>
+        {latestReviewedCheckInId && (
+          <span className="text-emerald-400 transition-transform group-hover:translate-x-1 dark:text-emerald-600" aria-hidden="true">
+            &rarr;
+          </span>
+        )}
+      </div>
+    );
+
+    if (latestReviewedCheckInId) {
+      return (
+        <Link
+          href={`/client/check-ins/${latestReviewedCheckInId}`}
+          className="group block rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-green-50/50 px-6 py-4 transition-all hover:border-emerald-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-green-950/20 dark:hover:border-emerald-700"
+        >
+          {content}
+        </Link>
+      );
+    }
+
     return (
       <div className="rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-green-50/50 px-6 py-4 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-green-950/20">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-200/80 dark:bg-emerald-800/40">
-            <span className="text-sm" aria-hidden="true">&#10003;</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
-              {statusLabel}
-            </p>
-            <p className="mt-0.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
-              {nextDueLabel || "Check-in reviewed"}
-            </p>
-          </div>
-        </div>
+        {content}
       </div>
     );
   }

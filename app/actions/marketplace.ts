@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { revalidatePath } from "next/cache";
+import { deletePortfolioMedia } from "@/lib/supabase/portfolio-storage";
 import {
     createPortfolioItemSchema,
     updatePortfolioItemSchema,
@@ -108,6 +109,8 @@ export async function createPortfolioItem(data: z.infer<typeof createPortfolioIt
             result: validated.result,
             description: validated.description,
             category: validated.category,
+            mediaPath: validated.mediaPath,
+            mediaType: validated.mediaType,
             sortOrder: (maxOrder?.sortOrder ?? -1) + 1,
         },
     });
@@ -140,6 +143,8 @@ export async function updatePortfolioItem(data: z.infer<typeof updatePortfolioIt
             result: validated.result,
             description: validated.description,
             category: validated.category,
+            mediaPath: validated.mediaPath,
+            mediaType: validated.mediaType,
         },
     });
 
@@ -160,8 +165,38 @@ export async function deletePortfolioItem(itemId: string) {
         throw new Error("Portfolio item not found");
     }
 
+    // Cleanup storage if media exists
+    if (item.mediaPath) {
+        await deletePortfolioMedia(item.mediaPath);
+    }
+
     await db.portfolioItem.delete({
         where: { id: itemId },
+    });
+
+    revalidatePath("/coach/marketplace/profile");
+}
+
+export async function removePortfolioItemMedia(itemId: string) {
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const item = await db.portfolioItem.findUnique({
+        where: { id: itemId },
+        include: { coachProfile: true },
+    });
+
+    if (!item || item.coachProfile.userId !== user.id) {
+        throw new Error("Portfolio item not found");
+    }
+
+    if (item.mediaPath) {
+        await deletePortfolioMedia(item.mediaPath);
+    }
+
+    await db.portfolioItem.update({
+        where: { id: itemId },
+        data: { mediaPath: null, mediaType: null },
     });
 
     revalidatePath("/coach/marketplace/profile");

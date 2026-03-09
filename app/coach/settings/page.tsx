@@ -22,16 +22,21 @@ export default async function CoachSettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <div className="animate-fade-in flex items-center gap-3">
         <Link
           href="/coach/dashboard"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300 sm:hidden"
           aria-label="Back to dashboard"
         >
           &larr;
         </Link>
         <div>
-          <h1 className="text-lg font-bold tracking-tight">Coach Settings</h1>
+          <nav className="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 mb-1">
+            <Link href="/coach/dashboard" className="hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors">Dashboard</Link>
+            <span>/</span>
+            <span className="text-zinc-600 dark:text-zinc-300">Settings</span>
+          </nav>
+          <h1 className="text-2xl font-semibold tracking-tight">Coach Settings</h1>
           <p className="text-xs text-zinc-500">
             Configure check-ins for all clients
           </p>
@@ -39,14 +44,14 @@ export default async function CoachSettingsPage() {
       </div>
 
       {/* Check-in Schedule */}
-      <section aria-labelledby="schedule-heading">
+      <section aria-labelledby="schedule-heading" className="animate-fade-in" style={{ animationDelay: "60ms" }}>
         <h2
           id="schedule-heading"
-          className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400"
         >
           Check-in Schedule
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
           <CadenceEditor
             mode="coach"
             initialConfig={cadenceConfig}
@@ -55,14 +60,14 @@ export default async function CoachSettingsPage() {
       </section>
 
       {/* Check-in Form */}
-      <section aria-labelledby="form-heading">
+      <section aria-labelledby="form-heading" className="animate-fade-in" style={{ animationDelay: "120ms" }}>
         <h2
           id="form-heading"
-          className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400"
         >
           Check-in Form
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">
@@ -90,14 +95,14 @@ export default async function CoachSettingsPage() {
       </section>
 
       {/* SMS Notifications */}
-      <section aria-labelledby="sms-heading">
+      <section aria-labelledby="sms-heading" className="animate-fade-in" style={{ animationDelay: "180ms" }}>
         <h2
           id="sms-heading"
-          className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400"
         >
           SMS Notifications
         </h2>
-        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
           <NotificationSettings
             role="COACH"
             initialPhoneNumber={user.phoneNumber || ""}

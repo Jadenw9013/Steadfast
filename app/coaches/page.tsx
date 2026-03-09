@@ -1,4 +1,5 @@
 import { getPublishedCoaches } from "@/lib/queries/marketplace";
+import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,6 +12,17 @@ export const metadata: Metadata = {
 
 export default async function CoachesDirectoryPage() {
     const coaches = await getPublishedCoaches();
+
+    // Resolve profile photos
+    const coachesWithPhotos = await Promise.all(
+        coaches.map(async (profile) => {
+            let avatarUrl: string | null = null;
+            if (profile.user.profilePhotoPath) {
+                try { avatarUrl = await getProfilePhotoUrl(profile.user.profilePhotoPath); } catch { /* */ }
+            }
+            return { ...profile, avatarUrl };
+        })
+    );
 
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b]">
@@ -83,8 +95,8 @@ export default async function CoachesDirectoryPage() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                        {coaches.map((profile) => (
+                    <div className="stagger-children grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                        {coachesWithPhotos.map((profile) => (
                             <Link
                                 key={profile.id}
                                 href={`/coaches/${profile.slug}`}
@@ -92,8 +104,20 @@ export default async function CoachesDirectoryPage() {
                             >
                                 <div className="flex-1">
                                     <div className="flex items-center gap-4">
-                                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-lg font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                                            {profile.user.firstName?.[0]}{profile.user.lastName?.[0]}
+                                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                                            {profile.avatarUrl ? (
+                                                <Image
+                                                    src={profile.avatarUrl}
+                                                    alt={`${profile.user.firstName} ${profile.user.lastName}`}
+                                                    width={48}
+                                                    height={48}
+                                                    className="h-full w-full object-cover"
+                                                />
+                                            ) : (
+                                                <div className="flex h-full w-full items-center justify-center text-lg font-semibold text-zinc-600 dark:text-zinc-300">
+                                                    {profile.user.firstName?.[0]}{profile.user.lastName?.[0]}
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="min-w-0">
                                             <h2 className="text-lg font-semibold text-zinc-900 group-hover:text-zinc-600 transition-colors dark:text-zinc-100 dark:group-hover:text-zinc-300 truncate">
