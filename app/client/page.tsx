@@ -154,7 +154,7 @@ export default async function ClientDashboard() {
           <CheckInScheduleBanner
             cadenceStatus={cadenceResult.status}
             statusLabel={cadenceResult.label}
-            checkedInToday={checkedInToday}
+            nextDueLabel={nextDueLabel}
           />
         </div>
       )}

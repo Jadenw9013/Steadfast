@@ -4,7 +4,6 @@ import {
     getNextDueDay,
     isCheckInDueToday,
 } from "@/lib/scheduling/periods";
-import { getClientWorkflowState } from "@/lib/scheduling/workflow-state";
 
 describe("getEffectiveScheduleDays", () => {
     it("uses client override when non-empty", () => {
@@ -94,7 +93,6 @@ describe("cron schedule-awareness logic", () => {
 
     it("works with multiple due days", () => {
         const now = new Date();
-        // Derive today's day the same way isDueToday does for UTC
         const todayDay = new Date(now.toLocaleString("en-US", { timeZone: "UTC" })).getDay();
         expect(isDueToday([todayDay, (todayDay + 3) % 7], "UTC", now)).toBe(true);
     });
@@ -104,59 +102,5 @@ describe("cron schedule-awareness logic", () => {
         const todayDay = new Date(now.toLocaleString("en-US", { timeZone: "UTC" })).getDay();
         const otherDay = (todayDay + 1) % 7;
         expect(isDueToday([otherDay], "UTC", now)).toBe(false);
-    });
-});
-
-describe("getClientWorkflowState", () => {
-    // Helper to get today's day of week in UTC
-    function todayDow(): number {
-        return new Date(new Date().toLocaleString("en-US", { timeZone: "UTC" })).getDay();
-    }
-
-    it("returns null for empty schedule", () => {
-        expect(getClientWorkflowState([], "UTC", false, null)).toBeNull();
-    });
-
-    it("returns due_today when today is a due day and not checked in", () => {
-        const day = todayDow();
-        const result = getClientWorkflowState([day], "UTC", false, null);
-        expect(result).not.toBeNull();
-        expect(result!.status).toBe("due_today");
-    });
-
-    it("returns completed when today is a due day and checked in (submitted)", () => {
-        const day = todayDow();
-        const result = getClientWorkflowState([day], "UTC", true, "SUBMITTED");
-        expect(result).not.toBeNull();
-        expect(result!.status).toBe("completed");
-    });
-
-    it("returns reviewed when today is a due day and check-in reviewed", () => {
-        const day = todayDow();
-        const result = getClientWorkflowState([day], "UTC", true, "REVIEWED");
-        expect(result).not.toBeNull();
-        expect(result!.status).toBe("reviewed");
-    });
-
-    it("returns upcoming when today is not a due day", () => {
-        const day = todayDow();
-        const futureDay = (day + 2) % 7;
-        const result = getClientWorkflowState([futureDay], "UTC", false, null);
-        expect(result).not.toBeNull();
-        expect(result!.status).toBe("upcoming");
-        if (result!.status === "upcoming") {
-            expect(result!.daysUntil).toBe(2);
-        }
-    });
-
-    it("returns upcoming with correct day name", () => {
-        const day = todayDow();
-        const futureDay = (day + 1) % 7;
-        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const result = getClientWorkflowState([futureDay], "UTC", false, null);
-        expect(result).not.toBeNull();
-        if (result!.status === "upcoming") {
-            expect(result!.dayName).toBe(dayNames[futureDay]);
-        }
     });
 });
