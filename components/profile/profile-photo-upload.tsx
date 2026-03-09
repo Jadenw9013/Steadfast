@@ -39,11 +39,8 @@ export function ProfilePhotoUpload({
         setError(null);
 
         try {
-            // 1. Get signed upload URL (pass mimeType for server validation)
-            const urlRes = await fetch(
-                `/api/profile-photo/upload-url?mimeType=${encodeURIComponent(file.type)}`,
-                { method: "POST" }
-            );
+            // 1. Get signed upload URL
+            const urlRes = await fetch("/api/profile-photo/upload-url", { method: "POST" });
             if (!urlRes.ok) {
                 const body = await urlRes.json().catch(() => ({}));
                 throw new Error(body.error || "Failed to get upload URL");

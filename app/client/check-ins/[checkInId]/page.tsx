@@ -1,4 +1,5 @@
-import { getCheckInWithAuthorizedPhotos } from "@/lib/security/media-access";
+import { getCurrentDbUser } from "@/lib/auth/roles";
+import { getCheckInById } from "@/lib/queries/check-ins";
 import { getMessages } from "@/lib/queries/messages";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -10,14 +11,17 @@ export default async function ClientCheckInDetailPage({
   params: Promise<{ checkInId: string }>;
 }) {
   const { checkInId } = await params;
+  const user = await getCurrentDbUser();
 
-  // getCheckInWithAuthorizedPhotos handles auth: client→own, coach→assigned
-  const checkIn = await getCheckInWithAuthorizedPhotos(checkInId);
+  const checkIn = await getCheckInById(checkInId);
   if (!checkIn) notFound();
+
+  // Authorization: client can only view their own check-ins
+  if (checkIn.clientId !== user.id) notFound();
 
   const messages = await getMessages(checkIn.clientId, checkIn.weekOf);
 
-  const coachMessages = messages.filter((m) => m.senderId !== checkIn.clientId);
+  const coachMessages = messages.filter((m) => m.senderId !== user.id);
 
   const submittedLabel = checkIn.submittedAt.toLocaleDateString("en-US", {
     month: "long",
@@ -51,10 +55,11 @@ export default async function ClientCheckInDetailPage({
       {/* Status badge */}
       <div>
         <span
-          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${checkIn.status === "REVIEWED"
-            ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-            : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
-            }`}
+          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+            checkIn.status === "REVIEWED"
+              ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+              : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+          }`}
         >
           {checkIn.status === "REVIEWED" ? "Reviewed" : "Pending Review"}
         </span>

@@ -3,16 +3,12 @@ import { db, prismaErrorMessage } from "@/lib/db";
 import { downloadMealPlanFile } from "@/lib/supabase/meal-plan-storage";
 import { extractText } from "@/lib/ocr/google-vision";
 import { parseMealPlanTextToJson } from "@/lib/llm/parse-meal-plan";
-import { rateLimitOrReject } from "@/lib/security/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 export const maxDuration = 60; // Allow up to 60s for OCR + LLM
 
 export async function POST(req: NextRequest) {
   try {
-    const blocked = await rateLimitOrReject("mealplan-parse");
-    if (blocked) return blocked;
-
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -66,17 +62,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: "needs_review" });
     } catch (parseError) {
       const message = parseError instanceof Error ? parseError.message : "Unknown error";
-      console.error("[mealplan-parse] Processing failed:", message);
 
       await db.mealPlanUpload.update({
         where: { id: uploadId },
         data: { status: "FAILED", errorMessage: message },
       });
 
-      return NextResponse.json(
-        { status: "failed", error: "Processing failed. Please try again or upload a different file." },
-        { status: 500 }
-      );
+      return NextResponse.json({ status: "failed", error: message }, { status: 500 });
     }
   } catch (error) {
     const { message, status } = prismaErrorMessage(error);

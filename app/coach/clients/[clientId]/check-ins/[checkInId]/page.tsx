@@ -1,7 +1,7 @@
 import {
   verifyCoachAccessToClient,
+  getCheckInById,
 } from "@/lib/queries/check-ins";
-import { getCheckInWithAuthorizedPhotos } from "@/lib/security/media-access";
 import { getMessages } from "@/lib/queries/messages";
 import { formatDateUTC } from "@/lib/utils/date";
 import { notFound } from "next/navigation";
@@ -22,7 +22,7 @@ export default async function CheckInReviewPage({
 
   const coach = await verifyCoachAccessToClient(clientId);
 
-  const checkIn = await getCheckInWithAuthorizedPhotos(checkInId);
+  const checkIn = await getCheckInById(checkInId);
   if (!checkIn || checkIn.clientId !== clientId) notFound();
 
   const client = checkIn.client;

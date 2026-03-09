@@ -31,7 +31,7 @@ export async function getProfilePhotoUrl(
 
     const { data, error } = await supabase.storage
         .from(BUCKET)
-        .createSignedUrl(storagePath, 15 * 60); // 15 min TTL
+        .createSignedUrl(storagePath, 60 * 60); // 1hr TTL
 
     if (error || !data) {
         throw new Error(`Failed to get photo URL: ${error?.message}`);

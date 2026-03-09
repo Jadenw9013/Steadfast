@@ -79,15 +79,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ importId: workoutImport.id, status: "needs_review" });
     } catch (parseError) {
       const message = parseError instanceof Error ? parseError.message : "Unknown error";
-      console.error("[workout-parse-text] Processing failed:", message);
       await db.workoutImport.update({
         where: { id: workoutImport.id },
         data: { status: "FAILED", errorMessage: message },
       });
-      return NextResponse.json(
-        { status: "failed", error: "Processing failed. Please try again or re-paste the text." },
-        { status: 500 }
-      );
+      return NextResponse.json({ status: "failed", error: message }, { status: 500 });
     }
   } catch (error) {
     const { message, status } = prismaErrorMessage(error);
