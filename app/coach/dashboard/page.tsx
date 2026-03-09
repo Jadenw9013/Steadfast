@@ -4,6 +4,7 @@ import { CoachCodeDisplay } from "@/components/coach/coach-code-display";
 import { CoachInbox } from "@/components/coach/inbox/coach-inbox";
 import type { InboxClient } from "@/components/coach/inbox/inbox-client-card";
 import { computeCurrentPeriod } from "@/lib/scheduling/periods";
+import { parseCadenceConfig, getCadencePreview, cadenceFromLegacyDays } from "@/lib/scheduling/cadence";
 
 function KpiCard({
   value,
@@ -36,14 +37,19 @@ export default async function CoachDashboard() {
     weekOf: c.weekOf,
   }));
 
-  const scheduleDays = user.checkInDaysOfWeek.length > 0 ? user.checkInDaysOfWeek : [1];
-  const period = computeCurrentPeriod(scheduleDays, new Date(), user.timezone || "America/Los_Angeles");
-  const weekLabel = period.label;
+  // Cadence-aware period label
+  const coachCadence = parseCadenceConfig(user.cadenceConfig);
+  const effectiveCadence = coachCadence ?? cadenceFromLegacyDays(user.checkInDaysOfWeek);
+  const cadencePreview = getCadencePreview(effectiveCadence);
+
+  // Fall back to legacy period label if cadence is weekly
+  const period = computeCurrentPeriod([1], new Date(), "America/Los_Angeles");
+  const weekLabel = `${period.label} \u00b7 ${cadencePreview}`;
 
   const totalCount = clients.length;
   const newCount = clients.filter((c) => c.weekStatus === "new").length;
   const reviewedCount = clients.filter((c) => c.weekStatus === "reviewed").length;
-  const missingCount = clients.filter((c) => c.weekStatus === "missing").length;
+  const overdueCount = clients.filter((c) => c.cadenceStatus === "overdue" || c.cadenceStatus === "due").length;
 
   return (
     <div className="space-y-10">
@@ -68,8 +74,8 @@ export default async function CoachDashboard() {
             accent="border-l-2 border-l-blue-500"
           />
           <KpiCard
-            value={missingCount}
-            label="Missing Check-In"
+            value={overdueCount}
+            label="Due / Overdue"
             accent="border-l-2 border-l-amber-500"
           />
           <KpiCard

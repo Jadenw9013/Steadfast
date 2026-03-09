@@ -54,6 +54,7 @@ model User {
   smsMissedCheckInAlertTime String @default("21:00")
   defaultNotifyOnPublish Boolean @default(true)
   checkInDaysOfWeek     Int[]   @default([1])   // 0=Sun..6=Sat. Default: Monday
+  cadenceConfig         Json?   // CadenceConfig object (null = legacy checkInDaysOfWeek)
   timezone              String  @default("America/New_York")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -86,6 +87,7 @@ model CoachClient {
   clientId   String
   coachNotes String?  @db.Text
   checkInDaysOfWeekOverride Int[]  @default([])  // empty = use coach default
+  cadenceConfig             Json?  // CadenceConfig override (null = inherit coach default)
   createdAt  DateTime @default(now())
 
   coach  User @relation("Coach", fields: [coachId], references: [id])

@@ -2,10 +2,53 @@
 
 import { useState, useTransition } from "react";
 import { updateClientScheduleOverride } from "@/app/actions/notification-preferences";
+import { CadenceEditor } from "@/components/coach/cadence-editor";
+import { getCadencePreview } from "@/lib/scheduling/cadence";
+import type { CadenceConfig } from "@/lib/scheduling/cadence";
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export function ClientSchedule({
+  clientId,
+  coachDays,
+  clientOverride,
+  effectiveDays,
+  coachCadence,
+  clientCadenceOverride,
+}: {
+  clientId: string;
+  coachDays: number[];
+  clientOverride: number[];
+  effectiveDays: number[];
+  coachCadence: CadenceConfig | null;
+  clientCadenceOverride: CadenceConfig | null;
+}) {
+  // If cadence configs are available, use the new CadenceEditor
+  if (coachCadence) {
+    return (
+      <CadenceEditor
+        mode="client"
+        clientId={clientId}
+        initialConfig={clientCadenceOverride}
+        coachConfig={coachCadence}
+      />
+    );
+  }
+
+  // Fallback: legacy day-of-week picker for backwards compatibility
+  return (
+    <LegacyDayPicker
+      clientId={clientId}
+      coachDays={coachDays}
+      clientOverride={clientOverride}
+      effectiveDays={effectiveDays}
+    />
+  );
+}
+
+// ── Legacy day-of-week picker (preserved for backward compat) ────────────────
+
+function LegacyDayPicker({
   clientId,
   coachDays,
   clientOverride,
@@ -56,11 +99,10 @@ export function ClientSchedule({
         {DAY_LABELS.map((label, i) => (
           <span
             key={i}
-            className={`rounded-md px-2 py-1 text-xs font-medium ${
-              effectiveDays.includes(i)
+            className={`rounded-md px-2 py-1 text-xs font-medium ${effectiveDays.includes(i)
                 ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                 : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
-            }`}
+              }`}
           >
             {label}
           </span>
@@ -85,11 +127,10 @@ export function ClientSchedule({
           <button
             key={i}
             onClick={() => toggleDay(i)}
-            className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${
-              selected.includes(i)
+            className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${selected.includes(i)
                 ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
                 : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
-            }`}
+              }`}
           >
             {label}
           </button>

@@ -4,8 +4,7 @@ import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { formatDateUTC, getLocalDate } from "@/lib/utils/date";
 import { getWeightHistory } from "@/lib/queries/weight-history";
-import { getEffectiveScheduleDays } from "@/lib/scheduling/periods";
-import { getClientWorkflowState } from "@/lib/scheduling/workflow-state";
+import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import { ConnectCoachBanner } from "@/components/client/connect-coach-banner";
@@ -33,6 +32,7 @@ export default async function ClientDashboard() {
           lastName: true,
           email: true,
           checkInDaysOfWeek: true,
+          cadenceConfig: true,
           coachProfile: { select: { welcomeMessage: true } },
         },
       },
@@ -47,38 +47,52 @@ export default async function ClientDashboard() {
     getPublishedTrainingProgram(user.id),
   ]);
 
-  // Schedule data
+  // ── Cadence-aware status derivation ──────────────────────────────────────
   const tz = user.timezone || "America/Los_Angeles";
-  const checkInDays = coachAssignment
-    ? getEffectiveScheduleDays(
-      coachAssignment.coach.checkInDaysOfWeek,
-      coachAssignment.checkInDaysOfWeekOverride
-    )
-    : [1];
-
-  // Banner: show if today is a scheduled day and no check-in exists for today's localDate
   const todayLocalDate = getLocalDate(new Date(), tz);
   const todayCheckIn = await getCheckInForLocalDate(user.id, todayLocalDate);
   const checkedInToday = !!todayCheckIn;
 
-  // Current status: based on latest check-in
+  // Resolve effective cadence: client override → coach default → legacy fallback
+  const coachCadence = coachAssignment
+    ? parseCadenceConfig(coachAssignment.coach.cadenceConfig)
+    : null;
+  const clientCadenceOverride = coachAssignment
+    ? parseCadenceConfig(coachAssignment.cadenceConfig)
+    : null;
+  const effectiveCadence = coachAssignment
+    ? getEffectiveCadence(
+      coachCadence ?? cadenceFromLegacyDays(coachAssignment.coach.checkInDaysOfWeek),
+      clientCadenceOverride
+    )
+    : null;
+
+  // Derive cadence status
   const latestCheckIn = checkIns[0] ?? null;
+  const cadenceResult = effectiveCadence
+    ? getClientCadenceStatus(
+      effectiveCadence,
+      latestCheckIn ? { submittedAt: latestCheckIn.submittedAt, status: latestCheckIn.status } : null,
+      tz
+    )
+    : null;
+
+  // Legacy-compatible status fallback for CheckInStatus component.
+  // Only used when cadenceResult is null (no coach assignment). When cadence
+  // is active, the cadence-aware statusLabel prop overrides the display text.
   const weekStatus: "none" | "submitted" | "reviewed" = !latestCheckIn
     ? "none"
     : latestCheckIn.status === "REVIEWED"
       ? "reviewed"
       : "submitted";
 
-  // Compute workflow state server-side
-  const workflowState = getClientWorkflowState(
-    checkInDays,
-    tz,
-    checkedInToday,
-    (latestCheckIn?.status as "SUBMITTED" | "REVIEWED" | null) ?? null
-  );
-
-  // Date label for action banner
+  // Date labels
   const todayLabel = dayjs(new Date()).tz(tz).format("MMM D, YYYY");
+  const cadencePreview = effectiveCadence ? getCadencePreview(effectiveCadence) : null;
+
+  // Determine status label and next-due label for the status component
+  const statusLabel = cadenceResult?.label;
+  const nextDueLabel = cadencePreview ?? undefined;
 
   // Latest weight for the performance module
   const latestWeight = checkIns.find((c) => c.weight != null);
@@ -111,6 +125,9 @@ export default async function ClientDashboard() {
         </div>
         <p className="mt-1.5 text-sm text-zinc-500">
           {todayLabel}
+          {cadencePreview && (
+            <span className="ml-2 text-zinc-400">&middot; {cadencePreview}</span>
+          )}
         </p>
       </section>
 
@@ -131,12 +148,13 @@ export default async function ClientDashboard() {
       {/* Coach connection (only if no coach) */}
       {!coachAssignment && <ConnectCoachBanner />}
 
-      {/* Check-in schedule reminder */}
-      {coachAssignment && (
+      {/* Check-in schedule reminder — cadence-aware */}
+      {coachAssignment && cadenceResult && (
         <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
           <CheckInScheduleBanner
-            checkInDays={checkInDays}
-            workflowState={workflowState}
+            cadenceStatus={cadenceResult.status}
+            statusLabel={cadenceResult.label}
+            checkedInToday={checkedInToday}
           />
         </div>
       )}
@@ -146,6 +164,8 @@ export default async function ClientDashboard() {
         <CheckInStatus
           status={weekStatus}
           weekLabel={todayLabel}
+          statusLabel={statusLabel}
+          nextDueLabel={nextDueLabel}
           checkInDate={
             latestCheckIn
               ? latestCheckIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })

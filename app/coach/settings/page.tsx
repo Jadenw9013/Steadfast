@@ -3,11 +3,17 @@ import { getDefaultTemplate } from "@/lib/queries/check-in-templates";
 import Link from "next/link";
 import { ResetTemplateButton } from "@/components/coach/reset-template-button";
 import { NotificationSettings } from "@/components/client/notification-settings";
-import { CoachScheduleSettings } from "@/components/coach/coach-schedule-settings";
+import { CadenceEditor } from "@/components/coach/cadence-editor";
+import { parseCadenceConfig, cadenceFromLegacyDays } from "@/lib/scheduling/cadence";
 
 export default async function CoachSettingsPage() {
   const user = await getCurrentDbUser();
   const template = await getDefaultTemplate(user.id);
+
+  // Resolve cadence config: prefer new JSON, fall back to legacy days
+  const cadenceConfig =
+    parseCadenceConfig(user.cadenceConfig) ??
+    cadenceFromLegacyDays(user.checkInDaysOfWeek);
 
   const questionCount = template
     ? (template.questions as unknown[]).length
@@ -41,13 +47,10 @@ export default async function CoachSettingsPage() {
           Check-in Schedule
         </h2>
         <div className="rounded-lg border border-zinc-200 bg-white px-4 py-4 dark:border-zinc-800 dark:bg-zinc-900">
-          <CoachScheduleSettings
-            initialDays={user.checkInDaysOfWeek}
-            initialTimezone={user.timezone}
+          <CadenceEditor
+            mode="coach"
+            initialConfig={cadenceConfig}
           />
-          <p className="mt-3 text-xs text-zinc-400">
-            Applies to all clients unless overridden per-client.
-          </p>
         </div>
       </section>
 

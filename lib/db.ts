@@ -9,9 +9,7 @@ function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error(
-      "DATABASE_URL is not set. " +
-      "Create a .env.local file with DATABASE_URL=postgresql://... " +
-      "(see .env.example for the required variables)."
+      "DATABASE_URL is not set. Copy .env.example to .env.local and fill in your Neon connection string."
     );
   }
   const adapter = new PrismaPg({ connectionString });

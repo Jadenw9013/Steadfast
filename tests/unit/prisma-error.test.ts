@@ -1,14 +1,19 @@
-import { describe, it, expect } from "vitest";
-import { prismaErrorMessage } from "@/lib/db";
+import { describe, it, expect, vi } from "vitest";
 
-// Mock the PrismaClient import so db.ts doesn't try to connect
-import { vi } from "vitest";
+// Must set DATABASE_URL before db.ts is imported — the validation runs at module load time.
+// vi.hoisted runs before ESM module evaluation.
+vi.hoisted(() => {
+  process.env.DATABASE_URL = "postgresql://test:test@localhost/test";
+});
+
 vi.mock("@/app/generated/prisma/client", () => ({
-  PrismaClient: class MockPrismaClient {},
+  PrismaClient: class MockPrismaClient { },
 }));
 vi.mock("@prisma/adapter-pg", () => ({
-  PrismaPg: class MockPrismaPg {},
+  PrismaPg: class MockPrismaPg { },
 }));
+
+import { prismaErrorMessage } from "@/lib/db";
 
 describe("prismaErrorMessage", () => {
   it("detects P2021 table-missing error", () => {

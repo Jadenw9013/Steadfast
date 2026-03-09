@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { getSignedDownloadUrl } from "@/lib/supabase/storage";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
-import { getEffectiveScheduleDays } from "@/lib/scheduling/periods";
+import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, getCoachStatusLabel, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 
 export async function getClientCheckIns(clientId: string) {
   return db.checkIn.findMany({
@@ -162,27 +162,22 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
     }),
     db.user.findUnique({
       where: { id: coachId },
-      select: { checkInDaysOfWeek: true },
+      select: { checkInDaysOfWeek: true, cadenceConfig: true },
     }),
   ]);
 
-  const coachScheduleDays = coach?.checkInDaysOfWeek ?? [1];
-  const todayDow = new Date().getDay(); // 0=Sun..6=Sat
+  if (!coach) return [];
+
+  const coachCadence = parseCadenceConfig(coach.cadenceConfig);
 
   return assignments.map((a) => {
     const latestCheckIn = a.client.checkIns[0] ?? null;
     const previousCheckIn = a.client.checkIns[1] ?? null;
 
-    // Resolve effective schedule for this client
-    const effectiveDays = getEffectiveScheduleDays(
-      coachScheduleDays,
-      a.checkInDaysOfWeekOverride
-    );
-    const isDueToday = effectiveDays.includes(todayDow);
-
+    // Legacy weekStatus for backward compatibility with inbox card
     let weekStatus: "new" | "reviewed" | "missing" | "not_due";
     if (!latestCheckIn) {
-      weekStatus = isDueToday ? "missing" : "not_due";
+      weekStatus = "missing";
     } else if (latestCheckIn.status === "REVIEWED") {
       weekStatus = "reviewed";
     } else {
@@ -195,13 +190,26 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
         ? +(latestCheckIn.weight - previousCheckIn.weight).toFixed(1)
         : null;
 
+    // Cadence-aware status derivation
+    const clientCadenceOverride = parseCadenceConfig(a.cadenceConfig);
+    const effectiveCadence = getEffectiveCadence(
+      coachCadence ?? cadenceFromLegacyDays(coach.checkInDaysOfWeek),
+      clientCadenceOverride
+    );
+    const clientTz = a.client.timezone || "America/Los_Angeles";
+    const cadenceResult = getClientCadenceStatus(
+      effectiveCadence,
+      latestCheckIn ? { submittedAt: latestCheckIn.submittedAt, status: latestCheckIn.status } : null,
+      clientTz
+    );
+
     return {
       id: a.client.id,
       firstName: a.client.firstName,
       lastName: a.client.lastName,
       email: a.client.email,
       weekStatus,
-      isDueToday,
+      isDueToday: cadenceResult.status === "due" || cadenceResult.status === "overdue",
       hasClientMessage: a.client.clientMessages.length > 0,
       checkInId: latestCheckIn?.id ?? null,
       weekOf,
@@ -210,6 +218,9 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
       dietCompliance: latestCheckIn?.dietCompliance ?? null,
       energyLevel: latestCheckIn?.energyLevel ?? null,
       submittedAt: latestCheckIn?.submittedAt ?? null,
+      cadenceStatus: cadenceResult.status,
+      cadenceLabel: getCoachStatusLabel(cadenceResult.status),
+      nextDueLabel: getCadencePreview(effectiveCadence),
     };
   });
 }

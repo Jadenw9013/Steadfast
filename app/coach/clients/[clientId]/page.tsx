@@ -83,6 +83,8 @@ export default async function ClientProfilePage({
     coachScheduleDays,
     clientScheduleOverride,
     effectiveScheduleDays,
+    coachCadence,
+    clientCadenceOverride,
   } = profile;
 
   const statusBadge = weekStatusConfig[currentWeekStatus];
@@ -336,6 +338,8 @@ export default async function ClientProfilePage({
             coachDays={coachScheduleDays}
             clientOverride={clientScheduleOverride}
             effectiveDays={effectiveScheduleDays}
+            coachCadence={coachCadence}
+            clientCadenceOverride={clientCadenceOverride}
           />
 
           <p className="text-xs text-zinc-500 border-t border-zinc-200 pt-3 dark:border-zinc-800">

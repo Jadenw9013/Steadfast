@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CadenceStatus } from "@/lib/scheduling/cadence";
 
 type WeekStatus = "new" | "reviewed" | "missing" | "not_due";
 
@@ -17,6 +18,9 @@ export type InboxClient = {
   dietCompliance: number | null;
   energyLevel: number | null;
   submittedAt: Date | null;
+  cadenceStatus?: CadenceStatus;
+  cadenceLabel?: string;
+  nextDueLabel?: string;
 };
 
 const statusConfig = {
@@ -42,6 +46,22 @@ const statusConfig = {
   },
 } as const;
 
+const cadenceStatusRing: Record<string, string> = {
+  due: "ring-amber-500/40",
+  overdue: "ring-red-500/40",
+  upcoming: "ring-zinc-300/50 dark:ring-zinc-600/40",
+  submitted: "ring-blue-500/40",
+  reviewed: "ring-emerald-500/40",
+};
+
+const cadenceStatusPill: Record<string, string> = {
+  due: "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400",
+  overdue: "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400",
+  upcoming: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
+  submitted: "bg-blue-500/10 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400",
+  reviewed: "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400",
+};
+
 function formatTimeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -58,17 +78,26 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
   const reviewHref = client.checkInId
     ? `/coach/clients/${client.id}/check-ins/${client.checkInId}`
     : `/coach/clients/${client.id}`;
+
+  // Use cadence-aware status when available, falling back to legacy
   const status = statusConfig[client.weekStatus];
+  const ringClass = client.cadenceStatus
+    ? cadenceStatusRing[client.cadenceStatus] || status.ring
+    : status.ring;
+  const pillClass = client.cadenceStatus
+    ? cadenceStatusPill[client.cadenceStatus] || status.pill
+    : status.pill;
+  const pillLabel = client.cadenceLabel || status.label;
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-4 transition-all duration-200 hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-950/5 sm:p-5 dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30">
       <Link
         href={profileHref}
         className="flex items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:rounded-xl"
-        aria-label={`${client.firstName} ${client.lastName} — ${status.label}`}
+        aria-label={`${client.firstName} ${client.lastName} — ${pillLabel}`}
       >
         {/* Avatar with status ring */}
-        <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 ring-2 ${status.ring} text-sm font-bold dark:bg-zinc-800`}>
+        <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 ring-2 ${ringClass} text-sm font-bold dark:bg-zinc-800`}>
           {client.firstName?.[0]?.toUpperCase() ?? "?"}
           {client.hasClientMessage && (
             <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
@@ -86,7 +115,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
           <p className="mt-0.5 text-xs text-zinc-400">
             {client.submittedAt
               ? `Checked in ${formatTimeAgo(client.submittedAt)}`
-              : "Waiting for submission"}
+              : client.nextDueLabel || "Waiting for submission"}
           </p>
         </div>
 
@@ -108,8 +137,8 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
         )}
 
         {/* Status pill — fades out on hover for non-missing clients */}
-        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-opacity duration-200 ${client.weekStatus !== "missing" ? "group-hover:opacity-0" : ""} ${status.pill}`}>
-          {status.label}
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition-opacity duration-200 ${client.weekStatus !== "missing" ? "group-hover:opacity-0" : ""} ${pillClass}`}>
+          {pillLabel}
         </span>
       </Link>
 

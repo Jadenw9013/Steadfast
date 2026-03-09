@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { getEffectiveScheduleDays } from "@/lib/scheduling/periods";
+import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 
 export async function getClientProfile(coachId: string, clientId: string) {
   const [assignment, coach] = await Promise.all([
@@ -10,13 +11,13 @@ export async function getClientProfile(coachId: string, clientId: string) {
       },
       include: {
         client: {
-          select: { id: true, firstName: true, lastName: true, email: true },
+          select: { id: true, firstName: true, lastName: true, email: true, timezone: true },
         },
       },
     }),
     db.user.findUnique({
       where: { id: coachId },
-      select: { checkInDaysOfWeek: true },
+      select: { checkInDaysOfWeek: true, cadenceConfig: true },
     }),
   ]);
 
@@ -76,6 +77,23 @@ export async function getClientProfile(coachId: string, clientId: string) {
     assignment.checkInDaysOfWeekOverride
   );
 
+  // Parse cadence configs from JSON fields
+  const coachCadence = parseCadenceConfig(coach.cadenceConfig);
+  const clientCadenceOverride = parseCadenceConfig(assignment.cadenceConfig);
+
+  // Cadence-aware status (supplements legacy currentWeekStatus)
+  const effectiveCadence = getEffectiveCadence(
+    coachCadence ?? cadenceFromLegacyDays(coach.checkInDaysOfWeek),
+    clientCadenceOverride
+  );
+  const clientTz = assignment.client.timezone || "America/Los_Angeles";
+  const cadenceStatus = getClientCadenceStatus(
+    effectiveCadence,
+    latestCheckIn ? { submittedAt: latestCheckIn.submittedAt, status: latestCheckIn.status } : null,
+    clientTz
+  );
+  const cadencePreview = getCadencePreview(effectiveCadence);
+
   return {
     client: assignment.client,
     coachNotes: assignment.coachNotes,
@@ -89,5 +107,9 @@ export async function getClientProfile(coachId: string, clientId: string) {
     coachScheduleDays: coach.checkInDaysOfWeek,
     clientScheduleOverride: assignment.checkInDaysOfWeekOverride,
     effectiveScheduleDays,
+    coachCadence,
+    clientCadenceOverride,
+    cadenceStatus,
+    cadencePreview,
   };
 }

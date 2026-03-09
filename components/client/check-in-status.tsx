@@ -3,11 +3,15 @@ import Link from "next/link";
 export function CheckInStatus({
   status,
   weekLabel,
+  statusLabel,
+  nextDueLabel,
   checkInDate,
   checkInId,
 }: {
   status: "none" | "submitted" | "reviewed";
   weekLabel: string;
+  statusLabel?: string;
+  nextDueLabel?: string;
   checkInDate?: string;
   checkInId?: string;
 }) {
@@ -23,8 +27,11 @@ export function CheckInStatus({
           <div>
             <p className="text-lg font-bold sm:text-xl">Submit Your Check-In</p>
             <p className="mt-1 text-sm opacity-60">
-              {weekLabel}
+              {statusLabel || weekLabel}
             </p>
+            {nextDueLabel && (
+              <p className="mt-0.5 text-xs opacity-40">{nextDueLabel}</p>
+            )}
           </div>
           <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-xl transition-transform group-hover:translate-x-1 dark:bg-zinc-900/10" aria-hidden="true">
             &rarr;
@@ -47,11 +54,12 @@ export function CheckInStatus({
           </div>
           <div>
             <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
-              Waiting for coach review
+              {statusLabel || "Waiting for coach review"}
             </p>
             <p className="mt-0.5 text-xs text-amber-600/80 dark:text-amber-400/80">
-              {weekLabel}
-              {checkInDate && <span> &middot; submitted {checkInDate}</span>}
+              {checkInDate && <span>submitted {checkInDate}</span>}
+              {nextDueLabel && <span> &middot; {nextDueLabel}</span>}
+              {!checkInDate && !nextDueLabel && weekLabel}
             </p>
             <Link
               href="/client/check-in"
@@ -79,10 +87,10 @@ export function CheckInStatus({
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
-              Your coach reviewed this week
+              {statusLabel || "Your coach reviewed your check-in"}
             </p>
             <p className="mt-0.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
-              {weekLabel} &middot; tap to view feedback
+              {nextDueLabel || `${weekLabel} \u00b7 tap to view feedback`}
             </p>
           </div>
           <span className="text-emerald-400 transition-transform group-hover:translate-x-1 dark:text-emerald-600" aria-hidden="true">
@@ -105,10 +113,10 @@ export function CheckInStatus({
         </div>
         <div className="flex-1">
           <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
-            Your coach reviewed this week
+            {statusLabel || "Your coach reviewed your check-in"}
           </p>
           <p className="mt-0.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
-            {weekLabel}
+            {nextDueLabel || weekLabel}
           </p>
         </div>
       </div>

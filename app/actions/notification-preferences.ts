@@ -107,3 +107,59 @@ export async function updateClientScheduleOverride(input: unknown) {
   revalidatePath(`/coach/clients/${parsed.data.clientId}`);
   return { success: true };
 }
+
+// ── Cadence config actions ───────────────────────────────────────────────────
+
+import { cadenceConfigSchema } from "@/lib/scheduling/cadence";
+
+const coachCadenceSchema = z.object({
+  cadenceConfig: cadenceConfigSchema,
+});
+
+export async function updateCoachCadence(input: unknown) {
+  const parsed = coachCadenceSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Invalid cadence config");
+
+  const user = await getCurrentDbUser();
+  if (user.activeRole !== "COACH") throw new Error("Not a coach");
+
+  await db.user.update({
+    where: { id: user.id },
+    data: { cadenceConfig: parsed.data.cadenceConfig },
+  });
+
+  revalidatePath("/coach");
+  return { success: true };
+}
+
+const clientCadenceOverrideSchema = z.object({
+  clientId: z.string().min(1),
+  cadenceConfig: cadenceConfigSchema.nullable(),
+});
+
+export async function updateClientCadenceOverride(input: unknown) {
+  const parsed = clientCadenceOverrideSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Invalid cadence config");
+
+  const user = await getCurrentDbUser();
+  if (user.activeRole !== "COACH") throw new Error("Not a coach");
+
+  const assignment = await db.coachClient.findUnique({
+    where: {
+      coachId_clientId: { coachId: user.id, clientId: parsed.data.clientId },
+    },
+  });
+  if (!assignment) throw new Error("Not assigned to this client");
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cadenceValue = parsed.data.cadenceConfig === null ? null : (parsed.data.cadenceConfig as any);
+
+  await db.coachClient.update({
+    where: { id: assignment.id },
+    data: { cadenceConfig: cadenceValue },
+  });
+
+  revalidatePath(`/coach/clients/${parsed.data.clientId}`);
+  return { success: true };
+}
+
