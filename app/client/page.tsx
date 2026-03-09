@@ -134,17 +134,17 @@ export default async function ClientDashboard() {
             const slug = coachAssignment.coach.coachProfile?.slug;
             const isPublished = coachAssignment.coach.coachProfile?.isPublished;
             const badge = (
-              <div className={`flex items-center gap-2.5 rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 dark:border-zinc-800 dark:bg-[#121215] ${slug && isPublished ? "transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/80" : ""}`}>
+              <div className={`flex items-center gap-2.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 shadow-sm dark:border-zinc-800 dark:bg-[#121215] dark:shadow-none ${slug && isPublished ? "transition-colors hover:border-gray-300 hover:bg-gray-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/80" : ""}`}>
                 <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                   {coachAvatarUrl ? (
                     <Image src={coachAvatarUrl} alt="" width={24} height={24} className="h-full w-full object-cover" />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-zinc-500">
+                    <div className="flex h-full w-full items-center justify-center text-[11px] font-bold text-gray-500">
                       {coachInitial}
                     </div>
                   )}
                 </div>
-                <span className="text-xs font-medium text-zinc-500">
+                <span className="text-xs font-medium text-gray-500">
                   Coach {coachAssignment.coach.firstName}
                 </span>
               </div>
@@ -154,10 +154,10 @@ export default async function ClientDashboard() {
             ) : badge;
           })()}
         </div>
-        <p className="mt-1.5 text-sm text-zinc-500">
+        <p className="mt-1.5 text-sm text-gray-500">
           {todayLabel}
           {cadencePreview && (
-            <span className="ml-2 text-zinc-400">&middot; {cadencePreview}</span>
+            <span className="ml-2 text-gray-400">&middot; {cadencePreview}</span>
           )}
         </p>
       </section>
@@ -167,8 +167,8 @@ export default async function ClientDashboard() {
       {/* Coach connection (only if no coach) */}
       {!coachAssignment && <ConnectCoachBanner />}
 
-      {/* Check-in schedule reminder — cadence-aware */}
-      {coachAssignment && cadenceResult && (
+      {/* Check-in schedule reminder — only for due/overdue states */}
+      {coachAssignment && cadenceResult && (cadenceResult.status === "due" || cadenceResult.status === "overdue") && (
         <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
           <CheckInScheduleBanner
             cadenceStatus={cadenceResult.status}
@@ -198,18 +198,18 @@ export default async function ClientDashboard() {
       {/* Performance Module — Weight */}
       {latestWeight?.weight && (
         <section
-          className="animate-fade-in overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-6 dark:border-zinc-800/80 dark:bg-[#121215]"
+          className="animate-fade-in overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none"
           style={{ animationDelay: "160ms" }}
           aria-label="Weight overview"
         >
-          <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
             Current Weight
           </p>
           <div className="mt-2.5 flex items-baseline gap-2">
             <p className="text-4xl font-bold tabular-nums tracking-tight">
               {latestWeight.weight}
             </p>
-            <span className="text-sm font-medium text-zinc-400">lbs</span>
+            <span className="text-sm font-medium text-gray-400 dark:text-zinc-400">lbs</span>
             {weightDelta != null && weightDelta !== 0 && (
               <span
                 className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold ${weightDelta < 0
@@ -221,7 +221,7 @@ export default async function ClientDashboard() {
               </span>
             )}
           </div>
-          <p className="mt-1.5 text-xs text-zinc-400">
+          <p className="mt-1.5 text-xs text-gray-500 dark:text-zinc-400">
             as of {latestWeight.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </p>
           <WeightProgress
@@ -236,14 +236,14 @@ export default async function ClientDashboard() {
       {latestCoachMessage && (
         <Link
           href={`/client/messages/${formatDateUTC(latestCoachMessage.weekOf)}`}
-          className="group animate-fade-in block overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-6 transition-all hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-950/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+          className="group animate-fade-in block overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
           style={{ animationDelay: "240ms" }}
         >
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
               Coach Feedback
             </p>
-            <span className="text-xs font-medium text-zinc-400 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
+            <span className="text-xs font-medium text-gray-400 transition-all group-hover:translate-x-0.5 group-hover:text-gray-600 dark:text-zinc-400 dark:group-hover:text-zinc-300">
               View &rarr;
             </span>
           </div>
@@ -264,61 +264,52 @@ export default async function ClientDashboard() {
             id="plans-heading"
             className="mb-3 text-lg font-semibold tracking-tight"
           >
-            Your Plans
+            Your Program
           </h2>
           <div className="grid grid-cols-2 gap-3">
             {mealPlan ? (
               <Link
                 href="/client/meal-plan"
-                className="group flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 transition-all hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-950/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+                className="group flex flex-col gap-2 overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+                aria-label="View your nutrition plan"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                  Meal Plan
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                  Nutrition
                 </p>
-                <p className="text-sm font-semibold">
-                  {mealPlan.items.length} item{mealPlan.items.length !== 1 ? "s" : ""}
-                </p>
-                {mealPlan.items[0] && (
-                  <p className="text-xs text-zinc-400 truncate">{mealPlan.items[0].foodName}</p>
-                )}
-                <span className="mt-auto text-xs font-medium text-zinc-400 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
-                  View &rarr;
+                <p className="text-sm font-semibold">Meal Plan</p>
+                <span className="mt-auto text-xs font-medium text-gray-400 transition-all group-hover:translate-x-0.5 group-hover:text-gray-600 dark:text-zinc-400 dark:group-hover:text-zinc-300">
+                  Open Plan &rarr;
                 </span>
               </Link>
             ) : (
-              <div className="flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-dashed border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215]">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
-                  Meal Plan
+              <div className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+                  Nutrition
                 </p>
-                <p className="text-sm text-zinc-400">Not yet assigned</p>
+                <p className="text-sm text-gray-400 dark:text-zinc-400">Not yet assigned</p>
               </div>
             )}
 
             {trainingProgram && trainingProgram.days.length > 0 ? (
               <Link
                 href="/client/training"
-                className="group flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-5 transition-all hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-950/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+                className="group flex flex-col gap-2 overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+                aria-label="View your training program"
               >
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
                   Training
                 </p>
-                <p className="text-sm font-semibold">
-                  {trainingProgram.days.length} day
-                  {trainingProgram.days.length !== 1 ? "s" : ""} this week
-                </p>
-                {trainingProgram.days[0] && (
-                  <p className="text-xs text-zinc-400 truncate">{trainingProgram.days[0].dayName}</p>
-                )}
-                <span className="mt-auto text-xs font-medium text-zinc-400 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-600 dark:group-hover:text-zinc-300">
-                  View &rarr;
+                <p className="text-sm font-semibold">Workout Program</p>
+                <span className="mt-auto text-xs font-medium text-gray-400 transition-all group-hover:translate-x-0.5 group-hover:text-gray-600 dark:text-zinc-400 dark:group-hover:text-zinc-300">
+                  Open Program &rarr;
                 </span>
               </Link>
             ) : (
-              <div className="flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-dashed border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215]">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+              <div className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215]">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
                   Training
                 </p>
-                <p className="text-sm text-zinc-400">Not yet assigned</p>
+                <p className="text-sm text-gray-400 dark:text-zinc-400">Not yet assigned</p>
               </div>
             )}
           </div>

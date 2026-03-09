@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -48,17 +48,63 @@ export function CheckInForm({
     pendingPhotoPaths: string[];
   } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [customResponses, setCustomResponses] = useState<Record<string, string>>({});
   const [customErrors, setCustomErrors] = useState<Record<string, string>>({});
+  const weightRef = useRef<HTMLInputElement | null>(null);
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {},
   });
+
+  const dietValue = watch("dietCompliance");
+  const energyValue = watch("energyLevel");
+  const weightValue = watch("weight");
+  const notesValue = watch("notes");
+
+  // Auto-focus weight field
+  useEffect(() => {
+    weightRef.current?.focus();
+  }, []);
+
+  // Progress calculation
+  const filledCount = [
+    !!weightValue,
+    !!dietValue,
+    !!energyValue,
+    !!notesValue,
+  ].filter(Boolean).length;
+  const progressPct = Math.round((filledCount / 4) * 100);
+
+  // Keyboard nav for radio groups
+  const handleRatingKeyDown = useCallback(
+    (e: React.KeyboardEvent, labels: string[], currentVal: string | undefined, field: "dietCompliance" | "energyLevel") => {
+      const currentIndex = labels.findIndex((_, i) => String((i + 1) * 2) === currentVal);
+      let newIndex = currentIndex;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        newIndex = Math.min(currentIndex + 1, labels.length - 1);
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        newIndex = Math.max(currentIndex - 1, 0);
+      }
+      if (newIndex !== currentIndex && newIndex >= 0) {
+        setValue(field, String((newIndex + 1) * 2));
+        // Focus the new button
+        const container = e.currentTarget.parentElement;
+        const buttons = container?.querySelectorAll<HTMLButtonElement>("[role='radio']");
+        buttons?.[newIndex]?.focus();
+      }
+    },
+    [setValue]
+  );
 
   const sortedQuestions = templateQuestions
     ? [...templateQuestions].sort((a, b) => a.sortOrder - b.sortOrder)
@@ -175,8 +221,11 @@ export function CheckInForm({
       return;
     }
 
-    router.push("/client");
-    router.refresh();
+    setShowSuccess(true);
+    setTimeout(() => {
+      router.push("/client");
+      router.refresh();
+    }, 1600);
   }
 
   async function onSubmit(values: FormValues) {
@@ -230,33 +279,58 @@ export function CheckInForm({
 
   const previousDateLabel = previousWeight
     ? new Date(previousWeight.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })
+      month: "short",
+      day: "numeric",
+    })
     : null;
 
   const buttonLabel =
     uploadState === "getting-urls"
-      ? "Preparing upload..."
+      ? "Preparing upload…"
       : uploadState === "uploading"
-        ? "Uploading photos..."
+        ? "Uploading photos…"
         : uploadState === "submitting"
-          ? "Saving check-in..."
-          : "Submit Check-In";
+          ? "Saving…"
+          : "Send to Coach →";
+
+  const dietLabels = ["Off track", "Needs work", "OK", "Good", "Crushed it"];
+  const dietColors = [
+    "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
+    "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
+    "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
+    "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
+    "bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700",
+  ];
+  const dietColorsActive = [
+    "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
+    "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300",
+    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300",
+    "bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-300",
+    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300",
+  ];
+  const energyLabels = ["Drained", "Low", "Average", "Good", "Fired up"];
+  const energyColors = dietColors;
+  const energyColorsActive = dietColorsActive;
 
   const conflictTimeLabel = conflictModal
     ? new Date(conflictModal.submittedAt).toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-      })
+      hour: "numeric",
+      minute: "2-digit",
+    })
     : null;
 
   return (
     <>
-      {/* Toast */}
-      {toast && (
-        <div className="fixed top-4 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg">
-          {toast}
+      {/* Success animation */}
+      {showSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/90 dark:bg-[#09090b]/90">
+          <div className="flex flex-col items-center gap-3 animate-fade-in">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-3xl dark:bg-emerald-900/40">
+              ✓
+            </div>
+            <p className="text-lg font-semibold">Sent!</p>
+            <p className="text-sm text-gray-500 dark:text-zinc-400">Your coach will review this soon</p>
+          </div>
         </div>
       )}
 
@@ -294,7 +368,20 @@ export function CheckInForm({
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+        {/* Progress bar */}
+        <div className="h-1 w-full overflow-hidden rounded-full bg-gray-100 dark:bg-zinc-800">
+          <div
+            className="h-full rounded-full bg-emerald-500 transition-all duration-500 ease-out"
+            style={{ width: `${progressPct}%` }}
+            role="progressbar"
+            aria-valuenow={progressPct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label={`Form ${progressPct}% complete`}
+          />
+        </div>
+
         {error && (
           <div
             role="alert"
@@ -304,13 +391,13 @@ export function CheckInForm({
           </div>
         )}
 
-        <fieldset className="space-y-5">
-          <legend className="sr-only">Check-in details</legend>
+        <fieldset className="space-y-6">
+          <legend className="sr-only">Weekly update details</legend>
 
-          {/* Weight — most prominent field */}
+          {/* Weight */}
           <div>
-            <label htmlFor="weight" className="block text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-              Weight (lbs) <span className="text-red-500">*</span>
+            <label htmlFor="weight" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
+              Weight <span className="text-gray-400 dark:text-zinc-500">lbs</span>
             </label>
             <div className="flex gap-3">
               <input
@@ -319,102 +406,129 @@ export function CheckInForm({
                 step="0.1"
                 placeholder="185.5"
                 {...register("weight")}
+                ref={(e) => {
+                  register("weight").ref(e);
+                  weightRef.current = e;
+                }}
+                aria-required="true"
                 aria-invalid={errors.weight ? "true" : undefined}
                 aria-describedby={errors.weight ? "weight-error" : "weight-hint"}
-                className="block flex-1 rounded-lg border border-zinc-300 px-3 py-2.5 text-lg font-semibold tabular-nums focus-visible:border-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
+                className="block flex-1 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-lg font-semibold tabular-nums transition-colors focus-visible:border-gray-500 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500"
               />
               <div
                 id="weight-hint"
-                className="shrink-0 rounded-lg bg-zinc-100 px-3 py-2 dark:bg-zinc-800"
+                className="shrink-0 rounded-xl bg-gray-100 px-3.5 py-2.5 dark:bg-zinc-800"
               >
-                <p className="text-xs text-zinc-400">Previous</p>
+                <p className="text-[10px] font-medium text-gray-400 dark:text-zinc-500">Last time</p>
                 {previousWeight ? (
                   <p className="text-sm font-semibold tabular-nums">
                     {previousWeight.weight}
-                    <span className="ml-1 text-xs font-normal text-zinc-400">
+                    <span className="ml-1 text-[10px] font-normal text-gray-400 dark:text-zinc-500">
                       {previousDateLabel}
                     </span>
                   </p>
                 ) : (
-                  <p className="text-sm text-zinc-400">&mdash;</p>
+                  <p className="text-sm text-gray-400 dark:text-zinc-500">&mdash;</p>
                 )}
               </div>
             </div>
             {errors.weight && (
-              <p id="weight-error" className="mt-1 text-sm text-red-500">{errors.weight.message}</p>
+              <p id="weight-error" className="mt-1.5 text-sm text-red-500">{errors.weight.message}</p>
             )}
           </div>
 
-          {/* Compliance + Energy — secondary */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="dietCompliance" className="block text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-                Diet (1-10)
-              </label>
-              <select
-                id="dietCompliance"
-                {...register("dietCompliance")}
-                aria-invalid={errors.dietCompliance ? "true" : undefined}
-                aria-describedby={errors.dietCompliance ? "dietCompliance-error" : undefined}
-                className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus-visible:border-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
-              >
-                <option value="">Select...</option>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-              {errors.dietCompliance && (
-                <p id="dietCompliance-error" className="mt-1 text-sm text-red-500">{errors.dietCompliance.message}</p>
-              )}
+          {/* Diet — tap to rate */}
+          <div>
+            <label id="diet-label" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
+              How was your nutrition?
+            </label>
+            <div className="flex items-center gap-1.5">
+              <div className="flex flex-1 gap-1.5" role="radiogroup" aria-labelledby="diet-label" aria-describedby="diet-hint">
+                {dietLabels.map((label, i) => {
+                  const val = String((i + 1) * 2);
+                  const isActive = dietValue === val;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      role="radio"
+                      aria-checked={isActive}
+                      tabIndex={isActive || (!dietValue && i === 0) ? 0 : -1}
+                      onClick={() => setValue("dietCompliance", val)}
+                      onKeyDown={(e) => handleRatingKeyDown(e, dietLabels, dietValue, "dietCompliance")}
+                      className={`flex-1 rounded-xl py-2.5 text-[11px] font-medium transition-all ${isActive
+                        ? `${dietColorsActive[i]} shadow-sm`
+                        : dietColors[i]
+                        }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <div>
-              <label htmlFor="energyLevel" className="block text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-                Energy (1-10)
-              </label>
-              <select
-                id="energyLevel"
-                {...register("energyLevel")}
-                aria-invalid={errors.energyLevel ? "true" : undefined}
-                aria-describedby={errors.energyLevel ? "energyLevel-error" : undefined}
-                className="block w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus-visible:border-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
-              >
-                <option value="">Select...</option>
-                {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>{n}</option>
-                ))}
-              </select>
-              {errors.energyLevel && (
-                <p id="energyLevel-error" className="mt-1 text-sm text-red-500">{errors.energyLevel.message}</p>
-              )}
+            <p id="diet-hint" className="mt-1.5 text-[11px] text-gray-400 dark:text-zinc-500">Tap to rate how well you stuck to your plan</p>
+          </div>
+
+          {/* Energy — tap to rate */}
+          <div>
+            <label id="energy-label" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
+              How&apos;s your energy?
+            </label>
+            <div className="flex items-center gap-1.5">
+              <div className="flex flex-1 gap-1.5" role="radiogroup" aria-labelledby="energy-label" aria-describedby="energy-hint">
+                {energyLabels.map((label, i) => {
+                  const val = String((i + 1) * 2);
+                  const isActive = energyValue === val;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      role="radio"
+                      aria-checked={isActive}
+                      tabIndex={isActive || (!energyValue && i === 0) ? 0 : -1}
+                      onClick={() => setValue("energyLevel", val)}
+                      onKeyDown={(e) => handleRatingKeyDown(e, energyLabels, energyValue, "energyLevel")}
+                      className={`flex-1 rounded-xl py-2.5 text-[11px] font-medium transition-all ${isActive
+                        ? `${energyColorsActive[i]} shadow-sm`
+                        : energyColors[i]
+                        }`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+            <p id="energy-hint" className="mt-1.5 text-[11px] text-gray-400 dark:text-zinc-500">How did your energy feel throughout the week?</p>
           </div>
 
           {/* Notes */}
           <div>
-            <label htmlFor="notes" className="block text-xs font-medium uppercase tracking-wider text-zinc-500 mb-1.5">
-              Notes
+            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-zinc-300 mb-2">
+              Anything else?
             </label>
             <textarea
               id="notes"
               rows={3}
               {...register("notes")}
-              placeholder="How was your week? Any changes in energy, sleep, hunger?"
+              placeholder="How was your week? Wins, struggles, anything on your mind…"
               aria-invalid={errors.notes ? "true" : undefined}
               aria-describedby={errors.notes ? "notes-error" : undefined}
-              className="block w-full rounded-lg border border-zinc-300 px-3 py-2.5 text-sm focus-visible:border-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
+              className="block w-full rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 text-sm transition-colors focus-visible:border-gray-500 focus-visible:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:border-zinc-700 dark:bg-zinc-800 dark:focus-visible:border-zinc-500 dark:focus-visible:ring-zinc-500"
             />
             {errors.notes && (
-              <p id="notes-error" className="mt-1 text-sm text-red-500">{errors.notes.message}</p>
+              <p id="notes-error" className="mt-1.5 text-sm text-red-500">{errors.notes.message}</p>
             )}
           </div>
         </fieldset>
 
         {/* Custom Template Questions */}
         {sortedQuestions.length > 0 && (
-          <fieldset className="space-y-4 border-t border-zinc-200 pt-5 dark:border-zinc-800">
-            <legend className="sr-only">Additional questions from your coach</legend>
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-500">
-              Additional Questions
+          <fieldset className="space-y-4 border-t border-gray-100 pt-5 dark:border-zinc-800">
+            <legend className="sr-only">Questions from your coach</legend>
+            <p className="text-sm font-medium text-gray-700 dark:text-zinc-300">
+              From your coach
             </p>
             {sortedQuestions.map((q) => (
               <CustomQuestionField
@@ -435,7 +549,7 @@ export function CheckInForm({
         <button
           type="submit"
           disabled={uploadState !== "idle"}
-          className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="w-full rounded-xl bg-gray-900 px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-gray-800 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
         >
           {buttonLabel}
         </button>
@@ -514,22 +628,20 @@ function CustomQuestionField({
           <button
             type="button"
             onClick={() => onChange(value === "yes" ? "" : "yes")}
-            className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-              value === "yes"
-                ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                : "border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            }`}
+            className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${value === "yes"
+              ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+              : "border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              }`}
           >
             Yes
           </button>
           <button
             type="button"
             onClick={() => onChange(value === "no" ? "" : "no")}
-            className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${
-              value === "no"
-                ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                : "border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-            }`}
+            className={`rounded-lg border px-4 py-2 text-sm font-medium transition-colors ${value === "no"
+              ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+              : "border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              }`}
           >
             No
           </button>

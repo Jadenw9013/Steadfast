@@ -101,7 +101,7 @@ export default async function CoachProfilePage({ params }: PageProps) {
     return (
         <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b]">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-950">
+            <header className="sticky top-0 z-30 bg-zinc-50 dark:bg-[#09090b]">
                 <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-5 sm:px-8">
                     <Link
                         href="/coaches"

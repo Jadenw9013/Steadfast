@@ -29,21 +29,21 @@ export default async function ClientCheckInPage() {
       <div className="flex items-center gap-3">
         <Link
           href="/client"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-300"
           aria-label="Back to dashboard"
         >
           &larr;
         </Link>
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Weekly Check-In
+            Your Weekly Update
           </h1>
-          <p className="text-xs text-zinc-500">
-            Log your progress for the week
+          <p className="text-xs text-gray-500 dark:text-zinc-500">
+            Quick recap for your coach
           </p>
         </div>
       </div>
-      <div className="rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800/80 dark:bg-[#121215]">
+      <div className="rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none">
         <CheckInForm
           previousWeight={
             latest?.weight

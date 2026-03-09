@@ -65,8 +65,8 @@ export function PhotoUpload({
 
   return (
     <div className="space-y-3">
-      <label className="block text-xs font-medium uppercase tracking-wider text-zinc-500">
-        Progress Photos ({files.length}/{maxFiles})
+      <label className="block text-sm font-medium text-gray-700 dark:text-zinc-300">
+        Progress pics <span className="text-gray-400 dark:text-zinc-500">({files.length}/{maxFiles})</span>
       </label>
 
       {error && (
@@ -118,11 +118,10 @@ export function PhotoUpload({
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
-            dragOver
+          className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${dragOver
               ? "border-zinc-500 bg-zinc-100 dark:bg-zinc-800"
               : "border-zinc-300 hover:border-zinc-400 dark:border-zinc-700 dark:hover:border-zinc-600"
-          }`}
+            }`}
           aria-label="Drop photos here or click to browse"
         >
           <input

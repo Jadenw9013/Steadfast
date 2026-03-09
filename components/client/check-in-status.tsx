@@ -44,7 +44,7 @@ export function CheckInStatus({
   if (status === "submitted") {
     return (
       <div
-        className="relative overflow-hidden rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-orange-50/50 px-6 py-5 dark:border-amber-800/40 dark:from-amber-950/40 dark:to-orange-950/20"
+        className="relative overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 px-6 py-5 shadow-sm dark:border-amber-800/40 dark:from-amber-950/40 dark:to-orange-950/20 dark:shadow-none"
         role="status"
         aria-live="polite"
       >
@@ -77,7 +77,7 @@ export function CheckInStatus({
     return (
       <Link
         href={`/client/check-ins/${checkInId}`}
-        className="group relative block overflow-hidden rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-green-50/50 px-6 py-5 transition-all hover:shadow-lg hover:shadow-emerald-100/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-green-950/20 dark:hover:shadow-emerald-900/20"
+        className="group relative block overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 px-6 py-5 shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-green-950/20 dark:shadow-none dark:hover:shadow-emerald-900/20"
         role="status"
         aria-live="polite"
       >
@@ -87,7 +87,7 @@ export function CheckInStatus({
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
-              {statusLabel || "Your coach reviewed your check-in"}
+              Review your latest check-in
             </p>
             <p className="mt-0.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
               {nextDueLabel || `${weekLabel} \u00b7 tap to view feedback`}
@@ -103,7 +103,7 @@ export function CheckInStatus({
 
   return (
     <div
-      className="relative overflow-hidden rounded-2xl border border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-green-50/50 px-6 py-5 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-green-950/20"
+      className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-green-50 px-6 py-5 shadow-sm dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-green-950/20 dark:shadow-none"
       role="status"
       aria-live="polite"
     >
@@ -113,7 +113,7 @@ export function CheckInStatus({
         </div>
         <div className="flex-1">
           <p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">
-            {statusLabel || "Your coach reviewed your check-in"}
+            Review your latest check-in
           </p>
           <p className="mt-0.5 text-xs text-emerald-600/80 dark:text-emerald-400/80">
             {nextDueLabel || weekLabel}

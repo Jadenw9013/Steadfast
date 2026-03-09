@@ -91,7 +91,7 @@ export function MobileBottomNav({ role }: { role: "coach" | "client" }) {
 
     return (
         <nav
-            className="fixed bottom-0 left-0 right-0 z-30 bg-gray-50 dark:bg-gray-950 sm:hidden"
+            className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[#09090b] sm:hidden"
             aria-label="Mobile navigation"
             style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >

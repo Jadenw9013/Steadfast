@@ -35,7 +35,7 @@ export function NavBar({
       : [{ href: "/client/profile", label: "Profile" }];
 
   return (
-    <header className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-950">
+    <header className="sticky top-0 z-30 bg-white dark:bg-[#09090b]">
       <div className={`mx-auto flex h-14 ${maxWidth} items-center justify-between px-5 sm:px-8`}>
         {/* Logo */}
         <Link
@@ -69,8 +69,8 @@ export function NavBar({
                 key={link.href}
                 href={link.href}
                 className={`hidden rounded-lg px-3 py-1.5 text-sm font-medium transition-colors sm:block ${active
-                    ? "bg-gray-900/[0.06] text-gray-900 dark:bg-white/[0.08] dark:text-white"
-                    : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                  ? "bg-gray-900/[0.06] text-gray-900 dark:bg-white/[0.08] dark:text-white"
+                  : "text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
                   }`}
                 aria-current={active ? "page" : undefined}
               >
@@ -83,8 +83,8 @@ export function NavBar({
           <Link
             href={role === "coach" ? "/coach/settings" : "/client/settings"}
             className={`hidden h-8 w-8 items-center justify-center rounded-lg transition-colors sm:flex ${isActive(role === "coach" ? "/coach/settings" : "/client/settings")
-                ? "text-gray-900 dark:text-white"
-                : "text-gray-400 hover:text-gray-700 dark:hover:text-white"
+              ? "text-gray-900 dark:text-white"
+              : "text-gray-400 hover:text-gray-700 dark:hover:text-white"
               }`}
             aria-label="Settings"
             aria-current={isActive(role === "coach" ? "/coach/settings" : "/client/settings") ? "page" : undefined}
