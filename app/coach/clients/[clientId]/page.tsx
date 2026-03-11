@@ -7,7 +7,9 @@ import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { getCoachTemplatesForPicker } from "@/lib/queries/training-templates";
 import { getWeightHistory } from "@/lib/queries/weight-history";
 import { getClientIntake } from "@/lib/queries/client-intake";
-import { formatDateUTC } from "@/lib/utils/date";
+import { formatDateUTC, getLocalDate } from "@/lib/utils/date";
+import { getCoachClientForAdherence, getAdherenceSummary } from "@/lib/queries/adherence";
+import { getRecentExerciseProgress } from "@/lib/queries/exercise-results";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { db } from "@/lib/db";
@@ -19,6 +21,8 @@ import { MessageThread } from "@/components/messages/message-thread";
 import { PlanTabs } from "@/components/coach/client-workspace/plan-tabs";
 import { SendIntakeButton } from "@/components/coach/send-intake-button";
 import { DismissibleIntakeBanner } from "@/components/coach/dismissible-intake-banner";
+import { AdherenceCard } from "@/components/coach/adherence-card";
+import { ExerciseProgress } from "@/components/coach/exercise-progress";
 
 const weekStatusConfig = {
   submitted: {
@@ -61,7 +65,11 @@ export default async function ClientProfilePage({
   const weekOf = profile.currentWeekOf;
   const weekDateStr = formatDateUTC(weekOf);
 
-  const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory, onboardingResponse, clientIntake] =
+  // Derive client's "today" in their timezone for adherence summary
+  const clientTz = profile.client.timezone || "America/New_York";
+  const clientTodayDate = getLocalDate(new Date(), clientTz);
+
+  const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory, onboardingResponse, clientIntake, coachClientAdherence, adherenceSummary, exerciseProgress] =
     await Promise.all([
       getEffectiveMealPlanForReview(clientId, weekOf),
       getMessages(clientId, weekOf),
@@ -74,6 +82,9 @@ export default async function ClientProfilePage({
         include: { form: true },
       }),
       getClientIntake(clientId),
+      getCoachClientForAdherence(coach.id, clientId),
+      getAdherenceSummary(clientId, clientTodayDate),
+      getRecentExerciseProgress(clientId),
     ]);
 
   const {
@@ -348,49 +359,6 @@ export default async function ClientProfilePage({
         </div>
       </section>
 
-      {/* Structured Intake Summary (completed) */}
-      {clientIntake?.status === "COMPLETED" && (
-        <section aria-labelledby="intake-heading">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 id="intake-heading" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Intake Summary
-            </h2>
-            <div className="flex items-center gap-2">
-              {(() => {
-                const cfg = intakeStatusConfig.COMPLETED;
-                return (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                    {cfg.label}
-                  </span>
-                );
-              })()}
-              <SendIntakeButton clientId={clientId} isResend />
-            </div>
-          </div>
-          <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0a1224]">
-            {/* Key stats row */}
-            <div className="grid grid-cols-2 divide-x divide-zinc-100 border-b border-zinc-100 sm:grid-cols-4 dark:divide-zinc-800 dark:border-zinc-800">
-              <IntakeStatCell label="Bodyweight" value={clientIntake.bodyweightLbs ? `${clientIntake.bodyweightLbs} lbs` : "—"} />
-              <IntakeStatCell label="Height" value={clientIntake.heightInches ? `${clientIntake.heightInches} in` : "—"} />
-              <IntakeStatCell label="Age" value={clientIntake.ageYears ? `${clientIntake.ageYears} yrs` : "—"} />
-              <IntakeStatCell label="Gender" value={clientIntake.gender ?? "—"} />
-            </div>
-            {/* Detail rows */}
-            <div className="divide-y divide-zinc-100 p-5 dark:divide-zinc-800">
-              <IntakeRow label="Primary Goal" value={clientIntake.primaryGoal} />
-
-              <IntakeRow label="Training Experience" value={clientIntake.trainingExperience} />
-              <IntakeRow label="Training Days / Week" value={clientIntake.trainingDaysPerWeek?.toString()} />
-              <IntakeRow label="Equipment Access" value={clientIntake.gymAccess} />
-              <IntakeRow label="Injuries / Limitations" value={clientIntake.injuries} />
-              <IntakeRow label="Dietary Restrictions" value={clientIntake.dietaryRestrictions} />
-              <IntakeRow label="Food Preferences" value={clientIntake.dietaryPreferences} />
-              <IntakeRow label="Current Diet" value={clientIntake.currentDiet} last />
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Intake status banner (sent/in-progress, not yet completed) */}
       {clientIntake && clientIntake.status !== "COMPLETED" && (
@@ -486,6 +454,15 @@ export default async function ClientProfilePage({
         </div>
       </section>
 
+      {/* Daily Adherence */}
+      {coachClientAdherence && (
+        <AdherenceCard
+          clientId={clientId}
+          adherenceEnabled={coachClientAdherence.adherenceEnabled}
+          summary={adherenceSummary}
+        />
+      )}
+
       {/* Plans — Meal Plan | Training Plan tabs */}
       <section aria-labelledby="plans-heading">
         <h2 id="plans-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
@@ -509,6 +486,57 @@ export default async function ClientProfilePage({
             }}
           />
         </div>
+      </section>
+
+      {/* Structured Intake Summary (completed) */}
+      {clientIntake?.status === "COMPLETED" && (
+        <section aria-labelledby="intake-heading">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 id="intake-heading" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Intake Summary
+            </h2>
+            <div className="flex items-center gap-2">
+              {(() => {
+                const cfg = intakeStatusConfig.COMPLETED;
+                return (
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                    {cfg.label}
+                  </span>
+                );
+              })()}
+              <SendIntakeButton clientId={clientId} isResend />
+            </div>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0a1224]">
+            {/* Key stats row */}
+            <div className="grid grid-cols-2 divide-x divide-zinc-100 border-b border-zinc-100 sm:grid-cols-4 dark:divide-zinc-800 dark:border-zinc-800">
+              <IntakeStatCell label="Bodyweight" value={clientIntake.bodyweightLbs ? `${clientIntake.bodyweightLbs} lbs` : "—"} />
+              <IntakeStatCell label="Height" value={clientIntake.heightInches ? `${clientIntake.heightInches} in` : "—"} />
+              <IntakeStatCell label="Age" value={clientIntake.ageYears ? `${clientIntake.ageYears} yrs` : "—"} />
+              <IntakeStatCell label="Gender" value={clientIntake.gender ?? "—"} />
+            </div>
+            {/* Detail rows */}
+            <div className="divide-y divide-zinc-100 p-5 dark:divide-zinc-800">
+              <IntakeRow label="Primary Goal" value={clientIntake.primaryGoal} />
+              <IntakeRow label="Training Experience" value={clientIntake.trainingExperience} />
+              <IntakeRow label="Training Days / Week" value={clientIntake.trainingDaysPerWeek?.toString()} />
+              <IntakeRow label="Equipment Access" value={clientIntake.gymAccess} />
+              <IntakeRow label="Injuries / Limitations" value={clientIntake.injuries} />
+              <IntakeRow label="Dietary Restrictions" value={clientIntake.dietaryRestrictions} />
+              <IntakeRow label="Food Preferences" value={clientIntake.dietaryPreferences} />
+              <IntakeRow label="Current Diet" value={clientIntake.currentDiet} last />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Exercise Progress */}
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          Exercise Progress
+        </h2>
+        <ExerciseProgress results={exerciseProgress} />
       </section>
 
       {/* Notes */}

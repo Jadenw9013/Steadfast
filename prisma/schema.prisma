@@ -89,6 +89,9 @@ model User {
 
   intakesSent    ClientIntake[] @relation("CoachIntakes")
   intakeReceived ClientIntake?  @relation("ClientIntakes")
+
+  dailyAdherences DailyAdherence[] @relation("DailyAdherences")
+  exerciseResults  ExerciseResult[] @relation("ExerciseResults")
 }
 
 model CoachClient {
@@ -98,6 +101,7 @@ model CoachClient {
   coachNotes String?  @db.Text
   checkInDaysOfWeekOverride Int[]  @default([])  // empty = use coach default
   cadenceConfig             Json?  // CadenceConfig override (null = inherit coach default)
+  adherenceEnabled          Boolean @default(false)
   createdAt  DateTime @default(now())
 
   coach  User @relation("Coach", fields: [coachId], references: [id])
@@ -676,4 +680,76 @@ model PlanSnippet {
   coach User @relation("PlanSnippets", fields: [coachId], references: [id])
 
   @@index([coachId, type])
+}
+
+// ── Daily Adherence Tracking ────────────────────────────────────────────────
+
+model DailyAdherence {
+  id                 String   @id @default(cuid())
+  clientId           String
+  date               String   // YYYY-MM-DD client local date
+  weekOf             DateTime // normalized Monday UTC (for weekly aggregation)
+  workoutCompleted   Boolean  @default(false)
+  workoutCompletedAt DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  client User               @relation("DailyAdherences", fields: [clientId], references: [id])
+  meals  DailyMealCheckoff[]
+  exercises ExerciseCheckoff[]
+
+  @@unique([clientId, date])
+  @@index([clientId])
+}
+
+model DailyMealCheckoff {
+  id               String   @id @default(cuid())
+  dailyAdherenceId String
+  mealNameSnapshot String   // snapshot of mealName — stable even if coach later edits plan
+  displayOrder     Int      @default(0)
+  completed        Boolean  @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  dailyAdherence DailyAdherence @relation(fields: [dailyAdherenceId], references: [id], onDelete: Cascade)
+
+  @@unique([dailyAdherenceId, mealNameSnapshot])
+  @@index([dailyAdherenceId])
+}
+
+model ExerciseCheckoff {
+  id               String   @id @default(cuid())
+  dailyAdherenceId String
+  dayLabel         String   // snapshot: "Day 1 — Chest"
+  exerciseName     String   // snapshot: "Incline Press"
+  exerciseOrder    Int      @default(0) // position within the day
+  completed        Boolean  @default(false)
+  completedAt      DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  dailyAdherence DailyAdherence @relation(fields: [dailyAdherenceId], references: [id], onDelete: Cascade)
+
+  @@unique([dailyAdherenceId, dayLabel, exerciseOrder])
+  @@index([dailyAdherenceId])
+}
+
+// ── Exercise Progress Tracking ──────────────────────────────────────────────
+
+model ExerciseResult {
+  id           String   @id @default(cuid())
+  clientId     String
+  exerciseName String   // snapshot: "Incline Press"
+  programDay   String   // snapshot: "Day 1 — Chest"
+  weekOf       DateTime // normalizeToMonday()
+  weight       Float
+  reps         Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  client User @relation("ExerciseResults", fields: [clientId], references: [id])
+
+  @@unique([clientId, exerciseName, programDay, weekOf])
+  @@index([clientId])
 }

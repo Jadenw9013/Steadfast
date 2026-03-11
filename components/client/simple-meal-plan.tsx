@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { parsePlanExtras, SUPPLEMENT_TIMING_ORDER, getOverrideColor, type PlanExtras, type DayOverride, type MealAdjustment, type MealChange } from "@/types/meal-plan-extras";
+import { toggleMealCheckoff } from "@/app/actions/adherence";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,12 @@ type MealPlan = {
   publishedAt: Date | null;
   planExtras?: unknown;
   items: MealPlanItem[];
+};
+
+type MealAdherenceProps = {
+  date: string;             // YYYY-MM-DD
+  completedMeals: string[]; // mealNameSnapshots already completed
+  todayWeekday: string;     // e.g. "Monday" — matches WEEKDAYS constant
 };
 
 /** A resolved meal item after applying day overrides */
@@ -439,10 +446,23 @@ function ActiveOverrideBanner({ overrides }: { overrides: DayOverride[] }) {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export function SimpleMealPlan({ mealPlan }: { mealPlan: MealPlan }) {
+export function SimpleMealPlan({
+  mealPlan,
+  adherence,
+}: {
+  mealPlan: MealPlan;
+  adherence?: MealAdherenceProps;
+}) {
   const [selectedDay, setSelectedDay] = useState<Weekday>(getCurrentWeekday);
+  const [completedMeals, setCompletedMeals] = useState<Set<string>>(
+    () => new Set(adherence?.completedMeals ?? [])
+  );
+  const [isPending, startTransition] = useTransition();
   const extras = parsePlanExtras(mealPlan.planExtras);
   const hasOverrides = (extras?.dayOverrides?.length ?? 0) > 0;
+
+  // Only show checkoff UI when viewing the tab that matches today
+  const isViewingToday = adherence ? selectedDay === adherence.todayWeekday : false;
 
   const overridesByDay = useMemo(() => {
     const map = new Map<string, DayOverride[]>();
@@ -477,9 +497,66 @@ export function SimpleMealPlan({ mealPlan }: { mealPlan: MealPlan }) {
     return Array.from(grouped);
   }, [resolvedItems]);
 
+  function handleMealToggle(mealName: string, mealIndex: number) {
+    if (!adherence?.date) return;
+    const alreadyDone = completedMeals.has(mealName);
+    const next = !alreadyDone;
+    // Optimistic update
+    setCompletedMeals((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(mealName); else s.delete(mealName);
+      return s;
+    });
+    startTransition(async () => {
+      const result = await toggleMealCheckoff({
+        date: adherence.date,
+        mealNameSnapshot: mealName,
+        displayOrder: mealIndex,
+        completed: next,
+      });
+      if (result?.error) {
+        // Revert
+        setCompletedMeals((prev) => {
+          const s = new Set(prev);
+          if (alreadyDone) s.add(mealName); else s.delete(mealName);
+          return s;
+        });
+      }
+    });
+  }
+
+  // Progress bar values
+  const progressTotal = meals.length;
+  const progressDone = meals.filter(([name]) => completedMeals.has(name)).length;
+
   return (
     <div className="space-y-4">
       {extras && <MetadataSection extras={extras} />}
+
+      {/* Meal progress bar — only visible when viewing today's tab */}
+      {adherence && isViewingToday && progressTotal > 0 && (
+        <div className="rounded-xl border border-zinc-200/80 bg-zinc-50 px-4 py-3 dark:border-white/[0.04] dark:bg-white/[0.02]">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">
+              Today&rsquo;s meals
+            </span>
+            <span className="text-xs font-semibold tabular-nums text-zinc-600 dark:text-zinc-300">
+              {progressDone} / {progressTotal}
+            </span>
+          </div>
+          <div className="h-2 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+            <div
+              className="h-full rounded-full bg-emerald-500 transition-all duration-300 dark:bg-emerald-600"
+              style={{ width: progressTotal > 0 ? `${Math.round((progressDone / progressTotal) * 100)}%` : "0%" }}
+              role="progressbar"
+              aria-valuenow={progressDone}
+              aria-valuemin={0}
+              aria-valuemax={progressTotal}
+              aria-label={`Meals completed: ${progressDone} of ${progressTotal}`}
+            />
+          </div>
+        </div>
+      )}
 
       {hasOverrides && (
         <DaySelector selectedDay={selectedDay} onSelect={setSelectedDay} overridesByDay={overridesByDay} />
@@ -518,16 +595,43 @@ export function SimpleMealPlan({ mealPlan }: { mealPlan: MealPlan }) {
         const overriddenItems = items.filter((i) => i.overridden);
         const hasOverriddenItems = overriddenItems.length > 0;
         const overrideLabels = [...new Set(overriddenItems.map((i) => i.overridden!.overrideLabel))];
+        const isMealDone = isViewingToday ? completedMeals.has(mealName) : false;
 
         return (
           <div
             key={mealName}
-            className={`group overflow-hidden rounded-2xl border bg-white transition-all hover:shadow-md dark:bg-[#0a1224] dark:hover:shadow-lg dark:hover:shadow-blue-500/[0.03] ${accent.border} dark:border-white/[0.04] dark:hover:border-white/[0.08]`}
+            className={`group overflow-hidden rounded-2xl border bg-white transition-all hover:shadow-md dark:bg-[#0a1224] dark:hover:shadow-lg dark:hover:shadow-blue-500/[0.03] ${
+              isMealDone
+                ? "border-emerald-200 dark:border-emerald-900/40"
+                : `${accent.border} dark:border-white/[0.04] dark:hover:border-white/[0.08]`
+            }`}
           >
             {/* Meal header */}
-            <div className="flex items-center gap-3 border-b border-zinc-100 px-5 py-3.5 dark:border-white/[0.04]">
-              <div className="flex-1 min-w-0 flex items-center gap-2">
-                <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-gray-200">{mealName}</h3>
+            <div className={`flex items-center border-b border-zinc-100 dark:border-white/[0.04] ${isViewingToday ? "pl-1 pr-4 py-2" : "px-5 py-3.5"}`}>
+              {/* Adherence checkbox — always show when adherence prop passed */}
+              {isViewingToday && (
+                <label
+                  className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-lg"
+                  aria-label={`${mealName}: ${isMealDone ? "mark incomplete" : "mark complete"}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isMealDone}
+                    onChange={() => handleMealToggle(mealName, mealIndex)}
+                    disabled={isPending}
+                    className="h-[18px] w-[18px] cursor-pointer rounded border-2 border-zinc-300 accent-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:border-zinc-600"
+                  />
+                </label>
+              )}
+              <div className={`flex min-w-0 flex-1 items-center gap-2 ${adherence ? "" : ""}`}>
+                <h3 className={`text-sm font-bold uppercase tracking-wider ${isMealDone ? "text-emerald-700 dark:text-emerald-400" : "text-zinc-700 dark:text-gray-200"}`}>
+                  {mealName}
+                </h3>
+                {isMealDone && (
+                  <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-emerald-500">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
                 {hasOverriddenItems && overrideLabels.map((label) => {
                   const colorId = overriddenItems.find((i) => i.overridden?.overrideLabel === label)?.overridden?.overrideColor;
                   const color = getOverrideColor(colorId);
@@ -538,7 +642,7 @@ export function SimpleMealPlan({ mealPlan }: { mealPlan: MealPlan }) {
                   );
                 })}
               </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${accent.badge}`}>
+              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${accent.badge}`}>
                 {items.length} {items.length === 1 ? "item" : "items"}
               </span>
             </div>

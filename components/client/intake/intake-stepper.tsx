@@ -409,36 +409,38 @@ export function IntakeStepper() {
           &larr; Back
         </button>
 
-        {/* Show Next/Complete for non-choice questions */}
-        {question.type !== "choice" && (
-          <button
-            type="button"
-            onClick={() => {
-              const valid = validate();
-              if (valid) { setError(valid); return; }
-              saveAndAdvance();
-            }}
-            disabled={submitting}
-            className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
-          >
-            {submitting
-              ? "Submitting…"
-              : step === TOTAL - 1
-              ? "Complete"
-              : "Next →"}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Skip button for optional textarea steps */}
+          {question.type === "textarea" && question.optional && !inputValue && (
+            <button
+              type="button"
+              onClick={() => saveAndAdvance("")}
+              className="text-xs font-medium text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:hover:text-zinc-300"
+            >
+              Skip
+            </button>
+          )}
 
-        {/* Choice questions: skip button for optional steps */}
-        {question.type === "textarea" && question.optional && !inputValue && (
-          <button
-            type="button"
-            onClick={() => saveAndAdvance("")}
-            className="text-xs font-medium text-zinc-400 underline underline-offset-2 hover:text-zinc-600 dark:hover:text-zinc-300"
-          >
-            Skip
-          </button>
-        )}
+          {/* Next/Complete for non-choice questions */}
+          {question.type !== "choice" && (
+            <button
+              type="button"
+              onClick={() => {
+                const valid = validate();
+                if (valid) { setError(valid); return; }
+                saveAndAdvance();
+              }}
+              disabled={submitting}
+              className="flex items-center gap-1.5 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-500"
+            >
+              {submitting
+                ? "Submitting…"
+                : step === TOTAL - 1
+                ? "Complete"
+                : "Next →"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -2,11 +2,12 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getClientCheckInsLight, getLatestCoachMessage } from "@/lib/queries/check-ins";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
-import { formatDateUTC } from "@/lib/utils/date";
+import { formatDateUTC, getLocalDate } from "@/lib/utils/date";
 import { getWeightHistory } from "@/lib/queries/weight-history";
 import { getMyIntake } from "@/lib/queries/client-intake";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
+import { getAdherenceEnabled, getTodayAdherence, getTodayMealNames } from "@/lib/queries/adherence";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
@@ -16,6 +17,7 @@ import { DeleteCheckInButton } from "@/components/client/delete-check-in-button"
 import { CheckInStatus } from "@/components/client/check-in-status";
 import { CheckInScheduleBanner } from "@/components/client/check-in-schedule-banner";
 import { WeightProgress } from "@/components/charts/weight-progress";
+import { TodayAdherence } from "@/components/client/today-adherence";
 import dayjs from "dayjs";
 import utcPlugin from "dayjs/plugin/utc";
 import timezonePlugin from "dayjs/plugin/timezone";
@@ -43,17 +45,22 @@ export default async function ClientDashboard() {
     },
   });
 
-  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake] = await Promise.all([
+  const tz = user.timezone || "America/Los_Angeles";
+  const todayDate = getLocalDate(new Date(), tz);
+
+  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake, adherenceEnabled, todayAdherence, planMeals] = await Promise.all([
     getClientCheckInsLight(user.id),
     getCurrentPublishedMealPlan(user.id),
     getLatestCoachMessage(user.id),
     getWeightHistory(user.id),
     getPublishedTrainingProgram(user.id),
     getMyIntake(user.id),
+    getAdherenceEnabled(user.id),
+    getTodayAdherence(user.id, todayDate),
+    getTodayMealNames(user.id),
   ]);
 
   // ── Cadence-aware status derivation ──────────────────────────────────────
-  const tz = user.timezone || "America/Los_Angeles";
 
   // Resolve effective cadence: client override → coach default → legacy fallback
   const coachCadence = coachAssignment
@@ -217,6 +224,18 @@ export default async function ClientDashboard() {
           checkInId={latestCheckIn?.id}
         />
       </div>
+
+      {/* Today Adherence — only if coach has enabled it */}
+      {adherenceEnabled && (
+        <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
+          <TodayAdherence
+            date={todayDate}
+            planMeals={planMeals}
+            existingMeals={todayAdherence?.meals ?? []}
+            workoutCompleted={todayAdherence?.workoutCompleted ?? false}
+          />
+        </div>
+      )}
 
       {/* Performance Module — Weight */}
       {latestWeight?.weight && (

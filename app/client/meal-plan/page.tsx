@@ -1,12 +1,20 @@
 import Link from "next/link";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
+import { getTodayAdherence } from "@/lib/queries/adherence";
+import { getLocalDate } from "@/lib/utils/date";
 import { SimpleMealPlan } from "@/components/client/simple-meal-plan";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 
 export default async function ClientMealPlanPage() {
   const user = await getCurrentDbUser();
-  const mealPlan = await getCurrentPublishedMealPlan(user.id);
+  const tz = user.timezone || "America/New_York";
+  const todayDate = getLocalDate(new Date(), tz);
+
+  const [mealPlan, todayAdherence] = await Promise.all([
+    getCurrentPublishedMealPlan(user.id),
+    getTodayAdherence(user.id, todayDate),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -51,7 +59,14 @@ export default async function ClientMealPlanPage() {
             </div>
           </div>
         ) : (
-          <SimpleMealPlan mealPlan={mealPlan} />
+          <SimpleMealPlan
+            mealPlan={mealPlan}
+            adherence={{
+              date: todayDate,
+              completedMeals: todayAdherence?.meals.filter((m) => m.completed).map((m) => m.mealNameSnapshot) ?? [],
+              todayWeekday: new Date(todayDate + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long" }),
+            }}
+          />
         )}
       </section>
     </div>

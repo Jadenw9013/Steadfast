@@ -1,12 +1,34 @@
 import Link from "next/link";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
+import { getTodayAdherence } from "@/lib/queries/adherence";
+import { getExerciseResultsForWeek, getPreviousExerciseResults } from "@/lib/queries/exercise-results";
+import { getLocalDate, normalizeToMonday } from "@/lib/utils/date";
 import { TrainingProgram } from "@/components/client/training-program";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 
 export default async function ClientTrainingPage() {
   const user = await getCurrentDbUser();
-  const program = await getPublishedTrainingProgram(user.id);
+  const tz = user.timezone || "America/New_York";
+  const todayDate = getLocalDate(new Date(), tz);
+  const weekOf = normalizeToMonday(new Date());
+
+  const [program, todayAdherence, currentResults, previousResults] = await Promise.all([
+    getPublishedTrainingProgram(user.id),
+    getTodayAdherence(user.id, todayDate),
+    getExerciseResultsForWeek(user.id, weekOf),
+    getPreviousExerciseResults(user.id, weekOf),
+  ]);
+
+  // Serialize Maps to plain Records for the client component
+  const currentWeek: Record<string, { exerciseName: string; programDay: string; weight: number; reps: number }> = {};
+  for (const [key, val] of currentResults) {
+    currentWeek[key] = { exerciseName: val.exerciseName, programDay: val.programDay, weight: val.weight, reps: val.reps };
+  }
+  const previousWeek: Record<string, { exerciseName: string; programDay: string; weight: number; reps: number }> = {};
+  for (const [key, val] of previousResults) {
+    previousWeek[key] = { exerciseName: val.exerciseName, programDay: val.programDay, weight: val.weight, reps: val.reps };
+  }
 
   return (
     <div className="space-y-8">
@@ -50,7 +72,17 @@ export default async function ClientTrainingPage() {
             </p>
           </div>
         ) : (
-          <TrainingProgram program={program} />
+          <TrainingProgram
+            program={program}
+            adherence={{
+              date: todayDate,
+              exercises: todayAdherence?.exercises ?? [],
+            }}
+            progress={{
+              currentWeek,
+              previousWeek,
+            }}
+          />
         )}
       </section>
     </div>
