@@ -189,7 +189,7 @@ export function TemplateEditor({
   return (
     <div className="space-y-5">
       {/* Template metadata + top save */}
-      <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800/80 dark:bg-[#0a1224]">
         <div className="space-y-3">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="template-name" className="text-xs font-semibold text-zinc-500">
@@ -229,7 +229,7 @@ export function TemplateEditor({
               type="button"
               onClick={handleSave}
               disabled={saving || deleting}
-              className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
             >
               {saving ? "Saving…" : "Save template"}
             </button>
@@ -251,7 +251,7 @@ export function TemplateEditor({
             Add Cardio
           </button>
         ) : (
-          <div className="rounded-2xl border-2 border-green-200 bg-white dark:border-green-900/60 dark:bg-[#121215]">
+          <div className="rounded-2xl border-2 border-green-200 bg-white dark:border-green-900/60 dark:bg-[#0a1224]">
             <div className="flex items-center justify-between border-b border-green-100 px-5 py-3 dark:border-green-900/40">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">
                 Cardio Prescription
@@ -345,7 +345,7 @@ export function TemplateEditor({
       )}
 
       {/* Training days */}
-      <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#0a1224]">
         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
           <h2 className="text-sm font-semibold">Training Days</h2>
           <div className="flex items-center gap-2">
@@ -355,7 +355,7 @@ export function TemplateEditor({
                 type="button"
                 onClick={() => setViewMode("editor")}
                 className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "editor"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                   }`}
               >
@@ -365,7 +365,7 @@ export function TemplateEditor({
                 type="button"
                 onClick={() => setViewMode("preview")}
                 className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "preview"
-                  ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                   : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                   }`}
               >
@@ -476,7 +476,7 @@ export function TemplateEditor({
             type="button"
             onClick={handleSave}
             disabled={saving || deleting}
-            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
           >
             {saving ? "Saving…" : "Save template"}
           </button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { ProcessingIndicator } from "./processing-indicator";
 
 const ACCEPTED_TYPES = [
   "image/png",
@@ -364,14 +365,7 @@ export function UploadStep({
 
       {/* Processing indicator */}
       {isProcessing && (
-        <div className="flex items-center gap-3 rounded-lg bg-zinc-100 px-4 py-3 dark:bg-zinc-800">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
-          <p className="text-sm text-zinc-600 dark:text-zinc-300">
-            {status === "uploading"
-              ? "Uploading file..."
-              : "Running OCR and structuring meal plan..."}
-          </p>
-        </div>
+        <ProcessingIndicator mode={status === "uploading" ? "upload" : "upload"} />
       )}
 
       {/* Actions */}
@@ -390,7 +384,7 @@ export function UploadStep({
           type="button"
           onClick={handleUploadAndProcess}
           disabled={!file || isProcessing}
-          className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="rounded-lg bg-zinc-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
         >
           {isProcessing ? "Processing..." : "Upload & Process"}
         </button>

@@ -32,7 +32,7 @@ export function ConnectCoachBanner() {
   }
 
   return (
-    <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-5 dark:border-zinc-800/80 dark:bg-[#121215]">
+    <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-5 dark:border-zinc-800/80 dark:bg-[#0a1224]">
       <h2 className="text-base font-semibold">Connect to Your Coach</h2>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
         Enter the coach code provided by your coach to get started.
@@ -63,7 +63,7 @@ export function ConnectCoachBanner() {
         <button
           type="submit"
           disabled={connecting || !code.trim()}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
         >
           {connecting ? "Connecting..." : "Connect"}
         </button>

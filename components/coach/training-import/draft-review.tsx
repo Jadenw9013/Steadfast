@@ -134,7 +134,7 @@ export function WorkoutDraftReview({
   // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-6 py-8 dark:border-zinc-800/80 dark:bg-[#121215]">
+      <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-6 py-8 dark:border-zinc-800/80 dark:bg-[#0a1224]">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
         <p className="text-sm text-zinc-500">Loading parsed workout…</p>
       </div>
@@ -184,7 +184,7 @@ export function WorkoutDraftReview({
       </div>
 
       {/* Program name + notes */}
-      <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800/80 dark:bg-[#0a1224]">
         <div className="space-y-3">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="import-name" className="text-xs font-semibold text-zinc-500">
@@ -217,7 +217,7 @@ export function WorkoutDraftReview({
       </div>
 
       {/* Training days */}
-      <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#0a1224]">
         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Training Days
@@ -262,7 +262,7 @@ export function WorkoutDraftReview({
 
       {/* Destination */}
       {clientId && (
-        <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 dark:border-zinc-800/80 dark:bg-[#0a1224]">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
             Save as
           </p>
@@ -272,7 +272,7 @@ export function WorkoutDraftReview({
               onClick={() => setDestination("template")}
               className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
                 destination === "template"
-                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-blue-600 dark:text-white"
                   : "border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               }`}
             >
@@ -283,7 +283,7 @@ export function WorkoutDraftReview({
               onClick={() => setDestination("client")}
               className={`flex-1 rounded-xl border py-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
                 destination === "client"
-                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                  ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-blue-600 dark:text-white"
                   : "border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
               }`}
             >
@@ -325,7 +325,7 @@ export function WorkoutDraftReview({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="shrink-0 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="shrink-0 rounded-xl bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
         >
           {saving
             ? "Saving…"

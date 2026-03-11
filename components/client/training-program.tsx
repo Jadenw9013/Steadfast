@@ -86,7 +86,7 @@ export function TrainingProgram({ program }: { program: TrainingProgramData }) {
     <div className="space-y-3">
       {/* Frequency / notes banner */}
       {(program.weeklyFrequency || program.clientNotes) && (
-        <div className="rounded-2xl border border-gray-200/60 bg-white px-5 py-4 shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none">
+        <div className="rounded-2xl border border-gray-200/60 bg-white px-5 py-4 shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224] dark:shadow-none">
           {program.weeklyFrequency && (
             <p className="text-sm">
               <span className="font-semibold">{program.weeklyFrequency}×</span>{" "}
@@ -119,7 +119,7 @@ export function TrainingProgram({ program }: { program: TrainingProgramData }) {
         const details = [frequency, duration, intensity].filter(Boolean).join(" \u00b7 ");
 
         return (
-          <div className="rounded-2xl border border-green-200/60 bg-white shadow-sm dark:border-green-900/40 dark:bg-[#121215] dark:shadow-none">
+          <div className="rounded-2xl border border-green-200/60 bg-white shadow-sm dark:border-green-900/40 dark:bg-[#0a1224] dark:shadow-none">
             <div className="flex items-center gap-2 border-b border-green-100 px-5 py-3 dark:border-green-900/30">
               <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">
                 Cardio
@@ -159,7 +159,7 @@ export function TrainingProgram({ program }: { program: TrainingProgramData }) {
         return (
           <details
             key={day.id}
-            className="group overflow-hidden rounded-2xl border border-gray-200/60 bg-white shadow-sm transition-all open:shadow-md dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none dark:open:shadow-none"
+            className="group overflow-hidden rounded-2xl border border-gray-200/60 bg-white shadow-sm transition-all open:shadow-md dark:border-zinc-800/80 dark:bg-[#0a1224] dark:shadow-none dark:open:shadow-none"
             open={dayIndex === 0}
           >
             <summary

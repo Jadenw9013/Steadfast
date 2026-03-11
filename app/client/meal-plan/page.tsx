@@ -18,10 +18,16 @@ export default async function ClientMealPlanPage() {
         >
           &larr; Dashboard
         </Link>
-        <div className="flex items-center justify-between">
+
+        {/* Page header */}
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">Meal Plan</h1>
-            <p className="mt-1.5 text-sm text-zinc-500">Your current nutrition plan</p>
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+              Meal Plan
+            </h1>
+            <p className="mt-1.5 text-sm text-zinc-500">
+              Your personalized nutrition plan from your coach
+            </p>
           </div>
           {mealPlan && <ExportPdfButton mealPlanId={mealPlan.id} variant="small" />}
         </div>
@@ -36,11 +42,13 @@ export default async function ClientMealPlanPage() {
           Meal plan details
         </h2>
         {!mealPlan ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-white px-8 py-16 text-center dark:border-zinc-700 dark:bg-[#121215]">
-            <p className="text-sm font-semibold">No meal plan yet</p>
-            <p className="text-sm text-zinc-400">
-              Your coach hasn&apos;t published a meal plan yet.
-            </p>
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-zinc-300 bg-white px-8 py-20 text-center dark:border-zinc-700 dark:bg-[#0a1224]">
+            <div>
+              <p className="text-sm font-semibold">No meal plan yet</p>
+              <p className="mt-1 text-sm text-zinc-400">
+                Your coach hasn&apos;t published a meal plan yet. Check back soon!
+              </p>
+            </div>
           </div>
         ) : (
           <SimpleMealPlan mealPlan={mealPlan} />

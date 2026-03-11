@@ -91,7 +91,7 @@ export function MobileBottomNav({ role }: { role: "coach" | "client" }) {
 
     return (
         <nav
-            className="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-[#09090b] sm:hidden"
+            className="fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-md dark:bg-transparent dark:backdrop-blur-lg sm:hidden"
             aria-label="Mobile navigation"
             style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
@@ -105,14 +105,14 @@ export function MobileBottomNav({ role }: { role: "coach" | "client" }) {
                             key={item.href}
                             href={item.href}
                             className={`relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-colors ${active
-                                ? "text-gray-900 dark:text-gray-100"
+                                ? "text-blue-400 dark:text-blue-400"
                                 : "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                                 }`}
                             aria-current={active ? "page" : undefined}
                         >
                             {/* Active indicator dot */}
                             {active && (
-                                <span className="absolute top-1.5 h-1 w-1 rounded-full bg-gray-900 dark:bg-gray-100" />
+                                <span className="absolute top-1.5 h-1 w-1 rounded-full bg-blue-500 dark:bg-blue-400" />
                             )}
                             <span className={active ? "text-gray-900 dark:text-gray-100" : ""}>{item.icon}</span>
                             {item.label}

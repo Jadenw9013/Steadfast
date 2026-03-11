@@ -43,7 +43,7 @@ export default async function ClientCheckInPage() {
           </p>
         </div>
       </div>
-      <div className="rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none">
+      <div className="rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none">
         <CheckInForm
           previousWeight={
             latest?.weight

@@ -19,7 +19,7 @@ export function CheckInStatus({
     return (
       <Link
         href="/client/check-in"
-        className="group relative block overflow-hidden rounded-2xl bg-zinc-900 px-6 py-6 text-white transition-all hover:shadow-xl hover:shadow-zinc-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-gradient-to-br dark:from-zinc-100 dark:to-zinc-200 dark:text-zinc-900 dark:hover:shadow-zinc-100/10"
+        className="group relative block overflow-hidden rounded-2xl bg-zinc-900 px-6 py-6 text-white transition-all hover:shadow-xl hover:shadow-zinc-900/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-gradient-to-br dark:from-blue-600 dark:to-blue-700 dark:text-white dark:hover:shadow-blue-500/20"
         role="status"
         aria-live="polite"
       >

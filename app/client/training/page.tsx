@@ -43,7 +43,7 @@ export default async function ClientTrainingPage() {
           Training program
         </h2>
         {!program || program.days.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-white px-8 py-16 text-center shadow-sm dark:border-zinc-700 dark:bg-[#121215] dark:shadow-none">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-300 bg-white px-8 py-16 text-center shadow-sm dark:border-zinc-700 dark:bg-[#0a1224] dark:shadow-none">
             <p className="text-sm font-semibold">No training program yet</p>
             <p className="text-sm text-gray-400 dark:text-zinc-400">
               Your coach hasn&apos;t published a training program yet.

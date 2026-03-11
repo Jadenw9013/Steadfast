@@ -35,7 +35,7 @@ export function NavBar({
       : [{ href: "/client/profile", label: "Profile" }];
 
   return (
-    <header className="sticky top-0 z-30 bg-white dark:bg-[#09090b]">
+    <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md dark:bg-transparent dark:backdrop-blur-lg dark:border-b dark:border-white/[0.04]">
       <div className={`mx-auto flex h-14 ${maxWidth} items-center justify-between px-5 sm:px-8`}>
         {/* Logo */}
         <Link

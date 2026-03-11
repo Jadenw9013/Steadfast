@@ -14,9 +14,9 @@ export default function CoachLoading() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" />
-          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" style={{ animationDelay: "150ms" }} />
-          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400" style={{ animationDelay: "300ms" }} />
+          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 dark:bg-blue-400" />
+          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 dark:bg-blue-400" style={{ animationDelay: "150ms" }} />
+          <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-zinc-400 dark:bg-blue-400" style={{ animationDelay: "300ms" }} />
         </div>
       </div>
     </div>

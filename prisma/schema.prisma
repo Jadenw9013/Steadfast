@@ -76,6 +76,7 @@ model User {
   workoutImports    WorkoutImport[]    @relation("WorkoutImports")
   coachProfile      CoachProfile?      @relation("MarketplaceProfile")
   prospectRequests  CoachingRequest[]  @relation("ProspectRequests")
+  planSnippets      PlanSnippet[]      @relation("PlanSnippets")
   
   onboardingForm     OnboardingForm?     @relation("CoachOnboardingForm")
   onboardingResponse OnboardingResponse? @relation("ClientOnboardingResponse")
@@ -176,6 +177,7 @@ model MealPlan {
   weekOf      DateTime
   version     Int            @default(1)
   status      MealPlanStatus @default(DRAFT)
+  planExtras  Json?          // PlanExtras object (see types/meal-plan-extras.ts)
   publishedAt DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
@@ -605,4 +607,20 @@ model OnboardingResponse {
 
   @@index([coachId])
   @@index([formId])
+}
+
+// ── Plan Snippets (reusable meal plan section templates) ────────────────────
+
+model PlanSnippet {
+  id        String   @id @default(cuid())
+  coachId   String
+  type      String   // "supplements" | "override" | "rules" | "allowances"
+  name      String
+  payload   Json     // section data (Supplement[], DayOverride, Rule[], Allowance[])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach User @relation("PlanSnippets", fields: [coachId], references: [id])
+
+  @@index([coachId, type])
 }

@@ -4,9 +4,6 @@
  * Env vars:
  *   OPENAI_API_KEY — OpenAI API key
  *   OPENAI_MODEL   — Model to use (default: gpt-4o)
- *
- * TODO: If you want to use a different LLM provider (Gemini, Claude, etc.),
- * replace the fetch call below. The interface stays the same.
  */
 
 import {
@@ -14,7 +11,7 @@ import {
   type ParsedMealPlan,
 } from "@/lib/validations/meal-plan-import";
 
-const SYSTEM_PROMPT = `You are a nutrition data extraction assistant. Given raw text from a meal plan document (possibly OCR'd), extract the structured meal plan.
+const SYSTEM_PROMPT = `You are a nutrition data extraction assistant. Given raw text from a meal plan document (possibly OCR'd), extract a fully structured meal plan.
 
 Rules:
 - Output ONLY valid JSON matching the schema below. No markdown, no explanation.
@@ -28,6 +25,38 @@ Rules:
 - If something is ambiguous, include it but add a "notes" field with "unclear".
 - If a title is present, use it. Otherwise, generate a brief one like "Imported Meal Plan".
 - Put any general notes or instructions in the top-level "notes" field.
+
+EXTENDED EXTRACTION — also extract these sections if present in the text:
+
+metadata: Extract plan context such as:
+- phase: diet phase ("cutting", "bulking", "maintenance", or custom)
+- startDate: when the plan starts
+- bodyweight: current weight mentioned
+- coachNotes: general coach comments about the plan
+- highlightedChanges: any mention of "changes are in bold" or highlighted modifications
+
+dayOverrides: Extract day-specific variations such as:
+- "400g rice on Mondays & Fridays only" → label: "High Carb Day", weekdays: ["Monday", "Friday"]
+- "1 free meal on Saturdays replacing your last meal" → label: "Free Meal", weekdays: ["Saturday"]
+- Include specific food overrides in the items array with what they replace
+
+supplements: Extract supplement entries as structured data:
+- name, dosage, timing, required (true/false), notes
+- timing must be one of: "upon waking", "AM", "PM", "with meal", "after meal", "pre workout", "intra workout", "post workout", "before bed"
+- If timing is unclear, use best guess and set notes to "timing unclear"
+
+allowances: Extract approved extras, seasonings, sauces, drinks separately from meals:
+- category: "Spices", "Sauces", "Sweeteners", "Drinks", or "Other"
+- items: list of allowed items in that category
+- restriction: any limits like "sugar-free only", "limit to 1 tbsp"
+
+rules: Extract non-meal behavioral instructions:
+- category: "Meal Timing", "Hydration", "Cardio", "Check-In", "Communication", "Cooking", or "Other"
+- text: the rule as written
+
+confidence: Rate your extraction confidence (0.0 to 1.0) for each section:
+- meals, supplements, overrides, allowances, rules
+- Use lower confidence when the text is ambiguous or OCR quality is poor
 
 JSON Schema:
 {
@@ -44,8 +73,54 @@ JSON Schema:
       ]
     }
   ],
-  "notes": "string"
-}`;
+  "notes": "string",
+  "metadata": {
+    "phase": "string (optional)",
+    "startDate": "string (optional)",
+    "bodyweight": "string (optional)",
+    "coachNotes": "string (optional)",
+    "highlightedChanges": "string (optional)"
+  },
+  "dayOverrides": [
+    {
+      "label": "string",
+      "weekdays": ["string"],
+      "items": [{ "food": "string", "portion": "string", "replaces": "string (optional)" }],
+      "notes": "string (optional)"
+    }
+  ],
+  "supplements": [
+    {
+      "name": "string",
+      "dosage": "string (optional)",
+      "timing": "string",
+      "required": "boolean (optional)",
+      "notes": "string (optional)"
+    }
+  ],
+  "allowances": [
+    {
+      "category": "string",
+      "items": ["string"],
+      "restriction": "string (optional)"
+    }
+  ],
+  "rules": [
+    {
+      "category": "string",
+      "text": "string"
+    }
+  ],
+  "confidence": {
+    "meals": "number 0-1 (optional)",
+    "supplements": "number 0-1 (optional)",
+    "overrides": "number 0-1 (optional)",
+    "allowances": "number 0-1 (optional)",
+    "rules": "number 0-1 (optional)"
+  }
+}
+
+IMPORTANT: Only include extended sections (metadata, dayOverrides, supplements, allowances, rules) if the text actually contains relevant information. Do not fabricate sections that aren't in the source text. Omit empty sections entirely.`;
 
 export async function parseMealPlanTextToJson(
   text: string

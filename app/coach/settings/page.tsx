@@ -50,7 +50,7 @@ export default async function CoachSettingsPage() {
         >
           Check-in Schedule
         </h2>
-        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-white/[0.06] dark:bg-[#0a1224]">
           <CadenceEditor
             mode="coach"
             initialConfig={cadenceConfig}
@@ -66,7 +66,7 @@ export default async function CoachSettingsPage() {
         >
           Check-in Form
         </h2>
-        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-white/[0.06] dark:bg-[#0a1224]">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">
@@ -101,7 +101,7 @@ export default async function CoachSettingsPage() {
         >
           SMS Notifications
         </h2>
-        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-zinc-800/80 dark:bg-[#121215]">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-white/[0.06] dark:bg-[#0a1224]">
           <p className="text-sm text-gray-500 dark:text-zinc-400">
             Email and SMS notifications are coming soon.
           </p>

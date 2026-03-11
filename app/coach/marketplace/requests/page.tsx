@@ -43,19 +43,19 @@ export default async function CoachingRequestsPage() {
 
             {/* ── Summary badges ── */}
             <div className="mb-8 flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-[#121215]">
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-[#0a1224]">
                     <span className="h-2 w-2 rounded-full bg-amber-500" />
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         {pending.length} Needs Review
                     </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-[#121215]">
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-[#0a1224]">
                     <span className="h-2 w-2 rounded-full bg-blue-500" />
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         {waitlisted.length} Waitlist
                     </span>
                 </div>
-                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-[#121215]">
+                <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 dark:border-zinc-800 dark:bg-[#0a1224]">
                     <span className="h-2 w-2 rounded-full bg-zinc-400" />
                     <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         {history.length} History

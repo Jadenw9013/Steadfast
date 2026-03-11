@@ -18,7 +18,7 @@ export default async function ClientSettingsPage() {
         Settings
       </h1>
 
-      <div className="animate-fade-in rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800/80 dark:bg-[#121215]" style={{ animationDelay: "60ms" }}>
+      <div className="animate-fade-in rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-[#0a1224]" style={{ animationDelay: "60ms" }}>
         <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-zinc-400">
           Notifications
         </h2>
@@ -28,7 +28,7 @@ export default async function ClientSettingsPage() {
       </div>
 
       {coachAssignment && (
-        <div className="animate-fade-in rounded-2xl border border-red-200/80 bg-white p-5 dark:border-red-900/50 dark:bg-[#121215]" style={{ animationDelay: "120ms" }}>
+        <div className="animate-fade-in rounded-2xl border border-red-200/80 bg-white p-5 dark:border-red-900/50 dark:bg-[#0a1224]" style={{ animationDelay: "120ms" }}>
           <h2 className="mb-1 text-xs font-semibold uppercase tracking-widest text-red-500">
             Danger Zone
           </h2>

@@ -90,19 +90,19 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
   const pillLabel = client.cadenceLabel || status.label;
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-4 transition-all duration-200 hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-950/5 sm:p-5 dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30">
+    <div className="group relative overflow-hidden rounded-2xl border border-zinc-200/80 bg-white p-4 transition-all duration-200 hover:border-zinc-300 hover:shadow-lg hover:shadow-zinc-950/5 sm:p-5 dark:border-white/[0.06] dark:bg-[#0a1224] dark:hover:border-blue-500/20 dark:hover:shadow-blue-500/[0.06]">
       <Link
         href={profileHref}
         className="flex items-center gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:rounded-xl"
         aria-label={`${client.firstName} ${client.lastName} — ${pillLabel}`}
       >
         {/* Avatar with status ring */}
-        <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 ring-2 ${ringClass} text-sm font-bold dark:bg-zinc-800`}>
+        <div className={`relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-zinc-100 ring-2 ${ringClass} text-sm font-bold dark:bg-[#111c30]`}>
           {client.firstName?.[0]?.toUpperCase() ?? "?"}
           {client.hasClientMessage && (
             <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-purple-400 opacity-60" />
-              <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-purple-500 dark:border-[#121215]" />
+              <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-white bg-purple-500 dark:border-[#0a1224]" />
             </span>
           )}
         </div>
@@ -147,7 +147,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
         <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center opacity-0 transition-opacity duration-200 group-hover:pointer-events-auto group-hover:opacity-100 sm:right-5">
           <Link
             href={reviewHref}
-            className="rounded-xl bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-zinc-700 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="rounded-xl bg-zinc-900 px-4 py-2 text-xs font-semibold text-white shadow-md transition-all hover:bg-zinc-700 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-500"
           >
             Review
           </Link>

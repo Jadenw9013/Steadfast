@@ -2,8 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { LandingThemeToggle } from "@/components/ui/landing-theme-toggle";
-import { Reveal, StaggerReveal } from "@/components/ui/reveal";
+import { Reveal } from "@/components/ui/reveal";
 
 export default async function Home() {
   const { userId, sessionClaims } = await auth();
@@ -15,33 +14,32 @@ export default async function Home() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col dot-grid">
+    <div className="flex min-h-screen flex-col landing-dark-bg text-white">
       {/* ── Nav ── */}
-      <header className="sticky top-0 z-30 bg-gray-50 dark:bg-gray-950">
+      <header className="sticky top-0 z-30 bg-[#010612]/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
           <Link href="/" className="group flex items-center gap-2.5" aria-label="Steadfast home">
             <div className="relative h-7 w-7 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8">
-              <Image src="/brand/Steadfast_logo_pictoral.png" alt="" fill priority className="object-contain brightness-0 dark:brightness-100" />
+              <Image src="/brand/Steadfast_logo_pictoral.png" alt="" fill priority className="object-contain" />
             </div>
-            <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] text-gray-900 dark:text-gray-100 sm:inline">Steadfast</span>
+            <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] text-gray-100 sm:inline">Steadfast</span>
           </Link>
           <nav className="flex items-center gap-3" aria-label="Main navigation">
-            <LandingThemeToggle />
             <Link
               href="/sign-in"
-              className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+              className="text-sm font-medium text-gray-400 transition-colors hover:text-white"
             >
               Sign In
             </Link>
             <Link
               href="/sign-up"
-              className="rounded-lg bg-gray-900 px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-gray-800 hover:shadow-sm active:scale-[0.97] dark:bg-white dark:text-gray-900 dark:hover:bg-gray-200"
+              className="rounded-lg bg-white px-4 py-1.5 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-200 hover:shadow-sm active:scale-[0.97]"
             >
               Get Started
             </Link>
           </nav>
         </div>
-        <div className="h-px bg-gradient-to-r from-transparent via-gray-300/60 to-transparent dark:via-gray-700/40" />
+        <div className="h-px bg-gradient-to-r from-transparent via-gray-700/40 to-transparent" />
       </header>
 
       <main id="main-content" className="relative z-10">
@@ -56,7 +54,7 @@ export default async function Home() {
           <div className="relative mx-auto max-w-4xl text-center">
             {/* Logo */}
             <div className="relative mx-auto mb-14 h-[140px] w-[140px] animate-fade-in sm:h-[180px] sm:w-[180px]">
-              <Image src="/brand/Steadfast_logo.png" alt="Steadfast" fill priority className="object-contain brightness-0 drop-shadow-[0_0_40px_rgba(0,0,0,0.1)] dark:brightness-100 dark:drop-shadow-[0_0_40px_rgba(59,130,246,0.15)]" />
+              <Image src="/brand/Steadfast_logo.png" alt="Steadfast" fill priority className="object-contain drop-shadow-[0_0_40px_rgba(59,130,246,0.15)]" />
             </div>
 
             {/* Headline */}
@@ -71,7 +69,7 @@ export default async function Home() {
 
             {/* Subtitle */}
             <p
-              className="mx-auto mt-8 max-w-lg animate-fade-in-up text-[15px] leading-relaxed text-gray-500 dark:text-gray-400"
+              className="mx-auto mt-8 max-w-lg animate-fade-in-up text-[15px] leading-relaxed text-gray-400"
               style={{ animationDelay: "280ms" }}
             >
               Weekly check-ins, custom meal plans, and structured feedback&mdash;so nothing falls through the cracks.
@@ -87,7 +85,7 @@ export default async function Home() {
               </Link>
               <Link
                 href="/coaches"
-                className="group w-full rounded-xl border border-gray-300 px-8 py-3.5 text-center font-display text-xs font-semibold uppercase tracking-wider text-gray-500 transition-all hover:border-blue-500/40 hover:text-gray-900 dark:border-gray-700 dark:text-gray-400 dark:hover:border-blue-500/40 dark:hover:text-white sm:w-auto"
+                className="group w-full rounded-xl border border-gray-700 px-8 py-3.5 text-center font-display text-xs font-semibold uppercase tracking-wider text-gray-400 transition-all hover:border-blue-500/40 hover:text-white sm:w-auto"
               >
                 Explore Coaches
               </Link>
@@ -96,7 +94,7 @@ export default async function Home() {
 
           {/* Scroll indicator */}
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce-subtle" style={{ animationDelay: "1200ms" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 dark:text-gray-600">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
               <path d="m6 9 6 6 6-6" />
             </svg>
           </div>
@@ -106,43 +104,46 @@ export default async function Home() {
         <div className="divider-glow mx-auto max-w-3xl" />
 
         {/* ════════════════════════════════════════════
-            HOW IT WORKS
+            FOR COACHES — Showcase
         ════════════════════════════════════════════ */}
-        <section id="how-it-works" className="px-5 py-24 sm:px-8 sm:py-32">
-          <div className="mx-auto max-w-5xl">
+        <section className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32">
+          <div className="landing-glow absolute -left-20 top-1/2 h-[400px] w-[400px] bg-blue-500/8" />
+
+          <div className="relative mx-auto max-w-6xl">
             <Reveal>
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="h-0.5 w-5 rounded-full bg-blue-500" />
-                <p className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">How it works</p>
+              <div className="flex flex-col gap-12 lg:flex-row lg:items-center lg:gap-16">
+                {/* Left: Copy */}
+                <div className="flex-1">
+                  <p className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-blue-500">For coaches</p>
+                  <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-[2.75rem]">
+                    Your client work, finally organized.
+                  </h2>
+                  <p className="mt-4 max-w-md text-[15px] leading-relaxed text-gray-400">
+                    Stop juggling DMs, spreadsheets, and PDFs. Steadfast gives you one workspace that shows you exactly what needs attention.
+                  </p>
+
+                  <div className="mt-8 space-y-5">
+                    <FeatureBullet
+                      title="Instant inbox"
+                      description="See who submitted, who's late, and who needs feedback — all on one screen sorted by priority."
+                    />
+                    <FeatureBullet
+                      title="AI meal plan import"
+                      description="Upload a photo or PDF. OCR + AI extracts foods and portions into a structured, editable draft automatically."
+                    />
+                    <FeatureBullet
+                      title="Week-over-week tracking"
+                      description="Automatic weight trend calculation with visual deltas so you can spot stalls and wins instantly."
+                    />
+                  </div>
+                </div>
+
+                {/* Right: Floating Dashboard */}
+                <div className="relative flex-1 min-h-[400px] sm:min-h-[460px]">
+                  <CoachDashboardMockup />
+                </div>
               </div>
-              <h2 className="mt-4 text-center font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl md:text-5xl">
-                Simple weekly rhythm
-              </h2>
             </Reveal>
-
-            <div className="mt-20 grid gap-20 lg:grid-cols-2">
-              {/* Coaches column */}
-              <Reveal delay={100}>
-                <p className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-blue-500">For coaches</p>
-                <div className="relative mt-8 space-y-0">
-                  <div className="absolute left-[19px] top-10 bottom-10 w-px bg-gradient-to-b from-blue-500/25 via-blue-500/10 to-transparent" />
-                  <WorkflowStep number="01" title="Collect check-ins" description="Clients submit weight, photos, and notes every week. Everything lands in your inbox." />
-                  <WorkflowStep number="02" title="Review and respond" description="See metrics, track trends, and leave feedback — all from one workspace." />
-                  <WorkflowStep number="03" title="Publish meal plans" description="Build or import meal plans. Clients see exactly what to eat." last />
-                </div>
-              </Reveal>
-
-              {/* Clients column */}
-              <Reveal delay={250}>
-                <p className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-blue-500">For clients</p>
-                <div className="relative mt-8 space-y-0">
-                  <div className="absolute left-[19px] top-10 bottom-10 w-px bg-gradient-to-b from-blue-500/25 via-blue-500/10 to-transparent" />
-                  <WorkflowStep number="01" title="Submit your check-in" description="Log weight, progress photos, and how your week went. Takes 2 minutes." />
-                  <WorkflowStep number="02" title="Follow your plan" description="View your personalized meal plan with clear portions and structure." />
-                  <WorkflowStep number="03" title="Track your progress" description="See weight trends and coach feedback week over week." last />
-                </div>
-              </Reveal>
-            </div>
           </div>
         </section>
 
@@ -150,29 +151,46 @@ export default async function Home() {
         <div className="divider-glow mx-auto max-w-3xl" />
 
         {/* ════════════════════════════════════════════
-            FEATURES
+            FOR CLIENTS — Showcase
         ════════════════════════════════════════════ */}
         <section className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32">
-          {/* Subtle ambient light */}
-          <div className="pointer-events-none absolute -top-40 left-1/3 h-[500px] w-[500px] rounded-full bg-blue-500/[0.03] blur-[140px]" />
-          <div className="pointer-events-none absolute -bottom-40 right-1/3 h-[500px] w-[500px] rounded-full bg-indigo-500/[0.02] blur-[140px]" />
+          <div className="landing-glow absolute -right-20 top-1/3 h-[350px] w-[350px] bg-indigo-500/8" />
 
-          <div className="relative mx-auto max-w-5xl">
+          <div className="relative mx-auto max-w-6xl">
             <Reveal>
-              <div className="flex items-center justify-center gap-2.5">
-                <div className="h-0.5 w-5 rounded-full bg-blue-500" />
-                <p className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">Features</p>
-              </div>
-              <h2 className="mt-4 text-center font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl md:text-5xl">
-                Everything you need
-              </h2>
-            </Reveal>
+              <div className="flex flex-col-reverse gap-12 lg:flex-row lg:items-center lg:gap-16">
+                {/* Left: Check-in Mockup */}
+                <div className="relative flex-1 min-h-[400px] sm:min-h-[460px]">
+                  <CheckInMockup />
+                </div>
 
-            <StaggerReveal className="mt-16 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" staggerMs={70}>
-              {features.map((f) => (
-                <FeatureCard key={f.title} {...f} />
-              ))}
-            </StaggerReveal>
+                {/* Right: Copy */}
+                <div className="flex-1">
+                  <p className="font-display text-[11px] font-bold uppercase tracking-[0.3em] text-blue-500">For clients</p>
+                  <h2 className="mt-4 font-display text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-[2.75rem]">
+                    Stay accountable, see progress.
+                  </h2>
+                  <p className="mt-4 max-w-md text-[15px] leading-relaxed text-gray-400">
+                    Submit your weekly check-in in minutes. Your coach reviews it, leaves feedback, and you keep moving forward.
+                  </p>
+
+                  <div className="mt-8 space-y-5">
+                    <FeatureBullet
+                      title="2-minute check-ins"
+                      description="Log weight, progress photos, and how your week went. Quick, structured, and consistent."
+                    />
+                    <FeatureBullet
+                      title="Your meal plan, always visible"
+                      description="See exactly what to eat with clear portions, macros, and structure — no guessing."
+                    />
+                    <FeatureBullet
+                      title="Progress you can see"
+                      description="Weight trend charts, coach feedback history, and photo comparisons all in one place."
+                    />
+                  </div>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </section>
 
@@ -185,10 +203,9 @@ export default async function Home() {
         <section className="px-5 py-24 sm:px-8 sm:py-28">
           <Reveal>
             <div className="relative mx-auto max-w-xl text-center">
-              {/* Decorative quote mark */}
-              <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 select-none font-display text-[120px] leading-none text-gray-200/40 dark:text-gray-800/30">&ldquo;</span>
+              <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 select-none font-display text-[120px] leading-none text-gray-800/30">&ldquo;</span>
 
-              <blockquote className="relative text-base leading-relaxed italic text-gray-500 dark:text-gray-400 sm:text-lg">
+              <blockquote className="relative text-base leading-relaxed italic text-gray-400 sm:text-lg">
                 Blessed is the one who perseveres under trial because, having stood the test, that person will receive the crown of life that the Lord has promised to those who love him.
               </blockquote>
               <p className="mt-6 font-display text-[11px] font-bold uppercase tracking-[0.3em] text-blue-500">
@@ -205,14 +222,14 @@ export default async function Home() {
             BOTTOM CTA
         ════════════════════════════════════════════ */}
         <section className="relative overflow-hidden px-5 py-24 sm:px-8 sm:py-32">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/[0.04] blur-[100px]" />
+          <div className="landing-glow absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 bg-blue-500/10" />
 
           <Reveal>
             <div className="relative mx-auto max-w-2xl text-center">
               <h2 className="font-display text-3xl font-bold uppercase tracking-tight sm:text-4xl md:text-5xl">
                 Ready to start?
               </h2>
-              <p className="mt-4 text-[15px] text-gray-500 dark:text-gray-400">
+              <p className="mt-4 text-[15px] text-gray-400">
                 Create your free account or browse our coach directory.
               </p>
               <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -221,7 +238,7 @@ export default async function Home() {
                 </Link>
                 <Link
                   href="/coaches"
-                  className="w-full rounded-xl border border-gray-300 px-10 py-3.5 text-center font-display text-xs font-semibold uppercase tracking-wider text-gray-500 transition-all hover:border-blue-500/40 hover:text-gray-900 dark:border-gray-700 dark:text-gray-400 dark:hover:border-blue-500/40 dark:hover:text-white sm:w-auto"
+                  className="w-full rounded-xl border border-gray-700 px-10 py-3.5 text-center font-display text-xs font-semibold uppercase tracking-wider text-gray-400 transition-all hover:border-blue-500/40 hover:text-white sm:w-auto"
                 >
                   Explore Coaches
                 </Link>
@@ -235,159 +252,186 @@ export default async function Home() {
 }
 
 /* ════════════════════════════════════════════════════════
-   FEATURES DATA
+   INLINE COMPONENTS
 ════════════════════════════════════════════════════════ */
 
-const features = [
-  {
-    title: "Weekly Check-Ins",
-    description: "Weight, photos, diet compliance, energy, and notes. Structured data every week.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
-        <rect x="9" y="3" width="6" height="4" rx="1" />
-        <path d="m9 14 2 2 4-4" />
-      </svg>
-    ),
-  },
-  {
-    title: "Coach Inbox",
-    description: "See who needs review at a glance. Filter by status. One-click to review.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 12 16 12 14 15 10 15 8 12 2 12" />
-        <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-      </svg>
-    ),
-  },
-  {
-    title: "Meal Plan Editor",
-    description: "Build meals from a food library. Duplicate, reorder, and publish in minutes.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2" />
-        <path d="M7 2v20" />
-        <path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" />
-      </svg>
-    ),
-  },
-  {
-    title: "PDF & Photo Import",
-    description: "Upload a meal plan image or PDF. OCR extracts the foods automatically.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="12" y1="18" x2="12" y2="12" />
-        <polyline points="9 15 12 12 15 15" />
-      </svg>
-    ),
-  },
-  {
-    title: "Secure Uploads",
-    description: "Progress photos in private buckets. Server-signed URLs only.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-        <path d="m9 12 2 2 4-4" />
-      </svg>
-    ),
-  },
-  {
-    title: "Weight Tracking",
-    description: "Automatic trend calculation with visual deltas week over week.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-        <polyline points="16 7 22 7 22 13" />
-      </svg>
-    ),
-  },
-  {
-    title: "Find a Coach",
-    description: "Browse coaches, submit intake requests, and get matched — all in-platform.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-    ),
-  },
-  {
-    title: "Onboarding Forms",
-    description: "Coaches define intake questions. New clients complete them automatically.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-        <polyline points="14 2 14 8 20 8" />
-        <line x1="16" y1="13" x2="8" y2="13" />
-        <line x1="16" y1="17" x2="8" y2="17" />
-        <polyline points="10 9 9 9 8 9" />
-      </svg>
-    ),
-  },
-  {
-    title: "Training Programs",
-    description: "Structured workout programming with exercise tracking and progression.",
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-      </svg>
-    ),
-  },
-];
+function CoachDashboardMockup() {
+  const clients = [
+    { initials: "MK", name: "Marcus K.", detail: "Wk 9  ·  −0.8 lbs", color: "bg-blue-500/80", status: "Needs review", statusClass: "dashboard-status-needs" },
+    { initials: "SL", name: "Sara L.", detail: "Wk 12  ·  −1.2 lbs", color: "bg-purple-500/80", status: "Needs review", statusClass: "dashboard-status-needs" },
+    { initials: "TD", name: "Tyler D.", detail: "Wk 5  ·  +0.1 lbs", color: "bg-emerald-500/80", status: "Reviewed", statusClass: "dashboard-status-done" },
+    { initials: "JP", name: "Jamie P.", detail: "Wk 1  ·  Onboarding", color: "bg-amber-500/80", status: "Waiting", statusClass: "dashboard-status-wait" },
+  ];
 
-/* ════════════════════════════════════════════════════════
-   COMPONENTS
-════════════════════════════════════════════════════════ */
-
-function FeatureCard({
-  title,
-  description,
-  icon,
-}: {
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-}) {
   return (
-    <div className="card-glass stagger-item group rounded-2xl p-6">
-      <div className="mb-4 h-5 w-5 text-gray-400 transition-colors group-hover:text-blue-500 dark:text-gray-500 dark:group-hover:text-blue-400">
-        {icon}
+    <div className="absolute inset-0 flex items-center justify-center lg:justify-end">
+      {/* Main card */}
+      <div className="dashboard-card relative w-full max-w-[380px] sm:max-w-[420px]">
+        {/* Card header */}
+        <div className="dashboard-card-header">
+          <span className="font-display text-[13px] font-medium text-gray-200">Coach Inbox</span>
+          <span className="dashboard-header-badge">4 to review</span>
+        </div>
+
+        {/* Card body */}
+        <div className="p-4 sm:p-[18px]">
+          {clients.map((c, i) => (
+            <div
+              key={c.initials}
+              className={`flex items-center justify-between py-[9px] ${i < clients.length - 1 ? "border-b border-white/[0.04]" : ""
+                }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${c.color}`}>
+                  {c.initials}
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-gray-200">{c.name}</p>
+                  <p className="mt-px font-mono text-[11px] text-gray-500">{c.detail}</p>
+                </div>
+              </div>
+              <span className={`dashboard-status ${c.statusClass}`}>{c.status}</span>
+            </div>
+          ))}
+        </div>
       </div>
-      <h3 className="font-display text-sm font-bold uppercase tracking-wide transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
-        {title}
-      </h3>
-      <p className="mt-2 text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>
+
+      {/* Floating stat: check-in rate — bottom-left */}
+      <div className="dashboard-float-stat dashboard-float-left hidden lg:block">
+        <div className="font-display text-[22px] font-bold leading-none text-blue-400">94<span className="text-lg">%</span></div>
+        <p className="mt-1 text-[11px] text-gray-500">Check-in rate</p>
+        <p className="font-mono text-[11px] font-semibold text-emerald-400">↑ 6% this month</p>
+      </div>
+
+      {/* Floating stat: review time — top-right */}
+      <div className="dashboard-float-stat dashboard-float-right hidden lg:block">
+        <div className="font-display text-[22px] font-bold leading-none text-teal-400">2 min</div>
+        <p className="mt-1 text-[11px] text-gray-500">Avg. review time</p>
+        <p className="font-mono text-[11px] font-semibold text-emerald-400">↓ faster than ever</p>
+      </div>
     </div>
   );
 }
 
-function WorkflowStep({
-  number,
-  title,
-  description,
-  last = false,
-}: {
-  number: string;
-  title: string;
-  description: string;
-  last?: boolean;
-}) {
+function CheckInMockup() {
+  const days = [
+    { label: "M", on: true, color: "green" },
+    { label: "T", on: true, color: "green" },
+    { label: "W", on: true, color: "green" },
+    { label: "T", on: true, color: "green" },
+    { label: "F", on: true, color: "green" },
+    { label: "S", on: true, color: "amber" },
+    { label: "S", on: false, color: "none" },
+  ];
+
   return (
-    <div className={`group flex items-start gap-5 ${last ? "" : "pb-10"}`}>
-      {/* Numbered circle */}
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-        <span className="relative z-10 font-display text-xs font-bold tabular-nums text-gray-400 transition-colors group-hover:text-blue-500 dark:text-gray-600 dark:group-hover:text-blue-400">
-          {number}
-        </span>
-        <div className="absolute inset-0 rounded-full border border-gray-200 transition-all group-hover:border-blue-500/40 group-hover:shadow-[0_0_16px_rgba(59,130,246,0.12)] dark:border-gray-800 dark:group-hover:border-blue-500/30" />
+    <div className="absolute inset-0 flex items-center justify-center lg:justify-start">
+      {/* Main card */}
+      <div className="dashboard-card relative w-full max-w-[380px] sm:max-w-[420px]" style={{ animationDelay: "200ms" }}>
+        {/* Card header */}
+        <div className="dashboard-card-header">
+          <span className="font-display text-[13px] font-medium text-gray-200">Weekly Check-In</span>
+          <span className="dashboard-header-badge">Week 12</span>
+        </div>
+
+        {/* Card body */}
+        <div className="space-y-4 p-4 sm:p-[18px]">
+          {/* Weight */}
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Current Weight</p>
+            <div className="flex items-center justify-between rounded-lg border border-white/[0.04] bg-white/[0.03] px-3 py-2.5">
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-display text-lg font-bold text-gray-200">185.4</span>
+                <span className="text-[11px] text-gray-500">lbs</span>
+              </div>
+              <span className="font-mono text-[11px] font-semibold text-emerald-400">↓ 0.8 lbs</span>
+            </div>
+          </div>
+
+          {/* Diet compliance */}
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Diet Compliance</p>
+            <div className="flex gap-1.5">
+              {days.map((d, i) => (
+                <div
+                  key={i}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-[10px] font-bold"
+                  style={{
+                    background: d.color === "green" ? "rgba(34,197,94,0.12)" : d.color === "amber" ? "rgba(245,158,11,0.12)" : "rgba(255,255,255,0.03)",
+                    color: d.color === "green" ? "#4ade80" : d.color === "amber" ? "#fbbf24" : "rgba(255,255,255,0.15)",
+                    border: `1px solid ${d.color === "green" ? "rgba(34,197,94,0.2)" : d.color === "amber" ? "rgba(245,158,11,0.2)" : "rgba(255,255,255,0.04)"}`,
+                  }}
+                >
+                  {d.on ? "✓" : d.label}
+                </div>
+              ))}
+            </div>
+            <p className="mt-1 font-mono text-[10px] text-gray-500">6 / 7 days on plan</p>
+          </div>
+
+          {/* Energy */}
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Energy Level</p>
+            <div className="flex gap-1.5">
+              {[1, 2, 3, 4, 5].map((n) => (
+                <div
+                  key={n}
+                  className={`flex h-8 flex-1 items-center justify-center rounded-md text-[11px] font-bold ${n <= 4
+                    ? "border border-blue-500/20 bg-blue-500/10 text-blue-400"
+                    : "border border-white/[0.04] bg-white/[0.03] text-gray-600"
+                    }`}
+                >
+                  {n <= 4 ? "⚡" : n}
+                </div>
+              ))}
+            </div>
+            <p className="mt-1 font-mono text-[10px] text-gray-500">4 / 5 — Good energy</p>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500">Notes</p>
+            <div className="rounded-lg border border-white/[0.04] bg-white/[0.03] px-3 py-2">
+              <p className="text-[12px] leading-relaxed text-gray-400">Felt strong this week. Energy was good on training days. Saturday was a social event.</p>
+            </div>
+          </div>
+
+          {/* Submit */}
+          <div className="flex justify-end pt-1">
+            <div className="rounded-lg bg-white px-5 py-2 font-display text-[11px] font-bold uppercase tracking-wider text-gray-900">
+              Submit Check-In
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Content */}
-      <div className="pt-2">
-        <h3 className="font-display text-sm font-bold uppercase tracking-wider">{title}</h3>
-        <p className="mt-1.5 text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">{description}</p>
+      {/* Floating stat: streak — top-left */}
+      <div className="dashboard-float-stat hidden lg:block" style={{ position: "absolute", left: "-110px", top: "-70px", animation: "stat-float-down 7s ease-in-out infinite" }}>
+        <div className="font-display text-[22px] font-bold leading-none text-emerald-400">12</div>
+        <p className="mt-1 text-[11px] text-gray-500">Week streak</p>
+        <p className="font-mono text-[11px] font-semibold text-emerald-400">🔥 Personal best</p>
+      </div>
+
+      {/* Floating stat: progress — bottom-right */}
+      <div className="dashboard-float-stat hidden lg:block" style={{ position: "absolute", right: "30px", bottom: "-50px", animation: "stat-float-up 9s ease-in-out infinite" }}>
+        <div className="font-display text-[22px] font-bold leading-none text-blue-400">−6.2</div>
+        <p className="mt-1 text-[11px] text-gray-500">lbs total</p>
+        <p className="font-mono text-[11px] font-semibold text-emerald-400">↓ since Week 1</p>
+      </div>
+    </div>
+  );
+}
+
+function FeatureBullet({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="feature-check">
+      <svg className="feature-check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m9 12 2 2 4-4" />
+        <circle cx="12" cy="12" r="10" strokeWidth="1.5" />
+      </svg>
+      <div>
+        <h4>{title}</h4>
+        <p>{description}</p>
       </div>
     </div>
   );

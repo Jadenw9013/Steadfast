@@ -26,9 +26,9 @@ export default async function CoachesDirectoryPage() {
     );
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b]">
+        <div className="min-h-screen bg-zinc-50 dark:bg-[#020815]">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 bg-zinc-50 dark:bg-[#09090b]">
+            <header className="sticky top-0 z-30 bg-zinc-50 dark:bg-[#020815]">
                 <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:px-8">
                     <Link
                         href="/"
@@ -81,7 +81,7 @@ export default async function CoachesDirectoryPage() {
                 </div>
 
                 {coaches.length === 0 ? (
-                    <div className="rounded-2xl border border-zinc-200 border-dashed bg-white p-12 text-center dark:border-zinc-800 dark:bg-[#121215]">
+                    <div className="rounded-2xl border border-zinc-200 border-dashed bg-white p-12 text-center dark:border-zinc-800 dark:bg-[#0a1224]">
                         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
                         </div>
@@ -104,7 +104,7 @@ export default async function CoachesDirectoryPage() {
                             <Link
                                 key={profile.id}
                                 href={`/coaches/${profile.slug}`}
-                                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/80 bg-white p-6 transition-all hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700"
+                                className="group flex flex-col justify-between rounded-2xl border border-zinc-200/80 bg-white p-6 transition-all hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224] dark:hover:border-zinc-700"
                             >
                                 <div className="flex-1">
                                     <div className="flex items-center gap-4">

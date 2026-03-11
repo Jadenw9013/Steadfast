@@ -109,7 +109,7 @@ function ProgramPreview({
   return (
     <div className="space-y-3">
       {(weeklyFrequency || clientNotes) && (
-        <div className="rounded-xl border border-zinc-200/80 bg-white px-4 py-3 dark:border-zinc-800/80 dark:bg-[#121215]">
+        <div className="rounded-xl border border-zinc-200/80 bg-white px-4 py-3 dark:border-zinc-800/80 dark:bg-[#0a1224]">
           {weeklyFrequency && (
             <p className="text-sm">
               <span className="font-semibold">{weeklyFrequency}×</span>{" "}
@@ -124,7 +124,7 @@ function ProgramPreview({
       {days.map((day, i) => (
         <div
           key={i}
-          className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]"
+          className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#0a1224]"
         >
           <div className="border-b border-zinc-100 px-4 py-3 dark:border-zinc-800">
             <h3 className="text-sm font-semibold">{day.dayName || `Day ${i + 1}`}</h3>
@@ -365,7 +365,7 @@ export function TrainingProgramEditor({
   // ── Empty state ──────────────────────────────────────────────────────────
   if (mode === "empty") {
     return (
-      <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#0a1224]">
         <div className="border-b border-zinc-100 px-5 py-4 dark:border-zinc-800">
           <h2 className="text-sm font-semibold">Training Plan</h2>
           <p className="mt-0.5 text-xs text-zinc-400">No training plan assigned yet</p>
@@ -374,7 +374,7 @@ export function TrainingProgramEditor({
           <button
             type="button"
             onClick={() => setMode(templates.length > 0 ? "assign" : "edit")}
-            className="w-full rounded-xl bg-zinc-900 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="w-full rounded-xl bg-zinc-900 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
           >
             {templates.length > 0 ? "Assign from Template" : "Create Training Plan"}
           </button>
@@ -416,7 +416,7 @@ export function TrainingProgramEditor({
           <h2 className="text-sm font-semibold">Assign Training Plan</h2>
         </div>
 
-        <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#0a1224]">
           {/* Template picker — card list */}
           <div className="border-b border-zinc-100 dark:border-zinc-800">
             <p className="px-5 pt-4 pb-2 text-xs font-semibold text-zinc-500">
@@ -554,7 +554,7 @@ export function TrainingProgramEditor({
             type="button"
             onClick={handlePublish}
             disabled={!selectedTemplateId || saving || publishing}
-            className="flex-1 rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="flex-1 rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
           >
             {publishing ? "Publishing…" : "Assign & Publish"}
           </button>
@@ -592,7 +592,7 @@ export function TrainingProgramEditor({
               type="button"
               onClick={() => setViewMode("editor")}
               className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "editor"
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                 : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                 }`}
             >
@@ -602,7 +602,7 @@ export function TrainingProgramEditor({
               type="button"
               onClick={() => setViewMode("preview")}
               className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "preview"
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                 : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                 }`}
             >
@@ -631,7 +631,7 @@ export function TrainingProgramEditor({
             type="button"
             onClick={handlePublish}
             disabled={saving || publishing}
-            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            className="rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
           >
             {publishing ? "Publishing…" : status === "PUBLISHED" ? "Republish" : "Publish"}
           </button>
@@ -660,7 +660,7 @@ export function TrainingProgramEditor({
               Add Cardio
             </button>
           ) : (
-            <div className="rounded-2xl border-2 border-green-200 bg-white dark:border-green-900/60 dark:bg-[#121215]">
+            <div className="rounded-2xl border-2 border-green-200 bg-white dark:border-green-900/60 dark:bg-[#0a1224]">
               <div className="flex items-center justify-between border-b border-green-100 px-5 py-3 dark:border-green-900/40">
                 <h3 className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-300">
                   Cardio Prescription
@@ -753,7 +753,7 @@ export function TrainingProgramEditor({
           )}
 
           {/* Training Days */}
-          <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#121215]">
+          <div className="rounded-2xl border border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-[#0a1224]">
             <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-3 dark:border-zinc-800">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
                 Training Days
@@ -816,7 +816,7 @@ export function TrainingProgramEditor({
           type="button"
           onClick={handlePublish}
           disabled={saving || publishing}
-          className="flex-1 rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="flex-1 rounded-xl bg-zinc-900 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
         >
           {publishing ? "Publishing…" : status === "PUBLISHED" ? "Republish" : "Publish"}
         </button>

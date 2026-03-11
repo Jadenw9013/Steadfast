@@ -98,7 +98,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
                         {...form.register("prospectName")}
                         type="text"
                         required
-                        className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                        className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                     />
                     {form.formState.errors.prospectName && (
                         <p className="mt-1 text-xs text-red-600">{form.formState.errors.prospectName.message}</p>
@@ -113,7 +113,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
                         {...form.register("prospectEmail")}
                         type="email"
                         required
-                        className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                        className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                     />
                     {form.formState.errors.prospectEmail && (
                         <p className="mt-1 text-xs text-red-600">{form.formState.errors.prospectEmail.message}</p>
@@ -133,7 +133,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
                             {...form.register("goals")}
                             rows={4}
                             required
-                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             placeholder="e.g. Lose 10lbs, increase squat max, prep for a show..."
                         />
                         {form.formState.errors.goals && (
@@ -148,7 +148,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
                         <textarea
                             {...form.register("experience")}
                             rows={3}
-                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             placeholder="How many years have you been training?"
                         />
                     </div>
@@ -160,7 +160,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
                         <input
                             {...form.register("injuries")}
                             type="text"
-                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             placeholder="e.g. Lower back pain during deadlifts"
                         />
                     </div>
@@ -177,7 +177,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full rounded-xl bg-zinc-900 px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                    className="w-full rounded-xl bg-zinc-900 px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
                 >
                     {isSubmitting ? "Submitting..." : "Submit Coaching Request"}
                 </button>

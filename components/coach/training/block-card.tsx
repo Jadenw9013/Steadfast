@@ -84,10 +84,15 @@ export function BlockCard({
             value={block.type}
             onChange={(e) => onChange({ ...block, type: e.target.value as BlockType })}
             aria-label="Block type"
-            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold border-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${meta.badgeColor}`}
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold border-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${meta.badgeColor} dark:[color-scheme:dark]`}
+            style={{ appearance: "auto" }}
           >
             {BLOCK_META.map((m) => (
-              <option key={m.value} value={m.value}>
+              <option
+                key={m.value}
+                value={m.value}
+                className="bg-[#0a1224] text-gray-200"
+              >
                 {m.label}
               </option>
             ))}

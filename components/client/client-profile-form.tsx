@@ -72,14 +72,14 @@ export function ClientProfileForm({
                 <button
                     type="button"
                     onClick={() => setShowEditModal(true)}
-                    className="flex-1 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 transition-all hover:border-zinc-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-[#121215] dark:text-zinc-100 dark:hover:border-zinc-600"
+                    className="flex-1 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 transition-all hover:border-zinc-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-[#0a1224] dark:text-zinc-100 dark:hover:border-zinc-600"
                 >
                     Edit Profile
                 </button>
             </div>
 
             {/* About Me card */}
-            <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
+            <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224]">
                 <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
                     <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">About Me</h3>
                     <button
@@ -101,8 +101,8 @@ export function ClientProfileForm({
             {showEditModal && (
                 <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label="Edit Profile">
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
-                    <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#121215]">
-                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-100 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-[#121215]">
+                    <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#0a1224]">
+                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-100 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-[#0a1224]">
                             <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Edit Profile</h2>
                             <button
                                 type="button"
@@ -129,7 +129,7 @@ export function ClientProfileForm({
                                     <input
                                         {...form.register("firstName")}
                                         type="text"
-                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                     />
                                     {form.formState.errors.firstName && (
                                         <p className="mt-1 text-xs text-red-600">{form.formState.errors.firstName.message}</p>
@@ -142,7 +142,7 @@ export function ClientProfileForm({
                                     <input
                                         {...form.register("lastName")}
                                         type="text"
-                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                     />
                                 </div>
                             </div>
@@ -154,7 +154,7 @@ export function ClientProfileForm({
                                 <textarea
                                     {...form.register("clientBio")}
                                     rows={3}
-                                    className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                    className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                     placeholder="A little about yourself..."
                                 />
                                 <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Visible to your coach</p>
@@ -167,7 +167,7 @@ export function ClientProfileForm({
                                 <input
                                     {...form.register("fitnessGoal")}
                                     type="text"
-                                    className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                    className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                     placeholder="e.g. Lose 20 lbs, Run a marathon, Build muscle"
                                 />
                             </div>
@@ -183,7 +183,7 @@ export function ClientProfileForm({
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className="rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                                    className="rounded-xl bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
                                 >
                                     {isSubmitting ? "Saving..." : "Save Changes"}
                                 </button>

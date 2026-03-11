@@ -50,7 +50,7 @@ export function RequestList({
 
     if (requests.length === 0) {
         return (
-            <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-8 text-center dark:border-zinc-800 dark:bg-[#121215]">
+            <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-8 text-center dark:border-zinc-800 dark:bg-[#0a1224]">
                 <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
                     {variant === "waitlist"
                         ? "No waitlist entries yet."
@@ -179,7 +179,7 @@ export function RequestList({
             {requests.map((req) => (
                 <div
                     key={req.id}
-                    className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]"
+                    className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224]"
                 >
                     <div className="flex items-start justify-between">
                         <div>
@@ -241,7 +241,7 @@ export function RequestList({
                                     <button
                                         onClick={() => handleApprove(req.id)}
                                         disabled={processingId !== null}
-                                        className="rounded-lg bg-zinc-900 px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                                        className="rounded-lg bg-zinc-900 px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-zinc-700 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
                                     >
                                         {processingId === req.id ? "Processing..." : "Approve & Convert"}
                                     </button>

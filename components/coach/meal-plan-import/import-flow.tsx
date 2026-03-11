@@ -39,9 +39,9 @@ function StepIndicator({ current }: { current: Step }) {
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-colors ${
                     isComplete
-                      ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                      ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                       : isCurrent
-                        ? "bg-zinc-900 text-white ring-2 ring-zinc-900/20 dark:bg-zinc-100 dark:text-zinc-900 dark:ring-zinc-100/20"
+                        ? "bg-zinc-900 text-white ring-2 ring-zinc-900/20 dark:bg-blue-600 dark:text-white dark:ring-zinc-100/20"
                         : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-500"
                   }`}
                   aria-current={isCurrent ? "step" : undefined}

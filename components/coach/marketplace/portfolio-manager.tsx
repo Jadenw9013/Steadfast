@@ -405,7 +405,7 @@ export function PortfolioManager({ items: initialItems }: { items: PortfolioItem
                             type="button"
                             onClick={handlePost}
                             disabled={saving || !form.title.trim() || charCount > MAX_CHARS}
-                            className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-bold text-white transition-all hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                            className="rounded-full bg-zinc-900 px-5 py-2 text-sm font-bold text-white transition-all hover:bg-zinc-700 disabled:opacity-40 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
                         >
                             {saving ? "Posting..." : editingId ? "Update" : "Post"}
                         </button>
@@ -416,7 +416,7 @@ export function PortfolioManager({ items: initialItems }: { items: PortfolioItem
     }
 
     return (
-        <div className="rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224]">
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-3">
                 <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Posts</h3>
@@ -424,7 +424,7 @@ export function PortfolioManager({ items: initialItems }: { items: PortfolioItem
                     <button
                         type="button"
                         onClick={openCompose}
-                        className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                        className="rounded-full bg-zinc-900 px-4 py-1.5 text-xs font-bold text-white transition-colors hover:bg-zinc-700 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
                     >
                         Post
                     </button>

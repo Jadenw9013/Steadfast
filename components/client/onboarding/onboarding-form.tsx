@@ -60,7 +60,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                 </div>
             )}
 
-            <div className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-[#121215]">
+            <div className="space-y-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-[#0a1224]">
                 {questions.map((q) => (
                     <div key={q.id} className="border-b border-zinc-100 pb-6 last:border-0 last:pb-0 dark:border-zinc-800">
                         <label className="mb-2 block text-sm font-medium text-zinc-900 dark:text-zinc-100">
@@ -72,7 +72,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                             <input
                                 {...form.register(q.id, { required: q.required ? "This is required" : false })}
                                 type="text"
-                                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             />
                         )}
 
@@ -80,7 +80,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                             <textarea
                                 {...form.register(q.id, { required: q.required ? "This is required" : false })}
                                 rows={4}
-                                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             />
                         )}
 
@@ -91,7 +91,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                                     valueAsNumber: true
                                 })}
                                 type="number"
-                                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             />
                         )}
 
@@ -102,7 +102,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                                         {...form.register(q.id, { required: q.required ? "This is required" : false })}
                                         type="radio"
                                         value="true"
-                                        className="text-zinc-900 focus:ring-zinc-500 dark:bg-[#09090b]"
+                                        className="text-zinc-900 focus:ring-zinc-500 dark:bg-[#020815]"
                                     />
                                     Yes
                                 </label>
@@ -111,7 +111,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                                         {...form.register(q.id, { required: q.required ? "This is required" : false })}
                                         type="radio"
                                         value="false"
-                                        className="text-zinc-900 focus:ring-zinc-500 dark:bg-[#09090b]"
+                                        className="text-zinc-900 focus:ring-zinc-500 dark:bg-[#020815]"
                                     />
                                     No
                                 </label>
@@ -126,7 +126,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                                             {...form.register(q.id, { required: q.required ? "This is required" : false })}
                                             type="radio"
                                             value={opt}
-                                            className="text-zinc-900 focus:ring-zinc-500 dark:bg-[#09090b]"
+                                            className="text-zinc-900 focus:ring-zinc-500 dark:bg-[#020815]"
                                         />
                                         {opt}
                                     </label>
@@ -146,7 +146,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
             <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                className="w-full rounded-lg bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
             >
                 {isSubmitting ? "Submitting..." : "Complete Onboarding"}
             </button>

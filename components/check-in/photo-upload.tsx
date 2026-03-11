@@ -92,7 +92,7 @@ export function PhotoUpload({
               <button
                 type="button"
                 onClick={() => removeFile(i)}
-                className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white shadow-md transition-all hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-red-500 dark:hover:text-white"
+                className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-900 text-xs font-bold text-white shadow-md transition-all hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-blue-600 dark:text-white dark:hover:bg-red-500 dark:hover:text-white"
                 aria-label={`Remove photo ${i + 1}`}
               >
                 &times;

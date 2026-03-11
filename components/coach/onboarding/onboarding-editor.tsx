@@ -105,7 +105,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
                     {...form.register("isActive")}
                     id="isActive"
                     type="checkbox"
-                    className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b]"
+                    className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815]"
                 />
                 <label htmlFor="isActive" className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     Require new clients to complete this intake questionnaire
@@ -121,7 +121,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
                     fields.map((field, index) => {
                         const type = form.watch(`questions.${index}.type`);
                         return (
-                            <div key={field.id} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-[#121215]">
+                            <div key={field.id} className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-[#0a1224]">
 
                                 {/* Hidden input to track generated ID logic across reorders without conflicts */}
                                 <input type="hidden" {...form.register(`questions.${index}.id`)} />
@@ -137,7 +137,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
                                                 <input
                                                     {...form.register(`questions.${index}.label`)}
                                                     placeholder="e.g. What are your primary fitness goals?"
-                                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                                 />
                                             </div>
 
@@ -147,7 +147,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
                                                 </label>
                                                 <select
                                                     {...form.register(`questions.${index}.type`)}
-                                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                                 >
                                                     <option value="shortText">Short Text</option>
                                                     <option value="longText">Long Text</option>
@@ -166,7 +166,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
                                                 <input
                                                     {...form.register(`questions.${index}.optionsString`)}
                                                     placeholder="Option A, Option B, Option C"
-                                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                                 />
                                             </div>
                                         )}
@@ -176,7 +176,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
                                                 {...form.register(`questions.${index}.required`)}
                                                 type="checkbox"
                                                 id={`req-${field.id}`}
-                                                className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b]"
+                                                className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815]"
                                             />
                                             <label htmlFor={`req-${field.id}`} className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                                                 Required Question
@@ -220,7 +220,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
             <button
                 type="button"
                 onClick={() => append({ id: generateId(), type: "shortText", label: "", required: false, optionsString: "" })}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 py-4 text-sm font-medium text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-[#121215]/50 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-[#121215]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50 py-4 text-sm font-medium text-zinc-600 transition hover:border-zinc-400 hover:bg-zinc-100 dark:border-zinc-700 dark:bg-[#0a1224]/50 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-[#0a1224]"
             >
                 <PlusIcon className="h-4 w-4" />
                 Add Question
@@ -230,7 +230,7 @@ export function OnboardingEditor({ initialData }: { initialData: any }) {
                 <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                    className="rounded-lg bg-zinc-900 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-zinc-700 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
                 >
                     {isSubmitting ? "Saving..." : "Save Questionnaire"}
                 </button>

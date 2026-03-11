@@ -112,7 +112,7 @@ export function CadenceEditor({
         return (
             <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-zinc-100 dark:text-zinc-900">
+                    <span className="inline-flex items-center rounded-lg bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white dark:bg-blue-600 dark:text-white">
                         {displayPreview}
                     </span>
                     {mode === "client" && !hasOverride && (
@@ -148,7 +148,7 @@ export function CadenceEditor({
                             onClick={() => setCadenceType(ct.value)}
                             aria-pressed={cadenceType === ct.value}
                             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${cadenceType === ct.value
-                                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                                ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                                 : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
                                 }`}
                         >
@@ -172,7 +172,7 @@ export function CadenceEditor({
                                     onClick={() => setDayOfWeek(i)}
                                     aria-pressed={dayOfWeek === i}
                                     className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${dayOfWeek === i
-                                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                                        ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                                         : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
                                         }`}
                                 >
@@ -262,7 +262,7 @@ export function CadenceEditor({
                 <button
                     onClick={handleSave}
                     disabled={isPending}
-                    className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                    className="rounded-lg bg-zinc-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
                 >
                     {isPending ? "Saving..." : "Save"}
                 </button>

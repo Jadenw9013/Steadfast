@@ -66,7 +66,7 @@ export default async function CoachMarketplaceProfilePage() {
 
                 {/* Avatar — below banner on mobile, overlapping on desktop */}
                 <div className="flex justify-center mt-4 sm:absolute sm:mt-0 sm:-bottom-12 sm:left-8">
-                    <div className="rounded-full border-4 border-[#09090b] shadow-lg">
+                    <div className="shadow-lg">
                         <ProfilePhotoUpload
                             currentPhotoUrl={photoUrl}
                             initials={initials}

@@ -295,7 +295,7 @@ export default async function ClientProfilePage({
           <h2 id="onboarding-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Intake Questionnaire
           </h2>
-          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215] space-y-4">
+          <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#0a1224] space-y-4">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
             {(onboardingResponse.form.questions as any[]).map((q) => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -360,7 +360,7 @@ export default async function ClientProfilePage({
         <h2 id="plans-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Plans
         </h2>
-        <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215]">
+        <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#0a1224]">
           <PlanTabs
             mealPlan={{
               clientId,

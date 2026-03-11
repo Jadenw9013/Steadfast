@@ -134,7 +134,7 @@ export default async function ClientDashboard() {
             const slug = coachAssignment.coach.coachProfile?.slug;
             const isPublished = coachAssignment.coach.coachProfile?.isPublished;
             const badge = (
-              <div className={`flex items-center gap-2.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 shadow-sm dark:border-zinc-800 dark:bg-[#121215] dark:shadow-none ${slug && isPublished ? "transition-colors hover:border-gray-300 hover:bg-gray-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-800/80" : ""}`}>
+              <div className={`flex items-center gap-2.5 rounded-full border border-gray-200 bg-white px-3.5 py-1.5 shadow-sm dark:border-zinc-800 dark:bg-[#0a1224] dark:shadow-none ${slug && isPublished ? "transition-colors hover:border-gray-300 hover:bg-gray-50 dark:hover:border-blue-500/20 dark:hover:bg-zinc-800/80" : ""}`}>
                 <div className="h-6 w-6 shrink-0 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                   {coachAvatarUrl ? (
                     <Image src={coachAvatarUrl} alt="" width={24} height={24} className="h-full w-full object-cover" />
@@ -198,7 +198,7 @@ export default async function ClientDashboard() {
       {/* Performance Module — Weight */}
       {latestWeight?.weight && (
         <section
-          className="animate-fade-in overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none"
+          className="animate-fade-in overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none"
           style={{ animationDelay: "160ms" }}
           aria-label="Weight overview"
         >
@@ -236,7 +236,7 @@ export default async function ClientDashboard() {
       {latestCoachMessage && (
         <Link
           href={`/client/messages/${formatDateUTC(latestCoachMessage.weekOf)}`}
-          className="group animate-fade-in block overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+          className="group animate-fade-in block overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none dark:hover:border-blue-500/20 dark:hover:shadow-zinc-950/30"
           style={{ animationDelay: "240ms" }}
         >
           <div className="flex items-center justify-between">
@@ -270,7 +270,7 @@ export default async function ClientDashboard() {
             {mealPlan ? (
               <Link
                 href="/client/meal-plan"
-                className="group flex flex-col gap-2 overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+                className="group flex flex-col gap-2 overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none dark:hover:border-blue-500/20 dark:hover:shadow-zinc-950/30"
                 aria-label="View your nutrition plan"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
@@ -282,7 +282,7 @@ export default async function ClientDashboard() {
                 </span>
               </Link>
             ) : (
-              <div className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215]">
+              <div className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#0a1224]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
                   Nutrition
                 </p>
@@ -293,7 +293,7 @@ export default async function ClientDashboard() {
             {trainingProgram && trainingProgram.days.length > 0 ? (
               <Link
                 href="/client/training"
-                className="group flex flex-col gap-2 overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-800/80 dark:bg-[#121215] dark:shadow-none dark:hover:border-zinc-700 dark:hover:shadow-zinc-950/30"
+                className="group flex flex-col gap-2 overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-5 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none dark:hover:border-blue-500/20 dark:hover:shadow-zinc-950/30"
                 aria-label="View your training program"
               >
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
@@ -305,7 +305,7 @@ export default async function ClientDashboard() {
                 </span>
               </Link>
             ) : (
-              <div className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#121215]">
+              <div className="flex flex-col gap-2 overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#0a1224]">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
                   Training
                 </p>
@@ -329,7 +329,7 @@ export default async function ClientDashboard() {
           Recent Check-Ins
         </h2>
         {checkIns.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-zinc-300 bg-white px-8 py-16 text-center dark:border-zinc-700 dark:bg-[#121215]">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-zinc-300 bg-white px-8 py-16 text-center dark:border-zinc-700 dark:bg-[#0a1224]">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /></svg>
             </div>
@@ -362,7 +362,7 @@ export default async function ClientDashboard() {
               return (
                 <div
                   key={checkIn.id}
-                  className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white transition-all hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700"
+                  className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white transition-all hover:border-zinc-300 hover:shadow-sm dark:border-white/[0.06] dark:bg-[#0a1224] dark:hover:border-blue-500/20"
                 >
                   <Link
                     href={`/client/check-ins/${checkIn.id}`}

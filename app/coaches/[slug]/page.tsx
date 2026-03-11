@@ -99,9 +99,9 @@ export default async function CoachProfilePage({ params }: PageProps) {
     const initials = `${profile.user.firstName?.[0] ?? ""}${profile.user.lastName?.[0] ?? ""}`.toUpperCase() || "?";
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b]">
+        <div className="min-h-screen bg-zinc-50 dark:bg-[#020815]">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 bg-zinc-50 dark:bg-[#09090b]">
+            <header className="sticky top-0 z-30 bg-zinc-50 dark:bg-[#020815]">
                 <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-5 sm:px-8">
                     <Link
                         href="/coaches"
@@ -220,7 +220,7 @@ export default async function CoachProfilePage({ params }: PageProps) {
                                     {portfolioMediaItems.map((item) => (
                                         <div
                                             key={item.id}
-                                            className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white transition-all hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800/80 dark:bg-[#121215] dark:hover:border-zinc-700"
+                                            className="overflow-hidden rounded-xl border border-zinc-200/80 bg-white transition-all hover:border-zinc-300 hover:shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224] dark:hover:border-zinc-700"
                                         >
                                             {item.mediaUrl && (
                                                 <div className="relative w-full" style={{ maxHeight: "320px" }}>
@@ -272,7 +272,7 @@ export default async function CoachProfilePage({ params }: PageProps) {
 
                     {/* Sidebar / CTA */}
                     <div>
-                        <div className="sticky top-32 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
+                        <div className="sticky top-32 rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224]">
                             <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">
                                 {profile.acceptingClients ? "Start Coaching" : "Currently Full"}
                             </h3>

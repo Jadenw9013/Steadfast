@@ -140,7 +140,7 @@ export function ProfileForm({
                 <button
                     type="button"
                     onClick={() => setShowEditModal(true)}
-                    className="flex-1 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 transition-all hover:border-zinc-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-[#121215] dark:text-zinc-100 dark:hover:border-zinc-600"
+                    className="flex-1 rounded-xl border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-900 transition-all hover:border-zinc-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-[#0a1224] dark:text-zinc-100 dark:hover:border-zinc-600"
                 >
                     Edit Profile
                 </button>
@@ -158,7 +158,7 @@ export function ProfileForm({
             </div>
 
             {/* ── About Your Coaching ── */}
-            <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
+            <div className="mt-6 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224]">
                 <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
                     <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">About Your Coaching</h3>
                     <button
@@ -180,7 +180,7 @@ export function ProfileForm({
             </div>
 
             {/* ── Welcome Message ── */}
-            <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#121215]">
+            <div className="mt-4 rounded-2xl border border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224]">
                 <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4 dark:border-zinc-800">
                     <div>
                         <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Welcome Message</h3>
@@ -206,7 +206,7 @@ export function ProfileForm({
             {/* ── Visibility & Availability ── */}
             <div className="mt-4 space-y-px overflow-hidden rounded-2xl border border-zinc-200/80 shadow-sm dark:border-zinc-800/80">
                 {/* Public Visibility */}
-                <div className="bg-white px-6 py-5 dark:bg-[#121215]">
+                <div className="bg-white px-6 py-5 dark:bg-[#0a1224]">
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Public Visibility</h3>
@@ -226,7 +226,7 @@ export function ProfileForm({
                 {/* Divider */}
                 <div className="h-px bg-zinc-100 dark:bg-zinc-800" />
                 {/* Client Availability */}
-                <div className="bg-white px-6 py-5 dark:bg-[#121215]">
+                <div className="bg-white px-6 py-5 dark:bg-[#0a1224]">
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Accepting New Clients</h3>
@@ -256,8 +256,8 @@ export function ProfileForm({
                         />
 
                         {/* Modal */}
-                        <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#121215]">
-                            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-100 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-[#121215]">
+                        <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-zinc-200 bg-white shadow-2xl dark:border-zinc-800 dark:bg-[#0a1224]">
+                            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-100 bg-white px-6 py-4 dark:border-zinc-800 dark:bg-[#0a1224]">
                                 <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Edit Profile</h2>
                                 <button
                                     type="button"
@@ -287,7 +287,7 @@ export function ProfileForm({
                                         <input
                                             {...form.register("slug")}
                                             type="text"
-                                            className="block w-full flex-1 rounded-none rounded-r-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                            className="block w-full flex-1 rounded-none rounded-r-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                             placeholder="john-smith"
                                         />
                                     </div>
@@ -303,7 +303,7 @@ export function ProfileForm({
                                     <input
                                         {...form.register("headline")}
                                         type="text"
-                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                         placeholder="e.g. Strength & Conditioning Coach"
                                     />
                                 </div>
@@ -315,7 +315,7 @@ export function ProfileForm({
                                     <textarea
                                         {...form.register("bio")}
                                         rows={4}
-                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                         placeholder="Tell prospective clients about your coaching approach..."
                                     />
                                 </div>
@@ -328,7 +328,7 @@ export function ProfileForm({
                                         <input
                                             {...form.register("specialties")}
                                             type="text"
-                                            className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                            className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                             placeholder="Powerlifting, Hypertrophy"
                                         />
                                         <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Comma separated</p>
@@ -341,7 +341,7 @@ export function ProfileForm({
                                         <input
                                             {...form.register("pricing")}
                                             type="text"
-                                            className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                            className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                             placeholder="e.g. $150/mo"
                                         />
                                     </div>
@@ -354,7 +354,7 @@ export function ProfileForm({
                                     <textarea
                                         {...form.register("welcomeMessage")}
                                         rows={3}
-                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                                        className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                                         placeholder="e.g. Welcome to coaching — check in every week and message me anytime."
                                     />
                                     <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Shown to your clients on their dashboard</p>

@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { renderMealPlanPdf } from "@/lib/pdf/meal-plan-pdf";
 import type { MealPlanPdfData } from "@/lib/pdf/meal-plan-pdf";
+import { parsePlanExtras } from "@/types/meal-plan-extras";
 
 export const runtime = "nodejs";
 
@@ -106,6 +107,7 @@ export async function GET(
       unit: item.unit,
       servingDescription: item.servingDescription,
     })),
+    planExtras: parsePlanExtras(mealPlan.planExtras),
   };
 
   const buffer = await renderMealPlanPdf(pdfData);

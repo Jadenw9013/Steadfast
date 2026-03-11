@@ -67,7 +67,7 @@ export function WaitlistForm({ coachProfileId }: { coachProfileId: string }) {
                     required
                     minLength={2}
                     maxLength={100}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                     placeholder="Your name"
                 />
             </div>
@@ -81,7 +81,7 @@ export function WaitlistForm({ coachProfileId }: { coachProfileId: string }) {
                     name="email"
                     type="email"
                     required
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                     placeholder="you@example.com"
                 />
             </div>
@@ -95,7 +95,7 @@ export function WaitlistForm({ coachProfileId }: { coachProfileId: string }) {
                     name="note"
                     rows={2}
                     maxLength={500}
-                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#09090b] dark:text-zinc-100"
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                     placeholder="What are you looking for help with?"
                 />
             </div>
@@ -103,7 +103,7 @@ export function WaitlistForm({ coachProfileId }: { coachProfileId: string }) {
             <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+                className="w-full rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-zinc-700 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
             >
                 {isSubmitting ? "Joining..." : "Join Waitlist"}
             </button>

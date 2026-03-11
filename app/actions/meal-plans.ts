@@ -7,6 +7,7 @@ import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { revalidatePath } from "next/cache";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { planExtrasSchema } from "@/types/meal-plan-extras";
 
 const mealPlanItemSchema = z.object({
   mealName: z.string().min(1).max(100),
@@ -26,6 +27,7 @@ const createDraftSchema = z.object({
   weekStartDate: z.string().min(1),
   copyFromPublished: z.boolean().default(false),
   items: z.array(mealPlanItemSchema).max(50).optional(),
+  planExtras: planExtrasSchema.optional(),
 });
 
 export async function createDraftMealPlan(input: unknown) {
@@ -47,6 +49,9 @@ export async function createDraftMealPlan(input: unknown) {
 
   // Resolve items: explicit items > copy from published > empty
   let itemsToCreate: z.infer<typeof mealPlanItemSchema>[] = [];
+  let extrasToStore: z.infer<typeof planExtrasSchema> | undefined =
+    parsed.data.planExtras;
+
   if (parsed.data.items) {
     itemsToCreate = parsed.data.items;
   } else if (copyFromPublished) {
@@ -68,6 +73,11 @@ export async function createDraftMealPlan(input: unknown) {
         carbs: item.carbs,
         fats: item.fats,
       }));
+      // Also copy plan extras from the published plan
+      if (!extrasToStore && published.planExtras) {
+        const validated = planExtrasSchema.safeParse(published.planExtras);
+        if (validated.success) extrasToStore = validated.data;
+      }
     }
   }
 
@@ -77,6 +87,7 @@ export async function createDraftMealPlan(input: unknown) {
       weekOf,
       version: nextVersion,
       status: "DRAFT",
+      planExtras: extrasToStore ?? undefined,
       items: { create: itemsToCreate },
     },
     include: { items: { orderBy: { sortOrder: "asc" } } },
@@ -89,6 +100,7 @@ export async function createDraftMealPlan(input: unknown) {
 const saveDraftSchema = z.object({
   mealPlanId: z.string().min(1),
   items: z.array(mealPlanItemSchema).max(50),
+  planExtras: planExtrasSchema.optional().nullable(),
 });
 
 export async function saveDraftMealPlan(input: unknown) {
@@ -97,7 +109,7 @@ export async function saveDraftMealPlan(input: unknown) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { mealPlanId, items } = parsed.data;
+  const { mealPlanId, items, planExtras } = parsed.data;
 
   const plan = await db.mealPlan.findUnique({
     where: { id: mealPlanId },
@@ -108,7 +120,7 @@ export async function saveDraftMealPlan(input: unknown) {
 
   await verifyCoachAccessToClient(plan.clientId);
 
-  // Replace all items
+  // Replace all items + update extras
   await db.$transaction([
     db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
     ...items.map((item, i) =>
@@ -128,6 +140,15 @@ export async function saveDraftMealPlan(input: unknown) {
         },
       })
     ),
+    // Update planExtras if provided (null = clear, undefined = keep as is)
+    ...(planExtras !== undefined
+      ? [
+          db.mealPlan.update({
+            where: { id: mealPlanId },
+            data: { planExtras: planExtras ?? undefined },
+          }),
+        ]
+      : []),
   ]);
 
   revalidatePath("/coach", "layout");

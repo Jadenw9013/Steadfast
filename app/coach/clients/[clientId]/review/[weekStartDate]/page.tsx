@@ -12,8 +12,7 @@ import { parseWeekStartDate, formatDateUTC } from "@/lib/utils/date";
 import { db } from "@/lib/db";
 import { CheckInSummary } from "@/components/coach/review/check-in-summary";
 import { MessageThread } from "@/components/messages/message-thread";
-import { MealPlanEditorV2 } from "@/components/coach/meal-plan/meal-plan-editor-v2";
-import { TrainingProgramEditor } from "@/components/coach/training/training-program-editor";
+import { PlanTabs } from "@/components/coach/client-workspace/plan-tabs";
 import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { getCoachTemplatesForPicker } from "@/lib/queries/training-templates";
 
@@ -80,6 +79,39 @@ export default async function ReviewWorkspacePage({
     defaultUnit: f.defaultUnit,
   }));
 
+  const mappedTemplates = templates.map((t) => ({
+    id: t.id,
+    name: t.name,
+    days: t.days.map((d) => ({
+      dayName: d.dayName,
+      blocks: d.blocks.map((b) => ({
+        type: b.type,
+        title: b.title,
+        content: b.content,
+      })),
+    })),
+  }));
+
+  const initialProgram = trainingData.program
+    ? {
+      id: trainingData.program.id,
+      status: trainingData.program.status,
+      templateSourceId: trainingData.program.templateSourceId,
+      weeklyFrequency: trainingData.program.weeklyFrequency,
+      clientNotes: trainingData.program.clientNotes,
+      injuries: trainingData.program.injuries,
+      equipment: trainingData.program.equipment,
+      days: trainingData.program.days.map((d) => ({
+        dayName: d.dayName,
+        blocks: d.blocks.map((b) => ({
+          type: b.type,
+          title: b.title,
+          content: b.content,
+        })),
+      })),
+    }
+    : null;
+
   return (
     <div className="space-y-5">
       {/* Header */}
@@ -121,57 +153,26 @@ export default async function ReviewWorkspacePage({
           />
         </div>
 
-        {/* Right column: meal plan editor */}
-        <div>
-          <MealPlanEditorV2
-            clientId={clientId}
-            weekStartDate={formatDateUTC(weekOf)}
-            effectivePlan={effectivePlan}
-            foods={foods}
-            coachDefaultNotify={coach.defaultNotifyOnPublish}
-            publishedMealPlanId={effectivePlan.publishedId}
+        {/* Right column: plans (toggle between Meal Plan / Training Plan) */}
+        <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#0a1224]">
+          <PlanTabs
+            mealPlan={{
+              clientId,
+              weekStartDate: formatDateUTC(weekOf),
+              effectivePlan,
+              foods,
+              coachDefaultNotify: coach.defaultNotifyOnPublish,
+              publishedMealPlanId: effectivePlan.publishedId,
+            }}
+            training={{
+              clientId,
+              weekStartDate: formatDateUTC(weekOf),
+              templates: mappedTemplates,
+              initialProgram,
+            }}
           />
         </div>
       </div>
-
-      {/* Training program — full-width panel below main grid */}
-      <TrainingProgramEditor
-        clientId={clientId}
-        weekStartDate={formatDateUTC(weekOf)}
-        templates={templates.map((t) => ({
-          id: t.id,
-          name: t.name,
-          days: t.days.map((d) => ({
-            dayName: d.dayName,
-            blocks: d.blocks.map((b) => ({
-              type: b.type,
-              title: b.title,
-              content: b.content,
-            })),
-          })),
-        }))}
-        initialProgram={
-          trainingData.program
-            ? {
-              id: trainingData.program.id,
-              status: trainingData.program.status,
-              templateSourceId: trainingData.program.templateSourceId,
-              weeklyFrequency: trainingData.program.weeklyFrequency,
-              clientNotes: trainingData.program.clientNotes,
-              injuries: trainingData.program.injuries,
-              equipment: trainingData.program.equipment,
-              days: trainingData.program.days.map((d) => ({
-                dayName: d.dayName,
-                blocks: d.blocks.map((b) => ({
-                  type: b.type,
-                  title: b.title,
-                  content: b.content,
-                })),
-              })),
-            }
-            : null
-        }
-      />
     </div>
   );
 }

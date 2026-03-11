@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { MealCard } from "./meal-card";
 import { MacroToggle } from "./macro-toggle";
 import { MealPlanActions } from "./meal-plan-actions";
+import { PlanExtrasEditor } from "./plan-extras-display";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 import {
   createDraftMealPlan,
@@ -18,6 +19,7 @@ import {
   type MealPlanFoodItem,
   type FoodLibraryEntry,
 } from "@/types/meal-plan";
+import type { PlanExtras } from "@/types/meal-plan-extras";
 import type { EffectiveMealPlan } from "@/lib/queries/meal-plans";
 
 export function MealPlanEditorV2({
@@ -40,6 +42,7 @@ export function MealPlanEditorV2({
   const [meals, setMeals] = useState<MealGroup[]>(
     groupItemsToMeals(effectivePlan.items)
   );
+  const [planExtras, setPlanExtras] = useState<PlanExtras | null>(effectivePlan.planExtras);
   const [previousMeals, setPreviousMeals] = useState<MealGroup[] | null>(null);
   const [showMacros, setShowMacros] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -82,6 +85,7 @@ export function MealPlanEditorV2({
       clientId,
       weekStartDate,
       items: flattenMeals(meals),
+      planExtras: planExtras ?? undefined,
     });
     if ("mealPlanId" in result) {
       setDraftId(result.mealPlanId);
@@ -97,6 +101,7 @@ export function MealPlanEditorV2({
         await saveDraftMealPlan({
           mealPlanId: draftId,
           items: flattenMeals(meals),
+          planExtras: planExtras ?? undefined,
         });
       } else {
         await ensureDraft();
@@ -116,6 +121,7 @@ export function MealPlanEditorV2({
       await saveDraftMealPlan({
         mealPlanId: id,
         items: flattenMeals(meals),
+        planExtras: planExtras ?? undefined,
       });
       await publishMealPlan({ mealPlanId: id, notifyClient });
       router.refresh();
@@ -274,6 +280,15 @@ export function MealPlanEditorV2({
       >
         + Add Meal
       </button>
+
+      {/* Plan extras (editable) */}
+      {planExtras && (
+        <PlanExtrasEditor
+          extras={planExtras}
+          onChange={setPlanExtras}
+          mealNames={meals.map((m) => m.mealName)}
+        />
+      )}
 
       {/* Daily totals (only when macros visible) */}
       {showMacros && totalItems > 0 && (

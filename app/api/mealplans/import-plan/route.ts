@@ -3,6 +3,7 @@ import { db, prismaErrorMessage } from "@/lib/db";
 import {
   parsedMealPlanSchema,
   splitPortion,
+  extractPlanExtras,
 } from "@/lib/validations/meal-plan-import";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { NextRequest, NextResponse } from "next/server";
@@ -80,6 +81,9 @@ export async function POST(req: NextRequest) {
       })
     );
 
+    // Extract plan extras (metadata, overrides, supplements, etc.)
+    const planExtras = extractPlanExtras(plan);
+
     // Create meal plan as draft (coach can review/publish in normal editor)
     const mealPlan = await db.mealPlan.create({
       data: {
@@ -87,6 +91,7 @@ export async function POST(req: NextRequest) {
         weekOf,
         version: nextVersion,
         status: "DRAFT",
+        planExtras: planExtras ? JSON.parse(JSON.stringify(planExtras)) : undefined,
         items: { create: items },
       },
     });

@@ -100,7 +100,7 @@ function LegacyDayPicker({
           <span
             key={i}
             className={`rounded-md px-2 py-1 text-xs font-medium ${effectiveDays.includes(i)
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                 : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600"
               }`}
           >
@@ -128,7 +128,7 @@ function LegacyDayPicker({
             key={i}
             onClick={() => toggleDay(i)}
             className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${selected.includes(i)
-                ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
                 : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
               }`}
           >
@@ -140,7 +140,7 @@ function LegacyDayPicker({
         <button
           onClick={handleSave}
           disabled={isPending || selected.length === 0}
-          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+          className="rounded-md bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-zinc-700 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
         >
           {isPending ? "Saving..." : "Save"}
         </button>

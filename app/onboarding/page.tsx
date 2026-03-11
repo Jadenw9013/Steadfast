@@ -33,7 +33,7 @@ export default async function OnboardingPage() {
     if (response) redirect("/client/dashboard");
 
     return (
-        <div className="min-h-screen bg-zinc-50 dark:bg-[#09090b]">
+        <div className="min-h-screen bg-zinc-50 dark:bg-[#020815]">
             <NavBar role="client" canSwitchRole={user.isCoach && user.isClient} />
             <main className="mx-auto max-w-2xl px-5 py-12 sm:px-8">
                 <div className="mb-8">

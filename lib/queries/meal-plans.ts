@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { parsePlanExtras, type PlanExtras } from "@/types/meal-plan-extras";
 
 export async function getCurrentPublishedMealPlan(clientId: string) {
   return db.mealPlan.findFirst({
@@ -40,6 +41,7 @@ export type EffectiveMealPlan = {
   source: "draft" | "published" | "empty";
   draftId: string | null;
   publishedId: string | null;
+  planExtras: PlanExtras | null;
   items: {
     mealName: string;
     foodName: string;
@@ -100,14 +102,21 @@ export async function getEffectiveMealPlanForReview(
       source: "draft",
       draftId: draft.id,
       publishedId: published?.id ?? null,
+      planExtras: parsePlanExtras(draft.planExtras),
       items: mapItems(draft.items),
     };
   }
 
   if (published) {
-    return { source: "published", draftId: null, publishedId: published.id, items: mapItems(published.items) };
+    return {
+      source: "published",
+      draftId: null,
+      publishedId: published.id,
+      planExtras: parsePlanExtras(published.planExtras),
+      items: mapItems(published.items),
+    };
   }
 
   // 3. No plan at all
-  return { source: "empty", draftId: null, publishedId: null, items: [] };
+  return { source: "empty", draftId: null, publishedId: null, planExtras: null, items: [] };
 }
