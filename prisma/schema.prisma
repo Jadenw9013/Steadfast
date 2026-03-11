@@ -12,6 +12,12 @@ enum Role {
   CLIENT
 }
 
+enum IntakeStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
 enum CheckInStatus {
   SUBMITTED
   REVIEWED
@@ -80,6 +86,9 @@ model User {
   
   onboardingForm     OnboardingForm?     @relation("CoachOnboardingForm")
   onboardingResponse OnboardingResponse? @relation("ClientOnboardingResponse")
+
+  intakesSent    ClientIntake[] @relation("CoachIntakes")
+  intakeReceived ClientIntake?  @relation("ClientIntakes")
 }
 
 model CoachClient {
@@ -607,6 +616,50 @@ model OnboardingResponse {
 
   @@index([coachId])
   @@index([formId])
+}
+
+// ── Client Intake Questionnaire ──────────────────────────────────────────────
+//
+// Separate from the generic coach-owned OnboardingForm/OnboardingResponse system.
+// This is a structured, pre-defined intake with specific health/fitness fields
+// that the coach can optionally send to newly added clients.
+//
+// Data model rationale: bodyweightLbs is stored here (not in CheckIn) to avoid
+// corrupting coach inbox status signals. The coach profile page surfaces it
+// directly when no real check-ins exist yet.
+
+model ClientIntake {
+  id          String       @id @default(cuid())
+  coachId     String
+  clientId    String       @unique // one active intake per client
+  status      IntakeStatus @default(PENDING)
+  sentAt      DateTime     @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  // Structured intake answers (populated when status = COMPLETED)
+  bodyweightLbs       Float?
+  heightInches        Float?
+  ageYears            Int?
+  gender              String?
+  primaryGoal         String?
+  targetTimeline      String?
+  injuries            String?  @db.Text
+  dietaryRestrictions String?
+  dietaryPreferences  String?  @db.Text
+  currentDiet         String?  @db.Text
+  trainingExperience  String?
+  trainingDaysPerWeek Int?
+  gymAccess           String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  coach  User @relation("CoachIntakes",  fields: [coachId],  references: [id])
+  client User @relation("ClientIntakes", fields: [clientId], references: [id])
+
+  @@index([coachId])
+  @@index([clientId])
 }
 
 // ── Plan Snippets (reusable meal plan section templates) ────────────────────

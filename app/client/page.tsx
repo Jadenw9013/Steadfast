@@ -4,6 +4,7 @@ import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { formatDateUTC, getLocalDate } from "@/lib/utils/date";
 import { getWeightHistory } from "@/lib/queries/weight-history";
+import { getMyIntake } from "@/lib/queries/client-intake";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 import { db } from "@/lib/db";
@@ -42,12 +43,13 @@ export default async function ClientDashboard() {
     },
   });
 
-  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram] = await Promise.all([
+  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake] = await Promise.all([
     getClientCheckInsLight(user.id),
     getCurrentPublishedMealPlan(user.id),
     getLatestCoachMessage(user.id),
     getWeightHistory(user.id),
     getPublishedTrainingProgram(user.id),
+    getMyIntake(user.id),
   ]);
 
   // ── Cadence-aware status derivation ──────────────────────────────────────
@@ -166,6 +168,35 @@ export default async function ClientDashboard() {
 
       {/* Coach connection (only if no coach) */}
       {!coachAssignment && <ConnectCoachBanner />}
+
+      {/* Intake questionnaire banner — shown when coach has sent an intake */}
+      {pendingIntake && (pendingIntake.status === "PENDING" || pendingIntake.status === "IN_PROGRESS") && (
+        <div className="animate-fade-in" style={{ animationDelay: "40ms" }}>
+          <Link
+            href="/client/intake"
+            className="group flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-blue-200/60 bg-blue-50 px-6 py-5 transition-all hover:border-blue-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:border-blue-500/20 dark:bg-blue-950/30 dark:hover:border-blue-500/40"
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400">
+                {pendingIntake.status === "IN_PROGRESS" ? "Continue Intake" : "Action Required"}
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-blue-900 dark:text-blue-100">
+                {pendingIntake.status === "IN_PROGRESS"
+                  ? "Your intake is in progress"
+                  : "Your coach sent you an intake questionnaire"}
+              </p>
+              <p className="mt-0.5 text-xs text-blue-600/70 dark:text-blue-400/70">
+                {pendingIntake.status === "IN_PROGRESS"
+                  ? "Pick up where you left off"
+                  : "Provide your baseline stats and goals to get started"}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-blue-600 transition-all group-hover:translate-x-0.5 dark:text-blue-400">
+              {pendingIntake.status === "IN_PROGRESS" ? "Continue →" : "Start →"}
+            </span>
+          </Link>
+        </div>
+      )}
 
       {/* Check-in schedule reminder — only for due/overdue states */}
       {coachAssignment && cadenceResult && (cadenceResult.status === "due" || cadenceResult.status === "overdue") && (

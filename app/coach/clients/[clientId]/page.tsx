@@ -6,6 +6,7 @@ import { getMessages } from "@/lib/queries/messages";
 import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { getCoachTemplatesForPicker } from "@/lib/queries/training-templates";
 import { getWeightHistory } from "@/lib/queries/weight-history";
+import { getClientIntake } from "@/lib/queries/client-intake";
 import { formatDateUTC } from "@/lib/utils/date";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import { RemoveClientButton } from "@/components/coach/remove-client-button";
 import { ClientSchedule } from "@/components/coach/client-schedule";
 import { MessageThread } from "@/components/messages/message-thread";
 import { PlanTabs } from "@/components/coach/client-workspace/plan-tabs";
+import { SendIntakeButton } from "@/components/coach/send-intake-button";
 
 const weekStatusConfig = {
   submitted: {
@@ -58,7 +60,7 @@ export default async function ClientProfilePage({
   const weekOf = profile.currentWeekOf;
   const weekDateStr = formatDateUTC(weekOf);
 
-  const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory, onboardingResponse] =
+  const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory, onboardingResponse, clientIntake] =
     await Promise.all([
       getEffectiveMealPlanForReview(clientId, weekOf),
       getMessages(clientId, weekOf),
@@ -70,6 +72,7 @@ export default async function ClientProfilePage({
         where: { clientId },
         include: { form: true },
       }),
+      getClientIntake(clientId),
     ]);
 
   const {
@@ -88,6 +91,29 @@ export default async function ClientProfilePage({
   } = profile;
 
   const statusBadge = weekStatusConfig[currentWeekStatus];
+
+  // Determine whether to show the Send Intake CTA.
+  // Show when: client has no real check-ins AND no intake has been sent yet.
+  const showSendIntakeCta = checkIns.length === 0 && !clientIntake;
+
+  // Intake status display config
+  const intakeStatusConfig = {
+    PENDING: {
+      label: "Intake Sent",
+      bg: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      dot: "bg-amber-400",
+    },
+    IN_PROGRESS: {
+      label: "Intake In Progress",
+      bg: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      dot: "bg-blue-500",
+    },
+    COMPLETED: {
+      label: "Intake Completed",
+      bg: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+      dot: "bg-emerald-500",
+    },
+  } as const;
 
   const serializedMessages = messages.map((m) => ({
     id: m.id,
@@ -198,6 +224,40 @@ export default async function ClientProfilePage({
         </Link>
       </div>
 
+      {/* New client empty-state — Send Intake CTA */}
+      {showSendIntakeCta && (
+        <div className="rounded-xl border border-dashed border-zinc-300 bg-white px-6 py-8 dark:border-zinc-700 dark:bg-zinc-900">
+          <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+            No starting data yet
+          </p>
+          <p className="mt-1 text-sm text-zinc-500">
+            This client hasn&rsquo;t submitted any information yet. Send them an intake
+            questionnaire to collect their baseline stats, goals, and diet details.
+          </p>
+          <div className="mt-4">
+            <SendIntakeButton clientId={clientId} />
+          </div>
+        </div>
+      )}
+
+      {/* Intake status badge (when intake exists but not from the CTA above) */}
+      {clientIntake && !showSendIntakeCta && (
+        <div className="flex items-center gap-2">
+          {(() => {
+            const cfg = intakeStatusConfig[clientIntake.status];
+            return (
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                {cfg.label}
+              </span>
+            );
+          })()}
+          {clientIntake.status !== "COMPLETED" && (
+            <SendIntakeButton clientId={clientId} isResend />
+          )}
+        </div>
+      )}
+
       {/* Client snapshot */}
       <section aria-labelledby="snapshot-heading">
         <h2
@@ -208,15 +268,28 @@ export default async function ClientProfilePage({
         </h2>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          <MetricCard
-            label="Current"
-            value={latestCheckIn?.weight}
-            suffix="lbs"
-            subtext={latestCheckIn?.submittedAt.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })}
-          />
+          {/* Show intake baseline weight when no real check-ins exist */}
+          {latestCheckIn?.weight == null && clientIntake?.status === "COMPLETED" && clientIntake.bodyweightLbs != null ? (
+            <MetricCard
+              label="Baseline (Intake)"
+              value={clientIntake.bodyweightLbs}
+              suffix="lbs"
+              subtext={clientIntake.completedAt?.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            />
+          ) : (
+            <MetricCard
+              label="Current"
+              value={latestCheckIn?.weight}
+              suffix="lbs"
+              subtext={latestCheckIn?.submittedAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            />
+          )}
 
           <MetricCard
             label="Previous"
@@ -289,11 +362,83 @@ export default async function ClientProfilePage({
         </div>
       </section>
 
-      {/* Intake Questionnaire */}
+      {/* Structured Intake Summary (completed) */}
+      {clientIntake?.status === "COMPLETED" && (
+        <section aria-labelledby="intake-heading">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 id="intake-heading" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Intake Summary
+            </h2>
+            <div className="flex items-center gap-2">
+              {(() => {
+                const cfg = intakeStatusConfig.COMPLETED;
+                return (
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                    {cfg.label}
+                  </span>
+                );
+              })()}
+              <SendIntakeButton clientId={clientId} isResend />
+            </div>
+          </div>
+          <div className="rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-[#0a1224]">
+            {/* Key stats row */}
+            <div className="grid grid-cols-2 divide-x divide-zinc-100 border-b border-zinc-100 sm:grid-cols-4 dark:divide-zinc-800 dark:border-zinc-800">
+              <IntakeStatCell label="Bodyweight" value={clientIntake.bodyweightLbs ? `${clientIntake.bodyweightLbs} lbs` : "—"} />
+              <IntakeStatCell label="Height" value={clientIntake.heightInches ? `${clientIntake.heightInches} in` : "—"} />
+              <IntakeStatCell label="Age" value={clientIntake.ageYears ? `${clientIntake.ageYears} yrs` : "—"} />
+              <IntakeStatCell label="Gender" value={clientIntake.gender ?? "—"} />
+            </div>
+            {/* Detail rows */}
+            <div className="divide-y divide-zinc-100 p-5 dark:divide-zinc-800">
+              <IntakeRow label="Primary Goal" value={clientIntake.primaryGoal} />
+              <IntakeRow label="Target Timeline" value={clientIntake.targetTimeline} />
+              <IntakeRow label="Training Experience" value={clientIntake.trainingExperience} />
+              <IntakeRow label="Training Days / Week" value={clientIntake.trainingDaysPerWeek?.toString()} />
+              <IntakeRow label="Equipment Access" value={clientIntake.gymAccess} />
+              <IntakeRow label="Injuries / Limitations" value={clientIntake.injuries} />
+              <IntakeRow label="Dietary Restrictions" value={clientIntake.dietaryRestrictions} />
+              <IntakeRow label="Food Preferences" value={clientIntake.dietaryPreferences} />
+              <IntakeRow label="Current Diet" value={clientIntake.currentDiet} last />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Intake status banner (sent/in-progress, not yet completed) */}
+      {clientIntake && clientIntake.status !== "COMPLETED" && (
+        <section aria-labelledby="intake-pending-heading">
+          <h2 id="intake-pending-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            Intake Questionnaire
+          </h2>
+          <div className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-center gap-3">
+              {(() => {
+                const cfg = intakeStatusConfig[clientIntake.status];
+                return (
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                    {cfg.label}
+                  </span>
+                );
+              })()}
+              <p className="text-sm text-zinc-500">
+                {clientIntake.status === "PENDING"
+                  ? "Waiting for client to begin"
+                  : "Client has started the questionnaire"}
+              </p>
+            </div>
+            <SendIntakeButton clientId={clientId} isResend />
+          </div>
+        </section>
+      )}
+
+      {/* Legacy generic onboarding response (if coach used the custom form system) */}
       {onboardingResponse && (
         <section aria-labelledby="onboarding-heading">
           <h2 id="onboarding-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Intake Questionnaire
+            Onboarding Form Responses
           </h2>
           <div className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-[#0a1224] space-y-4">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -485,6 +630,25 @@ function MetricCard({
       ) : (
         <p className="mt-1 text-2xl font-bold text-zinc-300 dark:text-zinc-600">&mdash;</p>
       )}
+    </div>
+  );
+}
+
+function IntakeStatCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-4 py-3">
+      <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{label}</p>
+      <p className="mt-0.5 text-sm font-semibold text-zinc-900 dark:text-zinc-100">{value}</p>
+    </div>
+  );
+}
+
+function IntakeRow({ label, value, last }: { label: string; value?: string | null; last?: boolean }) {
+  if (!value) return null;
+  return (
+    <div className={`py-3 ${last ? "" : ""}`}>
+      <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{label}</p>
+      <p className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap dark:text-zinc-300">{value}</p>
     </div>
   );
 }
