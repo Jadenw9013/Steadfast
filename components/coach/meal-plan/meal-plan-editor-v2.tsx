@@ -3,9 +3,9 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { MealCard } from "./meal-card";
-import { MacroToggle } from "./macro-toggle";
 import { MealPlanActions } from "./meal-plan-actions";
 import { PlanExtrasEditor } from "./plan-extras-display";
+import { AiPlanAssistant } from "./ai-plan-assistant";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 import {
   createDraftMealPlan,
@@ -44,10 +44,12 @@ export function MealPlanEditorV2({
   );
   const [planExtras, setPlanExtras] = useState<PlanExtras | null>(effectivePlan.planExtras);
   const [previousMeals, setPreviousMeals] = useState<MealGroup[] | null>(null);
-  const [showMacros, setShowMacros] = useState(false);
+  const [previousExtras, setPreviousExtras] = useState<PlanExtras | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [notifyClient, setNotifyClient] = useState(coachDefaultNotify ?? true);
+  const [highlightedMeals, setHighlightedMeals] = useState<Set<string>>(new Set());
 
   const isUnsaved = draftId === null;
   const totalItems = meals.reduce((sum, m) => sum + m.items.length, 0);
@@ -69,6 +71,7 @@ export function MealPlanEditorV2({
     setPreviousMeals(
       meals.map((m) => ({ ...m, items: [...m.items] }))
     );
+    setPreviousExtras(planExtras);
   }
 
   function undo() {
@@ -76,6 +79,35 @@ export function MealPlanEditorV2({
       setMeals(previousMeals);
       setPreviousMeals(null);
     }
+    if (previousExtras !== null) {
+      setPlanExtras(previousExtras);
+      setPreviousExtras(null);
+    }
+    setHighlightedMeals(new Set());
+  }
+
+  /** Apply AI-generated changes */
+  function applyAiChanges(newMeals: MealGroup[], newExtras: PlanExtras | null) {
+    saveSnapshot();
+    setMeals(newMeals);
+    if (newExtras) setPlanExtras(newExtras);
+    // Flash highlight on changed meals
+    const changedNames = new Set(
+      newMeals
+        .filter((nm) => {
+          const original = meals.find((m) => m.mealName === nm.mealName);
+          if (!original) return true; // new meal
+          if (original.items.length !== nm.items.length) return true;
+          return original.items.some(
+            (oi, idx) =>
+              nm.items[idx]?.foodName !== oi.foodName ||
+              nm.items[idx]?.servingDescription !== oi.servingDescription
+          );
+        })
+        .map((m) => m.mealName)
+    );
+    setHighlightedMeals(changedNames);
+    setTimeout(() => setHighlightedMeals(new Set()), 3000);
   }
 
   /** Create a DB draft (with current items) and return its ID. */
@@ -221,7 +253,7 @@ export function MealPlanEditorV2({
   return (
     <div className="space-y-3">
       {/* Top bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{statusLabel}</h3>
           {effectivePlan.source === "published" && isUnsaved && (
@@ -231,6 +263,20 @@ export function MealPlanEditorV2({
           )}
         </div>
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => setAiOpen(true)}
+            className="group flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-600 transition-all hover:bg-blue-100 hover:border-blue-400 hover:shadow-sm active:scale-[0.97] sm:px-3 dark:border-blue-500/30 dark:bg-blue-950/30 dark:text-blue-400 dark:hover:bg-blue-950/50 dark:hover:border-blue-500/50"
+            aria-label="Modify plan with AI"
+          >
+            <svg className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 1l1.5 3.5L13 6l-3.5 1.5L8 11 6.5 7.5 3 6l3.5-1.5L8 1z" fill="currentColor" />
+              <path d="M12 9l.75 1.75L14.5 11.5l-1.75.75L12 14l-.75-1.75-1.75-.75 1.75-.75L12 9z" fill="currentColor" opacity="0.6" />
+              <path d="M4 10l.5 1.5L6 12l-1.5.5L4 14l-.5-1.5L2 12l1.5-.5L4 10z" fill="currentColor" opacity="0.4" />
+            </svg>
+            <span className="hidden sm:inline">Modify with AI</span>
+            <span className="sm:hidden">AI</span>
+          </button>
           {(publishedMealPlanId || draftId) && (
             <ExportPdfButton
               mealPlanId={(publishedMealPlanId ?? draftId)!}
@@ -246,29 +292,36 @@ export function MealPlanEditorV2({
           >
             Undo
           </button>
-          <MacroToggle enabled={showMacros} onToggle={setShowMacros} />
         </div>
       </div>
 
       {/* Meal cards */}
       <div className="space-y-2">
         {meals.map((meal, i) => (
-          <MealCard
+          <div
             key={`${meal.mealName}-${i}`}
-            meal={meal}
-            showMacros={showMacros}
-            foods={foods}
-            isFirst={i === 0}
-            isLast={i === meals.length - 1}
-            onUpdateMealName={(name) => updateMealName(i, name)}
-            onUpdateItem={(itemId, updated) => updateItem(i, itemId, updated)}
-            onRemoveItem={(itemId) => removeItem(i, itemId)}
-            onAddItem={(item) => addItemToMeal(i, item)}
-            onRemoveMeal={() => removeMeal(i)}
-            onDuplicateMeal={() => duplicateMeal(i)}
-            onMoveMealUp={() => moveMeal(i, "up")}
-            onMoveMealDown={() => moveMeal(i, "down")}
-          />
+            className={`transition-all duration-700 ${
+              highlightedMeals.has(meal.mealName)
+                ? "ring-2 ring-blue-400/50 rounded-lg shadow-md shadow-blue-500/10 dark:ring-blue-500/40"
+                : ""
+            }`}
+          >
+            <MealCard
+              meal={meal}
+              showMacros={false}
+              foods={foods}
+              isFirst={i === 0}
+              isLast={i === meals.length - 1}
+              onUpdateMealName={(name) => updateMealName(i, name)}
+              onUpdateItem={(itemId, updated) => updateItem(i, itemId, updated)}
+              onRemoveItem={(itemId) => removeItem(i, itemId)}
+              onAddItem={(item) => addItemToMeal(i, item)}
+              onRemoveMeal={() => removeMeal(i)}
+              onDuplicateMeal={() => duplicateMeal(i)}
+              onMoveMealUp={() => moveMeal(i, "up")}
+              onMoveMealDown={() => moveMeal(i, "down")}
+            />
+          </div>
         ))}
       </div>
 
@@ -290,22 +343,7 @@ export function MealPlanEditorV2({
         />
       )}
 
-      {/* Daily totals (only when macros visible) */}
-      {showMacros && totalItems > 0 && (
-        <div className="rounded-lg bg-zinc-100 px-3 py-2 dark:bg-zinc-800/50">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-              Daily Totals
-            </span>
-            <div className="flex gap-3 text-xs font-medium tabular-nums text-zinc-600 dark:text-zinc-300">
-              <span>{dailyTotals.calories} cal</span>
-              <span>{dailyTotals.protein}p</span>
-              <span>{dailyTotals.carbs}c</span>
-              <span>{dailyTotals.fats}f</span>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Actions */}
       <MealPlanActions
@@ -317,6 +355,15 @@ export function MealPlanEditorV2({
         onNotifyChange={setNotifyClient}
         onSave={handleSave}
         onPublish={handlePublish}
+      />
+
+      {/* AI Plan Assistant drawer */}
+      <AiPlanAssistant
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        currentMeals={meals}
+        currentExtras={planExtras}
+        onApply={applyAiChanges}
       />
     </div>
   );
