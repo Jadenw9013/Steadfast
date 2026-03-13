@@ -142,7 +142,7 @@ export function PlanDetailsHelp() {
           {/* Footer tip */}
           <div className="border-t border-white/[0.06] bg-zinc-900/60 px-4 py-2.5">
             <p className="text-[11px] text-zinc-500">
-              <span className="font-medium text-zinc-400">Tip:</span> All sections are optional. Add only what's relevant to your client's plan.
+              <span className="font-medium text-zinc-400">Tip:</span> All sections are optional. Add only what&apos;s relevant to your client&apos;s plan.
             </p>
           </div>
         </div>
