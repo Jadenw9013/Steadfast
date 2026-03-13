@@ -58,6 +58,12 @@ model User {
   smsClientMessages     Boolean  @default(false)
   smsNewClientSignups   Boolean  @default(false)
   smsMissedCheckInAlertTime String @default("21:00")
+  emailCheckInReminders  Boolean @default(true)
+  emailMealPlanUpdates   Boolean @default(true)
+  emailCoachMessages     Boolean @default(true)
+  emailClientCheckIns    Boolean @default(true)
+  emailClientMessages    Boolean @default(true)
+  emailCoachingRequests  Boolean @default(true)
   defaultNotifyOnPublish Boolean @default(true)
   checkInDaysOfWeek     Int[]   @default([1])   // 0=Sun..6=Sat. Default: Monday
   cadenceConfig         Json?   // CadenceConfig object (null = legacy checkInDaysOfWeek)

@@ -456,16 +456,16 @@ export function PlanExtrasEditor({
             return (
               <div key={oi} className={`rounded-xl border p-3 ${color.border} bg-white dark:bg-zinc-900/50`}>
                 {/* Header */}
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={`h-3 w-3 shrink-0 rounded-full ${color.dot}`} />
                   <input
                     type="text"
                     value={override.label}
                     onChange={(e) => updateOverride(oi, { label: e.target.value })}
-                    className="flex-1 border-0 bg-transparent p-0 text-sm font-bold text-zinc-800 focus:outline-none dark:text-zinc-100"
+                    className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm font-bold text-zinc-800 focus:outline-none dark:text-zinc-100"
                     placeholder="Override name"
                   />
-                  <div className="flex items-center gap-0.5">
+                  <div className="flex items-center gap-0.5 order-last w-full sm:order-none sm:w-auto">
                     {OVERRIDE_COLORS.map((c) => (
                       <button key={c.id} type="button" onClick={() => updateOverride(oi, { color: c.id })} className={`h-4 w-4 rounded-full transition-all ${c.dot} ${override.color === c.id ? "ring-2 ring-offset-1 ring-zinc-400 dark:ring-offset-zinc-900" : "opacity-40 hover:opacity-70"}`} aria-label={`Color: ${c.label}`} />
                     ))}
@@ -884,13 +884,18 @@ function SupplementEditor({ supplements, onUpdate, onRemove }: { supplements: Su
           <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{timing}</span>
           <div className="mt-1 space-y-1">
             {grouped.get(timing)!.map(({ supp, idx }) => (
-              <div key={idx} className="group flex items-center gap-2 rounded py-0.5 pl-3">
-                <input type="text" value={supp.name} onChange={(e) => onUpdate(idx, "name", e.target.value)} className="flex-1 border-0 bg-transparent p-0 text-xs font-medium text-zinc-700 focus:outline-none dark:text-zinc-200" placeholder="Supplement name" />
-                <input type="text" value={supp.dosage ?? ""} onChange={(e) => onUpdate(idx, "dosage", e.target.value)} className="w-20 border-0 bg-transparent p-0 text-xs text-zinc-400 focus:outline-none dark:text-zinc-500" placeholder="Dosage" />
-                <select value={supp.timing} onChange={(e) => onUpdate(idx, "timing", e.target.value)} className="shrink-0 rounded border border-zinc-200 bg-zinc-50 px-1 py-0.5 text-[10px] font-medium focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
-                  {SUPPLEMENT_TIMING_ORDER.map((t) => (<option key={t} value={t}>{t}</option>))}
-                </select>
-                <button type="button" onClick={() => onRemove(idx)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-300 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100">&times;</button>
+              <div key={idx} className="group flex flex-col gap-1 rounded py-1 pl-3 sm:flex-row sm:items-center sm:gap-2 sm:py-0.5">
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <input type="text" value={supp.name} onChange={(e) => onUpdate(idx, "name", e.target.value)} className="min-w-0 flex-1 border-0 bg-transparent p-0 text-xs font-medium text-zinc-700 focus:outline-none dark:text-zinc-200" placeholder="Supplement name" />
+                  <button type="button" onClick={() => onRemove(idx)} className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-300 opacity-100 transition-opacity hover:text-red-500 sm:hidden">&times;</button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="text" value={supp.dosage ?? ""} onChange={(e) => onUpdate(idx, "dosage", e.target.value)} className="w-20 shrink-0 border-0 bg-transparent p-0 text-xs text-zinc-400 focus:outline-none dark:text-zinc-500" placeholder="Dosage" />
+                  <select value={supp.timing} onChange={(e) => onUpdate(idx, "timing", e.target.value)} className="shrink-0 rounded border border-zinc-200 bg-zinc-50 px-1 py-0.5 text-[10px] font-medium focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                    {SUPPLEMENT_TIMING_ORDER.map((t) => (<option key={t} value={t}>{t}</option>))}
+                  </select>
+                  <button type="button" onClick={() => onRemove(idx)} className="hidden sm:flex h-5 w-5 shrink-0 items-center justify-center rounded text-zinc-300 opacity-0 transition-opacity hover:text-red-500 group-hover:opacity-100">&times;</button>
+                </div>
               </div>
             ))}
           </div>

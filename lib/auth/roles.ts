@@ -58,6 +58,16 @@ export async function getCurrentDbUser() {
     },
   });
 
+  // Welcome email for new clients (fire-and-forget)
+  if (newUser.isClient) {
+    try {
+      const { sendEmail } = await import("@/lib/email/sendEmail");
+      const { welcomeEmail } = await import("@/lib/email/templates");
+      const welcomeMsg = welcomeEmail(newUser.firstName || "there");
+      sendEmail({ to: email, ...welcomeMsg }).catch(console.error);
+    } catch { /* email failure must not break auth flow */ }
+  }
+
   // Process any approved marketplace requests pending for this email
   if (newUser.isClient) {
     const unhandledRequests = await db.coachingRequest.findMany({

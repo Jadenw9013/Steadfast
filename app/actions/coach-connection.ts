@@ -25,7 +25,7 @@ export async function connectToCoach(input: unknown) {
 
   const coach = await db.user.findUnique({
     where: { coachCode: code },
-    select: { id: true, isCoach: true },
+    select: { id: true, isCoach: true, firstName: true },
   });
 
   if (!coach || !coach.isCoach) {
@@ -51,5 +51,16 @@ export async function connectToCoach(input: unknown) {
   });
 
   revalidatePath("/client", "layout");
+
+  // Background email: notify client they're connected
+  try {
+    const { sendEmail } = await import("@/lib/email/sendEmail");
+    const { coachConnectedEmail } = await import("@/lib/email/templates");
+    if (user.email) {
+      const email = coachConnectedEmail(user.firstName || "there", coach.firstName || "your coach");
+      sendEmail({ to: user.email, ...email }).catch(console.error);
+    }
+  } catch { /* email failure must not break connection */ }
+
   return { success: true };
 }

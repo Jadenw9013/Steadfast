@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { notifyDailyCheckInReminder, notifyMissedCheckInAlert } from "@/lib/sms/notify";
+import { sendEmail } from "@/lib/email/sendEmail";
+import { checkinReminderEmail } from "@/lib/email/templates";
 import { getLocalDate } from "@/lib/utils/date";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays } from "@/lib/scheduling/cadence";
 
@@ -22,6 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   let sentClientReminders = 0;
+  let sentEmailReminders = 0;
   let sentCoachAlerts = 0;
 
   try {
@@ -29,17 +32,21 @@ export async function POST(req: NextRequest) {
     const currentHourStr = serverTime.getHours().toString().padStart(2, "0");
 
     // ── Client reminders ──────────────────────────────────────────────────────
-    // Find all active clients opted into SMS with daily reminders enabled
+    // Find all active clients with coach assignments who might need reminders
     const clientsToRemind = await db.user.findMany({
       where: {
         activeRole: "CLIENT",
-        smsOptIn: true,
-        smsDailyCheckInReminder: true,
+        clientAssignments: { some: {} },
       },
       select: {
         id: true,
+        email: true,
+        firstName: true,
         timezone: true,
+        smsOptIn: true,
+        smsDailyCheckInReminder: true,
         smsCheckInReminderTime: true,
+        emailCheckInReminders: true,
         coachCode: true,
         clientAssignments: {
           take: 1,
@@ -104,12 +111,49 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      try {
-        await notifyDailyCheckInReminder(client.id);
-        sentClientReminders++;
-      } catch (err) {
-        // Individual send failures should not crash the batch
-        console.error(`Failed to send reminder to client ${client.id}`, err);
+      // SMS reminder (if opted in)
+      if (client.smsOptIn && client.smsDailyCheckInReminder) {
+        try {
+          await notifyDailyCheckInReminder(client.id);
+          sentClientReminders++;
+        } catch (err) {
+          console.error(`Failed to send SMS reminder to client ${client.id}`, err);
+        }
+      }
+
+      // Email reminder (if opted in, with dedupe via NotificationLog)
+      if (client.emailCheckInReminders && client.email) {
+        try {
+          // Dedupe: check if we already sent an email reminder today
+          const windowDate = new Date(localDate + "T00:00:00.000Z");
+          const existing = await db.notificationLog.findUnique({
+            where: {
+              reminder_dedupe: {
+                clientId: client.id,
+                windowStartDate: windowDate,
+                type: "CHECKIN_REMINDER",
+                stage: cadenceResult.status === "overdue" ? "OVERDUE" : "PRE_DUE",
+              },
+            },
+          });
+          if (!existing) {
+            const email = checkinReminderEmail(client.firstName || "there");
+            const result = await sendEmail({ to: client.email, ...email });
+            if (result.success) {
+              await db.notificationLog.create({
+                data: {
+                  type: "CHECKIN_REMINDER",
+                  clientId: client.id,
+                  windowStartDate: windowDate,
+                  stage: cadenceResult.status === "overdue" ? "OVERDUE" : "PRE_DUE",
+                },
+              });
+              sentEmailReminders++;
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to send email reminder to client ${client.id}`, err);
+        }
       }
     }
 
@@ -194,7 +238,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ sentClientReminders, sentCoachAlerts });
+    return NextResponse.json({ sentClientReminders, sentEmailReminders, sentCoachAlerts });
 
   } catch (err) {
     console.error("Cron checkin-reminders failed", err);

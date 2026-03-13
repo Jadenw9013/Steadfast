@@ -12,6 +12,10 @@ const clientPrefsSchema = z.object({
   smsOptIn: z.boolean().optional(),
   smsMealPlanUpdates: z.boolean().optional(),
   smsDailyCheckInReminder: z.boolean().optional(),
+  // Email preferences (client)
+  emailCheckInReminders: z.boolean().optional(),
+  emailMealPlanUpdates: z.boolean().optional(),
+  emailCoachMessages: z.boolean().optional(),
 });
 
 export async function updateNotificationPreferences(input: unknown) {
@@ -47,6 +51,28 @@ export async function updateCoachNotifyDefault(input: unknown) {
     data: { defaultNotifyOnPublish: parsed.data.defaultNotifyOnPublish },
   });
 
+  return { success: true };
+}
+
+const coachEmailPrefsSchema = z.object({
+  emailClientCheckIns: z.boolean().optional(),
+  emailClientMessages: z.boolean().optional(),
+  emailCoachingRequests: z.boolean().optional(),
+});
+
+export async function updateCoachEmailPreferences(input: unknown) {
+  const parsed = coachEmailPrefsSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Invalid input");
+
+  const user = await getCurrentDbUser();
+  if (user.activeRole !== "COACH") throw new Error("Not a coach");
+
+  await db.user.update({
+    where: { id: user.id },
+    data: parsed.data,
+  });
+
+  revalidatePath("/coach");
   return { success: true };
 }
 

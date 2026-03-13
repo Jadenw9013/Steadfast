@@ -65,15 +65,33 @@ export async function sendMessage(input: unknown) {
     if (user.activeRole === "COACH") {
       const { notifyCoachMessage } = await import("@/lib/sms/notify");
       notifyCoachMessage(clientId).catch(console.error);
+
+      // Background email to client (preference-gated)
+      const client = await db.user.findUnique({ where: { id: clientId }, select: { email: true, firstName: true, emailCoachMessages: true } });
+      if (client?.email && client.emailCoachMessages) {
+        const { sendEmail } = await import("@/lib/email/sendEmail");
+        const { newMessageEmail } = await import("@/lib/email/templates");
+        const email = newMessageEmail(client.firstName || "there", senderName, "/client/messages");
+        sendEmail({ to: client.email, ...email }).catch(console.error);
+      }
     } else {
       const { notifyClientMessage } = await import("@/lib/sms/notify");
       const assignment = await db.coachClient.findFirst({ where: { clientId: user.id } });
       if (assignment?.coachId) {
         notifyClientMessage(assignment.coachId, senderName).catch(console.error);
+
+        // Background email to coach (preference-gated)
+        const coach = await db.user.findUnique({ where: { id: assignment.coachId }, select: { email: true, firstName: true, emailClientMessages: true } });
+        if (coach?.email && coach.emailClientMessages) {
+          const { sendEmail } = await import("@/lib/email/sendEmail");
+          const { newMessageEmail } = await import("@/lib/email/templates");
+          const email = newMessageEmail(coach.firstName || "Coach", senderName, "/coach");
+          sendEmail({ to: coach.email, ...email }).catch(console.error);
+        }
       }
     }
   } catch (err) {
-    console.error("Failed to trigger SMS message event", err);
+    console.error("Failed to trigger message notification", err);
   }
 
   return { messageId: message.id };

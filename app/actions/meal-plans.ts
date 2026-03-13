@@ -188,6 +188,15 @@ export async function publishMealPlan(input: unknown) {
     try {
       const user = await getCurrentDbUser();
       await notifyMealPlanUpdated(plan.clientId, user.firstName);
+
+      // Background email to client
+      const client = await db.user.findUnique({ where: { id: plan.clientId }, select: { email: true, firstName: true } });
+      if (client?.email) {
+        const { sendEmail } = await import("@/lib/email/sendEmail");
+        const { mealPlanUpdatedEmail } = await import("@/lib/email/templates");
+        const email = mealPlanUpdatedEmail(client.firstName || "there", user.firstName || "your coach");
+        sendEmail({ to: client.email, ...email }).catch(console.error);
+      }
     } catch (error) {
       console.error("[mealplans] Failed to send update notification:", error);
     }

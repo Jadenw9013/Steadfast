@@ -190,7 +190,7 @@ export async function parseMealPlanTextToJson(
       })),
     });
     throw new Error(
-      `LLM output doesn't match expected schema: ${validated.error.message}`
+      "Could not structure the meal plan. The extracted text may be too messy or incomplete. Please try again or use the paste-text option."
     );
   }
 
@@ -210,6 +210,9 @@ export function normalizeLlmOutput(raw: unknown): unknown {
     if (key === "portion") {
       // Coerce null/undefined/non-string to empty string, trim whitespace
       result[key] = typeof value === "string" ? value.trim() : "";
+    } else if (key === "food") {
+      // Coerce null/undefined to empty string so we can filter later
+      result[key] = typeof value === "string" ? value.trim() : "";
     } else if (typeof value === "string") {
       result[key] = value.trim();
     } else if (typeof value === "object" && value !== null) {
@@ -217,6 +220,30 @@ export function normalizeLlmOutput(raw: unknown): unknown {
     } else {
       result[key] = value;
     }
+  }
+
+  // Filter out meal items with blank food names
+  if (Array.isArray(result.items)) {
+    result.items = (result.items as Record<string, unknown>[]).filter(
+      (item) => typeof item.food === "string" && item.food.length > 0
+    );
+  }
+
+  // Filter out meals that have zero items after cleanup
+  if (Array.isArray(result.meals)) {
+    result.meals = (result.meals as Record<string, unknown>[]).filter(
+      (meal) => !Array.isArray(meal.items) || meal.items.length > 0
+    );
+  }
+
+  // Filter out supplements with blank names and default empty timing
+  if (Array.isArray(result.supplements)) {
+    result.supplements = (result.supplements as Record<string, unknown>[])
+      .filter((s) => typeof s.name === "string" && s.name.length > 0)
+      .map((s) => ({
+        ...s,
+        timing: (typeof s.timing === "string" && s.timing.trim()) ? s.timing : "with meal",
+      }));
   }
 
   return result;

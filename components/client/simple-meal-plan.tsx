@@ -309,23 +309,46 @@ function SupplementsSection({ extras }: { extras: PlanExtras }) {
     const ib = SUPPLEMENT_TIMING_ORDER.indexOf(b as typeof SUPPLEMENT_TIMING_ORDER[number]);
     return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
   });
+
+  const timingColors: Record<string, { bg: string; text: string; border: string }> = {
+    "upon waking": { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/30" },
+    "AM": { bg: "bg-sky-500/10", text: "text-sky-600 dark:text-sky-400", border: "border-sky-500/30" },
+    "with meal": { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/30" },
+    "after meal": { bg: "bg-teal-500/10", text: "text-teal-600 dark:text-teal-400", border: "border-teal-500/30" },
+    "pre workout": { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", border: "border-orange-500/30" },
+    "intra workout": { bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400", border: "border-rose-500/30" },
+    "post workout": { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", border: "border-red-500/30" },
+    "PM": { bg: "bg-indigo-500/10", text: "text-indigo-600 dark:text-indigo-400", border: "border-indigo-500/30" },
+    "before bed": { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400", border: "border-purple-500/30" },
+  };
+
   return (
     <ExtrasSection title="Supplements">
-      <div className="space-y-3">
-        {sortedTimings.map((timing) => (
-          <div key={timing}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{timing}</span>
-            <div className="mt-1 space-y-1">
-              {grouped.get(timing)!.map((supp, i) => (
-                <div key={i} className="flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-1.5 dark:bg-white/[0.03]">
-                  <span className="text-sm font-medium text-zinc-800 dark:text-gray-200">{supp.name}</span>
-                  {supp.dosage && <span className="shrink-0 rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:bg-white/[0.04] dark:text-gray-400">{supp.dosage}</span>}
-                  {supp.notes && <span className="text-xs text-zinc-400">— {supp.notes}</span>}
-                </div>
-              ))}
+      <div className="space-y-4">
+        {sortedTimings.map((timing) => {
+          const colors = timingColors[timing] ?? { bg: "bg-zinc-500/10", text: "text-zinc-600 dark:text-zinc-400", border: "border-zinc-500/30" };
+          return (
+            <div key={timing}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className={`rounded-md ${colors.bg} px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${colors.text}`}>{timing}</span>
+                <span className="text-[10px] font-medium tabular-nums text-zinc-400">{grouped.get(timing)!.length}</span>
+              </div>
+              <div className="space-y-1">
+                {grouped.get(timing)!.map((supp, i) => (
+                  <div key={i} className={`flex items-start gap-3 rounded-xl border-l-[3px] ${colors.border} bg-zinc-50/80 py-2.5 pl-3.5 pr-4 dark:bg-white/[0.03]`}>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-semibold text-zinc-800 dark:text-gray-100">{supp.name}</span>
+                      {supp.notes && <p className="mt-0.5 text-xs leading-relaxed text-zinc-500 dark:text-gray-400">{supp.notes}</p>}
+                    </div>
+                    {supp.dosage && (
+                      <span className="shrink-0 self-center rounded-lg bg-zinc-200/60 px-2.5 py-1 text-[11px] font-bold tabular-nums text-zinc-600 dark:bg-white/[0.06] dark:text-gray-300">{supp.dosage}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </ExtrasSection>
   );
@@ -333,20 +356,39 @@ function SupplementsSection({ extras }: { extras: PlanExtras }) {
 
 function AllowancesSection({ extras }: { extras: PlanExtras }) {
   if (!extras.allowances?.length) return null;
+
+  const categoryAccents: Record<string, { bg: string; text: string; tag: string }> = {
+    "Spices": { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", tag: "bg-orange-500/8 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300 ring-1 ring-orange-500/20" },
+    "Sauces": { bg: "bg-rose-500/10", text: "text-rose-600 dark:text-rose-400", tag: "bg-rose-500/8 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 ring-1 ring-rose-500/20" },
+    "Sweeteners": { bg: "bg-pink-500/10", text: "text-pink-600 dark:text-pink-400", tag: "bg-pink-500/8 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300 ring-1 ring-pink-500/20" },
+    "Drinks": { bg: "bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400", tag: "bg-cyan-500/8 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300 ring-1 ring-cyan-500/20" },
+    "Other": { bg: "bg-zinc-500/10", text: "text-zinc-600 dark:text-zinc-400", tag: "bg-zinc-500/8 text-zinc-700 dark:bg-zinc-500/15 dark:text-zinc-300 ring-1 ring-zinc-500/20" },
+  };
+
   return (
     <ExtrasSection title="Approved Extras">
-      <div className="space-y-3">
-        {extras.allowances.map((allow, i) => (
-          <div key={i}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{allow.category}</span>
-            <div className="mt-1 flex flex-wrap gap-1.5">
-              {allow.items.map((item, j) => (
-                <span key={j} className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-white/[0.04] dark:text-gray-400">{item}</span>
-              ))}
+      <div className="space-y-5">
+        {extras.allowances.map((allow, i) => {
+          const accent = categoryAccents[allow.category] ?? categoryAccents["Other"]!;
+          return (
+            <div key={i}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className={`rounded-md ${accent.bg} px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${accent.text}`}>{allow.category}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {allow.items.map((item, j) => (
+                  <span key={j} className={`rounded-lg px-3 py-1.5 text-xs font-medium ${accent.tag}`}>{item}</span>
+                ))}
+              </div>
+              {allow.restriction && (
+                <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                  <svg className="h-3 w-3 shrink-0" viewBox="0 0 16 16" fill="currentColor"><path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" /></svg>
+                  {allow.restriction}
+                </p>
+              )}
             </div>
-            {allow.restriction && <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">{allow.restriction}</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </ExtrasSection>
   );
@@ -360,17 +402,50 @@ function RulesSection({ extras }: { extras: PlanExtras }) {
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(rule.text);
   }
+
+  const categoryIcons: Record<string, string> = {
+    "Meal Timing": "🕐",
+    "Hydration": "💧",
+    "Cardio": "🏃",
+    "Check-In": "📋",
+    "Communication": "💬",
+    "Cooking": "🍳",
+    "Other": "📌",
+  };
+
+  const categoryColors: Record<string, { bg: string; text: string; border: string }> = {
+    "Meal Timing": { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/20" },
+    "Hydration": { bg: "bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400", border: "border-cyan-500/20" },
+    "Cardio": { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", border: "border-orange-500/20" },
+    "Check-In": { bg: "bg-emerald-500/10", text: "text-emerald-600 dark:text-emerald-400", border: "border-emerald-500/20" },
+    "Communication": { bg: "bg-violet-500/10", text: "text-violet-600 dark:text-violet-400", border: "border-violet-500/20" },
+    "Cooking": { bg: "bg-amber-500/10", text: "text-amber-600 dark:text-amber-400", border: "border-amber-500/20" },
+    "Other": { bg: "bg-zinc-500/10", text: "text-zinc-600 dark:text-zinc-400", border: "border-zinc-500/20" },
+  };
+
   return (
     <ExtrasSection title="Rules & Guidelines">
-      <div className="space-y-3">
-        {[...grouped.entries()].map(([category, texts]) => (
-          <div key={category}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{category}</span>
-            <ul className="mt-1 space-y-1">
-              {texts.map((text, i) => (<li key={i} className="text-sm text-zinc-700 dark:text-gray-300">{text}</li>))}
-            </ul>
-          </div>
-        ))}
+      <div className="space-y-4">
+        {[...grouped.entries()].map(([category, texts]) => {
+          const colors = categoryColors[category] ?? categoryColors["Other"]!;
+          const icon = categoryIcons[category] ?? "📌";
+          return (
+            <div key={category} className={`rounded-xl border ${colors.border} ${colors.bg.replace("/10", "/5")} px-4 py-3`}>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-sm" aria-hidden="true">{icon}</span>
+                <span className={`text-[11px] font-bold uppercase tracking-wider ${colors.text}`}>{category}</span>
+              </div>
+              <ul className="space-y-1.5 pl-1">
+                {texts.map((text, i) => (
+                  <li key={i} className="flex gap-2 text-sm leading-relaxed text-zinc-700 dark:text-gray-300">
+                    <span className={`mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full ${colors.text.includes("dark:") ? colors.bg.replace("/10", "/60") : colors.bg.replace("/10", "/40")}`} aria-hidden="true" />
+                    <span>{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
       </div>
     </ExtrasSection>
   );

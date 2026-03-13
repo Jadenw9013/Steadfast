@@ -498,14 +498,6 @@ export default async function ClientProfilePage({
         </section>
       )}
 
-      {/* Exercise Progress */}
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          Exercise Progress
-        </h2>
-        <ExerciseProgress results={exerciseProgress} />
-      </section>
-
       {/* Notes */}
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">

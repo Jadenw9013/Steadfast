@@ -42,7 +42,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
     // Check if profile exists and is published
     const profile = await db.coachProfile.findUnique({
         where: { id: validated.coachProfileId },
-        include: { user: { select: { firstName: true, email: true } } },
+        include: { user: { select: { firstName: true, email: true, emailCoachingRequests: true } } },
     });
 
     if (!profile || !profile.isPublished) {
@@ -92,10 +92,13 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
         await sendEmail({ to: normalizedEmail, ...receiptEmail });
     } catch { /* email failure must not break request */ }
 
-    try {
-        const notifEmail = newRequestNotificationEmail(coachName, validated.prospectName, normalizedEmail);
-        await sendEmail({ to: profile.user.email, ...notifEmail });
-    } catch { /* email failure must not break request */ }
+    // Coach notification email (preference-gated)
+    if (profile.user.emailCoachingRequests) {
+        try {
+            const notifEmail = newRequestNotificationEmail(coachName, validated.prospectName, normalizedEmail);
+            await sendEmail({ to: profile.user.email, ...notifEmail });
+        } catch { /* email failure must not break request */ }
+    }
 
     // Revalidate the coach's requests page so they see it
     revalidatePath("/coach/marketplace/requests");
@@ -228,6 +231,15 @@ export async function approveCoachingRequest(requestId: string) {
         });
 
         immediateLink = true;
+
+        // Background email: notify existing user they're connected
+        try {
+            const { coachConnectedEmail } = await import("@/lib/email/templates");
+            if (existingUser.email) {
+                const email = coachConnectedEmail(request.prospectName, coachName);
+                sendEmail({ to: existingUser.email, ...email }).catch(console.error);
+            }
+        } catch { /* email failure must not break approval */ }
     } else if (emailSent) {
         // Track invite metadata for non-existing users only
         await db.coachingRequest.update({

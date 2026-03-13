@@ -197,109 +197,11 @@ export default async function ClientDashboard() {
         </div>
       )}
 
-      {/* Check-in schedule reminder — only for due/overdue states */}
-      {coachAssignment && cadenceResult && (cadenceResult.status === "due" || cadenceResult.status === "overdue") && (
-        <div className="animate-fade-in" style={{ animationDelay: "60ms" }}>
-          <CheckInScheduleBanner
-            cadenceStatus={cadenceResult.status}
-            statusLabel={cadenceResult.label}
-            nextDueLabel={nextDueLabel}
-            latestReviewedCheckInId={latestCheckIn?.status === "REVIEWED" ? latestCheckIn.id : undefined}
-          />
-        </div>
-      )}
-
-      {/* Action Banner */}
-      <div className="animate-fade-in" style={{ animationDelay: "80ms" }}>
-        <CheckInStatus
-          status={weekStatus}
-          weekLabel={todayLabel}
-          statusLabel={statusLabel}
-          nextDueLabel={nextDueLabel}
-          checkInDate={
-            latestCheckIn
-              ? latestCheckIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
-              : undefined
-          }
-          checkInId={latestCheckIn?.id}
-        />
-      </div>
-
-      {/* Today Adherence — only if coach has enabled it */}
-      {adherenceEnabled && (
-        <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
-          <TodayAdherence
-            date={todayDate}
-            planMeals={planMeals}
-            existingMeals={todayAdherence?.meals ?? []}
-            workoutCompleted={todayAdherence?.workoutCompleted ?? false}
-          />
-        </div>
-      )}
-
-      {/* Performance Module — Weight */}
-      {latestWeight?.weight && (
-        <section
-          className="animate-fade-in overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none"
-          style={{ animationDelay: "160ms" }}
-          aria-label="Weight overview"
-        >
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
-            Current Weight
-          </p>
-          <div className="mt-2.5 flex items-baseline gap-2">
-            <p className="text-4xl font-bold tabular-nums tracking-tight">
-              {latestWeight.weight}
-            </p>
-            <span className="text-sm font-medium text-gray-400 dark:text-zinc-400">lbs</span>
-            {weightDelta != null && weightDelta !== 0 && (
-              <span
-                className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold ${weightDelta < 0
-                  ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                  : "bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400"
-                  }`}
-              >
-                {weightDelta < 0 ? "\u2193" : "\u2191"} {Math.abs(weightDelta)} lbs
-              </span>
-            )}
-          </div>
-          <p className="mt-1.5 text-xs text-gray-500 dark:text-zinc-400">
-            as of {latestWeight.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-          </p>
-          <WeightProgress
-            data={weightHistory}
-            clientId={user.id}
-            className="mt-5"
-          />
-        </section>
-      )}
-
-      {/* Coach Feedback */}
-      {latestCoachMessage && (
-        <Link
-          href={`/client/messages/${formatDateUTC(latestCoachMessage.weekOf)}`}
-          className="group animate-fade-in block overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none dark:hover:border-blue-500/20 dark:hover:shadow-zinc-950/30"
-          style={{ animationDelay: "240ms" }}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
-              Coach Feedback
-            </p>
-            <span className="text-xs font-medium text-gray-400 transition-all group-hover:translate-x-0.5 group-hover:text-gray-600 dark:text-zinc-400 dark:group-hover:text-zinc-300">
-              View &rarr;
-            </span>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed line-clamp-2">
-            {latestCoachMessage.body}
-          </p>
-        </Link>
-      )}
-
       {/* Your Plans — 2-card grid */}
       {(mealPlan || (trainingProgram && trainingProgram.days.length > 0)) && (
         <section
           className="animate-fade-in"
-          style={{ animationDelay: "280ms" }}
+          style={{ animationDelay: "60ms" }}
           aria-labelledby="plans-heading"
         >
           <h2
@@ -356,6 +258,104 @@ export default async function ClientDashboard() {
             )}
           </div>
         </section>
+      )}
+
+      {/* Check-in schedule reminder — only for due/overdue states */}
+      {coachAssignment && cadenceResult && (cadenceResult.status === "due" || cadenceResult.status === "overdue") && (
+        <div className="animate-fade-in" style={{ animationDelay: "80ms" }}>
+          <CheckInScheduleBanner
+            cadenceStatus={cadenceResult.status}
+            statusLabel={cadenceResult.label}
+            nextDueLabel={nextDueLabel}
+            latestReviewedCheckInId={latestCheckIn?.status === "REVIEWED" ? latestCheckIn.id : undefined}
+          />
+        </div>
+      )}
+
+      {/* Action Banner */}
+      <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+        <CheckInStatus
+          status={weekStatus}
+          weekLabel={todayLabel}
+          statusLabel={statusLabel}
+          nextDueLabel={nextDueLabel}
+          checkInDate={
+            latestCheckIn
+              ? latestCheckIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+              : undefined
+          }
+          checkInId={latestCheckIn?.id}
+        />
+      </div>
+
+      {/* Today Adherence — only if coach has enabled it */}
+      {adherenceEnabled && (
+        <div className="animate-fade-in" style={{ animationDelay: "140ms" }}>
+          <TodayAdherence
+            date={todayDate}
+            planMeals={planMeals}
+            existingMeals={todayAdherence?.meals ?? []}
+            workoutCompleted={todayAdherence?.workoutCompleted ?? false}
+          />
+        </div>
+      )}
+
+      {/* Performance Module — Weight */}
+      {latestWeight?.weight && (
+        <section
+          className="animate-fade-in overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none"
+          style={{ animationDelay: "180ms" }}
+          aria-label="Weight overview"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+            Current Weight
+          </p>
+          <div className="mt-2.5 flex items-baseline gap-2">
+            <p className="text-4xl font-bold tabular-nums tracking-tight">
+              {latestWeight.weight}
+            </p>
+            <span className="text-sm font-medium text-gray-400 dark:text-zinc-400">lbs</span>
+            {weightDelta != null && weightDelta !== 0 && (
+              <span
+                className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold ${weightDelta < 0
+                  ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
+                  : "bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400"
+                  }`}
+              >
+                {weightDelta < 0 ? "\u2193" : "\u2191"} {Math.abs(weightDelta)} lbs
+              </span>
+            )}
+          </div>
+          <p className="mt-1.5 text-xs text-gray-500 dark:text-zinc-400">
+            as of {latestWeight.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          </p>
+          <WeightProgress
+            data={weightHistory}
+            clientId={user.id}
+            className="mt-5"
+          />
+        </section>
+      )}
+
+      {/* Coach Feedback */}
+      {latestCoachMessage && (
+        <Link
+          href={`/client/messages/${formatDateUTC(latestCoachMessage.weekOf)}`}
+          className="group animate-fade-in block overflow-hidden rounded-2xl border border-gray-200/60 bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-white/[0.06] dark:bg-[#0a1224] dark:shadow-none dark:hover:border-blue-500/20 dark:hover:shadow-zinc-950/30"
+          style={{ animationDelay: "260ms" }}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-zinc-400">
+              Coach Feedback
+            </p>
+            <span className="text-xs font-medium text-gray-400 transition-all group-hover:translate-x-0.5 group-hover:text-gray-600 dark:text-zinc-400 dark:group-hover:text-zinc-300">
+              View &rarr;
+            </span>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed line-clamp-2">
+            {latestCoachMessage.body}
+          </p>
+        </Link>
       )}
 
       {/* Recent Check-Ins — flat list with submission dates */}

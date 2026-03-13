@@ -152,6 +152,17 @@ export async function createCheckIn(input: unknown) {
     const { notifyClientCheckInSubmitted } = await import("@/lib/sms/notify");
     // Background execution
     notifyClientCheckInSubmitted(coachAssignment.coachId, user.firstName || "Your client").catch(console.error);
+
+    // Background email to coach (preference-gated)
+    try {
+      const coach = await db.user.findUnique({ where: { id: coachAssignment.coachId }, select: { email: true, firstName: true, emailClientCheckIns: true } });
+      if (coach?.email && coach.emailClientCheckIns) {
+        const { sendEmail } = await import("@/lib/email/sendEmail");
+        const { clientCheckinSubmittedEmail } = await import("@/lib/email/templates");
+        const email = clientCheckinSubmittedEmail(coach.firstName || "Coach", user.firstName || "Your client");
+        sendEmail({ to: coach.email, ...email }).catch(console.error);
+      }
+    } catch { /* email failure must not break check-in */ }
   }
 
   return { checkInId: checkIn.id };
@@ -200,11 +211,30 @@ export async function markCheckInReviewed(input: unknown) {
 
   await verifyCoachAccessToCheckIn(parsed.data.checkInId);
 
-  await db.checkIn.update({
+  const checkIn = await db.checkIn.update({
     where: { id: parsed.data.checkInId },
     data: { status: "REVIEWED" },
+    select: { clientId: true },
   });
 
   revalidatePath("/coach", "layout");
+
+  // Background email: notify client their check-in was reviewed
+  try {
+    const client = await db.user.findUnique({ where: { id: checkIn.clientId }, select: { email: true, firstName: true } });
+    if (client?.email) {
+      const { sendEmail } = await import("@/lib/email/sendEmail");
+      const { checkinReviewedEmail } = await import("@/lib/email/templates");
+      const email = checkinReviewedEmail(client.firstName || "there");
+      sendEmail({ to: client.email, ...email }).catch(console.error);
+    }
+  } catch { /* email failure must not break review */ }
+
+  // Background SMS: notify client
+  try {
+    const { notifyCheckInFeedback } = await import("@/lib/sms/notify");
+    notifyCheckInFeedback(checkIn.clientId).catch(console.error);
+  } catch { /* SMS failure must not break review */ }
+
   return { success: true };
 }

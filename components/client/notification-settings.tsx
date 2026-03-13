@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useMemo } from "react";
-import { updateNotificationPreferences } from "@/app/actions/notification-preferences";
+import { updateNotificationPreferences, updateCoachEmailPreferences } from "@/app/actions/notification-preferences";
 import { Toggle } from "@/components/ui/toggle";
 
 type Role = "CLIENT" | "COACH" | "BOTH";
@@ -20,6 +20,13 @@ export function NotificationSettings({
   initialSmsClientMessages,
   initialSmsNewClientSignups,
   initialSmsMissedCheckInAlertTime,
+  // Email preferences
+  initialEmailCheckInReminders,
+  initialEmailMealPlanUpdates,
+  initialEmailCoachMessages,
+  initialEmailClientCheckIns,
+  initialEmailClientMessages,
+  initialEmailCoachingRequests,
 }: {
   role: Role;
   initialPhoneNumber: string;
@@ -34,6 +41,13 @@ export function NotificationSettings({
   initialSmsClientMessages: boolean;
   initialSmsNewClientSignups: boolean;
   initialSmsMissedCheckInAlertTime: string;
+  // Email preferences
+  initialEmailCheckInReminders: boolean;
+  initialEmailMealPlanUpdates: boolean;
+  initialEmailCoachMessages: boolean;
+  initialEmailClientCheckIns: boolean;
+  initialEmailClientMessages: boolean;
+  initialEmailCoachingRequests: boolean;
 }) {
   const [phoneNumber, setPhoneNumber] = useState(initialPhoneNumber);
   const [smsOptIn, setSmsOptIn] = useState(initialSmsOptIn);
@@ -51,6 +65,14 @@ export function NotificationSettings({
   const [smsClientMessages, setSmsClientMessages] = useState(initialSmsClientMessages);
   const [smsNewClientSignups, setSmsNewClientSignups] = useState(initialSmsNewClientSignups);
   const [smsMissedCheckInAlertTime, setSmsMissedCheckInAlertTime] = useState(initialSmsMissedCheckInAlertTime);
+
+  // Email preferences
+  const [emailCheckInReminders, setEmailCheckInReminders] = useState(initialEmailCheckInReminders);
+  const [emailMealPlanUpdates, setEmailMealPlanUpdates] = useState(initialEmailMealPlanUpdates);
+  const [emailCoachMessages, setEmailCoachMessages] = useState(initialEmailCoachMessages);
+  const [emailClientCheckIns, setEmailClientCheckIns] = useState(initialEmailClientCheckIns);
+  const [emailClientMessages, setEmailClientMessages] = useState(initialEmailClientMessages);
+  const [emailCoachingRequests, setEmailCoachingRequests] = useState(initialEmailCoachingRequests);
 
   const [isPending, startTransition] = useTransition();
   const [toast, setToast] = useState<string | null>(null);
@@ -76,9 +98,15 @@ export function NotificationSettings({
       smsMissedCheckInAlerts !== initialSmsMissedCheckInAlerts ||
       smsClientMessages !== initialSmsClientMessages ||
       smsNewClientSignups !== initialSmsNewClientSignups ||
-      smsMissedCheckInAlertTime !== initialSmsMissedCheckInAlertTime
+      smsMissedCheckInAlertTime !== initialSmsMissedCheckInAlertTime ||
+      emailCheckInReminders !== initialEmailCheckInReminders ||
+      emailMealPlanUpdates !== initialEmailMealPlanUpdates ||
+      emailCoachMessages !== initialEmailCoachMessages ||
+      emailClientCheckIns !== initialEmailClientCheckIns ||
+      emailClientMessages !== initialEmailClientMessages ||
+      emailCoachingRequests !== initialEmailCoachingRequests
     );
-  }, [phoneNumber, smsOptIn, smsMealPlanUpdates, smsDailyCheckInReminder, smsCoachMessages, smsCheckInFeedback, smsCheckInReminderTime, smsClientCheckIns, smsMissedCheckInAlerts, smsClientMessages, smsNewClientSignups, smsMissedCheckInAlertTime, initialPhoneNumber, initialSmsOptIn, initialSmsMealPlanUpdates, initialSmsDailyCheckInReminder, initialSmsCoachMessages, initialSmsCheckInFeedback, initialSmsCheckInReminderTime, initialSmsClientCheckIns, initialSmsMissedCheckInAlerts, initialSmsClientMessages, initialSmsNewClientSignups, initialSmsMissedCheckInAlertTime]);
+  }, [phoneNumber, smsOptIn, smsMealPlanUpdates, smsDailyCheckInReminder, smsCoachMessages, smsCheckInFeedback, smsCheckInReminderTime, smsClientCheckIns, smsMissedCheckInAlerts, smsClientMessages, smsNewClientSignups, smsMissedCheckInAlertTime, emailCheckInReminders, emailMealPlanUpdates, emailCoachMessages, emailClientCheckIns, emailClientMessages, emailCoachingRequests, initialPhoneNumber, initialSmsOptIn, initialSmsMealPlanUpdates, initialSmsDailyCheckInReminder, initialSmsCoachMessages, initialSmsCheckInFeedback, initialSmsCheckInReminderTime, initialSmsClientCheckIns, initialSmsMissedCheckInAlerts, initialSmsClientMessages, initialSmsNewClientSignups, initialSmsMissedCheckInAlertTime, initialEmailCheckInReminders, initialEmailMealPlanUpdates, initialEmailCoachMessages, initialEmailClientCheckIns, initialEmailClientMessages, initialEmailCoachingRequests]);
 
   function handleSave() {
     setError(null);
@@ -111,8 +139,20 @@ export function NotificationSettings({
           smsMissedCheckInAlerts,
           smsClientMessages,
           smsNewClientSignups,
-          smsMissedCheckInAlertTime
+          smsMissedCheckInAlertTime,
+          // Client email preferences
+          emailCheckInReminders,
+          emailMealPlanUpdates,
+          emailCoachMessages,
         });
+        // Coach email preferences (separate action with role guard)
+        if (role === "COACH" || role === "BOTH") {
+          await updateCoachEmailPreferences({
+            emailClientCheckIns,
+            emailClientMessages,
+            emailCoachingRequests,
+          });
+        }
         showToast("Settings saved");
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to save");
@@ -350,6 +390,138 @@ export function NotificationSettings({
           </div>
         )}
 
+      </div>
+
+      {/* ── Email Notifications ──────────────────────────────────────────── */}
+      <div className="border-t border-zinc-200 dark:border-zinc-800 pt-6 space-y-6">
+        <div>
+          <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+            Email Notifications
+          </p>
+          <p className="text-xs text-zinc-500">
+            Manage which emails you receive. Transactional emails (welcome, coach connected, check-in reviewed, meal plan updated) are always sent.
+          </p>
+        </div>
+
+        {/* CLIENT EMAIL TOGGLES */}
+        {(role === "CLIENT" || role === "BOTH") && (
+          <div className="space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Client Email Notifications
+            </h3>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Check-in Reminders
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Email me when a check-in is due.
+                </p>
+              </div>
+              <Toggle
+                checked={emailCheckInReminders}
+                onChange={() => setEmailCheckInReminders(!emailCheckInReminders)}
+                label="Email Check-in Reminders"
+                disabled={isPending}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Meal Plan Updates
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Email me when my coach updates my meal plan.
+                </p>
+              </div>
+              <Toggle
+                checked={emailMealPlanUpdates}
+                onChange={() => setEmailMealPlanUpdates(!emailMealPlanUpdates)}
+                label="Email Meal Plan Updates"
+                disabled={isPending}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Coach Messages
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Email me when my coach sends a message.
+                </p>
+              </div>
+              <Toggle
+                checked={emailCoachMessages}
+                onChange={() => setEmailCoachMessages(!emailCoachMessages)}
+                label="Email Coach Messages"
+                disabled={isPending}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* COACH EMAIL TOGGLES */}
+        {(role === "COACH" || role === "BOTH") && (
+          <div className="space-y-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+              Coach Email Notifications
+            </h3>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Client Check-ins
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Email me when a client submits a check-in.
+                </p>
+              </div>
+              <Toggle
+                checked={emailClientCheckIns}
+                onChange={() => setEmailClientCheckIns(!emailClientCheckIns)}
+                label="Email Client Check-ins"
+                disabled={isPending}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Client Messages
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Email me when a client sends a message.
+                </p>
+              </div>
+              <Toggle
+                checked={emailClientMessages}
+                onChange={() => setEmailClientMessages(!emailClientMessages)}
+                label="Email Client Messages"
+                disabled={isPending}
+              />
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
+                  Coaching Requests
+                </p>
+                <p className="text-xs text-zinc-500">
+                  Email me when a prospect submits a coaching request.
+                </p>
+              </div>
+              <Toggle
+                checked={emailCoachingRequests}
+                onChange={() => setEmailCoachingRequests(!emailCoachingRequests)}
+                label="Email Coaching Requests"
+                disabled={isPending}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3 pt-4">
