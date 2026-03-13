@@ -9,19 +9,23 @@ Built for simplicity, speed, and clarity — so coaches can review faster and cl
 ## 🚀 What It Does
 
 ### For Coaches
-- View weekly client check-ins
+- View weekly client check-ins with Custom Check-In Templates
 - See who needs review instantly
-- Import meal plans from image or PDF
-- Automatically extract foods and portions using OCR + AI
-- Edit and publish structured meal plans
+- Import meal plans and workout programs from image or PDF
+- Automatically extract foods, portions, and exercises using OCR + AI
+- Edit and publish structured meal plans and training programs
 - Track client progress week-to-week
+- Manage Coach Marketplace Profile, Portfolio, Testimonials, and Coaching Requests
+- Streamline client onboarding with Custom Intake Forms
 
 ### For Clients
 - Submit weekly check-ins
 - Upload progress photos securely
-- View current meal plan
+- View current meal plan and training program
 - See coach feedback
 - Track weight and compliance
+- Track daily adherence (Meals and Workouts check-offs)
+- Log exercise progress (Reps/Weight tracking)
 
 ---
 
@@ -52,17 +56,19 @@ Just clarity and action.
 - Prisma ORM
 - PostgreSQL (Neon/Supabase)
 - Supabase Storage (private buckets)
+- Background Jobs (Vercel Cron)
+- External Integrations (Twilio for SMS, Resend for Email)
 
 ### AI / Processing Pipeline
 
-Meal Plan Import Flow:
+Meal Plan & Workout Program Import Flow:
 
 1. File uploaded to private Supabase bucket
 2. Server generates signed upload URL
 3. Google Cloud Vision OCR extracts text
-4. OpenAI structures meal plan into JSON
+4. OpenAI structures meal plan or training program into JSON
 5. Schema validation + normalization
-6. Draft meal plan created
+6. Draft meal plan or workout program created
 7. Coach reviews and publishes
 
 All secrets remain server-side.
@@ -160,9 +166,11 @@ Client:
 
 ```
 app/
+  actions/
   api/
   coach/
   client/
+  coaches/
 components/
 lib/
 prisma/
@@ -170,10 +178,11 @@ public/
 ```
 
 Core areas:
+- `app/actions/` → Next.js Server Actions (adherence, marketplace, training)
 - `lib/ocr/` → Vision integration
 - `lib/llm/` → AI structuring
 - `lib/supabase/` → storage handling
-- `app/api/mealplans/` → import + draft logic
+- `app/api/mealplans/` & `app/api/workout-import/` → import + draft logic
 
 ---
 
