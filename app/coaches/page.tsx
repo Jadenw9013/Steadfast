@@ -50,6 +50,76 @@ function VerifiedBadge() {
     );
 }
 
+const COACHING_MODE_LABELS: Record<string, { label: string; color: string }> = {
+    "online": { label: "Online", color: "bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20" },
+    "in-person": { label: "In-Person", color: "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20" },
+    "hybrid": { label: "Hybrid", color: "bg-violet-500/10 text-violet-400 ring-1 ring-violet-500/20" },
+};
+
+const SERVICE_TIER_LABELS: Record<string, string> = {
+    "training-only": "Training",
+    "nutrition-only": "Nutrition",
+    "full-coaching": "Full coaching",
+};
+
+function EmptyState({ params, hasFilters }: { params: { [key: string]: string | undefined }; hasFilters: boolean }) {
+    if (!hasFilters) {
+        return (
+            <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
+                <p className="text-sm font-medium text-zinc-300">No coaches are listed yet</p>
+                <p className="mt-2 text-sm text-zinc-500">Our first coaches are setting up their profiles. Check back soon.</p>
+            </div>
+        );
+    }
+
+    // Build contextual suggestion links
+    const suggestions: { label: string; href: string }[] = [];
+
+    // If location caused the miss — suggest dropping city
+    if (params.city) {
+        const noCity = new URLSearchParams(Object.entries(params).filter(([k, v]) => k !== "city" && v) as [string, string][]);
+        suggestions.push({ label: "Broaden search — remove city filter", href: `/coaches?${noCity.toString()}` });
+    }
+    // If in-person — suggest hybrid
+    if (params.type === "in-person") {
+        const hybrid = new URLSearchParams({ ...params, type: "hybrid" } as Record<string, string>);
+        suggestions.push({ label: "Also show Hybrid coaches", href: `/coaches?${hybrid.toString()}` });
+        const online = new URLSearchParams(Object.entries(params).filter(([k, v]) => k !== "type" && k !== "city" && v) as [string, string][]);
+        online.set("type", "online");
+        suggestions.push({ label: "Switch to Online coaching", href: `/coaches?${online.toString()}` });
+    }
+    // If serviceTier is specific — suggest dropping it
+    if (params.serviceTier) {
+        const noTier = new URLSearchParams(Object.entries(params).filter(([k, v]) => k !== "serviceTier" && v) as [string, string][]);
+        suggestions.push({ label: "Show all service types", href: `/coaches?${noTier.toString()}` });
+    }
+    // Always offer clear all
+    suggestions.push({ label: "View all available coaches", href: "/coaches" });
+
+    return (
+        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-8 py-10">
+            <div className="mx-auto mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/5">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
+            </div>
+            <p className="text-center text-sm font-semibold text-zinc-200">No coaches match your filters</p>
+            <p className="mt-1.5 text-center text-xs text-zinc-500">Try one of these to find more options:</p>
+            <ul className="mt-5 space-y-2">
+                {suggestions.slice(0, 4).map((s) => (
+                    <li key={s.href}>
+                        <Link
+                            href={s.href}
+                            className="flex items-center gap-2 rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-2.5 text-xs font-medium text-zinc-300 transition-colors hover:border-white/[0.14] hover:bg-white/[0.07] hover:text-white"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-500"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+                            {s.label}
+                        </Link>
+                    </li>
+                ))}
+            </ul>
+        </div>
+    );
+}
+
 export default async function CoachesDirectoryPage({ searchParams }: PageProps) {
     const params = await searchParams;
     const coaches = await getPublishedCoaches({
@@ -57,10 +127,12 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
         type: params.type,
         accepting: params.accepting === "1",
         service: params.service,
+        serviceTier: params.serviceTier,
         clientType: params.clientType,
         minRating: params.minRating ? Number(params.minRating) : undefined,
         sort: params.sort,
         q: params.q,
+        city: params.city,
     });
 
     // Resolve profile photos
@@ -86,6 +158,8 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
     const activeFilters: { key: string; label: string; paramKey: string }[] = [];
     if (params.goal) activeFilters.push({ key: "goal", label: params.goal, paramKey: "goal" });
     if (params.type) activeFilters.push({ key: "type", label: params.type === "in-person" ? "In-Person" : params.type.charAt(0).toUpperCase() + params.type.slice(1), paramKey: "type" });
+    if (params.serviceTier) activeFilters.push({ key: "serviceTier", label: params.serviceTier === "training-only" ? "Training only" : params.serviceTier === "nutrition-only" ? "Nutrition only" : "Full coaching", paramKey: "serviceTier" });
+    if (params.city) activeFilters.push({ key: "city", label: `Near ${params.city}`, paramKey: "city" });
     if (params.service) activeFilters.push({ key: "service", label: params.service, paramKey: "service" });
     if (params.clientType) activeFilters.push({ key: "clientType", label: params.clientType, paramKey: "clientType" });
     if (params.minRating) activeFilters.push({ key: "minRating", label: `${params.minRating}+ stars`, paramKey: "minRating" });
@@ -236,22 +310,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                         </div>
 
                         {coaches.length === 0 ? (
-                            <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-12 text-center">
-                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-white/5">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg>
-                                </div>
-                                <p className="text-sm font-medium text-zinc-300">
-                                    {hasFilters ? "No coaches match your filters" : "No coaches are listed yet"}
-                                </p>
-                                <p className="mt-2 text-sm text-zinc-500">
-                                    {hasFilters ? "Try adjusting your filters to see more results." : "Our first coaches are setting up their profiles. Check back soon."}
-                                </p>
-                                {hasFilters && (
-                                    <Link href="/coaches" className="mt-6 inline-block rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-500">
-                                        Clear Filters
-                                    </Link>
-                                )}
-                            </div>
+                            <EmptyState params={params} hasFilters={hasFilters} />
                         ) : (
                             <div className="grid gap-5 sm:grid-cols-2">
                                 {coachesWithPhotos.map((profile, idx) => {
@@ -266,7 +325,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                                             className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d1428] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10"
                                             style={{ "--tw-shadow-color": "rgba(59,124,244,0.15)" } as React.CSSProperties}
                                         >
-                                            {/* Top accent line — appears on hover */}
+                                            {/* Top accent line */}
                                             <div className="absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-blue-600 to-blue-400 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
 
                                             {/* Save button */}
@@ -276,11 +335,9 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                                                 </div>
                                             )}
 
-                                            {/* ── Banner + Avatar overlap ── */}
+                                            {/* ── Banner + Avatar ── */}
                                             <div className="relative">
-                                                {/* Banner strip */}
                                                 <div className={`h-20 bg-gradient-to-br ${bannerGradient}`} />
-                                                {/* Avatar overlapping banner by 50% */}
                                                 <div className="absolute -bottom-8 left-5">
                                                     <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-[#0d1428] bg-[#1a2540] ring-2 ring-white/10 shadow-lg shadow-black/40">
                                                         {profile.avatarUrl ? (
@@ -331,6 +388,37 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                                                     )}
                                                 </div>
 
+                                                {/* ── Mode + Location + Service Tier row ── */}
+                                                <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                                                    {profile.coachingType && COACHING_MODE_LABELS[profile.coachingType] && (
+                                                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${COACHING_MODE_LABELS[profile.coachingType].color}`}>
+                                                            {COACHING_MODE_LABELS[profile.coachingType].label}
+                                                        </span>
+                                                    )}
+                                                    {profile.serviceTier && SERVICE_TIER_LABELS[profile.serviceTier] && (
+                                                        <span className="inline-flex items-center rounded-full bg-zinc-700/60 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+                                                            {SERVICE_TIER_LABELS[profile.serviceTier]}
+                                                        </span>
+                                                    )}
+                                                    {(profile.coachingType === "in-person" || profile.coachingType === "hybrid") && (profile.city || profile.location) && (
+                                                        <span className="text-[10px] text-zinc-500">
+                                                            {[profile.city, profile.state].filter(Boolean).join(", ") || profile.location}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* Match reasons — only shown when filters are active */}
+                                                {hasFilters && profile.matchReasons.length > 0 && (
+                                                    <div className="mt-2 flex flex-wrap gap-1">
+                                                        {profile.matchReasons.map((reason) => (
+                                                            <span key={reason} className="inline-flex items-center gap-1 rounded-md bg-blue-500/[0.08] px-2 py-0.5 text-[10px] font-medium text-blue-400 ring-1 ring-blue-500/20">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+                                                                {reason}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
                                                 {/* ── Stats row ── */}
                                                 <div className="mt-4 grid grid-cols-3 divide-x divide-white/[0.06] rounded-xl border border-white/[0.06] bg-white/[0.03]">
                                                     <div className="flex flex-col items-center py-2.5 px-1">
@@ -360,7 +448,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                                                     </p>
                                                 )}
 
-                                                {/* Specialty tags */}
+                                                {/* Goal tags */}
                                                 {profile.clientGoals.length > 0 && (
                                                     <div className="mt-3 flex flex-wrap gap-1.5">
                                                         {profile.clientGoals.slice(0, 3).map((goal, i) => (

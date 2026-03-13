@@ -19,7 +19,8 @@ const requestSchema = z.object({
         ),
       })
     ),
-    extras: z.record(z.string(), z.unknown()).nullable().optional(),
+    // Use z.any() — PlanExtras contains arrays which z.record() rejects
+    extras: z.any().optional(),
   }),
   instruction: z.string().min(1).max(2000),
 });
@@ -35,10 +36,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = requestSchema.safeParse(body);
     if (!parsed.success) {
+      const fieldErrors = parsed.error.flatten().fieldErrors;
+      const readableErrors = Object.entries(fieldErrors)
+        .map(([field, msgs]) => `${field}: ${(msgs ?? []).join(", ")}`)
+        .join("; ");
+      console.error("[modify-plan] Validation failed:", fieldErrors);
       return NextResponse.json(
         {
-          error: "Invalid request",
-          details: parsed.error.flatten().fieldErrors,
+          error: `Invalid request${readableErrors ? ` — ${readableErrors}` : ""}`,
+          details: fieldErrors,
         },
         { status: 400 }
       );

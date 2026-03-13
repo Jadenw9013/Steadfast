@@ -8,14 +8,16 @@ import { revalidatePath } from "next/cache";
 const createTestimonialSchema = z.object({
     coachId: z.string(),
     rating: z.number().int().min(1).max(5),
-    reviewText: z.string().min(10, "Review must be at least 10 characters").max(2000),
+    reviewText: z.string().max(2000).optional().default(""),
+    anonymous: z.boolean().default(false),
     images: z.array(z.string()).max(4).default([]),
 });
 
 const updateTestimonialSchema = z.object({
     testimonialId: z.string(),
     rating: z.number().int().min(1).max(5),
-    reviewText: z.string().min(10).max(2000),
+    reviewText: z.string().max(2000).optional().default(""),
+    anonymous: z.boolean().default(false),
     images: z.array(z.string()).max(4).default([]),
 });
 
@@ -54,7 +56,8 @@ export async function createTestimonial(data: z.infer<typeof createTestimonialSc
             coachId: validated.coachId,
             clientId: user.id,
             rating: validated.rating,
-            reviewText: validated.reviewText,
+            reviewText: validated.reviewText || "",
+            anonymous: validated.anonymous,
             images: validated.images,
         },
     });
@@ -106,7 +109,8 @@ export async function updateTestimonial(data: z.infer<typeof updateTestimonialSc
         where: { id: validated.testimonialId },
         data: {
             rating: validated.rating,
-            reviewText: validated.reviewText,
+            reviewText: validated.reviewText || "",
+            anonymous: validated.anonymous,
             images: validated.images,
         },
     });

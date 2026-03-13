@@ -40,20 +40,21 @@ export function TestimonialPrompt({ coachId, coachName, hasExisting }: Testimoni
         >
             <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
                     </div>
                     <div className="min-w-0">
                         <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                            Share your experience with {coachName}
+                            Rate {coachName}
                         </p>
-                        <p className="mt-0.5 text-xs text-blue-600/80 dark:text-blue-400/70">
-                            Help other clients choose the right coach with a verified review
+                        <p className="mt-0.5 hidden text-xs text-blue-600/80 sm:block dark:text-blue-400/70">
+                            Help others find the right coach with a verified review
                         </p>
                     </div>
                 </div>
                 <span className="shrink-0 text-sm font-semibold text-blue-600 transition-transform group-hover:translate-x-0.5 dark:text-blue-400">
-                    Leave Review →
+                    <span className="sm:hidden">Rate →</span>
+                    <span className="hidden sm:inline">Leave Review →</span>
                 </span>
             </div>
         </Link>

@@ -302,6 +302,7 @@ export default async function CoachProfilePage({ params }: PageProps) {
                                                     clientLastName={testimonial.client.lastName}
                                                     createdAt={testimonial.createdAt}
                                                     imageUrls={imageUrls}
+                                                    anonymous={(testimonial as { anonymous?: boolean }).anonymous ?? false}
                                                 />
                                             );
                                         }))}

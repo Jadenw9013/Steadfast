@@ -285,6 +285,42 @@ export default async function ClientDashboard() {
         </section>
       )}
 
+      {/* ── Cardio Prescription strip — extracted from training program ── */}
+      {(() => {
+        const cardioDay = trainingProgram?.days?.find((d) => d.dayName === "__CARDIO__");
+        const b = cardioDay?.blocks?.[0];
+        if (!b) return null;
+        const [modality = "", frequency = "", duration = "", intensity = ""] = (b.title ?? "").split("|");
+        if (!modality && !frequency && !duration && !intensity) return null;
+        const chips = [
+          modality && { label: "Type", value: modality.trim() },
+          frequency && { label: "Frequency", value: frequency.trim() },
+          duration && { label: "Duration", value: duration.trim() },
+          intensity && { label: "Intensity", value: intensity.trim() },
+        ].filter(Boolean) as { label: string; value: string }[];
+        return (
+          <section className="animate-fade-in" style={{ animationDelay: "70ms" }} aria-label="Cardio prescription">
+            <div className="rounded-2xl border border-green-500/20 bg-green-500/[0.05] px-5 py-4 dark:bg-green-950/20">
+              <div className="mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-green-600 dark:text-green-400">Cardio Prescription</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {chips.map(({ label, value }) => (
+                  <span key={label} className="inline-flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-300">
+                    <span className="font-normal text-green-500/60">{label}</span>
+                    {value}
+                  </span>
+                ))}
+              </div>
+              {b.content && (
+                <p className="mt-2.5 text-xs leading-relaxed text-green-600/70 dark:text-green-400/60">{b.content}</p>
+              )}
+            </div>
+          </section>
+        );
+      })()}
+
       {/* Check-in schedule reminder — only for due/overdue states */}
       {coachAssignment && cadenceResult && (cadenceResult.status === "due" || cadenceResult.status === "overdue") && (
         <div className="animate-fade-in" style={{ animationDelay: "80ms" }}>
@@ -297,21 +333,23 @@ export default async function ClientDashboard() {
         </div>
       )}
 
-      {/* Action Banner */}
-      <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-        <CheckInStatus
-          status={weekStatus}
-          weekLabel={todayLabel}
-          statusLabel={statusLabel}
-          nextDueLabel={nextDueLabel}
-          checkInDate={
-            latestCheckIn
-              ? latestCheckIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
-              : undefined
-          }
-          checkInId={latestCheckIn?.id}
-        />
-      </div>
+      {/* Action Banner — suppressed when overdue (red banner already shown above) */}
+      {cadenceResult?.status !== "overdue" && (
+        <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+          <CheckInStatus
+            status={weekStatus}
+            weekLabel={todayLabel}
+            statusLabel={statusLabel}
+            nextDueLabel={nextDueLabel}
+            checkInDate={
+              latestCheckIn
+                ? latestCheckIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+                : undefined
+            }
+            checkInId={latestCheckIn?.id}
+          />
+        </div>
+      )}
 
       {/* Today Adherence — only if coach has enabled it */}
       {adherenceEnabled && (
@@ -344,7 +382,7 @@ export default async function ClientDashboard() {
               <span
                 className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold ${weightDelta < 0
                   ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400"
-                  : "bg-red-500/10 text-red-500 dark:bg-red-500/20 dark:text-red-400"
+                  : "bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
                   }`}
               >
                 {weightDelta < 0 ? "\u2193" : "\u2191"} {Math.abs(weightDelta)} lbs

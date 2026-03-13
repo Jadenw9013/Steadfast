@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
+import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { getTodayAdherence } from "@/lib/queries/adherence";
 import { getLocalDate } from "@/lib/utils/date";
 import { SimpleMealPlan } from "@/components/client/simple-meal-plan";
@@ -11,10 +12,23 @@ export default async function ClientMealPlanPage() {
   const tz = user.timezone || "America/New_York";
   const todayDate = getLocalDate(new Date(), tz);
 
-  const [mealPlan, todayAdherence] = await Promise.all([
+  const [mealPlan, trainingProgram, todayAdherence] = await Promise.all([
     getCurrentPublishedMealPlan(user.id),
+    getPublishedTrainingProgram(user.id),
     getTodayAdherence(user.id, todayDate),
   ]);
+
+  // Extract cardio from training program (__CARDIO__ day)
+  const cardioDay = trainingProgram?.days?.find((d) => d.dayName === "__CARDIO__");
+  const cardioBlock = cardioDay?.blocks?.[0];
+  const cardioPrescription = cardioBlock
+    ? (() => {
+        const [modality = "", frequency = "", duration = "", intensity = ""] = (cardioBlock.title ?? "").split("|");
+        return (modality || frequency || duration || intensity)
+          ? { modality: modality.trim(), frequency: frequency.trim(), duration: duration.trim(), intensity: intensity.trim(), notes: cardioBlock.content ?? "" }
+          : null;
+      })()
+    : null;
 
   return (
     <div className="space-y-8">
@@ -40,6 +54,43 @@ export default async function ClientMealPlanPage() {
           {mealPlan && <ExportPdfButton mealPlanId={mealPlan.id} variant="small" />}
         </div>
       </section>
+
+      {/* Cardio prescription banner — shown when coach has configured cardio */}
+      {cardioPrescription && (
+        <section className="animate-fade-in" style={{ animationDelay: "60ms" }} aria-label="Cardio prescription">
+          <div className="rounded-2xl border border-green-500/20 bg-green-500/[0.05] px-5 py-4 dark:bg-green-950/20">
+            <div className="mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-green-600 dark:text-green-400">Cardio Prescription</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {cardioPrescription.modality && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-300">
+                  <span className="font-normal text-green-500/60">Type</span>{cardioPrescription.modality}
+                </span>
+              )}
+              {cardioPrescription.frequency && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-300">
+                  <span className="font-normal text-green-500/60">Frequency</span>{cardioPrescription.frequency}
+                </span>
+              )}
+              {cardioPrescription.duration && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-300">
+                  <span className="font-normal text-green-500/60">Duration</span>{cardioPrescription.duration}
+                </span>
+              )}
+              {cardioPrescription.intensity && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-700 dark:text-green-300">
+                  <span className="font-normal text-green-500/60">Intensity</span>{cardioPrescription.intensity}
+                </span>
+              )}
+            </div>
+            {cardioPrescription.notes && (
+              <p className="mt-2.5 text-xs leading-relaxed text-green-600/70 dark:text-green-400/60">{cardioPrescription.notes}</p>
+            )}
+          </div>
+        </section>
+      )}
 
       <section
         className="animate-fade-in"

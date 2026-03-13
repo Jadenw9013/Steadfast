@@ -66,10 +66,10 @@ export function NavBar({
         </Link>
 
         {/* Right side */}
-        <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main navigation">
+        <nav className="flex items-center gap-0.5 sm:gap-1" aria-label="Main navigation">
           {canSwitchRole && <RoleSwitcher currentRole={role} />}
 
-          {/* Desktop nav links */}
+          {/* Desktop nav links — hidden on mobile */}
           {navLinks.map((link) => {
             const active = isActive(link.href);
             return (
@@ -87,7 +87,7 @@ export function NavBar({
             );
           })}
 
-          {/* Settings — desktop only */}
+          {/* Settings — desktop only for both roles (bottom nav covers mobile) */}
           <Link
             href={role === "coach" ? "/coach/settings" : "/client/settings"}
             className={`hidden h-8 w-8 items-center justify-center rounded-lg transition-colors sm:flex ${isActive(role === "coach" ? "/coach/settings" : "/client/settings")
@@ -103,18 +103,17 @@ export function NavBar({
             </svg>
           </Link>
 
-          {/* Client check-in CTA — desktop: full button, mobile: compact pill */}
+          {/* Client check-in CTA — desktop only (mobile handled by bottom nav) */}
           {role === "client" && (
             <Link
               href="/client/check-in"
-              className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition-all hover:shadow-sm active:scale-[0.97] dark:shadow-blue-500/20 dark:hover:brightness-110 ${
+              className={`hidden rounded-lg px-3 py-1.5 text-sm font-semibold transition-all hover:shadow-sm active:scale-[0.97] sm:block dark:shadow-blue-500/20 dark:hover:brightness-110 ${
                 isActive("/client/check-in")
                   ? "bg-blue-500 text-white shadow-lg shadow-blue-500/30"
                   : "bg-blue-600/80 text-white hover:bg-blue-500"
               }`}
             >
-              <span className="hidden sm:inline">New Check-In</span>
-              <span className="sm:hidden">Check-In</span>
+              New Check-In
             </Link>
           )}
 

@@ -549,7 +549,10 @@ model CoachProfile {
   experience       String?  @db.Text
   certifications   String?  @db.Text
   coachingType     String?              // "online" | "in-person" | "hybrid"
-  location         String?
+  location         String?              // display string (freeform)
+  city             String?              // structured city for filter/matching
+  state            String?              // state/province/region for filter/matching
+  serviceTier      String?              // "training-only" | "nutrition-only" | "full-coaching"
   gymName          String?
   yearsCoaching    Int?
   services         String[] @default([])
@@ -587,7 +590,8 @@ model Testimonial {
   coachId      String
   clientId     String
   rating       Int                         // 1–5
-  reviewText   String   @db.Text
+  reviewText   String?  @db.Text           // optional — star-only reviews permitted
+  anonymous    Boolean  @default(false)    // hide client name on public profile
   images       String[] @default([])       // up to 4 Supabase storage paths
   status       String   @default("published") // "published" | "hidden" | "flagged"
   reportReason String?                     // reason text when coach flags a review

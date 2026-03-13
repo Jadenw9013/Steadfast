@@ -11,7 +11,8 @@ interface TestimonialFormProps {
     existingTestimonial?: {
         id: string;
         rating: number;
-        reviewText: string;
+        reviewText: string | null;
+        anonymous: boolean;
         images: string[];
     } | null;
 }
@@ -29,6 +30,7 @@ export function TestimonialForm({ coachId, coachName, existingTestimonial }: Tes
     const [rating, setRating] = useState(existingTestimonial?.rating ?? 0);
     const [hoverRating, setHoverRating] = useState(0);
     const [reviewText, setReviewText] = useState(existingTestimonial?.reviewText ?? "");
+    const [anonymous, setAnonymous] = useState(existingTestimonial?.anonymous ?? false);
     const [images, setImages] = useState<UploadedImage[]>(
         (existingTestimonial?.images ?? []).map((path) => ({
             storagePath: path,
@@ -121,10 +123,6 @@ export function TestimonialForm({ coachId, coachName, existingTestimonial }: Tes
             setMessage({ type: "error", text: "Please select a rating." });
             return;
         }
-        if (reviewText.length < 10) {
-            setMessage({ type: "error", text: "Review must be at least 10 characters." });
-            return;
-        }
 
         setIsSubmitting(true);
         setMessage(null);
@@ -137,6 +135,7 @@ export function TestimonialForm({ coachId, coachName, existingTestimonial }: Tes
                     testimonialId: existingTestimonial!.id,
                     rating,
                     reviewText,
+                    anonymous,
                     images: imagePaths,
                 });
                 setMessage({ type: "success", text: "Review updated successfully!" });
@@ -145,6 +144,7 @@ export function TestimonialForm({ coachId, coachName, existingTestimonial }: Tes
                     coachId,
                     rating,
                     reviewText,
+                    anonymous,
                     images: imagePaths,
                 });
                 setMessage({ type: "success", text: "Review submitted successfully!" });
@@ -209,23 +209,47 @@ export function TestimonialForm({ coachId, coachName, existingTestimonial }: Tes
                 </div>
             </div>
 
-            {/* Review Text */}
+            {/* Review Text — optional */}
             <div>
                 <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Your Review
+                    Your Review <span className="font-normal text-zinc-400">(optional)</span>
                 </label>
                 <textarea
                     value={reviewText}
                     onChange={(e) => setReviewText(e.target.value)}
                     rows={5}
                     className="block w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm leading-relaxed focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
-                    placeholder={`Share your experience working with ${coachName}...`}
+                    placeholder={`Share your experience working with ${coachName}... (leave blank to submit a star-only rating)`}
                     maxLength={2000}
                 />
                 <p className="mt-1.5 text-xs text-zinc-400 dark:text-zinc-500">
                     {reviewText.length}/2000 characters
                 </p>
             </div>
+
+            {/* Anonymous toggle */}
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3.5 transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-800/50">
+                <div className="relative mt-0.5 shrink-0">
+                    <input
+                        type="checkbox"
+                        className="peer sr-only"
+                        checked={anonymous}
+                        onChange={(e) => setAnonymous(e.target.checked)}
+                        id="anonymous-toggle"
+                    />
+                    <div className="h-5 w-5 rounded border-2 border-zinc-300 bg-white transition-colors peer-checked:border-blue-500 peer-checked:bg-blue-500 dark:border-zinc-600 dark:bg-zinc-700">
+                        {anonymous && (
+                            <svg className="ml-0.5 mt-0.5 h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        )}
+                    </div>
+                </div>
+                <div>
+                    <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">Submit anonymously</p>
+                    <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">Your name won&apos;t appear on the coach&apos;s public profile. Your review is still verified.</p>
+                </div>
+            </label>
 
             {/* Image Upload */}
             <div>

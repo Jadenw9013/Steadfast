@@ -37,6 +37,9 @@ const profileSchema = z.object({
     certifications: z.string().max(1000).optional().nullable(),
     coachingType: z.string().optional().nullable(),
     location: z.string().max(100).optional().nullable(),
+    city: z.string().max(100).optional().nullable(),
+    state: z.string().max(100).optional().nullable(),
+    serviceTier: z.enum(["training-only", "nutrition-only", "full-coaching"]).optional().nullable(),
     gymName: z.string().max(100).optional().nullable(),
     yearsCoaching: z.number().int().min(0).max(50).optional().nullable(),
     services: z.array(z.string()).default([]),
@@ -59,6 +62,9 @@ type InitialDataProps = {
     certifications?: string | null;
     coachingType?: string | null;
     location?: string | null;
+    city?: string | null;
+    state?: string | null;
+    serviceTier?: string | null;
     gymName?: string | null;
     yearsCoaching?: number | null;
     services?: string[] | null;
@@ -99,6 +105,9 @@ export function ProfileForm({
             certifications: initialData?.certifications || "",
             coachingType: initialData?.coachingType || "",
             location: initialData?.location || "",
+            city: initialData?.city || "",
+            state: initialData?.state || "",
+            serviceTier: (initialData?.serviceTier as "training-only" | "nutrition-only" | "full-coaching" | null) ?? null,
             gymName: initialData?.gymName || "",
             yearsCoaching: initialData?.yearsCoaching ?? null,
             services: initialData?.services ?? [],
@@ -351,21 +360,39 @@ export function ProfileForm({
                                     <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">Coaching Details</p>
                                     <div className="grid gap-4 sm:grid-cols-2">
                                         <div>
-                                            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Coaching Type</label>
+                                            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Coaching Mode</label>
                                             <select {...form.register("coachingType")} className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100">
-                                                <option value="">Select type</option>
+                                                <option value="">Select mode</option>
                                                 <option value="online">Online</option>
                                                 <option value="in-person">In-Person</option>
-                                                <option value="hybrid">Hybrid</option>
+                                                <option value="hybrid">Hybrid (online + in-person)</option>
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Location</label>
+                                            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Service Tier</label>
+                                            <select {...form.register("serviceTier")} className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100">
+                                                <option value="">Not specified</option>
+                                                <option value="training-only">Training plans only</option>
+                                                <option value="nutrition-only">Nutrition plans only</option>
+                                                <option value="full-coaching">Full coaching (training + nutrition)</option>
+                                            </select>
+                                            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">Helps clients find coaches who match their needs</p>
+                                        </div>
+                                        <div>
+                                            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Location (display)</label>
                                             <input {...form.register("location")} type="text" className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100" placeholder="e.g. Austin, TX" />
                                         </div>
                                         <div>
                                             <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Gym Name</label>
                                             <input {...form.register("gymName")} type="text" className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100" placeholder="e.g. Gold's Gym" />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">City <span className="font-normal text-zinc-400">(for local search)</span></label>
+                                            <input {...form.register("city")} type="text" className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100" placeholder="e.g. Austin" />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">State / Province <span className="font-normal text-zinc-400">(for local search)</span></label>
+                                            <input {...form.register("state")} type="text" className="block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100" placeholder="e.g. TX" />
                                         </div>
                                         <div>
                                             <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">Years Coaching</label>

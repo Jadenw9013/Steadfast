@@ -3,22 +3,76 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 
 export interface CoachFilters {
     goal?: string;
-    type?: string;
+    type?: string;         // "online" | "in-person" | "hybrid"
     accepting?: boolean;
-    service?: string;
+    service?: string;      // free-text service tag
+    serviceTier?: string;  // "training-only" | "nutrition-only" | "full-coaching"
     clientType?: string;
     minRating?: number;
-    sort?: string; // "rating" | "newest" | "" (default = best match)
-    q?: string; // keyword search by name/headline/bio
+    sort?: string;         // "rating" | "newest" | "" (default = best match)
+    q?: string;            // keyword search by name/headline/bio
+    city?: string;         // city name for in-person location matching
+    state?: string;        // state/province for in-person location matching
+}
+
+// Labels shown on coach cards when filters are active
+function computeMatchReasons(
+    profile: {
+        coachingType: string | null;
+        city: string | null;
+        state: string | null;
+        serviceTier: string | null;
+        acceptingClients: boolean;
+        clientGoals: string[];
+    },
+    filters: CoachFilters
+): string[] {
+    const reasons: string[] = [];
+
+    if (filters.goal && profile.clientGoals.includes(filters.goal)) {
+        reasons.push(`Coaches ${filters.goal.toLowerCase()}`);
+    }
+    if (filters.type && profile.coachingType === filters.type) {
+        const modeLabel = filters.type === "in-person" ? "In-Person" : filters.type.charAt(0).toUpperCase() + filters.type.slice(1);
+        const loc = [profile.city, profile.state].filter(Boolean).join(", ");
+        reasons.push(loc ? `${modeLabel} · ${loc}` : modeLabel);
+    } else if (filters.type === "in-person" && profile.coachingType === "hybrid") {
+        const loc = [profile.city, profile.state].filter(Boolean).join(", ");
+        reasons.push(loc ? `Hybrid · ${loc}` : "Hybrid (in-person available)");
+    }
+    if (filters.city && profile.city?.toLowerCase().includes(filters.city.toLowerCase())) {
+        // Already captured in mode reason above if mode was also filtered
+        if (!filters.type) {
+            reasons.push(`Based in ${profile.city}`);
+        }
+    }
+    if (filters.serviceTier && profile.serviceTier === filters.serviceTier) {
+        const tierLabel: Record<string, string> = {
+            "training-only": "Training plans",
+            "nutrition-only": "Nutrition plans",
+            "full-coaching": "Full coaching",
+        };
+        if (tierLabel[filters.serviceTier]) reasons.push(tierLabel[filters.serviceTier]);
+    }
+    if (profile.acceptingClients) {
+        reasons.push("Accepting new clients");
+    }
+
+    return reasons.slice(0, 2); // cap at 2 for card space
 }
 
 export async function getPublishedCoaches(filters?: CoachFilters) {
-    // Build where clause
+    // ── Build Prisma where clause ──────────────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = { isPublished: true };
 
+    // Coaching mode — for in-person requests, include hybrid coaches (ranked lower)
     if (filters?.type) {
-        where.coachingType = filters.type;
+        if (filters.type === "in-person") {
+            where.coachingType = { in: ["in-person", "hybrid"] };
+        } else {
+            where.coachingType = filters.type;
+        }
     }
     if (filters?.accepting) {
         where.acceptingClients = true;
@@ -32,6 +86,22 @@ export async function getPublishedCoaches(filters?: CoachFilters) {
     if (filters?.clientType) {
         where.clientTypes = { has: filters.clientType };
     }
+    // Service tier: exclude coaches who have declared a *different* tier.
+    // null means "unspecified" — still eligible.
+    if (filters?.serviceTier) {
+        where.OR = [
+            { serviceTier: filters.serviceTier },
+            { serviceTier: null },
+        ];
+    }
+    // City filter (case-insensitive contains) — only meaningful for in-person/hybrid
+    if (filters?.city) {
+        where.city = { contains: filters.city.trim(), mode: "insensitive" };
+    }
+    if (filters?.state) {
+        where.state = { contains: filters.state.trim(), mode: "insensitive" };
+    }
+    // Text search
     if (filters?.q) {
         const term = filters.q.trim();
         where.OR = [
@@ -51,7 +121,7 @@ export async function getPublishedCoaches(filters?: CoachFilters) {
         },
     });
 
-    // Fetch testimonial aggregates and client counts in parallel
+    // ── Fetch rating aggregates + client counts in parallel ────────────────
     const coachIds = profiles.map((p) => p.user.id);
     const [ratingData, clientCounts] = await Promise.all([
         db.testimonial.groupBy({
@@ -74,44 +144,90 @@ export async function getPublishedCoaches(filters?: CoachFilters) {
         clientCounts.map((c) => [c.coachId, c._count])
     );
 
-    // Compute ranking score and sort
+    // ── Score + sort ───────────────────────────────────────────────────────
+    // Weights are intentionally visible and easy to adjust.
+    const W = {
+        ratingAvg: 0.40,     // normalized 0–1
+        ratingCount: 0.15,   // capped at 10 reviews = 1.0
+        completeness: 0.15,  // profile fill signals
+        availability: 0.05,  // accepting clients bonus
+        goalMatch: 0.10,     // requested goal ∈ clientGoals
+        modeExactMatch: 0.08, // coachingType exactly matches requested mode
+        modePartialMatch: 0.03, // in-person requested but coach is hybrid
+        serviceTierMatch: 0.05, // serviceTier matches or coach is unspecified
+        locationMatch: 0.04,  // city matches when in-person/hybrid
+    } as const;
+
+    const hasFilters = !!(filters?.goal || filters?.type || filters?.serviceTier || filters?.city || filters?.state);
+
     const ranked = profiles
         .map((profile) => {
             const rating = ratingMap.get(profile.user.id) ?? { avg: 0, count: 0 };
             const clientCount = clientCountMap.get(profile.user.id) ?? 0;
 
-            // ── Profile completeness (0–1) ──
-            // Each signal checks a field that improves conversion/trust.
+            // Profile completeness (0–1)
             const completenessChecks = [
-                !!profile.headline,                              // Professional headline
-                !!profile.bio,                                   // Coaching philosophy
-                !!profile.experience,                            // Experience section
-                !!profile.pricing,                               // Transparent pricing
-                (profile.services?.length ?? 0) > 0,             // Services listed
-                (profile.clientGoals?.length ?? 0) > 0,          // Goals coached
-                !!profile.user.profilePhotoPath,                 // Profile photo
-                !!profile.bannerPhotoPath,                       // Banner image
-                !!profile.certifications,                        // Credentials
-                !!profile.coachingType,                          // Online/in-person/hybrid
+                !!profile.headline,
+                !!profile.bio,
+                !!profile.experience,
+                !!profile.pricing,
+                (profile.services?.length ?? 0) > 0,
+                (profile.clientGoals?.length ?? 0) > 0,
+                !!profile.user.profilePhotoPath,
+                !!profile.bannerPhotoPath,
+                !!profile.certifications,
+                !!profile.coachingType,
             ];
             const completeness = completenessChecks.filter(Boolean).length / completenessChecks.length;
 
-            // ── Trust score ──
+            // Base trust score
             const normalizedRating = rating.avg / 5;
             const normalizedCount = Math.min(rating.count / 10, 1);
-            const availabilityBoost = profile.acceptingClients ? 0.1 : 0;
+            const availabilityBoost = profile.acceptingClients ? 1 : 0;
 
-            const trustScore =
-                normalizedRating * 0.50 +
-                normalizedCount * 0.20 +
-                completeness * 0.20 +
-                availabilityBoost;
+            let score =
+                normalizedRating * W.ratingAvg +
+                normalizedCount * W.ratingCount +
+                completeness * W.completeness +
+                availabilityBoost * W.availability;
+
+            // ── Intent-match bonuses (only when filters are present) ──────
+            if (hasFilters) {
+                // Goal match
+                if (filters?.goal && profile.clientGoals.includes(filters.goal)) {
+                    score += W.goalMatch;
+                }
+                // Coaching mode match
+                if (filters?.type) {
+                    if (profile.coachingType === filters.type) {
+                        score += W.modeExactMatch;
+                    } else if (filters.type === "in-person" && profile.coachingType === "hybrid") {
+                        score += W.modePartialMatch;
+                    }
+                }
+                // Service tier match — exact match gets bonus; null (unspecified) is neutral
+                if (filters?.serviceTier) {
+                    if (profile.serviceTier === filters.serviceTier) {
+                        score += W.serviceTierMatch;
+                    }
+                    // null stays at 0 bonus — included in results but not boosted
+                }
+                // Location match bonus for in-person/hybrid
+                if (filters?.city && profile.city) {
+                    if (profile.city.toLowerCase().includes(filters.city.toLowerCase())) {
+                        score += W.locationMatch;
+                    }
+                }
+            }
+
+            const matchReasons = hasFilters ? computeMatchReasons(profile, filters ?? {}) : [];
 
             return {
                 ...profile,
                 ratingSummary: { averageRating: rating.avg, totalReviews: rating.count },
                 clientCount,
-                rankScore: trustScore,
+                rankScore: score,
+                matchReasons,
             };
         })
         // Apply minRating filter post-aggregation
@@ -122,7 +238,7 @@ export async function getPublishedCoaches(filters?: CoachFilters) {
             return true;
         });
 
-    // ── Sort ──
+    // ── Sort ──────────────────────────────────────────────────────────────
     if (filters?.sort === "rating") {
         ranked.sort((a, b) =>
             b.ratingSummary.averageRating - a.ratingSummary.averageRating ||
@@ -131,7 +247,7 @@ export async function getPublishedCoaches(filters?: CoachFilters) {
     } else if (filters?.sort === "newest") {
         ranked.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     } else {
-        // Default: Best Match (trust score desc, then recency)
+        // Default: Best Match — intent-boosted trust score, recency as tiebreak
         ranked.sort((a, b) => b.rankScore - a.rankScore || b.createdAt.getTime() - a.createdAt.getTime());
     }
 

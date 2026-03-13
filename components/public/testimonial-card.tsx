@@ -2,11 +2,12 @@ import Image from "next/image";
 
 interface TestimonialCardProps {
     rating: number;
-    reviewText: string;
+    reviewText: string | null;
     clientFirstName: string | null;
     clientLastName: string | null;
     createdAt: Date;
     imageUrls?: string[];
+    anonymous?: boolean;
 }
 
 export function TestimonialCard({
@@ -16,11 +17,14 @@ export function TestimonialCard({
     clientLastName,
     createdAt,
     imageUrls,
+    anonymous = false,
 }: TestimonialCardProps) {
-    const clientName =
-        `${clientFirstName ?? ""} ${clientLastName ?? ""}`.trim() || "Client";
-    const initials =
-        `${clientFirstName?.[0] ?? ""}${clientLastName?.[0] ?? ""}`.toUpperCase() || "?";
+    const clientName = anonymous
+        ? "Anonymous"
+        : `${clientFirstName ?? ""} ${clientLastName ?? ""}`.trim() || "Client";
+    const initials = anonymous
+        ? "?"
+        : `${clientFirstName?.[0] ?? ""}${clientLastName?.[0] ?? ""}`.toUpperCase() || "?";
 
     const dateStr = new Date(createdAt).toLocaleDateString("en-US", {
         month: "short",
@@ -50,10 +54,12 @@ export function TestimonialCard({
                 ))}
             </div>
 
-            {/* Review text */}
-            <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-                &ldquo;{reviewText}&rdquo;
-            </p>
+            {/* Review text — only shown if present */}
+            {reviewText && (
+                <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+                    &ldquo;{reviewText}&rdquo;
+                </p>
+            )}
 
             {/* Image grid */}
             {hasImages && (
@@ -82,7 +88,11 @@ export function TestimonialCard({
             {/* Author */}
             <div className="mt-4 flex items-center gap-3 border-t border-zinc-100 pt-4 dark:border-zinc-800">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-                    {initials}
+                    {anonymous ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    ) : (
+                        initials
+                    )}
                 </div>
                 <div>
                     <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">

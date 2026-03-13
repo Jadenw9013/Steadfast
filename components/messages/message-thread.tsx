@@ -16,22 +16,41 @@ type Message = {
   };
 };
 
+function Avatar({ name, isCoach }: { name: string; isCoach: boolean }) {
+  const initial = name?.[0]?.toUpperCase() ?? "?";
+  return (
+    <div
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${
+        isCoach
+          ? "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm shadow-blue-500/30"
+          : "bg-gradient-to-br from-zinc-500 to-zinc-700"
+      }`}
+      aria-hidden
+    >
+      {initial}
+    </div>
+  );
+}
+
 export function MessageThread({
   messages,
   clientId,
   weekStartDate,
   currentUserId,
+  alwaysExpanded = false,
 }: {
   messages: Message[];
   clientId: string;
   weekStartDate: string;
   currentUserId: string;
+  alwaysExpanded?: boolean;
 }) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(alwaysExpanded);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (expanded) {
@@ -41,13 +60,15 @@ export function MessageThread({
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
-    if (!body.trim()) return;
-
+    const trimmed = body.trim();
+    if (!trimmed) return;
     setSending(true);
     try {
-      await sendMessage({ clientId, weekStartDate, body: body.trim() });
+      await sendMessage({ clientId, weekStartDate, body: trimmed });
       setBody("");
       router.refresh();
+      // re-focus input for continuous typing
+      setTimeout(() => inputRef.current?.focus(), 100);
     } catch (err) {
       console.error("Failed to send message:", err);
     } finally {
@@ -55,125 +76,219 @@ export function MessageThread({
     }
   }
 
-  // Most recent message for preview in collapsed state
+  // Allow Shift+Enter for newline, Enter alone to send
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(e as unknown as React.FormEvent);
+    }
+  }
+
   const latestMsg = messages.length > 0 ? messages[messages.length - 1] : null;
   const previewSender = latestMsg
     ? `${latestMsg.sender.firstName ?? "User"}${latestMsg.sender.activeRole === "COACH" ? " (Coach)" : ""}`
     : null;
-  const previewBody = latestMsg ? latestMsg.body.slice(0, 60) + (latestMsg.body.length > 60 ? "…" : "") : null;
+  const previewBody = latestMsg
+    ? latestMsg.body.slice(0, 60) + (latestMsg.body.length > 60 ? "…" : "")
+    : null;
 
   return (
     <section
-      className="flex flex-col rounded-lg border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900"
+      className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0a1224] shadow-xl shadow-black/20"
       aria-label="Messages"
     >
-      {/* Collapsible header — always visible */}
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between border-b border-zinc-200 px-4 py-2.5 text-left transition-colors hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-        aria-expanded={expanded}
-        aria-controls="message-thread-body"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <h3 className="shrink-0 text-xs font-semibold uppercase tracking-wider text-zinc-500">Messages</h3>
-          {/* Latest message preview — visible when collapsed */}
-          {!expanded && latestMsg && (
-            <span className="truncate text-xs text-zinc-400">
-              <span className="font-medium text-zinc-500">{previewSender}:</span>{" "}
-              {previewBody}
-            </span>
-          )}
-          {!expanded && !latestMsg && (
-            <span className="text-xs text-zinc-400">No messages yet</span>
-          )}
+      {/* Header — only collapsible when not alwaysExpanded */}
+      {alwaysExpanded ? (
+        <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
+          {/* Chat icon */}
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-100">Conversation</h2>
+            <p className="text-[11px] text-zinc-500">
+              {messages.length === 0
+                ? "No messages yet"
+                : `${messages.length} message${messages.length !== 1 ? "s" : ""}`}
+            </p>
+          </div>
         </div>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`shrink-0 ml-2 text-zinc-400 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
-          aria-hidden
+      ) : (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex w-full items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+          aria-expanded={expanded}
+          aria-controls="message-thread-body"
         >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </div>
+            <span className="shrink-0 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+              Messages
+            </span>
+            {!expanded && latestMsg && (
+              <span className="truncate text-xs text-zinc-500">
+                <span className="font-medium text-zinc-400">{previewSender}:</span>{" "}
+                {previewBody}
+              </span>
+            )}
+            {!expanded && !latestMsg && (
+              <span className="text-xs text-zinc-600">No messages yet</span>
+            )}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {!expanded && messages.length > 0 && (
+              <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-bold text-blue-400">
+                {messages.length}
+              </span>
+            )}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={`text-zinc-500 transition-transform duration-200 ${expanded ? "rotate-180" : ""}`}
+              aria-hidden
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </div>
+        </button>
+      )}
 
-      {/* Expanded chat body */}
-      {expanded && (
-        <div id="message-thread-body">
+      {/* Chat body */}
+      {(expanded || alwaysExpanded) && (
+        <div id="message-thread-body" className="flex flex-col">
+          {/* Message scroll area */}
           <div
-            className="flex-1 space-y-3 overflow-y-auto p-4"
-            style={{ maxHeight: "320px" }}
+            className="flex flex-col gap-3 overflow-y-auto px-4 py-4"
+            style={{ minHeight: alwaysExpanded ? "360px" : "260px", maxHeight: alwaysExpanded ? "520px" : "320px" }}
             role="log"
             aria-live="polite"
           >
             {messages.length === 0 ? (
-              <p className="text-center text-sm text-zinc-400">No messages yet</p>
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-zinc-500">No messages yet</p>
+                <p className="text-xs text-zinc-600">Send the first message to start the conversation</p>
+              </div>
             ) : (
-              messages.map((msg) => {
-                const isOwn = msg.sender.id === currentUserId;
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
-                  >
+              <>
+                {messages.map((msg, i) => {
+                  const isOwn = msg.sender.id === currentUserId;
+                  const isCoach = msg.sender.activeRole === "COACH";
+                  const senderName = msg.sender.firstName ?? "User";
+                  const showAvatar =
+                    i === 0 || messages[i - 1].sender.id !== msg.sender.id;
+                  const dateStr = new Date(msg.createdAt).toLocaleString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                  });
+
+                  return (
                     <div
-                      className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                        isOwn
-                          ? "bg-zinc-900 text-white dark:bg-blue-600 dark:text-white"
-                          : "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
-                      }`}
+                      key={msg.id}
+                      className={`flex items-end gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"}`}
                     >
-                      <p className="mb-0.5 text-xs font-medium opacity-70">
-                        {msg.sender.firstName ?? "User"}
-                        {msg.sender.activeRole === "COACH" ? " (Coach)" : ""}
-                      </p>
-                      <p className="whitespace-pre-wrap">{msg.body}</p>
-                      <p className="mt-1 text-xs opacity-50">
-                        {new Date(msg.createdAt).toLocaleString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
-                      </p>
+                      {/* Avatar — always reserve space even when hidden to keep alignment */}
+                      <div className="w-7 shrink-0">
+                        {showAvatar && !isOwn && (
+                          <Avatar name={senderName} isCoach={isCoach} />
+                        )}
+                      </div>
+
+                      <div
+                        className={`group flex max-w-[75%] flex-col gap-0.5 ${isOwn ? "items-end" : "items-start"}`}
+                      >
+                        {/* Sender label — only when avatar shown */}
+                        {showAvatar && (
+                          <span className={`px-1 text-[10px] font-medium ${isOwn ? "text-zinc-500" : isCoach ? "text-blue-400" : "text-zinc-500"}`}>
+                            {isOwn ? "You" : `${senderName}${isCoach ? " · Coach" : ""}`}
+                          </span>
+                        )}
+
+                        {/* Bubble */}
+                        <div
+                          className={`relative rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                            isOwn
+                              ? "rounded-br-sm bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                              : "rounded-bl-sm bg-zinc-800 text-zinc-100 shadow-sm"
+                          }`}
+                        >
+                          <p className="whitespace-pre-wrap">{msg.body}</p>
+                        </div>
+
+                        {/* Timestamp — visible on hover */}
+                        <span className="px-1 text-[10px] text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
+                          {dateStr}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })
+                  );
+                })}
+                <div ref={bottomRef} />
+              </>
             )}
-            <div ref={bottomRef} />
           </div>
 
+          {/* Compose bar */}
           <form
             onSubmit={handleSend}
-            className="flex gap-2 border-t border-zinc-200 p-3 dark:border-zinc-800"
+            className="flex items-end gap-2 border-t border-white/[0.05] bg-[#0a1224] px-3 py-3"
           >
             <label htmlFor="message-input" className="sr-only">
               Type a message
             </label>
-            <input
+            <textarea
+              ref={inputRef}
               id="message-input"
-              type="text"
+              rows={1}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Type a message..."
-              className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm transition-colors focus-visible:border-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-700 dark:bg-zinc-800"
+              onChange={(e) => {
+                setBody(e.target.value);
+                // auto-grow
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+              }}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
+              className="flex-1 resize-none overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-800/60 px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-blue-500/50 focus:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+              style={{ minHeight: "40px", maxHeight: "120px" }}
             />
             <button
               type="submit"
               disabled={sending || !body.trim()}
               aria-label="Send message"
-              className="rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/30 transition-all hover:bg-blue-500 hover:shadow-blue-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1224] active:scale-95 disabled:opacity-40 disabled:shadow-none"
             >
-              {sending ? "..." : "Send"}
+              {sending ? (
+                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13" />
+                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                </svg>
+              )}
             </button>
           </form>
         </div>

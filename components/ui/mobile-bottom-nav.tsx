@@ -108,7 +108,7 @@ export function MobileBottomNav({ role, hasCoach }: { role: "coach" | "client"; 
             style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
             {/* Glass bar */}
-            <div className="relative border-t border-white/[0.06] bg-[#020815]/80 backdrop-blur-xl">
+            <div className="relative border-t border-white/[0.06] bg-[#020815]/90 backdrop-blur-xl">
                 <div className="flex items-stretch justify-around">
                     {items.map((item) => {
                         const active = isActive(item.href);
@@ -123,8 +123,8 @@ export function MobileBottomNav({ role, hasCoach }: { role: "coach" | "client"; 
                                     aria-current={active ? "page" : undefined}
                                     className="relative flex flex-1 flex-col items-center justify-center py-2"
                                 >
-                                    {/* Floating pill button */}
-                                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-all duration-200 ${
+                                    {/* Floating pill — same height as other tabs but visually distinct */}
+                                    <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-200 ${
                                         active
                                             ? "bg-blue-500 shadow-lg shadow-blue-500/40"
                                             : "bg-blue-600/80 shadow-md shadow-blue-600/20 hover:bg-blue-500"
@@ -143,16 +143,16 @@ export function MobileBottomNav({ role, hasCoach }: { role: "coach" | "client"; 
                                 key={item.href}
                                 href={item.href}
                                 className={`relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 pb-1 pt-2 text-[10px] font-medium transition-colors ${
-                                    active ? "text-white" : "text-zinc-600 hover:text-zinc-400"
+                                    active ? "text-white" : "text-zinc-500 hover:text-zinc-300"
                                 }`}
                                 aria-current={active ? "page" : undefined}
                             >
-                                {/* Active top indicator line */}
+                                {/* Active top indicator */}
                                 {active && (
-                                    <span className="absolute top-0 left-1/2 h-0.5 w-6 -translate-x-1/2 rounded-full bg-blue-500" />
+                                    <span className="absolute top-0 left-1/2 h-[2px] w-8 -translate-x-1/2 rounded-full bg-blue-500" />
                                 )}
-                                <span className={active ? "text-white" : "text-zinc-600"}>{item.icon}</span>
-                                <span className={active ? "text-zinc-300" : ""}>{item.label}</span>
+                                <span className={active ? "text-white" : "text-zinc-500"}>{item.icon}</span>
+                                <span className={active ? "text-zinc-200" : "text-zinc-500"}>{item.label}</span>
                             </Link>
                         );
                     })}
