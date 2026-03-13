@@ -165,6 +165,9 @@ export function MealPlanEditorV2({
         planExtras: planExtras ?? undefined,
       });
       await publishMealPlan({ mealPlanId: id, notifyClient });
+      // Clear stale draft ID — the plan is now PUBLISHED.
+      // Next edit will create a fresh draft via ensureDraft().
+      setDraftId(null);
       router.refresh();
     } finally {
       setPublishing(false);

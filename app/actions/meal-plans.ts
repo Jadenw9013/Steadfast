@@ -116,7 +116,6 @@ export async function saveDraftMealPlan(input: unknown) {
     select: { clientId: true, status: true },
   });
   if (!plan) throw new Error("Meal plan not found");
-  if (plan.status !== "DRAFT") throw new Error("Can only edit drafts");
 
   await verifyCoachAccessToClient(plan.clientId);
 
