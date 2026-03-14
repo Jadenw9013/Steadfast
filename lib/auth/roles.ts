@@ -1,17 +1,24 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import type { Roles } from "@/types/globals.d";
+import { randomInt } from "node:crypto";
 
 export async function checkRole(role: Roles): Promise<boolean> {
   const { sessionClaims } = await auth();
   return sessionClaims?.metadata?.role === role;
 }
 
-function generateCoachCode(): string {
+/**
+ * Generates a cryptographically secure 6-character coach code.
+ */
+export function generateCoachCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
+  const randomValues = new Uint32Array(6);
+  crypto.getRandomValues(randomValues);
   for (let i = 0; i < 6; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+    code += chars[randomInt(0, chars.length)];
+    code += chars[randomValues[i] % chars.length];
   }
   return code;
 }

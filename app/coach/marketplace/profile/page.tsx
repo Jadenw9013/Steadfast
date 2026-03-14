@@ -9,7 +9,6 @@ import { BannerPhotoUpload } from "@/components/profile/banner-photo-upload";
 import { ShareProfileButton } from "@/components/coach/marketplace/share-profile-button";
 import { getMarketplaceStats } from "@/lib/queries/marketplace-stats";
 import { Metadata } from "next";
-import Image from "next/image";
 
 export const metadata: Metadata = {
     title: "Coaching Profile | Steadfast",

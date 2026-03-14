@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
-import { getSignedDownloadUrl } from "@/lib/supabase/storage";
+import { getSignedDownloadUrl, getSignedDownloadUrls } from "@/lib/supabase/storage";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, getCoachStatusLabel, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 
@@ -93,12 +93,14 @@ export async function getCheckInById(checkInId: string) {
   if (!checkIn || checkIn.deletedAt) return null;
 
   // Generate signed download URLs for photos
-  const photosWithUrls = await Promise.all(
-    checkIn.photos.map(async (photo) => ({
-      ...photo,
-      url: await getSignedDownloadUrl(photo.storagePath),
-    }))
-  );
+  const storagePaths = checkIn.photos.map((p) => p.storagePath);
+  const signedUrls = await getSignedDownloadUrls(storagePaths);
+  const urlMap = new Map(signedUrls.map((u) => [u.path, u.signedUrl]));
+
+  const photosWithUrls = checkIn.photos.map((photo) => ({
+    ...photo,
+    url: urlMap.get(photo.storagePath) || "",
+  }));
 
   return { ...checkIn, photos: photosWithUrls };
 }
@@ -244,12 +246,14 @@ export async function getCheckInByClientAndWeek(
 
   if (!checkIn) return null;
 
-  const photosWithUrls = await Promise.all(
-    checkIn.photos.map(async (photo) => ({
-      ...photo,
-      url: await getSignedDownloadUrl(photo.storagePath),
-    }))
-  );
+  const storagePaths = checkIn.photos.map((p) => p.storagePath);
+  const signedUrls = await getSignedDownloadUrls(storagePaths);
+  const urlMap = new Map(signedUrls.map((u) => [u.path, u.signedUrl]));
+
+  const photosWithUrls = checkIn.photos.map((photo) => ({
+    ...photo,
+    url: urlMap.get(photo.storagePath) || "",
+  }));
 
   return { ...checkIn, photos: photosWithUrls };
 }
@@ -266,17 +270,18 @@ export async function getCheckInsByClientAndWeek(
     },
   });
 
-  return Promise.all(
-    checkIns.map(async (checkIn) => ({
-      ...checkIn,
-      photos: await Promise.all(
-        checkIn.photos.map(async (photo) => ({
-          ...photo,
-          url: await getSignedDownloadUrl(photo.storagePath),
-        }))
-      ),
-    }))
-  );
+  const allPhotos = checkIns.flatMap((ci) => ci.photos);
+  const storagePaths = allPhotos.map((p) => p.storagePath);
+  const signedUrls = await getSignedDownloadUrls(storagePaths);
+  const urlMap = new Map(signedUrls.map((u) => [u.path, u.signedUrl]));
+
+  return checkIns.map((checkIn) => ({
+    ...checkIn,
+    photos: checkIn.photos.map((photo) => ({
+      ...photo,
+      url: urlMap.get(photo.storagePath) || "",
+    })),
+  }));
 }
 
 export async function verifyCoachAccessToClient(clientId: string) {

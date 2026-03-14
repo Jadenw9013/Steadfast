@@ -12,9 +12,15 @@ export function DismissibleIntakeBanner({ clientId }: { clientId: string }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem(storageKey(clientId));
-    setDismissed(stored === "1");
-    setHydrated(true);
+    // We defer the execution to correctly hydrate first without synchronous triggers.
+    const timeout = setTimeout(() => {
+      const stored = localStorage.getItem(storageKey(clientId));
+      if (stored === "1") {
+        setDismissed(true);
+      }
+      setHydrated(true);
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [clientId]);
 
   function handleDismiss() {
