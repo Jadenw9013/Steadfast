@@ -31,6 +31,7 @@ export function SaveCoachButton({ coachProfileId, initialSaved, size = "sm" }: S
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggle(); }}
             disabled={isPending}
             title={saved ? "Remove from saved" : "Save coach"}
+            aria-label={saved ? "Remove from saved" : "Save coach"}
             className={`group inline-flex items-center justify-center rounded-full transition-all disabled:opacity-50 ${
                 size === "md"
                     ? "h-10 w-10"
