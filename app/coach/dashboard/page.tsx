@@ -1,10 +1,10 @@
-import { getCurrentDbUser, ensureCoachCode } from "@/lib/auth/roles";
+import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getCoachClientsWithWeekStatus } from "@/lib/queries/check-ins";
-import { CoachCodeDisplay } from "@/components/coach/coach-code-display";
 import { CoachInbox } from "@/components/coach/inbox/coach-inbox";
 import type { InboxClient } from "@/components/coach/inbox/inbox-client-card";
 import { computeCurrentPeriod } from "@/lib/scheduling/periods";
 import { parseCadenceConfig, getCadencePreview, cadenceFromLegacyDays } from "@/lib/scheduling/cadence";
+import Link from "next/link";
 
 function KpiCard({
   value,
@@ -29,7 +29,6 @@ function KpiCard({
 
 export default async function CoachDashboard() {
   const user = await getCurrentDbUser();
-  const coachCode = await ensureCoachCode(user.id);
   const rawClients = await getCoachClientsWithWeekStatus(user.id);
 
   const clients: InboxClient[] = rawClients.map((c) => ({
@@ -91,10 +90,6 @@ export default async function CoachDashboard() {
         </div>
       )}
 
-      {/* Coach Code */}
-      <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
-        <CoachCodeDisplay code={coachCode} />
-      </div>
 
       {/* Client list */}
       {clients.length === 0 ? (
@@ -105,7 +100,7 @@ export default async function CoachDashboard() {
           <div>
             <p className="text-base font-semibold">No clients yet</p>
             <p className="mt-1.5 text-sm text-zinc-500">
-              Share your coach code above to start receiving check-ins.
+              <Link href="/coach/clients/invite" className="text-blue-400 hover:underline">Invite existing clients</Link> or share your <Link href="/coach/marketplace/profile" className="text-blue-400 hover:underline">public coaching profile</Link> to attract new ones.
             </p>
           </div>
         </div>

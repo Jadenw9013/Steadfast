@@ -1,104 +1,24 @@
-"use client";
-
-import { useState } from "react";
-import { connectToCoach } from "@/app/actions/coach-connection";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+/**
+ * Previously this component contained a coach code entry form.
+ * Coach codes have been replaced by the Marketplace request flow.
+ * Clients find coaches via /coaches and submit a request directly.
+ */
 export function ConnectCoachBanner() {
-  const router = useRouter();
-  const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!code.trim()) return;
-
-    setConnecting(true);
-    setError(null);
-
-    try {
-      const result = await connectToCoach({ coachCode: code.trim() });
-      if ("error" in result && result.error) {
-        setError(result.error);
-      } else {
-        router.refresh();
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setConnecting(false);
-    }
-  }
-
   return (
     <div className="rounded-2xl border border-zinc-200/80 bg-white px-5 py-5 dark:border-zinc-800/80 dark:bg-[#0a1224]">
-      <h2 className="text-base font-semibold">Connect to Your Coach</h2>
+      <h2 className="text-base font-semibold">Find a Coach</h2>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-        Enter the coach code provided by your coach to get started.
+        Browse verified coaches, read reviews, and request coaching directly.
       </p>
-
-      {error && (
-        <div
-          role="alert"
-          className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-400"
-        >
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
-        <label htmlFor="coach-code-input" className="sr-only">
-          Coach code
-        </label>
-        <input
-          id="coach-code-input"
-          type="text"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="e.g. AB3X7K"
-          maxLength={10}
-          className="w-36 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-mono uppercase tracking-wider focus-visible:border-zinc-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:border-zinc-700 dark:bg-zinc-800"
-        />
-        <button
-          type="submit"
-          disabled={connecting || !code.trim()}
-          className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50 dark:bg-gradient-to-r dark:from-blue-600 dark:to-blue-500 dark:text-white dark:shadow-lg dark:shadow-blue-500/20 dark:hover:brightness-110"
-        >
-          {connecting ? "Connecting..." : "Connect"}
-        </button>
-      </form>
-
-      <div className="mt-4 border-t border-zinc-200/60 pt-4 dark:border-zinc-800/60">
-        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Or browse the marketplace
-        </p>
-        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-          Discover coaches who match your goals, read verified reviews, and request coaching directly.
-        </p>
-        <Link
-          href="/coaches"
-          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:border-zinc-700/80 dark:bg-zinc-800/50 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"
-        >
-          Find Your Coach
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="opacity-60"
-          >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-          </svg>
-        </Link>
-      </div>
+      <Link
+        href="/coaches"
+        className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-500 active:scale-[0.97]"
+      >
+        Explore Coaches
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </Link>
     </div>
   );
 }

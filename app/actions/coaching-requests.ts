@@ -425,3 +425,151 @@ export async function resendInvite(requestId: string) {
     revalidatePath("/coach/marketplace/requests");
     return { success: true, message: "Invite resent successfully." };
 }
+
+// ── New Lead Pipeline Actions ────────────────────────────────────────────────
+
+export async function markContacted(requestId: string) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const request = await db.coachingRequest.findUnique({
+        where: { id: requestId },
+        include: { coachProfile: true },
+    });
+    if (!request || request.coachProfile.userId !== user.id) throw new Error("Request not found");
+
+    const updated = await db.coachingRequest.update({
+        where: { id: requestId },
+        data: { status: "CONTACTED" },
+    });
+    revalidatePath("/coach/leads");
+    return updated;
+}
+
+const scheduleConsultationSchema = z.object({
+    requestId: z.string().cuid(),
+    meetingLink: z.string().url().optional().or(z.literal("")),
+    scheduledTime: z.string().datetime().optional(),
+    notes: z.string().max(1000).optional(),
+});
+
+export async function scheduleConsultation(input: unknown) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const parsed = scheduleConsultationSchema.safeParse(input);
+    if (!parsed.success) return { error: "Invalid input" };
+
+    const { requestId, meetingLink, scheduledTime, notes } = parsed.data;
+
+    const request = await db.coachingRequest.findUnique({
+        where: { id: requestId },
+        include: { coachProfile: true },
+    });
+    if (!request || request.coachProfile.userId !== user.id) throw new Error("Request not found");
+
+    await db.consultationMeeting.upsert({
+        where: { requestId },
+        create: {
+            coachId: user.id,
+            requestId,
+            meetingLink: meetingLink || null,
+            scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
+            notes: notes || null,
+        },
+        update: {
+            meetingLink: meetingLink || null,
+            scheduledTime: scheduledTime ? new Date(scheduledTime) : null,
+            notes: notes || null,
+        },
+    });
+
+    await db.coachingRequest.update({
+        where: { id: requestId },
+        data: { status: "CALL_SCHEDULED" },
+    });
+
+    revalidatePath("/coach/leads");
+    revalidatePath(`/coach/leads/${requestId}`);
+    return { success: true };
+}
+
+export async function acceptClient(requestId: string) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const request = await db.coachingRequest.findUnique({
+        where: { id: requestId },
+        include: { coachProfile: true },
+    });
+    if (!request || request.coachProfile.userId !== user.id) throw new Error("Request not found");
+
+    if (request.status === "ACCEPTED" || request.status === "APPROVED") {
+        throw new Error("Client already accepted.");
+    }
+
+    // Create CoachClient if prospect has an account
+    const existingUser = await db.user.findUnique({
+        where: { email: request.prospectEmail.toLowerCase() },
+    });
+
+    if (existingUser) {
+        const existingConn = await db.coachClient.findUnique({
+            where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
+        });
+        if (!existingConn) {
+            await db.coachClient.create({
+                data: { coachId: user.id, clientId: existingUser.id, coachNotes: "Accepted from lead." },
+            });
+        }
+        await db.coachingRequest.update({
+            where: { id: requestId },
+            data: { status: "ACCEPTED", prospectId: existingUser.id },
+        });
+    } else {
+        // No account yet — send sign-up invite email
+        await db.coachingRequest.update({
+            where: { id: requestId },
+            data: { status: "ACCEPTED", inviteLastSentAt: new Date(), inviteSendCount: { increment: 1 } },
+        });
+        const coachName = user.firstName || "Your coach";
+        try {
+            const email = requestApprovedEmail(request.prospectName, coachName);
+            await sendEmail({ to: request.prospectEmail, ...email });
+        } catch { /* email failure must not block */ }
+    }
+
+    revalidatePath("/coach/leads");
+    revalidatePath("/coach/dashboard");
+    return { success: true };
+}
+
+export async function declineRequest(requestId: string) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const request = await db.coachingRequest.findUnique({
+        where: { id: requestId },
+        include: { coachProfile: true },
+    });
+    if (!request || request.coachProfile.userId !== user.id) throw new Error("Request not found");
+
+    await db.coachingRequest.update({
+        where: { id: requestId },
+        data: { status: "DECLINED" },
+    });
+
+    const coachName = user.firstName || "this coach";
+    try {
+        const { requestDeclinedEmail } = await import("@/lib/email/templates");
+        const email = requestDeclinedEmail(request.prospectName, coachName);
+        sendEmail({ to: request.prospectEmail, ...email }).catch(console.error);
+    } catch { /* email failure must not block */ }
+
+    revalidatePath("/coach/leads");
+    return { success: true };
+}

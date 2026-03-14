@@ -45,7 +45,6 @@ model User {
   activeRole Role     @default(CLIENT) @map("role")
   isCoach    Boolean  @default(false)
   isClient   Boolean  @default(true)
-  coachCode             String?  @unique
   phoneNumber           String?
   smsOptIn              Boolean  @default(false)
   smsMealPlanUpdates    Boolean  @default(false)
@@ -102,6 +101,10 @@ model User {
   testimonialsByCoach  Testimonial[] @relation("CoachTestimonials")
   testimonialsByClient Testimonial[] @relation("ClientTestimonials")
   savedCoaches         SavedCoach[]  @relation("UserSavedCoaches")
+
+  clientInvitesSent    ClientInvite[]       @relation("CoachInvites")
+  consultationMeetings ConsultationMeeting[] @relation("CoachMeetings")
+  coachSettings        CoachSettings?        @relation("CoachSettings")
 }
 
 model CoachClient {
@@ -620,9 +623,19 @@ model SavedCoach {
 
 enum RequestStatus {
   PENDING
-  APPROVED
-  REJECTED
+  CONTACTED
+  CALL_SCHEDULED
+  ACCEPTED
+  DECLINED
+  APPROVED      // legacy — kept for backward compat
+  REJECTED      // legacy — kept for backward compat
   WAITLISTED
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
 }
 
 model CoachingRequest {
@@ -641,12 +654,55 @@ model CoachingRequest {
   inviteLastSentAt DateTime?     // Last time invite/sign-up email was sent
   inviteSendCount  Int      @default(0) // Total invite sends (initial approval + resends)
 
-  coachProfile    CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+  coachProfile         CoachProfile          @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+  consultationMeeting  ConsultationMeeting?
 
   @@index([coachProfileId])
   @@index([status])
   @@index([prospectId])
   @@index([prospectEmail, status])
+}
+
+model ClientInvite {
+  id          String       @id @default(cuid())
+  coachId     String
+  email       String
+  name        String
+  inviteToken String       @unique @default(cuid())
+  status      InviteStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  expiresAt   DateTime
+
+  coach User @relation("CoachInvites", fields: [coachId], references: [id])
+
+  @@index([coachId])
+  @@index([inviteToken])
+}
+
+model ConsultationMeeting {
+  id            String    @id @default(cuid())
+  coachId       String
+  requestId     String    @unique
+  meetingLink   String?
+  scheduledTime DateTime?
+  notes         String?   @db.Text
+  createdAt     DateTime  @default(now())
+
+  coach   User            @relation("CoachMeetings", fields: [coachId], references: [id])
+  request CoachingRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([coachId])
+}
+
+model CoachSettings {
+  id                          String  @id @default(cuid())
+  coachId                     String  @unique
+  acceptRequestsAutomatically Boolean @default(false)
+  requireConsultation         Boolean @default(false)
+  allowDirectInvites          Boolean @default(true)
+  allowMarketplaceRequests    Boolean @default(true)
+
+  coach User @relation("CoachSettings", fields: [coachId], references: [id], onDelete: Cascade)
 }
 
 model OnboardingForm {

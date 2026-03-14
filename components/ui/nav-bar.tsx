@@ -30,6 +30,7 @@ export function NavBar({
   const navLinks =
     role === "coach"
       ? [
+        { href: "/coach/leads", label: "Leads" },
         { href: "/coach/marketplace/requests", label: "Requests" },
         { href: "/coach/marketplace/profile", label: "Coaching Profile" },
         { href: "/coach/templates", label: "Workout Plans" },

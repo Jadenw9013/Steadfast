@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 
 interface TestimonialPromptProps {
@@ -11,14 +11,12 @@ interface TestimonialPromptProps {
 
 export function TestimonialPrompt({ coachId, coachName, hasExisting }: TestimonialPromptProps) {
     const storageKey = `review-banner-dismissed-${coachId}`;
-    const [dismissed, setDismissed] = useState(false);
-
-    // Read localStorage after mount to avoid hydration mismatch
-    useEffect(() => {
-        if (localStorage.getItem(storageKey) === "1") {
-            setDismissed(true);
-        }
-    }, [storageKey]);
+    // Lazy initializer reads localStorage once on mount — avoids hydration mismatch
+    // and satisfies the react-hooks/set-state-in-effect rule.
+    const [dismissed, setDismissed] = useState(() => {
+        if (typeof window === "undefined") return false;
+        return localStorage.getItem(storageKey) === "1";
+    });
 
     function dismiss() {
         localStorage.setItem(storageKey, "1");

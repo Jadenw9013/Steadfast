@@ -47,7 +47,6 @@ export async function POST(req: NextRequest) {
         smsDailyCheckInReminder: true,
         smsCheckInReminderTime: true,
         emailCheckInReminders: true,
-        coachCode: true,
         clientAssignments: {
           take: 1,
           include: {

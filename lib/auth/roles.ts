@@ -1,7 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import type { Roles } from "@/types/globals.d";
-import { randomInt } from "node:crypto";
 
 export async function checkRole(role: Roles): Promise<boolean> {
   const { sessionClaims } = await auth();
@@ -13,14 +12,9 @@ export async function checkRole(role: Roles): Promise<boolean> {
  */
 export function generateCoachCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let code = "";
   const randomValues = new Uint32Array(6);
   crypto.getRandomValues(randomValues);
-  for (let i = 0; i < 6; i++) {
-    code += chars[randomInt(0, chars.length)];
-    code += chars[randomValues[i] % chars.length];
-  }
-  return code;
+  return Array.from(randomValues, (v) => chars[v % chars.length]).join("");
 }
 
 export async function getCurrentDbUser() {
@@ -41,7 +35,6 @@ export async function getCurrentDbUser() {
   const isCoach =
     (clerkUser.publicMetadata?.role as string)?.toUpperCase() === "COACH";
   const activeRole = isCoach ? "COACH" : "CLIENT" as const;
-  const coachCode = isCoach ? generateCoachCode() : undefined;
 
   const newUser = await db.user.upsert({
     where: { clerkId: userId },
@@ -61,7 +54,6 @@ export async function getCurrentDbUser() {
       activeRole,
       isCoach,
       isClient: !isCoach,
-      coachCode,
     },
   });
 
@@ -115,17 +107,10 @@ export async function getCurrentDbUser() {
   return newUser;
 }
 
-export async function ensureCoachCode(userId: string): Promise<string> {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { coachCode: true },
-  });
-  if (user?.coachCode) return user.coachCode;
-
-  const code = generateCoachCode();
-  const updated = await db.user.update({
-    where: { id: userId },
-    data: { coachCode: code },
-  });
-  return updated.coachCode!;
+/**
+ * @deprecated Coach codes have been replaced by the invite + request system.
+ * This function is a no-op stub kept for backward compatibility during rollout.
+ */
+export async function ensureCoachCode(_userId: string): Promise<string> {
+  return "";
 }
