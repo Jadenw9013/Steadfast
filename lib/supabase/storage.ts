@@ -58,3 +58,23 @@ export async function getSignedDownloadUrl(
 
   return data.signedUrl;
 }
+
+export async function getSignedDownloadUrls(
+  storagePaths: string[]
+): Promise<{ path: string; signedUrl: string }[]> {
+  if (storagePaths.length === 0) return [];
+  const supabase = createServiceClient();
+
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrls(storagePaths, 60 * 60); // 1 hour TTL
+
+  if (error || !data) {
+    throw new Error(`Failed to get download URLs: ${error?.message}`);
+  }
+
+  return data.map((item) => ({
+    path: item.path || "",
+    signedUrl: item.signedUrl,
+  }));
+}
