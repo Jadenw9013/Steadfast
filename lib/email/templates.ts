@@ -25,7 +25,7 @@ export function newRequestNotificationEmail(coachName: string, prospectName: str
 You have a new coaching request from ${prospectName} (${prospectEmail}).
 
 Review and respond in your inbox:
-${appUrl}/coach/marketplace/requests${FOOTER}`;
+${appUrl}/coach/leads${FOOTER}`;
 
     return { subject, text };
 }

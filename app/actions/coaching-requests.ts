@@ -100,8 +100,8 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
         } catch { /* email failure must not break request */ }
     }
 
-    // Revalidate the coach's requests page so they see it
-    revalidatePath("/coach/marketplace/requests");
+    // Revalidate the coach's leads page so they see it
+    revalidatePath("/coach/leads");
 
     return request;
 }
@@ -158,7 +158,7 @@ export async function submitWaitlistEntry(data: WaitlistData) {
         await sendEmail({ to: normalizedEmail, ...confirmEmail });
     } catch { /* email failure must not break waitlist */ }
 
-    revalidatePath("/coach/marketplace/requests");
+    revalidatePath("/coach/leads");
     return entry;
 }
 
@@ -251,7 +251,7 @@ export async function approveCoachingRequest(requestId: string) {
         });
     }
 
-    revalidatePath("/coach/marketplace/requests");
+    revalidatePath("/coach/leads");
     revalidatePath("/coach/dashboard");
     return { ...updated, immediateLink };
 }
@@ -295,7 +295,7 @@ export async function rejectCoachingRequest(requestId: string) {
         sendEmail({ to: request.prospectEmail, ...email }).catch(console.error);
     } catch { /* email failure must not break rejection */ }
 
-    revalidatePath("/coach/marketplace/requests");
+    revalidatePath("/coach/leads");
     revalidatePath("/client");
     return updated;
 }
@@ -335,7 +335,7 @@ export async function cancelCoachingRequest(requestId: string) {
     }));
 
     revalidatePath("/client");
-    revalidatePath("/coach/marketplace/requests");
+    revalidatePath("/coach/leads");
     return updated;
 }
 
@@ -386,7 +386,7 @@ export async function resendInvite(requestId: string) {
             data: { prospectId: existingUser.id },
         });
 
-        revalidatePath("/coach/marketplace/requests");
+        revalidatePath("/coach/leads");
         return { success: true, message: "Good news — they already signed up! They've been linked to your roster." };
     }
 
@@ -422,7 +422,7 @@ export async function resendInvite(requestId: string) {
         timestamp: new Date().toISOString(),
     }));
 
-    revalidatePath("/coach/marketplace/requests");
+    revalidatePath("/coach/leads");
     return { success: true, message: "Invite resent successfully." };
 }
 

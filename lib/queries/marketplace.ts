@@ -101,15 +101,39 @@ export async function getPublishedCoaches(filters?: CoachFilters) {
     if (filters?.state) {
         where.state = { contains: filters.state.trim(), mode: "insensitive" };
     }
-    // Text search
+    // Text search — headline, bio, firstName, lastName, or full-name "first last"
     if (filters?.q) {
         const term = filters.q.trim();
-        where.OR = [
+        const words = term.split(/\s+/).filter(Boolean);
+        const orClauses: object[] = [
             { headline: { contains: term, mode: "insensitive" } },
             { bio: { contains: term, mode: "insensitive" } },
             { user: { firstName: { contains: term, mode: "insensitive" } } },
             { user: { lastName: { contains: term, mode: "insensitive" } } },
         ];
+        // If the query is "first last" (two words), also match the split combination
+        if (words.length === 2) {
+            orClauses.push({
+                user: {
+                    firstName: { contains: words[0], mode: "insensitive" },
+                    lastName: { contains: words[1], mode: "insensitive" },
+                },
+            });
+            // Also try reversed order (last first)
+            orClauses.push({
+                user: {
+                    firstName: { contains: words[1], mode: "insensitive" },
+                    lastName: { contains: words[0], mode: "insensitive" },
+                },
+            });
+        } else if (words.length > 2) {
+            // For longer queries, match any word against either name field
+            words.forEach(word => {
+                orClauses.push({ user: { firstName: { contains: word, mode: "insensitive" } } });
+                orClauses.push({ user: { lastName: { contains: word, mode: "insensitive" } } });
+            });
+        }
+        where.OR = orClauses;
     }
 
     const profiles = await db.coachProfile.findMany({

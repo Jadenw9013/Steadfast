@@ -90,7 +90,6 @@ export async function redeemInvite(token: string) {
 
     await db.clientInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
 
-    revalidatePath("/client", "layout");
     return { success: true, coachName: invite.coach.firstName };
 }
 

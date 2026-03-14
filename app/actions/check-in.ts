@@ -219,7 +219,7 @@ export async function markCheckInReviewed(input: unknown) {
 
   revalidatePath("/coach", "layout");
 
-  // Background email: notify client their check-in was reviewed
+  // Background email: notify client their check-in was reviewed (transactional — always sent)
   try {
     const client = await db.user.findUnique({ where: { id: checkIn.clientId }, select: { email: true, firstName: true } });
     if (client?.email) {
@@ -229,6 +229,7 @@ export async function markCheckInReviewed(input: unknown) {
       sendEmail({ to: client.email, ...email }).catch(console.error);
     }
   } catch { /* email failure must not break review */ }
+
 
   // Background SMS: notify client
   try {
