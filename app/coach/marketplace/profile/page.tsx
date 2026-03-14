@@ -6,6 +6,7 @@ import { ProfileForm } from "@/components/coach/marketplace/profile-form";
 import { PortfolioManager } from "@/components/coach/marketplace/portfolio-manager";
 import { ProfilePhotoUpload } from "@/components/profile/profile-photo-upload";
 import { BannerPhotoUpload } from "@/components/profile/banner-photo-upload";
+import { ShareProfileButton } from "@/components/coach/marketplace/share-profile-button";
 import { getMarketplaceStats } from "@/lib/queries/marketplace-stats";
 import { Metadata } from "next";
 import Image from "next/image";
@@ -148,12 +149,17 @@ export default async function CoachMarketplaceProfilePage() {
             </div>
 
             {/* Action buttons */}
-            <div className="animate-fade-in mt-5" style={{ animationDelay: "150ms" }}>
+            <div className="animate-fade-in mt-5 space-y-2" style={{ animationDelay: "150ms" }}>
                 <ProfileForm
                     initialData={profile}
                     userName={displayName}
                     userInitials={initials}
                 />
+                {profile?.isPublished && profile?.slug && (
+                    <div className="flex justify-center sm:justify-start">
+                        <ShareProfileButton slug={profile.slug} />
+                    </div>
+                )}
             </div>
 
 

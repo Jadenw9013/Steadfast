@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface TestimonialPromptProps {
@@ -7,11 +10,28 @@ interface TestimonialPromptProps {
 }
 
 export function TestimonialPrompt({ coachId, coachName, hasExisting }: TestimonialPromptProps) {
+    const storageKey = `review-banner-dismissed-${coachId}`;
+    const [dismissed, setDismissed] = useState(false);
+
+    // Read localStorage after mount to avoid hydration mismatch
+    useEffect(() => {
+        if (localStorage.getItem(storageKey) === "1") {
+            setDismissed(true);
+        }
+    }, [storageKey]);
+
+    function dismiss() {
+        localStorage.setItem(storageKey, "1");
+        setDismissed(true);
+    }
+
+    if (dismissed) return null;
+
     if (hasExisting) {
         return (
             <div className="rounded-2xl border border-emerald-200/60 bg-emerald-50/50 px-5 py-4 dark:border-emerald-800/40 dark:bg-emerald-950/20">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/40">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-600 dark:text-emerald-400"><path d="M20 6 9 17l-5-5" /></svg>
                     </div>
                     <div className="min-w-0 flex-1">
@@ -28,6 +48,14 @@ export function TestimonialPrompt({ coachId, coachName, hasExisting }: Testimoni
                     >
                         Edit Review
                     </Link>
+                    <button
+                        type="button"
+                        onClick={dismiss}
+                        aria-label="Dismiss"
+                        className="shrink-0 rounded-md p-1 text-emerald-600/60 transition-colors hover:bg-emerald-100 hover:text-emerald-700 dark:text-emerald-400/60 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-300"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
                 </div>
             </div>
         );
