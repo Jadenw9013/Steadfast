@@ -14,8 +14,11 @@ export async function checkRole(role: Roles): Promise<boolean> {
 export function generateCoachCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let code = "";
+  const randomValues = new Uint32Array(6);
+  crypto.getRandomValues(randomValues);
   for (let i = 0; i < 6; i++) {
     code += chars[randomInt(0, chars.length)];
+    code += chars[randomValues[i] % chars.length];
   }
   return code;
 }
