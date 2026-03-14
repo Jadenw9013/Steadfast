@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import crypto from "crypto";
 import { db, prismaErrorMessage } from "@/lib/db";
 import { createMealPlanUploadUrl } from "@/lib/supabase/meal-plan-storage";
 import { validateUploadFile } from "@/lib/validations/meal-plan-import";
@@ -35,9 +36,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    // Build storage path: coaches/{coachId}/clients/{clientId}/{timestamp}_{filename}
+    // Build storage path: coaches/{coachId}/clients/{clientId}/{uuid}_{filename}
     const sanitized = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storagePath = `coaches/${coach.id}/clients/${clientId}/${Date.now()}_${sanitized}`;
+    const storagePath = `coaches/${coach.id}/clients/${clientId}/${crypto.randomUUID()}_${sanitized}`;
 
     // Create DB record
     const upload = await db.mealPlanUpload.create({
