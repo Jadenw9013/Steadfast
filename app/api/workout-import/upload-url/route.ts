@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import crypto from "crypto";
 import { db, prismaErrorMessage } from "@/lib/db";
 import { createWorkoutUploadUrl } from "@/lib/supabase/workout-storage";
 import { validateWorkoutUploadFile } from "@/lib/validations/workout-import";
@@ -40,8 +41,8 @@ export async function POST(req: NextRequest) {
 
     const sanitized = filename.replace(/[^a-zA-Z0-9._-]/g, "_");
     const storagePath = clientId
-      ? `coaches/${coach.id}/clients/${clientId}/workout-plans/${Date.now()}_${sanitized}`
-      : `coaches/${coach.id}/workout-plans/${Date.now()}_${sanitized}`;
+      ? `coaches/${coach.id}/clients/${clientId}/workout-plans/${crypto.randomUUID()}_${sanitized}`
+      : `coaches/${coach.id}/workout-plans/${crypto.randomUUID()}_${sanitized}`;
 
     const workoutImport = await db.workoutImport.create({
       data: {

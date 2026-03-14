@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { auth } from "@clerk/nextjs/server";
 import { createProfilePhotoUploadUrl } from "@/lib/supabase/profile-photo-storage";
 import { db } from "@/lib/db";
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     // Support avatar or banner uploads with unique filenames
     const type = req.nextUrl.searchParams.get("type") || "avatar";
     const prefix = type === "banner" ? "banner" : "avatar";
-    const storagePath = `${user.id}/${prefix}-${Date.now()}.jpg`;
+    const storagePath = `${user.id}/${prefix}-${crypto.randomUUID()}.jpg`;
 
     try {
         const { signedUrl, token } = await createProfilePhotoUploadUrl(storagePath);
