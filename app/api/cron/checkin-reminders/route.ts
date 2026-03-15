@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Cron checkin-reminders failed", err);
     return NextResponse.json(
-      { error: "Internal error", detail: err instanceof Error ? err.message : "unknown" },
+      { error: "Internal error" },
       { status: 500 }
     );
   }

@@ -54,10 +54,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ plan: result });
   } catch (error) {
     console.error("[modify-plan] Error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to modify plan";
-    const status =
-      message === "Not authenticated" ? 401 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const isAuthError = error instanceof Error && error.message === "Not authenticated";
+    return NextResponse.json(
+      { error: isAuthError ? "Not authenticated" : "Failed to modify plan" },
+      { status: isAuthError ? 401 : 500 }
+    );
   }
 }

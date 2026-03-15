@@ -43,7 +43,7 @@ export function prismaErrorMessage(error: unknown): { message: string; status: n
     };
   }
   return {
-    message: error instanceof Error ? error.message : "Internal server error",
+    message: "Internal server error",
     status: 500,
   };
 }

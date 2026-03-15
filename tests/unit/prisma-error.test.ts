@@ -26,7 +26,7 @@ describe("prismaErrorMessage", () => {
   it("returns 500 for generic Error", () => {
     const result = prismaErrorMessage(new Error("Something broke"));
     expect(result.status).toBe(500);
-    expect(result.message).toBe("Something broke");
+    expect(result.message).toBe("Internal server error");
   });
 
   it("returns generic message for non-Error", () => {
