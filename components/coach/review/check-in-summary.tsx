@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { MarkReviewedButton } from "@/components/coach/review/mark-reviewed-button";
+import { PhotoLightbox } from "@/components/coach/review/photo-lightbox";
 
 type Photo = {
   id: string;
@@ -77,20 +77,22 @@ export function CheckInSummary({
             Weight
           </p>
           {checkIn.weight != null ? (
-            <div className="mt-1 flex items-baseline gap-1.5">
-              <span className="text-2xl font-bold tabular-nums leading-none">
-                {checkIn.weight}
-              </span>
-              <span className="text-xs text-zinc-400">lbs</span>
+            <div className="mt-1">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-bold tabular-nums leading-none">
+                  {checkIn.weight}
+                </span>
+                <span className="text-xs text-zinc-400">lbs</span>
+              </div>
               {weightDelta != null && weightDelta !== 0 && (
                 <span
-                  className={`text-xs font-medium ${
+                  className={`mt-0.5 block text-xs font-medium ${
                     weightDelta < 0
                       ? "text-green-600 dark:text-green-400"
-                      : "text-red-500"
+                      : "text-amber-500 dark:text-amber-400"
                   }`}
                 >
-                  {weightDelta < 0 ? "↓" : "↑"}{Math.abs(weightDelta)}
+                  {weightDelta > 0 ? "+" : ""}{weightDelta} lbs
                 </span>
               )}
             </div>
@@ -120,28 +122,12 @@ export function CheckInSummary({
         </div>
       )}
 
-      {/* Photos */}
       {checkIn.photos.length > 0 && (
         <div>
           <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-400">
             Photos
           </p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {checkIn.photos.map((photo) => (
-              <div
-                key={photo.id}
-                className="relative aspect-[3/4] overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800"
-              >
-                <Image
-                  src={photo.url}
-                  alt="Progress photo"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 50vw, 200px"
-                />
-              </div>
-            ))}
-          </div>
+          <PhotoLightbox photos={checkIn.photos} />
         </div>
       )}
 

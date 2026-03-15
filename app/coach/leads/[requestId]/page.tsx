@@ -55,8 +55,8 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     </div>
                     <div>
                         <h1 className="text-xl font-bold text-zinc-100">{lead.prospectName}</h1>
-                        <a href={`mailto:${lead.prospectEmail}`} className="mt-0.5 text-sm text-blue-400 hover:underline">
-                            {lead.prospectEmail}
+                        <a href={`tel:${lead.prospectEmail.replace(/\s/g, "")}`} className="mt-0.5 text-sm text-blue-400 hover:underline">
+                            📞 {lead.prospectEmail}
                         </a>
                         <p className="mt-1 text-xs text-zinc-600">
                             Submitted {new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}

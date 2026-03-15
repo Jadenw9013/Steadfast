@@ -295,7 +295,21 @@ export async function getCoachProfileBySlug(slug: string) {
 
     const [testimonials, ratingAgg] = await Promise.all([
         db.testimonial.findMany({
-            where: { coachId: profile.user.id, status: "published" },
+            where: {
+                coachId: profile.user.id,
+                status: "published",
+                // Only show testimonials that have text or photos — star-only ratings
+                // still count in the rating aggregate but don't display as cards.
+                OR: [
+                    {
+                        AND: [
+                            { reviewText: { not: null } },
+                            { reviewText: { not: "" } },
+                        ],
+                    },
+                    { images: { isEmpty: false } },
+                ],
+            },
             include: {
                 client: {
                     select: { firstName: true, lastName: true },

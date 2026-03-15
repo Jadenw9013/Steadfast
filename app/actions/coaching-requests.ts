@@ -14,7 +14,7 @@ import {
 const coachingRequestSchema = z.object({
     coachProfileId: z.string().cuid(),
     prospectName: z.string().min(2, "Name must be at least 2 characters").max(100),
-    prospectEmail: z.string().email("Invalid email address"),
+    prospectEmail: z.string().min(7, "Please enter a valid phone number").max(30),
     intakeAnswers: z.object({
         goals: z.string().min(5, "Please elaborate on your goals").max(1000),
         experience: z.string().max(1000).optional(),
@@ -37,7 +37,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
     // Unauthenticated public route.
     // Validate schema strictly to prevent loose payload injection.
     const validated = coachingRequestSchema.parse(data);
-    const normalizedEmail = validated.prospectEmail.toLowerCase();
+    const normalizedPhone = validated.prospectEmail.trim();
 
     // Check if profile exists and is published
     const profile = await db.coachProfile.findUnique({
@@ -57,7 +57,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
     const existingPending = await db.coachingRequest.findFirst({
         where: {
             coachProfileId: validated.coachProfileId,
-            prospectEmail: normalizedEmail,
+            prospectEmail: normalizedPhone,
             status: "PENDING",
         },
     });
@@ -71,7 +71,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
         data: {
             coachProfileId: validated.coachProfileId,
             prospectName: validated.prospectName,
-            prospectEmail: normalizedEmail,
+            prospectEmail: normalizedPhone,
             intakeAnswers: validated.intakeAnswers,
             status: "PENDING",
         },
@@ -85,17 +85,11 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
         timestamp: new Date().toISOString(),
     }));
 
-    // Send emails (fire-and-forget, never block the user flow)
-    const coachName = profile.user.firstName || "Your coach";
-    try {
-        const receiptEmail = requestReceivedEmail(validated.prospectName, coachName);
-        await sendEmail({ to: normalizedEmail, ...receiptEmail });
-    } catch { /* email failure must not break request */ }
-
     // Coach notification email (preference-gated)
+    const coachName = profile.user.firstName || "Your coach";
     if (profile.user.emailCoachingRequests) {
         try {
-            const notifEmail = newRequestNotificationEmail(coachName, validated.prospectName, normalizedEmail);
+            const notifEmail = newRequestNotificationEmail(coachName, validated.prospectName, `Phone: ${normalizedPhone}`);
             await sendEmail({ to: profile.user.email, ...notifEmail });
         } catch { /* email failure must not break request */ }
     }

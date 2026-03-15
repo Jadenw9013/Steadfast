@@ -279,43 +279,34 @@ export default async function CoachProfilePage({ params }: PageProps) {
                         )}
 
                         {/* ── Testimonials ── */}
-                        <div className="mt-12">
-                            <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Client Testimonials</h2>
-                            {profile.testimonials.length > 0 ? (
-                                <>
-                                    <div className="mt-5 space-y-4">
-                                        {await Promise.all(profile.testimonials.map(async (testimonial) => {
-                                            // Resolve testimonial image URLs
-                                            const imageUrls: string[] = [];
-                                            for (const imgPath of testimonial.images ?? []) {
-                                                try {
-                                                    const url = await getTestimonialImageUrl(imgPath);
-                                                    imageUrls.push(url);
-                                                } catch { /* gracefully skip */ }
-                                            }
-                                            return (
-                                                <TestimonialCard
-                                                    key={testimonial.id}
-                                                    rating={testimonial.rating}
-                                                    reviewText={testimonial.reviewText}
-                                                    clientFirstName={testimonial.client.firstName}
-                                                    clientLastName={testimonial.client.lastName}
-                                                    createdAt={testimonial.createdAt}
-                                                    imageUrls={imageUrls}
-                                                    anonymous={(testimonial as { anonymous?: boolean }).anonymous ?? false}
-                                                />
-                                            );
-                                        }))}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="mt-5 rounded-xl border border-dashed border-zinc-200 px-5 py-8 text-center dark:border-zinc-800">
-                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                                        No reviews yet. Only verified clients can leave testimonials.
-                                    </p>
+                        {profile.testimonials.length > 0 && (
+                            <div className="mt-12">
+                                <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Client Testimonials</h2>
+                                <div className="mt-5 space-y-4">
+                                    {await Promise.all(profile.testimonials.map(async (testimonial) => {
+                                        const imageUrls: string[] = [];
+                                        for (const imgPath of testimonial.images ?? []) {
+                                            try {
+                                                const url = await getTestimonialImageUrl(imgPath);
+                                                imageUrls.push(url);
+                                            } catch { /* gracefully skip */ }
+                                        }
+                                        return (
+                                            <TestimonialCard
+                                                key={testimonial.id}
+                                                rating={testimonial.rating}
+                                                reviewText={testimonial.reviewText}
+                                                clientFirstName={testimonial.client.firstName}
+                                                clientLastName={testimonial.client.lastName}
+                                                createdAt={testimonial.createdAt}
+                                                imageUrls={imageUrls}
+                                                anonymous={(testimonial as { anonymous?: boolean }).anonymous ?? false}
+                                            />
+                                        );
+                                    }))}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
 
                         {/* ── Posts ── */}
                         {profile.portfolioItems.length > 0 && (

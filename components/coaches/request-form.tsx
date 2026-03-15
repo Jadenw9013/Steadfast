@@ -9,7 +9,7 @@ import Link from "next/link";
 
 const intakeSchema = z.object({
     prospectName: z.string().min(2, "Name must be at least 2 characters").max(100),
-    prospectEmail: z.string().email("Invalid email address"),
+    prospectPhone: z.string().min(7, "Please enter a valid phone number").max(30),
     goals: z.string().min(5, "Please elaborate on your goals").max(1000),
     experience: z.string().max(1000).optional(),
     injuries: z.string().max(1000).optional(),
@@ -26,7 +26,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
         resolver: zodResolver(intakeSchema),
         defaultValues: {
             prospectName: "",
-            prospectEmail: "",
+            prospectPhone: "",
             goals: "",
             experience: "",
             injuries: "",
@@ -41,7 +41,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
             await submitCoachingRequest({
                 coachProfileId,
                 prospectName: data.prospectName,
-                prospectEmail: data.prospectEmail,
+                prospectEmail: data.prospectPhone,
                 intakeAnswers: {
                     goals: data.goals,
                     experience: data.experience,
@@ -107,16 +107,18 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
 
                 <div>
                     <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Email Address <span className="text-red-500">*</span>
+                        Phone Number <span className="text-red-500">*</span>
                     </label>
                     <input
-                        {...form.register("prospectEmail")}
-                        type="email"
+                        {...form.register("prospectPhone")}
+                        type="tel"
                         required
+                        autoComplete="tel"
                         className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
+                        placeholder="e.g. (512) 555-0100"
                     />
-                    {form.formState.errors.prospectEmail && (
-                        <p className="mt-1 text-xs text-red-600">{form.formState.errors.prospectEmail.message}</p>
+                    {form.formState.errors.prospectPhone && (
+                        <p className="mt-1 text-xs text-red-600">{form.formState.errors.prospectPhone.message}</p>
                     )}
                 </div>
             </div>
