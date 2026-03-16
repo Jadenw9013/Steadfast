@@ -3,7 +3,13 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
-  const evt = await verifyWebhook(req);
+  let evt;
+  try {
+    evt = await verifyWebhook(req);
+  } catch (err) {
+    console.error("Clerk webhook verification failed", err);
+    return new Response("Webhook verification failed", { status: 400 });
+  }
 
   const eventType = evt.type;
 

@@ -38,7 +38,6 @@ export async function POST() {
         return NextResponse.json(
             {
                 error: "Failed to send SMS",
-                details: error instanceof Error ? error.message : "Unknown error",
             },
             { status: 500 }
         );
