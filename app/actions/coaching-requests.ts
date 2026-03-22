@@ -15,6 +15,8 @@ const coachingRequestSchema = z.object({
     coachProfileId: z.string().cuid(),
     prospectName: z.string().min(2, "Name must be at least 2 characters").max(100),
     prospectEmail: z.string().min(7, "Please enter a valid phone number").max(30),
+    prospectEmailAddr: z.string().email().optional(),
+    prospectPhone: z.string().max(30).optional(),
     intakeAnswers: z.object({
         goals: z.string().min(5, "Please elaborate on your goals").max(1000),
         experience: z.string().max(1000).optional(),
@@ -83,6 +85,8 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
             coachProfileId: validated.coachProfileId,
             prospectName: validated.prospectName,
             prospectEmail: normalizedPhone,
+            prospectEmailAddr: validated.prospectEmailAddr?.toLowerCase(),
+            prospectPhone: validated.prospectPhone,
             intakeAnswers: validated.intakeAnswers,
             status: "PENDING",
             prospectId,
@@ -209,17 +213,15 @@ export async function approveCoachingRequest(requestId: string) {
     } catch { /* email failure must not break approval */ }
 
     // Try to convert immediately if they already have an account
-    const normalizedContact = request.prospectEmail.toLowerCase().trim();
-    let existingUser = await db.user.findUnique({
-        where: { email: normalizedContact },
-    });
-    if (!existingUser) {
-        const digits = normalizedContact.replace(/\D/g, "");
-        if (digits.length >= 7) {
-            existingUser = await db.user.findFirst({
-                where: { phoneNumber: { contains: digits.slice(-10) } },
-            });
-        }
+    const email = request.prospectEmailAddr ?? null;
+    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
+    let existingUser = email
+        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
+        : null;
+    if (!existingUser && phone.length >= 7) {
+        existingUser = await db.user.findFirst({
+            where: { phoneNumber: { contains: phone.slice(-10) } },
+        });
     }
 
     let immediateLink = false;
@@ -376,17 +378,15 @@ export async function resendInvite(requestId: string) {
         return { success: false, message: "This person has already signed up and is connected." };
     }
 
-    const normalizedContact = request.prospectEmail.toLowerCase().trim();
-    let existingUser = await db.user.findUnique({
-        where: { email: normalizedContact },
-    });
-    if (!existingUser) {
-        const digits = normalizedContact.replace(/\D/g, "");
-        if (digits.length >= 7) {
-            existingUser = await db.user.findFirst({
-                where: { phoneNumber: { contains: digits.slice(-10) } },
-            });
-        }
+    const email = request.prospectEmailAddr ?? null;
+    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
+    let existingUser = email
+        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
+        : null;
+    if (!existingUser && phone.length >= 7) {
+        existingUser = await db.user.findFirst({
+            where: { phoneNumber: { contains: phone.slice(-10) } },
+        });
     }
 
     if (existingUser) {
@@ -415,7 +415,7 @@ export async function resendInvite(requestId: string) {
     // Send the invite email
     const coachName = user.firstName || "Your coach";
     const approvalEmail = requestApprovedEmail(request.prospectName, coachName);
-    const emailResult = await sendEmail({ to: normalizedContact, ...approvalEmail });
+    const emailResult = await sendEmail({ to: (email ?? request.prospectEmail), ...approvalEmail });
 
     if (!emailResult.success) {
         console.error(JSON.stringify({
@@ -534,17 +534,15 @@ export async function acceptClient(requestId: string) {
     }
 
     // Create CoachClient if prospect has an account
-    const normalizedContact = request.prospectEmail.toLowerCase().trim();
-    let existingUser = await db.user.findUnique({
-        where: { email: normalizedContact },
-    });
-    if (!existingUser) {
-        const digits = normalizedContact.replace(/\D/g, "");
-        if (digits.length >= 7) {
-            existingUser = await db.user.findFirst({
-                where: { phoneNumber: { contains: digits.slice(-10) } },
-            });
-        }
+    const email = request.prospectEmailAddr ?? null;
+    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
+    let existingUser = email
+        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
+        : null;
+    if (!existingUser && phone.length >= 7) {
+        existingUser = await db.user.findFirst({
+            where: { phoneNumber: { contains: phone.slice(-10) } },
+        });
     }
 
     if (existingUser) {
@@ -600,6 +598,283 @@ export async function declineRequest(requestId: string) {
         const email = requestDeclinedEmail(request.prospectName, coachName);
         sendEmail({ to: request.prospectEmail, ...email }).catch(console.error);
     } catch { /* email failure must not block */ }
+
+    revalidatePath("/coach/leads");
+    return { success: true };
+}
+
+const VALID_STAGE_TRANSITIONS: Record<string, string[]> = {
+    PENDING: ["CONSULTATION_SCHEDULED"],
+    CONSULTATION_SCHEDULED: ["CONSULTATION_DONE", "INTAKE_SENT"],
+    CONSULTATION_DONE: ["FORMS_SENT", "INTAKE_SENT"],
+    INTAKE_SENT: ["INTAKE_SUBMITTED"],
+    INTAKE_SUBMITTED: ["FORMS_SENT"],
+    FORMS_SENT: ["FORMS_SIGNED"],
+    FORMS_SIGNED: ["ACTIVE"],
+};
+
+export async function updateConsultationStage(input: {
+    requestId: string;
+    stage: string;
+    consultationDate?: string;
+}) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const request = await db.coachingRequest.findUnique({
+        where: { id: input.requestId },
+        include: { coachProfile: true, consultationMeeting: true },
+    });
+    if (!request || request.coachProfile.userId !== user.id) throw new Error("Request not found");
+
+    const allowed = VALID_STAGE_TRANSITIONS[request.consultationStage];
+    if (!allowed || !allowed.includes(input.stage)) {
+        throw new Error(`Cannot move from ${request.consultationStage} to ${input.stage}`);
+    }
+
+    const data: Record<string, unknown> = { consultationStage: input.stage };
+    if (input.consultationDate) {
+        data.consultationDate = new Date(input.consultationDate);
+    } else if (input.stage === "CONSULTATION_SCHEDULED" && !request.consultationDate && request.consultationMeeting?.scheduledTime) {
+        data.consultationDate = request.consultationMeeting.scheduledTime;
+    }
+
+    await db.coachingRequest.update({
+        where: { id: input.requestId },
+        data,
+    });
+
+    revalidatePath("/coach/leads");
+    return { success: true };
+}
+
+export async function bypassPipelineAndActivate(input: { requestId: string }) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const request = await db.coachingRequest.findUnique({
+        where: { id: input.requestId },
+        include: { coachProfile: true },
+    });
+    if (!request || request.coachProfile.userId !== user.id) throw new Error("Request not found");
+
+    if (request.consultationStage === "ACTIVE") {
+        return { success: false, message: "This lead is already active." };
+    }
+    if (request.consultationStage === "DECLINED") {
+        return { success: false, message: "This lead was declined." };
+    }
+
+    // Find the prospect's User account
+    const email = request.prospectEmailAddr ?? null;
+    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
+    let existingUser = email
+        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
+        : null;
+    if (!existingUser && phone.length >= 7) {
+        existingUser = await db.user.findFirst({
+            where: { phoneNumber: { contains: phone.slice(-10) } },
+        });
+    }
+
+    if (!existingUser) {
+        return {
+            success: false,
+            message: "This prospect hasn't created a Steadfast account yet. Send them an invite first.",
+        };
+    }
+
+    // Idempotent CoachClient creation
+    const existingConn = await db.coachClient.findUnique({
+        where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
+    });
+    if (!existingConn) {
+        await db.coachClient.create({
+            data: { coachId: user.id, clientId: existingUser.id, coachNotes: "Activated via pipeline bypass." },
+        });
+    }
+
+    await db.coachingRequest.update({
+        where: { id: input.requestId },
+        data: {
+            consultationStage: "ACTIVE",
+            status: "ACCEPTED",
+            prospectId: existingUser.id,
+        },
+    });
+
+    // Send welcome email to client
+    try {
+        const { coachConnectedEmail } = await import("@/lib/email/templates");
+        const emailContent = coachConnectedEmail(existingUser.firstName || request.prospectName, user.firstName || "Your coach");
+        await sendEmail({ to: existingUser.email, ...emailContent });
+    } catch { /* email failure must not block */ }
+
+    revalidatePath("/coach/leads");
+    revalidatePath("/coach/dashboard");
+    return { success: true, message: `${request.prospectName} has been added to your roster.` };
+}
+
+export async function activateClient(input: { requestId: string }) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const request = await db.coachingRequest.findUnique({
+        where: { id: input.requestId },
+        include: { coachProfile: true },
+    });
+    if (!request || request.coachProfile.userId !== user.id) throw new Error("Request not found");
+
+    if (request.consultationStage === "ACTIVE") {
+        return { success: true, path: "already_active" as const };
+    }
+    if (request.consultationStage !== "FORMS_SIGNED") {
+        return { success: false, message: "This lead has not signed their forms yet. Forms must be signed before activating." };
+    }
+
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+    const coachName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "Your coach";
+
+    // Prospect account lookup
+    const email = request.prospectEmailAddr ?? null;
+    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
+    let prospectUser = email
+        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
+        : null;
+    if (!prospectUser && phone.length >= 7) {
+        prospectUser = await db.user.findFirst({
+            where: { phoneNumber: { contains: phone.slice(-10) } },
+        });
+    }
+
+    if (prospectUser) {
+        // Path A — prospect HAS a Steadfast account
+        const existingConn = await db.coachClient.findUnique({
+            where: { coachId_clientId: { coachId: user.id, clientId: prospectUser.id } },
+        });
+        if (!existingConn) {
+            await db.coachClient.create({
+                data: { coachId: user.id, clientId: prospectUser.id, coachNotes: "Activated from intake pipeline." },
+            });
+        }
+
+        await db.coachingRequest.update({
+            where: { id: input.requestId },
+            data: {
+                consultationStage: "ACTIVE",
+                status: "ACCEPTED",
+                prospectId: prospectUser.id,
+            },
+        });
+
+        try {
+            const { clientActivatedWelcomeEmail } = await import("@/lib/email/templates");
+            const emailContent = clientActivatedWelcomeEmail(
+                prospectUser.firstName || request.prospectName,
+                coachName,
+                `${appUrl}/client/dashboard`
+            );
+            await sendEmail({ to: prospectUser.email, ...emailContent });
+        } catch { /* email failure must not block */ }
+
+        revalidatePath("/coach/leads");
+        revalidatePath("/coach/dashboard");
+        return { success: true, path: "existing_account" as const, email: prospectUser.email, clientId: prospectUser.id };
+    } else {
+        // Path B — prospect does NOT have a Steadfast account
+        const prospectEmail = email ?? request.prospectEmail;
+
+        // Create ClientInvite (mirrors client-invites.ts pattern)
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 7);
+
+        const invite = await db.clientInvite.create({
+            data: {
+                coachId: user.id,
+                email: prospectEmail.toLowerCase(),
+                name: request.prospectName,
+                expiresAt,
+            },
+        });
+
+        await db.coachingRequest.update({
+            where: { id: input.requestId },
+            data: {
+                consultationStage: "ACTIVE",
+                status: "ACCEPTED",
+            },
+        });
+
+        try {
+            const { clientActivatedInviteEmail } = await import("@/lib/email/templates");
+            const inviteUrl = `${appUrl}/invite/${invite.inviteToken}`;
+            const emailContent = clientActivatedInviteEmail(request.prospectName, coachName, inviteUrl);
+            await sendEmail({ to: prospectEmail, ...emailContent });
+        } catch { /* email failure must not block */ }
+
+        revalidatePath("/coach/leads");
+        revalidatePath("/coach/dashboard");
+        return { success: true, path: "invite_sent" as const, email: prospectEmail };
+    }
+}
+
+const addLeadSchema = z.object({
+    prospectName: z.string().min(2).max(100),
+    prospectEmailAddr: z.string().email(),
+    prospectPhone: z.string().min(7),
+    goals: z.string().optional(),
+    source: z.enum(["REFERRAL", "SOCIAL_MEDIA", "IN_PERSON", "OTHER"]),
+});
+
+export async function addLeadManually(input: z.input<typeof addLeadSchema>) {
+    const { getCurrentDbUser } = await import("@/lib/auth/roles");
+    const user = await getCurrentDbUser();
+    if (!user.isCoach) throw new Error("Unauthorized");
+
+    const parsed = addLeadSchema.safeParse(input);
+    if (!parsed.success) {
+        return { success: false, message: parsed.error.issues[0]?.message ?? "Invalid input." };
+    }
+    const { prospectName, prospectEmailAddr, prospectPhone, goals, source } = parsed.data;
+
+    const profile = await db.coachProfile.findUnique({
+        where: { userId: user.id },
+        select: { id: true },
+    });
+    if (!profile) throw new Error("No coaching profile found.");
+
+    // Duplicate check
+    const existing = await db.coachingRequest.findFirst({
+        where: { coachProfileId: profile.id, prospectEmailAddr },
+    });
+    if (existing) {
+        return { success: false, message: "A lead with this email already exists in your pipeline." };
+    }
+
+    const sourceLabels: Record<string, string> = {
+        REFERRAL: "Referral",
+        SOCIAL_MEDIA: "Social Media",
+        IN_PERSON: "In Person",
+        OTHER: "Other",
+    };
+
+    await db.coachingRequest.create({
+        data: {
+            coachProfileId: profile.id,
+            prospectName,
+            prospectEmail: prospectPhone, // backwards compat field
+            prospectEmailAddr,
+            prospectPhone,
+            intakeAnswers: { goals: goals ?? "" },
+            status: "PENDING",
+            consultationStage: "PENDING",
+            source: "EXTERNAL",
+            sourceDetail: sourceLabels[source] ?? source,
+        },
+    });
 
     revalidatePath("/coach/leads");
     return { success: true };

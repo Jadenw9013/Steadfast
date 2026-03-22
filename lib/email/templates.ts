@@ -176,3 +176,93 @@ Verified reviews help build trust with potential clients. Thank your client for 
 
     return { subject, text };
 }
+
+export function formsForSignatureEmail(prospectName: string, coachName: string, signLink: string) {
+    const subject = `${coachName} has sent you forms to review and sign`;
+    const text = `Hi ${prospectName},
+
+${coachName} has prepared your coaching intake forms and they're ready for you to review.
+
+All you need to do is:
+1. Click the link below
+2. Review your information
+3. Add your signature
+
+Review and sign here:
+${signLink}
+
+This link expires in 7 days. If it expires before you get to it, just ask ${coachName} to resend.
+
+If you have any questions about the forms, reach out to ${coachName} directly.${FOOTER}`;
+
+    return { subject, text };
+}
+
+export function formsSignedNotificationEmail(coachName: string, prospectName: string, leadUrl: string) {
+    const subject = `${prospectName} has signed their forms — ready to activate`;
+    const text = `Hi ${coachName},
+
+${prospectName} has reviewed and signed their intake forms.
+
+You can now activate them as a client:
+${leadUrl}${FOOTER}`;
+
+    return { subject, text };
+}
+
+export function clientActivatedWelcomeEmail(name: string, coachName: string, dashboardUrl: string) {
+    const subject = `You're officially coaching with ${coachName} on Steadfast`;
+    const text = `Hi ${name},
+
+Welcome! ${coachName} has activated your coaching profile on Steadfast.
+
+You can now access your plans, submit check-ins, and message your coach directly.
+
+Go to your dashboard:
+${dashboardUrl}${FOOTER}`;
+
+    return { subject, text };
+}
+
+export function clientActivatedInviteEmail(name: string, coachName: string, inviteUrl: string) {
+    const subject = `You're all set — here's how to access your coaching on Steadfast`;
+    const text = `Hi ${name},
+
+Welcome! ${coachName} has set up your coaching profile on Steadfast.
+
+To access your plans and check in with your coach, you'll need to create your Steadfast account. This only takes a minute — your intake information is already saved.
+
+Create your account:
+${inviteUrl}${FOOTER}`;
+
+    return { subject, text };
+}
+
+export function intakePacketSentEmail(prospectName: string, coachName: string, intakeUrl: string, docCount: number) {
+    const subject = `${coachName} has sent you forms to complete`;
+    const docsLine = docCount > 0 ? `, plus ${docCount} document${docCount > 1 ? "s" : ""} to review and sign` : "";
+    const text = `Hi ${prospectName},
+
+${coachName} has sent you some forms to fill out before your coaching begins.
+
+This includes a short questionnaire about your goals and health${docsLine}.
+
+Open my forms:
+${intakeUrl}
+
+This takes about 5-10 minutes. Your link is valid for 14 days.${FOOTER}`;
+
+    return { subject, text };
+}
+
+export function intakeSubmittedNotificationEmail(prospectName: string, reviewUrl: string) {
+    const subject = `${prospectName} has completed their intake forms`;
+    const text = `${prospectName} filled out their intake packet.
+
+Review their answers:
+${reviewUrl}
+
+Submitted: ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}${FOOTER}`;
+
+    return { subject, text };
+}

@@ -109,6 +109,18 @@ model User {
   teamId   String? @map("team_id")
   teamRole String? @map("team_role")
   team     Team?   @relation(fields: [teamId], references: [id])
+
+  intakeFormTemplate IntakeFormTemplate?
+  coachDocuments     CoachDocument[]
+}
+
+model IntakeFormTemplate {
+  id        String   @id @default(cuid())
+  coachId   String   @unique
+  coach     User     @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  sections  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model CoachClient {
@@ -672,13 +684,53 @@ enum InviteStatus {
   EXPIRED
 }
 
+enum ConsultationStage {
+  PENDING
+  CONSULTATION_SCHEDULED
+  CONSULTATION_DONE
+  INTAKE_SENT
+  INTAKE_SUBMITTED
+  FORMS_SENT
+  FORMS_SIGNED
+  ACTIVE
+  DECLINED
+}
+
+enum CoachDocumentType {
+  TEXT
+  FILE
+}
+
+enum LeadSource {
+  MARKETPLACE
+  EXTERNAL
+}
+
+enum FormSubmissionStatus {
+  DRAFT
+  READY_TO_SEND
+  SENT
+  SIGNED
+}
+
+enum SignatureType {
+  TYPED
+  DRAWN
+}
+
 model CoachingRequest {
   id              String   @id @default(cuid())
   coachProfileId  String
   prospectName    String
   prospectEmail   String
+  prospectPhone       String?
+  prospectEmailAddr   String?
   intakeAnswers   Json
   status          RequestStatus @default(PENDING)
+  consultationStage   ConsultationStage @default(PENDING)
+  consultationDate    DateTime?
+  source              LeadSource @default(MARKETPLACE)
+  sourceDetail        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -688,13 +740,45 @@ model CoachingRequest {
   inviteLastSentAt DateTime?     // Last time invite/sign-up email was sent
   inviteSendCount  Int      @default(0) // Total invite sends (initial approval + resends)
 
+  formsToken          String?  @unique
+  formsTokenExpiresAt DateTime?
+  formsSentAt         DateTime?
+  formsSignedAt       DateTime?
+
   coachProfile         CoachProfile          @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
   consultationMeeting  ConsultationMeeting?
+  formSubmission       ClientFormSubmission?
+  signature            ClientFormSignature?
+  intakePacket         IntakePacket?
 
   @@index([coachProfileId])
   @@index([status])
+  @@index([consultationStage])
   @@index([prospectId])
   @@index([prospectEmail, status])
+}
+
+model ClientFormSubmission {
+  id                String               @id @default(cuid())
+  coachingRequestId String               @unique
+  coachingRequest   CoachingRequest      @relation(fields: [coachingRequestId], references: [id], onDelete: Cascade)
+  answers           Json
+  status            FormSubmissionStatus @default(DRAFT)
+  completedAt       DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+}
+
+model ClientFormSignature {
+  id                String          @id @default(cuid())
+  coachingRequestId String          @unique
+  coachingRequest   CoachingRequest @relation(fields: [coachingRequestId], references: [id], onDelete: Cascade)
+  signatureType     SignatureType
+  signatureValue    String          @db.Text
+  signedAt          DateTime        @default(now())
+  ipAddress         String?
+  userAgent         String?
+  createdAt         DateTime        @default(now())
 }
 
 model ClientInvite {
@@ -898,4 +982,65 @@ model ExerciseResult {
 
   @@unique([clientId, exerciseName, programDay, weekOf])
   @@index([clientId])
+}
+
+model CoachDocument {
+  id        String            @id @default(cuid())
+  coachId   String
+  coach     User              @relation(fields: [coachId], references: [id])
+  title     String
+  type      CoachDocumentType
+  content   String?           @db.Text
+  filePath  String?
+  fileType  String?
+  fileName  String?
+  isActive  Boolean           @default(true)
+  sortOrder Int               @default(0)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  packetDocuments IntakePacketDocument[]
+  signatures      DocumentSignature[]
+
+  @@index([coachId])
+}
+
+model IntakePacket {
+  id                String              @id @default(cuid())
+  coachingRequestId String              @unique
+  coachingRequest   CoachingRequest     @relation(fields: [coachingRequestId], references: [id])
+  token             String              @unique
+  tokenExpiresAt    DateTime
+  sentAt            DateTime            @default(now())
+  submittedAt       DateTime?
+  formAnswers       Json?
+  coachNotes        String?             @db.Text
+  documents         IntakePacketDocument[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model IntakePacketDocument {
+  id              String        @id @default(cuid())
+  intakePacketId  String
+  intakePacket    IntakePacket  @relation(fields: [intakePacketId], references: [id])
+  coachDocumentId String
+  coachDocument   CoachDocument @relation(fields: [coachDocumentId], references: [id])
+  sortOrder       Int           @default(0)
+  signature       DocumentSignature?
+
+  @@index([intakePacketId])
+}
+
+model DocumentSignature {
+  id                     String               @id @default(cuid())
+  intakePacketDocumentId String               @unique
+  intakePacketDocument   IntakePacketDocument @relation(fields: [intakePacketDocumentId], references: [id])
+  coachDocumentId        String
+  coachDocument          CoachDocument        @relation(fields: [coachDocumentId], references: [id])
+  signatureType          SignatureType
+  signatureValue         String               @db.Text
+  signedAt               DateTime             @default(now())
+  ipAddress              String?
+  userAgent              String?
 }

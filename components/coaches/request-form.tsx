@@ -9,6 +9,7 @@ import Link from "next/link";
 
 const intakeSchema = z.object({
     prospectName: z.string().min(2, "Name must be at least 2 characters").max(100),
+    prospectEmail: z.string().email("Please enter a valid email address"),
     prospectPhone: z.string().min(7, "Please enter a valid phone number").max(30),
     goals: z.string().min(5, "Please elaborate on your goals").max(1000),
     experience: z.string().max(1000).optional(),
@@ -26,6 +27,7 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
         resolver: zodResolver(intakeSchema),
         defaultValues: {
             prospectName: "",
+            prospectEmail: "",
             prospectPhone: "",
             goals: "",
             experience: "",
@@ -41,7 +43,9 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
             await submitCoachingRequest({
                 coachProfileId,
                 prospectName: data.prospectName,
-                prospectEmail: data.prospectPhone,
+                prospectEmail: data.prospectPhone, // backwards compat — legacy field stores phone
+                prospectEmailAddr: data.prospectEmail,
+                prospectPhone: data.prospectPhone,
                 intakeAnswers: {
                     goals: data.goals,
                     experience: data.experience,
@@ -89,80 +93,110 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
                 </div>
             )}
 
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <label htmlFor="prospectName" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                         Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
                         {...form.register("prospectName")}
+                        id="prospectName"
                         type="text"
                         required
-                        className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
+                        autoComplete="name"
+                        aria-describedby="prospectName-error"
+                        className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-3 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                     />
                     {form.formState.errors.prospectName && (
-                        <p className="mt-1 text-xs text-red-600">{form.formState.errors.prospectName.message}</p>
+                        <p id="prospectName-error" className="mt-1 text-xs text-red-600">{form.formState.errors.prospectName.message}</p>
                     )}
                 </div>
 
-                <div>
-                    <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Phone Number <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        {...form.register("prospectPhone")}
-                        type="tel"
-                        required
-                        autoComplete="tel"
-                        className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
-                        placeholder="e.g. (512) 555-0100"
-                    />
-                    {form.formState.errors.prospectPhone && (
-                        <p className="mt-1 text-xs text-red-600">{form.formState.errors.prospectPhone.message}</p>
-                    )}
-                </div>
-            </div>
-
-            <div className="mt-6 border-t border-zinc-200/60 pt-6 dark:border-zinc-800/60">
-                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">Intake Questionnaire</h3>
-
-                <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                            What are your primary goals? <span className="text-red-500">*</span>
+                        <label htmlFor="prospectEmail" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Email Address <span className="text-red-500">*</span>
                         </label>
-                        <textarea
-                            {...form.register("goals")}
-                            rows={4}
+                        <input
+                            {...form.register("prospectEmail")}
+                            id="prospectEmail"
+                            type="email"
                             required
-                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
-                            placeholder="e.g. Lose 10lbs, increase squat max, prep for a show..."
+                            autoComplete="email"
+                            aria-describedby="prospectEmail-error"
+                            placeholder="you@example.com"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-3 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                         />
-                        {form.formState.errors.goals && (
-                            <p className="mt-1 text-xs text-red-600">{form.formState.errors.goals.message}</p>
+                        {form.formState.errors.prospectEmail && (
+                            <p id="prospectEmail-error" className="mt-1 text-xs text-red-600">{form.formState.errors.prospectEmail.message}</p>
                         )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        <label htmlFor="prospectPhone" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Phone Number <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            {...form.register("prospectPhone")}
+                            id="prospectPhone"
+                            type="tel"
+                            required
+                            autoComplete="tel"
+                            aria-describedby="prospectPhone-error"
+                            placeholder="e.g. (512) 555-0100"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-3 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
+                        />
+                        {form.formState.errors.prospectPhone && (
+                            <p id="prospectPhone-error" className="mt-1 text-xs text-red-600">{form.formState.errors.prospectPhone.message}</p>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-t border-zinc-200/60 pt-6 dark:border-zinc-800/60">
+                <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-500">Intake Questionnaire</h3>
+
+                <div className="space-y-6">
+                    <div>
+                        <label htmlFor="goals" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            What are your primary goals? <span className="text-red-500">*</span>
+                        </label>
+                        <textarea
+                            {...form.register("goals")}
+                            id="goals"
+                            rows={4}
+                            required
+                            aria-describedby="goals-error"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-3 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
+                            placeholder="e.g. Lose 10lbs, increase squat max, prep for a show..."
+                        />
+                        {form.formState.errors.goals && (
+                            <p id="goals-error" className="mt-1 text-xs text-red-600">{form.formState.errors.goals.message}</p>
+                        )}
+                    </div>
+
+                    <div>
+                        <label htmlFor="experience" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                             Brief training & dietary experience
                         </label>
                         <textarea
                             {...form.register("experience")}
+                            id="experience"
                             rows={3}
-                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-3 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             placeholder="How many years have you been training?"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        <label htmlFor="injuries" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                             Current injuries or limitations
                         </label>
                         <input
                             {...form.register("injuries")}
+                            id="injuries"
                             type="text"
-                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
+                            className="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-3 text-sm focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 dark:border-zinc-700 dark:bg-[#020815] dark:text-zinc-100"
                             placeholder="e.g. Lower back pain during deadlifts"
                         />
                     </div>

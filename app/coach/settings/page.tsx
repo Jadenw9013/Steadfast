@@ -33,6 +33,8 @@ export default async function CoachSettingsPage({
     ? (template.questions as unknown[]).length
     : 0;
 
+
+
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       {/* Header */}
@@ -104,6 +106,30 @@ export default async function CoachSettingsPage({
                 Customize Form
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Onboarding Templates */}
+      <section aria-labelledby="onboarding-heading" className="animate-fade-in" style={{ animationDelay: "150ms" }}>
+        <h2
+          id="onboarding-heading"
+          className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400"
+        >
+          Intake Forms & Documents
+        </h2>
+        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4 dark:border-white/[0.06] dark:bg-[#0a1224]">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">Onboarding Templates</p>
+              <p className="text-xs text-zinc-500">Manage the forms and documents used in your client onboarding.</p>
+            </div>
+            <Link
+              href="/coach/templates/onboarding"
+              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+            >
+              Go to Templates →
+            </Link>
           </div>
         </div>
       </section>

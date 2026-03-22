@@ -179,7 +179,7 @@ export function TemplateEditor({
     setDeleting(true);
     try {
       await deleteTrainingTemplate({ templateId: initialTemplate.id });
-      router.push("/coach/templates");
+      router.push("/coach/templates/workouts");
     } catch {
       setError("Delete failed. Please try again.");
       setDeleting(false);

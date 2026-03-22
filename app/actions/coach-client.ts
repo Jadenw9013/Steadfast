@@ -28,7 +28,21 @@ export async function removeClient(input: unknown) {
     where: { id: assignment.id },
   });
 
+  // Auto-decline any linked leads
+  const coachProfile = await db.coachProfile.findUnique({ where: { userId: user.id } });
+  if (coachProfile) {
+    await db.coachingRequest.updateMany({
+      where: {
+        coachProfileId: coachProfile.id,
+        prospectId: parsed.data.clientId,
+        consultationStage: { not: "DECLINED" },
+      },
+      data: { consultationStage: "DECLINED", status: "DECLINED" },
+    });
+  }
+
   revalidatePath("/coach", "layout");
+  revalidatePath("/coach/leads");
   return { success: true };
 }
 
@@ -54,6 +68,19 @@ export async function leaveCoach(input: unknown) {
   await db.coachClient.delete({
     where: { id: assignment.id },
   });
+
+  // Auto-decline any linked leads
+  const coachProfile = await db.coachProfile.findUnique({ where: { userId: assignment.coachId } });
+  if (coachProfile) {
+    await db.coachingRequest.updateMany({
+      where: {
+        coachProfileId: coachProfile.id,
+        prospectId: user.id,
+        consultationStage: { not: "DECLINED" },
+      },
+      data: { consultationStage: "DECLINED", status: "DECLINED" },
+    });
+  }
 
   revalidatePath("/client", "layout");
   return { success: true };

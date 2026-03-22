@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Metadata } from "next";
 import { LeadActions } from "./lead-actions";
+import { PipelineBar } from "./pipeline-bar";
+import { getCoachDocuments } from "@/lib/queries/coach-documents";
 
 export const metadata: Metadata = { title: "Lead Profile | Steadfast" };
 
@@ -27,14 +29,23 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
 
     const answers = lead.intakeAnswers as Record<string, string>;
 
+    // Fetch active documents for this coach (for the intake packet UI)
+    const activeDocuments = await getCoachDocuments(user.id).then(docs => docs.filter(d => d.isActive).map(d => ({ id: d.id, title: d.title, type: d.type })));
+
+    // Fetch intake packet sent date if it exists
+    const intakePacket = await db.intakePacket.findUnique({
+        where: { coachingRequestId: requestId },
+        select: { sentAt: true },
+    });
+
     const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
         PENDING:        { label: "New",           color: "text-blue-400",    bg: "bg-blue-500/10 border-blue-500/20" },
         CONTACTED:      { label: "Contacted",     color: "text-violet-400",  bg: "bg-violet-500/10 border-violet-500/20" },
         CALL_SCHEDULED: { label: "Call Scheduled",color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20" },
         ACCEPTED:       { label: "Accepted ✓",    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
         APPROVED:       { label: "Accepted ✓",    color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20" },
-        DECLINED:       { label: "Declined",      color: "text-zinc-500",    bg: "bg-zinc-800 border-zinc-700" },
-        REJECTED:       { label: "Declined",      color: "text-zinc-500",    bg: "bg-zinc-800 border-zinc-700" },
+        DECLINED:       { label: "Inactive",      color: "text-zinc-500",    bg: "bg-zinc-800 border-zinc-700" },
+        REJECTED:       { label: "Inactive",      color: "text-zinc-500",    bg: "bg-zinc-800 border-zinc-700" },
         WAITLISTED:     { label: "Waitlisted",    color: "text-zinc-400",    bg: "bg-zinc-800 border-zinc-700" },
     };
     const meta = statusMeta[lead.status] ?? statusMeta.PENDING;
@@ -47,6 +58,11 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                 All Leads
             </Link>
 
+            {/* Pipeline */}
+            <div className="rounded-2xl border border-white/[0.06] bg-[#0a1224] p-4">
+                <PipelineBar currentStage={lead.consultationStage} />
+            </div>
+
             {/* Header */}
             <div className="flex items-start justify-between gap-4 rounded-2xl border border-white/[0.06] bg-[#0a1224] p-6">
                 <div className="flex items-center gap-4">
@@ -55,9 +71,14 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     </div>
                     <div>
                         <h1 className="text-xl font-bold text-zinc-100">{lead.prospectName}</h1>
-                        <a href={`tel:${lead.prospectEmail.replace(/\s/g, "")}`} className="mt-0.5 text-sm text-blue-400 hover:underline">
-                            📞 {lead.prospectEmail}
+                        <a href={`tel:${(lead.prospectPhone ?? lead.prospectEmail).replace(/\s/g, "")}`} className="mt-0.5 text-sm text-blue-400 hover:underline">
+                            📞 {lead.prospectPhone ?? lead.prospectEmail}
                         </a>
+                        {lead.prospectEmailAddr && (
+                            <a href={`mailto:${lead.prospectEmailAddr}`} className="mt-0.5 block text-sm text-blue-400 hover:underline">
+                                ✉️ {lead.prospectEmailAddr}
+                            </a>
+                        )}
                         <p className="mt-1 text-xs text-zinc-600">
                             Submitted {new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
@@ -125,11 +146,18 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     requestId={lead.id}
                     status={lead.status}
                     prospectId={lead.prospectId}
+                    prospectName={lead.prospectName}
+                    consultationStage={lead.consultationStage}
+                    consultationDate={(lead.consultationDate ?? lead.consultationMeeting?.scheduledTime)?.toISOString() ?? null}
+                    formsSignedAt={lead.formsSignedAt?.toISOString() ?? null}
+                    prospectEmailAddr={lead.prospectEmailAddr ?? null}
                     existingMeeting={lead.consultationMeeting ? {
                         meetingLink: lead.consultationMeeting.meetingLink,
                         scheduledTime: lead.consultationMeeting.scheduledTime,
                         notes: lead.consultationMeeting.notes,
                     } : null}
+                    activeDocuments={activeDocuments}
+                    intakePacketSentAt={intakePacket?.sentAt?.toISOString() ?? null}
                 />
             </div>
         </div>

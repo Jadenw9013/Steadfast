@@ -426,7 +426,7 @@ export function TrainingProgramEditor({
               <p className="px-5 pb-4 text-sm text-zinc-400">
                 No templates yet.{" "}
                 <Link
-                  href="/coach/templates"
+                  href="/coach/templates/workouts"
                   className="font-semibold text-zinc-700 underline underline-offset-2 dark:text-zinc-300"
                 >
                   Create one

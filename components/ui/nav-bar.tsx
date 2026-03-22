@@ -31,7 +31,7 @@ export function NavBar({
       ? [
         { href: "/coach/leads", label: "Leads" },
         { href: "/coach/marketplace/profile", label: "Coaching Profile" },
-        { href: "/coach/templates", label: "Workout Plans" },
+        { href: "/coach/templates", label: "Templates" },
       ]
       : [
         ...(!hasCoach ? [
