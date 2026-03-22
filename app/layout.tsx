@@ -3,6 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Chakra_Petch, Sora } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Footer } from "@/components/footer";
 import "./globals.css";
@@ -59,6 +60,7 @@ export default function RootLayout({
             <Footer />
           </ThemeProvider>
           <Analytics />
+          <SpeedInsights />
         </body>
       </html>
     </ClerkProvider>
