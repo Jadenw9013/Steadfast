@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { parseWeekStartDate } from "@/lib/utils/date";
+import { normalizeToMonday } from "@/lib/utils/date";
 
 // ── GET — fetch message thread ────────────────────────────────────────────────
 
@@ -17,20 +17,12 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const clientId = searchParams.get("clientId");
-    const weekOfParam = searchParams.get("weekOf");
 
-    if (!clientId || !weekOfParam) {
+    if (!clientId) {
       return NextResponse.json(
-        { error: "clientId and weekOf query params are required" },
+        { error: "clientId query param is required" },
         { status: 400 }
       );
-    }
-
-    let weekOf: Date;
-    try {
-      weekOf = parseWeekStartDate(weekOfParam);
-    } catch {
-      return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
     }
 
     // Authorization check
@@ -50,13 +42,12 @@ export async function GET(req: NextRequest) {
     }
 
     const messages = await db.message.findMany({
-      where: { clientId, weekOf },
+      where: { clientId },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
         body: true,
         senderId: true,
-        weekOf: true,
         createdAt: true,
       },
     });
@@ -66,7 +57,6 @@ export async function GET(req: NextRequest) {
         id: m.id,
         content: m.body,
         senderId: m.senderId,
-        weekOf: m.weekOf.toISOString(),
         createdAt: m.createdAt.toISOString(),
         isDraft: false,
       })),
@@ -84,7 +74,6 @@ export async function GET(req: NextRequest) {
 
 const sendMessageSchema = z.object({
   clientId: z.string().min(1),
-  weekOf: z.string().min(1),
   content: z.string().min(1).max(5000),
 });
 
@@ -106,14 +95,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { clientId, weekOf: weekOfParam, content } = parsed.data;
+    const { clientId, content } = parsed.data;
 
-    let weekOf: Date;
-    try {
-      weekOf = parseWeekStartDate(weekOfParam);
-    } catch {
-      return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
-    }
+    // Compute weekOf internally for DB compatibility
+    const weekOf = normalizeToMonday(new Date());
 
     // Authorization — client self-access checked first so dual-role users aren't blocked
     const actingAsClient = user.isClient && user.id === clientId;
@@ -196,7 +181,6 @@ export async function POST(req: NextRequest) {
           id: message.id,
           content: message.body,
           senderId: message.senderId,
-          weekOf: message.weekOf.toISOString(),
           createdAt: message.createdAt.toISOString(),
           isDraft: false,
         },
