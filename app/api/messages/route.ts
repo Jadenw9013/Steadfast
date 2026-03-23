@@ -34,10 +34,9 @@ export async function GET(req: NextRequest) {
     }
 
     // Authorization check
-    if (user.activeRole === "CLIENT" || user.isClient) {
-      if (user.id !== clientId) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
+    // Check client self-access first so dual-role users aren't blocked
+    if (user.isClient && user.id === clientId) {
+      // Client accessing their own thread — always allowed
     } else if (user.isCoach) {
       const assignment = await db.coachClient.findUnique({
         where: { coachId_clientId: { coachId: user.id, clientId } },
@@ -116,11 +115,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
     }
 
-    // Authorization — mirrors sendMessage() action exactly
-    if (user.activeRole === "CLIENT" || user.isClient) {
-      if (user.id !== clientId) {
-        return NextResponse.json({ error: "Not authorized" }, { status: 403 });
-      }
+    // Authorization — client self-access checked first so dual-role users aren't blocked
+    const actingAsClient = user.isClient && user.id === clientId;
+    if (actingAsClient) {
       const hasCoach = await db.coachClient.findFirst({
         where: { clientId: user.id },
         select: { id: true },
@@ -154,8 +151,8 @@ export async function POST(req: NextRequest) {
     // Notifications (fire-and-forget, mirrors sendMessage() action)
     Promise.resolve().then(async () => {
       try {
-        const senderName = user.firstName || (user.isCoach ? "Your coach" : "Your client");
-        if (user.isCoach) {
+        const senderName = user.firstName || (actingAsClient ? "Your client" : "Your coach");
+        if (!actingAsClient && user.isCoach) {
           const { notifyCoachMessage } = await import("@/lib/sms/notify");
           notifyCoachMessage(clientId).catch(console.error);
           const client = await db.user.findUnique({
