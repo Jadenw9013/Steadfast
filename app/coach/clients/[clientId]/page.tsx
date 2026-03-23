@@ -186,8 +186,10 @@ export default async function ClientProfilePage({
           >
             &larr;
           </Link>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800 text-sm font-semibold text-zinc-200">
-            {client.firstName?.[0] ?? "?"}
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-[2px]" style={{ background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)" }}>
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#111c30] text-sm font-bold text-zinc-100">
+              {client.firstName?.[0] ?? "?"}
+            </div>
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -284,6 +286,7 @@ export default async function ClientProfilePage({
               label="Baseline (Intake)"
               value={clientIntake.bodyweightLbs}
               suffix="lbs"
+              accent="border-t-blue-500/50"
               subtext={clientIntake.completedAt?.toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -294,6 +297,7 @@ export default async function ClientProfilePage({
               label="Current"
               value={latestCheckIn?.weight}
               suffix="lbs"
+              accent="border-t-blue-500/50"
               subtext={latestCheckIn?.submittedAt.toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -305,6 +309,7 @@ export default async function ClientProfilePage({
             label="Previous"
             value={previousCheckIn?.weight}
             suffix="lbs"
+            accent="border-t-zinc-600/50"
             subtext={previousCheckIn?.submittedAt.toLocaleDateString("en-US", {
               month: "short",
               day: "numeric",
@@ -338,11 +343,11 @@ export default async function ClientProfilePage({
           </div>
 
           {latestCheckIn?.dietCompliance != null && (
-            <MetricCard label="Diet" value={latestCheckIn.dietCompliance} suffix="/10" />
+            <MetricCard label="Diet" value={latestCheckIn.dietCompliance} suffix="/10" accent="border-t-emerald-500/50" />
           )}
 
           {latestCheckIn?.energyLevel != null && (
-            <MetricCard label="Energy" value={latestCheckIn.energyLevel} suffix="/10" />
+            <MetricCard label="Energy" value={latestCheckIn.energyLevel} suffix="/10" accent="border-t-amber-500/50" />
           )}
         </div>
 
@@ -537,7 +542,9 @@ export default async function ClientProfilePage({
                 <Link
                   key={checkIn.id}
                   href={`/coach/clients/${clientId}/check-ins/${checkIn.id}`}
-                  className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2"
+                  className={`flex items-center gap-3 rounded-lg border border-l-[3px] border-zinc-800 bg-zinc-900 px-4 py-2.5 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 ${
+                    checkIn.status === "REVIEWED" ? "border-l-emerald-500/60" : "border-l-blue-500/60"
+                  }`}
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">
@@ -594,14 +601,16 @@ function MetricCard({
   value,
   suffix,
   subtext,
+  accent = "border-t-zinc-700/50",
 }: {
   label: string;
   value: number | null | undefined;
   suffix: string;
   subtext?: string;
+  accent?: string;
 }) {
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+    <div className={`rounded-lg border border-zinc-800 border-t-2 bg-zinc-900 px-4 py-3 ${accent}`}>
       <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{label}</p>
       {value != null ? (
         <div className="mt-1">

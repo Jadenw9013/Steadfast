@@ -3,11 +3,11 @@ import { getClientCheckInsLight, getLatestCoachMessage } from "@/lib/queries/che
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { formatDateUTC, getLocalDate } from "@/lib/utils/date";
-import { getWeightHistory } from "@/lib/queries/weight-history";
 import { getMyIntake } from "@/lib/queries/client-intake";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 import { getAdherenceEnabled, getTodayAdherence, getTodayMealNames } from "@/lib/queries/adherence";
+import { parsePlanExtras } from "@/types/meal-plan-extras";
 import { db } from "@/lib/db";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,11 +17,13 @@ import { getMyCoachingRequests } from "@/lib/queries/my-requests";
 import { TestimonialPrompt } from "@/components/client/testimonial-prompt";
 import { getTestimonialEligibility } from "@/lib/queries/testimonial-eligibility";
 import { BecomeCoachForm } from "@/components/client/become-coach-form";
-import { DeleteCheckInButton } from "@/components/client/delete-check-in-button";
 import { CheckInStatus } from "@/components/client/check-in-status";
 import { CheckInScheduleBanner } from "@/components/client/check-in-schedule-banner";
-import { WeightProgress } from "@/components/charts/weight-progress";
 import { TodayAdherence } from "@/components/client/today-adherence";
+import { CoachRulesCard } from "@/components/client/coach-rules-card";
+import { DeleteCheckInButton } from "@/components/client/delete-check-in-button";
+import { WeightProgress } from "@/components/charts/weight-progress";
+import { getWeightHistory } from "@/lib/queries/weight-history";
 import dayjs from "dayjs";
 import utcPlugin from "dayjs/plugin/utc";
 import timezonePlugin from "dayjs/plugin/timezone";
@@ -102,6 +104,10 @@ export default async function ClientDashboard() {
   const statusLabel = cadenceResult?.label;
   const nextDueLabel = cadencePreview ?? undefined;
 
+  // ── Coach rules from latest published plan ────────────────────────────────
+  const planExtras = parsePlanExtras(mealPlan?.planExtras);
+  const coachRules = planExtras?.rules ?? [];
+
   const latestWeight = checkIns.find((c) => c.weight != null);
   const prevWeight = latestWeight
     ? checkIns.find((c) => c.weight != null && c.id !== latestWeight.id)
@@ -121,13 +127,13 @@ export default async function ClientDashboard() {
   const coachInitial = coachAssignment?.coach.firstName?.[0] ?? "C";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <section className="animate-fade-in">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
-              {user.firstName ? `${user.firstName}\u2019s Week` : "Your Week"}
+              {user.firstName ? `Hey ${user.firstName}` : "Your Week"}
             </h1>
             <p className="mt-1 text-sm text-zinc-500">
               {todayLabel}
@@ -152,7 +158,7 @@ export default async function ClientDashboard() {
                   )}
                 </div>
                 <span className="text-xs font-medium text-zinc-400">
-                  Coach {coachAssignment.coach.firstName}
+                  {coachAssignment.coach.firstName ? `coached by ${coachAssignment.coach.firstName}` : "Your Coach"}
                 </span>
               </div>
             );
@@ -218,6 +224,36 @@ export default async function ClientDashboard() {
           />
         );
       })()}
+
+      {/* Check-in CTA — overdue banner first (most urgent) */}
+      {coachAssignment && cadenceResult && (cadenceResult.status === "due" || cadenceResult.status === "overdue") && (
+        <div className="animate-fade-in" style={{ animationDelay: "80ms" }}>
+          <CheckInScheduleBanner
+            cadenceStatus={cadenceResult.status}
+            statusLabel={cadenceResult.label}
+            nextDueLabel={nextDueLabel}
+            latestReviewedCheckInId={latestCheckIn?.status === "REVIEWED" ? latestCheckIn.id : undefined}
+          />
+        </div>
+      )}
+
+      {/* Check-in status (submitted / reviewed / none — suppressed when overdue already shown) */}
+      {cadenceResult?.status !== "overdue" && (
+        <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
+          <CheckInStatus
+            status={weekStatus}
+            weekLabel={todayLabel}
+            statusLabel={statusLabel}
+            nextDueLabel={nextDueLabel}
+            checkInDate={
+              latestCheckIn
+                ? latestCheckIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
+                : undefined
+            }
+            checkInId={latestCheckIn?.id}
+          />
+        </div>
+      )}
 
       {/* Your Program — 2-card grid */}
       {(mealPlan || (trainingProgram && trainingProgram.days.length > 0)) && (
@@ -324,45 +360,10 @@ export default async function ClientDashboard() {
         );
       })()}
 
-      {/* Check-in schedule reminder — only for due/overdue states */}
-      {coachAssignment && cadenceResult && (cadenceResult.status === "due" || cadenceResult.status === "overdue") && (
-        <div className="animate-fade-in" style={{ animationDelay: "80ms" }}>
-          <CheckInScheduleBanner
-            cadenceStatus={cadenceResult.status}
-            statusLabel={cadenceResult.label}
-            nextDueLabel={nextDueLabel}
-            latestReviewedCheckInId={latestCheckIn?.status === "REVIEWED" ? latestCheckIn.id : undefined}
-          />
-        </div>
-      )}
-
-      {/* Action Banner — suppressed when overdue */}
-      {cadenceResult?.status !== "overdue" && (
-        <div className="animate-fade-in" style={{ animationDelay: "100ms" }}>
-          <CheckInStatus
-            status={weekStatus}
-            weekLabel={todayLabel}
-            statusLabel={statusLabel}
-            nextDueLabel={nextDueLabel}
-            checkInDate={
-              latestCheckIn
-                ? latestCheckIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })
-                : undefined
-            }
-            checkInId={latestCheckIn?.id}
-          />
-        </div>
-      )}
-
-      {/* Today Adherence */}
-      {adherenceEnabled && (
-        <div className="animate-fade-in" style={{ animationDelay: "140ms" }}>
-          <TodayAdherence
-            date={todayDate}
-            planMeals={planMeals}
-            existingMeals={todayAdherence?.meals ?? []}
-            workoutCompleted={todayAdherence?.workoutCompleted ?? false}
-          />
+      {/* Coach Rules card */}
+      {coachRules.length > 0 && (
+        <div className="animate-fade-in" style={{ animationDelay: "120ms" }}>
+          <CoachRulesCard rules={coachRules} />
         </div>
       )}
 
@@ -403,12 +404,141 @@ export default async function ClientDashboard() {
         </section>
       )}
 
+      {/* Today Adherence */}
+      {adherenceEnabled && (
+        <div className="animate-fade-in" style={{ animationDelay: "140ms" }}>
+          <TodayAdherence
+            date={todayDate}
+            planMeals={planMeals}
+            existingMeals={todayAdherence?.meals ?? []}
+            workoutCompleted={todayAdherence?.workoutCompleted ?? false}
+          />
+        </div>
+      )}
+
+      {/* Recent Check-Ins — flat list with submission dates */}
+      <section
+        className="animate-fade-in"
+        style={{ animationDelay: "400ms" }}
+        aria-labelledby="checkins-heading"
+      >
+        <h2
+          id="checkins-heading"
+          className="mb-5 text-lg font-semibold tracking-tight"
+        >
+          Recent Check-Ins
+        </h2>
+        {checkIns.length === 0 ? (
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-zinc-700 bg-[#0a1224] px-8 py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /></svg>
+            </div>
+            <div>
+              <p className="text-sm font-semibold">No check-ins yet</p>
+              <Link
+                href="/client/check-in"
+                className="mt-1.5 inline-block text-sm font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+              >
+                Submit your first check-in
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="stagger-children space-y-3">
+            {checkIns.map((checkIn, idx) => {
+              const prev = checkIns[idx + 1];
+              const delta =
+                prev?.weight && checkIn.weight
+                  ? +(checkIn.weight - prev.weight).toFixed(1)
+                  : null;
+
+              const dateLabel = checkIn.submittedAt.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
+                minute: "2-digit",
+              });
+
+              return (
+                <div
+                  key={checkIn.id}
+                  className="relative rounded-2xl border border-white/[0.06] bg-[#0a1224] transition-all hover:border-blue-500/20"
+                >
+                  {/* Overflow menu — top right */}
+                  <div className="absolute right-1 top-1 z-10 sm:right-2 sm:top-2">
+                    <DeleteCheckInButton checkInId={checkIn.id} />
+                  </div>
+
+                  <Link
+                    href={`/client/check-ins/${checkIn.id}`}
+                    className="block rounded-2xl px-4 py-3.5 pr-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 sm:px-5 sm:py-4"
+                    aria-label={`View check-in from ${dateLabel}`}
+                  >
+                    {/* Mobile: stacked | Desktop: horizontal */}
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+                      {/* Weight + delta */}
+                      <div className="flex items-baseline gap-2">
+                        {checkIn.weight ? (
+                          <p className="text-xl font-bold tabular-nums leading-tight tracking-tight">
+                            {checkIn.weight}
+                            <span className="ml-0.5 text-[10px] font-normal text-zinc-400">lbs</span>
+                          </p>
+                        ) : (
+                          <p className="text-xl font-bold text-zinc-700">
+                            &mdash;
+                          </p>
+                        )}
+                        {delta != null && delta !== 0 && (
+                          <span
+                            className={`text-xs font-semibold ${delta < 0
+                              ? "text-emerald-500"
+                              : "text-red-400"
+                              }`}
+                          >
+                            {delta < 0 ? "\u2193" : "\u2191"} {Math.abs(delta)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Date + meta row */}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-zinc-300">
+                          {dateLabel}
+                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+                          {checkIn._count.photos > 0 && (
+                            <span>{checkIn._count.photos} photo{checkIn._count.photos > 1 ? "s" : ""}</span>
+                          )}
+                          {checkIn.notes && (
+                            <span className="truncate max-w-[200px] sm:max-w-[180px]">{checkIn.notes}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Status badge */}
+                      <span
+                        className={`self-start shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold sm:self-center ${checkIn.status === "REVIEWED"
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : "bg-amber-500/20 text-amber-400"
+                          }`}
+                      >
+                        {checkIn.status === "REVIEWED" ? "Reviewed" : "Pending"}
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       {/* Coach Feedback */}
       {latestCoachMessage && (
         <Link
           href={`/client/messages/${formatDateUTC(latestCoachMessage.weekOf)}`}
-          className="group animate-fade-in block overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0a1224] p-6 transition-all hover:border-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]"
-          style={{ animationDelay: "260ms" }}
+          className="group animate-fade-in block overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0a1224] p-5 transition-all hover:border-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]"
+          style={{ animationDelay: "160ms" }}
         >
           <div className="flex items-center justify-between">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
@@ -424,137 +554,9 @@ export default async function ClientDashboard() {
         </Link>
       )}
 
-      {/* Recent Check-Ins */}
-      <section
-        className="animate-fade-in"
-        style={{ animationDelay: "400ms" }}
-        aria-labelledby="checkins-heading"
-      >
-        <h2
-          id="checkins-heading"
-          className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400"
-        >
-          Recent Check-Ins
-        </h2>
-        {checkIns.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-zinc-700/60 bg-[#0a1224] px-8 py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800/60 ring-1 ring-white/[0.06]">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /></svg>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-zinc-300">No check-ins yet</p>
-              <Link
-                href="/client/check-in"
-                className="mt-1.5 inline-block text-sm font-semibold text-blue-400 underline underline-offset-2 hover:text-blue-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
-              >
-                Submit your first check-in
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="stagger-children space-y-2">
-            {checkIns.map((checkIn, idx) => {
-              const prev = checkIns[idx + 1];
-              const delta =
-                prev?.weight && checkIn.weight
-                  ? +(checkIn.weight - prev.weight).toFixed(1)
-                  : null;
-
-              const shortDate = checkIn.submittedAt.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              });
-              const fullDate = checkIn.submittedAt.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              });
-
-              return (
-                <div
-                  key={checkIn.id}
-                  className="rounded-2xl border border-white/[0.06] bg-[#0a1224] transition-all hover:border-blue-500/20"
-                >
-                  <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-4">
-                    <Link
-                      href={`/client/check-ins/${checkIn.id}`}
-                      className="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 sm:gap-4"
-                      aria-label={`View check-in from ${fullDate}`}
-                    >
-                      {/* Weight + delta */}
-                      <div className="flex items-baseline gap-1.5 sm:gap-2">
-                        {checkIn.weight ? (
-                          <p className="text-lg font-bold tabular-nums leading-none tracking-tight text-zinc-100 sm:text-xl">
-                            {checkIn.weight}
-                            <span className="ml-0.5 text-[10px] font-normal text-zinc-400">lbs</span>
-                          </p>
-                        ) : (
-                          <p className="text-lg font-bold text-zinc-700 sm:text-xl">
-                            &mdash;
-                          </p>
-                        )}
-                        {delta != null && delta !== 0 && (
-                          <span
-                            className={`text-[11px] font-semibold sm:text-xs ${delta < 0
-                              ? "text-emerald-500"
-                              : "text-red-400"
-                              }`}
-                          >
-                            {delta < 0 ? "\u2193" : "\u2191"} {Math.abs(delta)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Date */}
-                      <p className="min-w-0 text-xs text-zinc-400 sm:text-sm sm:font-medium sm:text-zinc-300">
-                        <span className="sm:hidden">{shortDate}</span>
-                        <span className="hidden sm:inline">{fullDate}</span>
-                      </p>
-
-                      {/* Photo count + notes — desktop only */}
-                      <div className="hidden min-w-0 flex-1 items-center gap-2 text-xs text-zinc-500 sm:flex">
-                        {checkIn._count.photos > 0 && (
-                          <span>{checkIn._count.photos} photo{checkIn._count.photos > 1 ? "s" : ""}</span>
-                        )}
-                        {checkIn.notes && (
-                          <span className="truncate max-w-[180px]">{checkIn.notes}</span>
-                        )}
-                      </div>
-
-                      {/* Status */}
-                      <span
-                        className={`shrink-0 sm:hidden ${checkIn.status === "REVIEWED"
-                          ? "h-2 w-2 rounded-full bg-emerald-500"
-                          : "h-2 w-2 rounded-full bg-amber-500"
-                          }`}
-                        aria-label={checkIn.status === "REVIEWED" ? "Reviewed" : "Pending"}
-                      />
-                      <span
-                        className={`hidden shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold sm:inline-block ${checkIn.status === "REVIEWED"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-amber-500/20 text-amber-400"
-                          }`}
-                      >
-                        {checkIn.status === "REVIEWED" ? "Reviewed" : "Pending"}
-                      </span>
-                    </Link>
-
-                    {/* Delete button */}
-                    <div className="shrink-0">
-                      <DeleteCheckInButton checkInId={checkIn.id} />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
       {/* Become a Coach */}
       {!user.isCoach && (
-        <div className="animate-fade-in" style={{ animationDelay: "480ms" }}>
+        <div className="animate-fade-in" style={{ animationDelay: "200ms" }}>
           <BecomeCoachForm />
         </div>
       )}

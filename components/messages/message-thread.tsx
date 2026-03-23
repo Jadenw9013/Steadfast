@@ -195,50 +195,58 @@ export function MessageThread({
                   const senderName = msg.sender.firstName ?? "User";
                   const showAvatar =
                     i === 0 || messages[i - 1].sender.id !== msg.sender.id;
-                  const dateStr = new Date(msg.createdAt).toLocaleString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  });
+
+                  const msgDate = new Date(msg.createdAt);
+                  const prevDate = i > 0 ? new Date(messages[i - 1].createdAt) : null;
+                  const showDateSeparator = !prevDate || msgDate.toDateString() !== prevDate.toDateString();
+                  const dateLabel = msgDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+                  const timeStr = msgDate.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 
                   return (
-                    <div
-                      key={msg.id}
-                      className={`flex items-end gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"}`}
-                    >
-                      {/* Avatar — always reserve space even when hidden to keep alignment */}
-                      <div className="w-7 shrink-0">
-                        {showAvatar && !isOwn && (
-                          <Avatar name={senderName} isCoach={isCoach} />
-                        )}
-                      </div>
-
-                      <div
-                        className={`group flex max-w-[75%] flex-col gap-0.5 ${isOwn ? "items-end" : "items-start"}`}
-                      >
-                        {/* Sender label — only when avatar shown */}
-                        {showAvatar && (
-                          <span className={`px-1 text-[10px] font-medium ${isOwn ? "text-zinc-500" : isCoach ? "text-blue-400" : "text-zinc-500"}`}>
-                            {isOwn ? "You" : `${senderName}${isCoach ? " · Coach" : ""}`}
+                    <div key={msg.id}>
+                      {/* Date separator */}
+                      {showDateSeparator && (
+                        <div className="my-3 flex items-center gap-3">
+                          <div className="h-px flex-1 bg-white/[0.06]" />
+                          <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-[10px] font-medium text-zinc-500">
+                            {dateLabel}
                           </span>
-                        )}
+                          <div className="h-px flex-1 bg-white/[0.06]" />
+                        </div>
+                      )}
 
-                        {/* Bubble */}
-                        <div
-                          className={`relative rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                            isOwn
-                              ? "rounded-br-sm bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                              : "rounded-bl-sm bg-zinc-800 text-zinc-100 shadow-sm"
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap">{msg.body}</p>
+                      <div className={`flex items-end gap-2 ${isOwn ? "flex-row-reverse" : "flex-row"}`}>
+                        {/* Avatar — always reserve space even when hidden to keep alignment */}
+                        <div className="w-7 shrink-0">
+                          {showAvatar && !isOwn && (
+                            <Avatar name={senderName} isCoach={isCoach} />
+                          )}
                         </div>
 
-                        {/* Timestamp — visible on hover */}
-                        <span className="px-1 text-[10px] text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
-                          {dateStr}
-                        </span>
+                        <div className={`group flex max-w-[75%] flex-col gap-0.5 ${isOwn ? "items-end" : "items-start"}`}>
+                          {/* Sender label — only when avatar shown */}
+                          {showAvatar && (
+                            <span className={`px-1 text-[10px] font-medium ${isOwn ? "text-zinc-500" : isCoach ? "text-blue-400" : "text-zinc-500"}`}>
+                              {isOwn ? "You" : `${senderName}${isCoach ? " · Coach" : ""}`}
+                            </span>
+                          )}
+
+                          {/* Bubble */}
+                          <div
+                            className={`relative px-3.5 py-2.5 text-sm leading-relaxed ${
+                              isOwn
+                                ? "rounded-2xl rounded-tr-sm bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                                : "rounded-2xl rounded-tl-sm bg-zinc-800 text-zinc-100 shadow-sm"
+                            }`}
+                          >
+                            <p className="whitespace-pre-wrap">{msg.body}</p>
+                          </div>
+
+                          {/* Timestamp — visible on hover */}
+                          <span className="px-1 text-[10px] text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
+                            {timeStr}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -269,14 +277,15 @@ export function MessageThread({
               }}
               onKeyDown={handleKeyDown}
               placeholder="Type a message… (Enter to send, Shift+Enter for newline)"
-              className="flex-1 resize-none overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-800/60 px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-blue-500/50 focus:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
-              style={{ minHeight: "40px", maxHeight: "120px" }}
+              style={{ minHeight: "44px", maxHeight: "120px", fontSize: "max(1rem, 16px)" }}
+              className="flex-1 resize-none overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-800/60 px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 transition-colors focus:border-blue-500/50 focus:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
             />
             <button
               type="submit"
               disabled={sending || !body.trim()}
               aria-label="Send message"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/30 transition-all hover:bg-blue-500 hover:shadow-blue-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1224] active:scale-95 disabled:opacity-40 disabled:shadow-none"
+              style={{ minHeight: "44px", minWidth: "44px" }}
+              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/30 transition-all hover:bg-blue-500 hover:shadow-blue-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1224] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             >
               {sending ? (
                 <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

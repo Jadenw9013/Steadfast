@@ -13,6 +13,25 @@ The design system is the source of truth for colors, spacing,
 typography, component patterns, and page-specific layout rules.
 Never deviate from it without explicit instruction.
 
+## Skills Available
+- **steadfast-patterns** — READ THIS for every Steadfast task (imports, auth, CoachClient, server actions, styling rules)
+- **ui-ux-pro-max** — design intelligence, auto-activates for UI work
+- **nextjs16-skills** — Next.js 16 App Router patterns and facts
+- **prisma7-skills** — Prisma 7 breaking changes and migration patterns
+- **clerk-nextjs-skills** — Clerk auth for Next.js 16 (proxy.ts, session claims)
+- **skill-security-auditor** — run before shipping auth/billing code
+- **context7 MCP** — live library docs (use before version-specific APIs)
+- **playwright MCP** — E2E browser testing
+
+## When to use each skill
+- Any Steadfast code → **steadfast-patterns** (always)
+- UI work → **ui-ux-pro-max** auto-activates + read MASTER.md
+- Next.js specific → **nextjs16-skills**
+- Prisma migrations or schema changes → **prisma7-skills**
+- Clerk / auth changes → **clerk-nextjs-skills**
+- Before billing/auth launch → **skill-security-auditor**
+- Unknown library API → **context7 MCP**
+
 ## Documentation
 Use Context7 MCP to look up live documentation for Next.js, Prisma,
 Tailwind CSS v4, and Clerk before implementing features that use

@@ -60,16 +60,11 @@ const BLOCK_TYPE_LABELS: Partial<Record<BlockType, string>> = {
 };
 
 const BLOCK_TYPE_BADGE: Partial<Record<BlockType, string>> = {
-  ACTIVATION:
-    "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
-  INSTRUCTION:
-    "bg-gray-100 text-gray-600 dark:bg-zinc-800 dark:text-zinc-300",
-  SUPERSET:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  CARDIO:
-    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  OPTIONAL:
-    "bg-gray-50 text-gray-500 dark:bg-zinc-800/60 dark:text-zinc-400",
+  ACTIVATION: "bg-yellow-900/30 text-yellow-300",
+  INSTRUCTION: "bg-zinc-800 text-zinc-300",
+  SUPERSET: "bg-purple-900/30 text-purple-300",
+  CARDIO: "bg-green-900/30 text-green-300",
+  OPTIONAL: "bg-zinc-800/60 text-zinc-400",
 };
 
 /** Types that represent exercises (have sets/reps) rather than instructions */
@@ -226,15 +221,15 @@ export function TrainingProgram({
     <div className="space-y-3">
       {/* Frequency / notes banner */}
       {(program.weeklyFrequency || program.clientNotes) && (
-        <div className="rounded-2xl border border-gray-200/60 bg-white px-5 py-4 shadow-sm dark:border-zinc-800/80 dark:bg-[#0a1224] dark:shadow-none">
+        <div className="rounded-2xl border border-zinc-800/80 bg-[#0a1224] px-5 py-4">
           {program.weeklyFrequency && (
             <p className="text-sm">
               <span className="font-semibold">{program.weeklyFrequency}×</span>{" "}
-              <span className="text-gray-500 dark:text-zinc-500">per week</span>
+              <span className="text-zinc-500">per week</span>
             </p>
           )}
           {program.clientNotes && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-zinc-500">
+            <p className="mt-1 text-sm text-zinc-500">
               {program.clientNotes}
             </p>
           )}
@@ -258,9 +253,9 @@ export function TrainingProgram({
         const cardioDetails = [frequency, duration, intensity].filter(Boolean).join(" \u00b7 ");
 
         return (
-          <div className="rounded-2xl border border-green-200/60 bg-white shadow-sm dark:border-green-900/40 dark:bg-[#0a1224] dark:shadow-none">
-            <div className="flex items-center gap-2 border-b border-green-100 px-5 py-3 dark:border-green-900/30">
-              <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">
+          <div className="rounded-2xl border border-green-900/40 bg-[#0a1224]">
+            <div className="flex items-center gap-2 border-b border-green-900/30 px-5 py-3">
+              <span className="rounded-full bg-green-900/40 px-2 py-0.5 text-xs font-semibold text-green-300">
                 Cardio
               </span>
               {modality && (
@@ -269,10 +264,10 @@ export function TrainingProgram({
             </div>
             <div className="px-5 py-3.5 space-y-1">
               {cardioDetails && (
-                <p className="text-sm text-gray-600 dark:text-zinc-400">{cardioDetails}</p>
+                <p className="text-sm text-zinc-400">{cardioDetails}</p>
               )}
               {notes && (
-                <p className="text-xs italic text-gray-400 dark:text-zinc-500">{notes}</p>
+                <p className="text-xs italic text-zinc-500">{notes}</p>
               )}
             </div>
           </div>
@@ -298,17 +293,17 @@ export function TrainingProgram({
         return (
           <div
             key={day.id}
-            className={`overflow-hidden rounded-2xl border bg-white shadow-sm dark:bg-[#0a1224] dark:shadow-none ${
+            className={`overflow-hidden rounded-2xl border bg-[#0a1224] ${
               allDone
-                ? "border-emerald-200 dark:border-emerald-900/40"
-                : "border-gray-200/60 dark:border-zinc-800/80"
+                ? "border-emerald-900/40"
+                : "border-zinc-800/80"
             }`}
           >
             {/* Card header row */}
             <button
               type="button"
               onClick={() => toggleExpand(day.id)}
-              className="flex w-full items-center gap-3 border-l-4 px-5 py-4 text-left transition-colors hover:bg-gray-50 dark:hover:bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-500"
+              className="flex w-full items-center gap-3 border-l-4 px-5 py-4 text-left transition-colors hover:bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-500 cursor-pointer"
               style={{
                 borderLeftColor: isExpanded
                   ? allDone ? "rgb(16 185 129)" : "currentColor"
@@ -322,8 +317,8 @@ export function TrainingProgram({
                 <p
                   className={`text-xs font-medium uppercase tracking-wider ${
                     allDone
-                      ? "text-emerald-600 dark:text-emerald-500"
-                      : "text-gray-400 dark:text-zinc-500"
+                      ? "text-emerald-500"
+                      : "text-zinc-500"
                   }`}
                 >
                   {dayLabel}
@@ -331,14 +326,14 @@ export function TrainingProgram({
                 <h3
                   className={`text-base font-semibold tracking-tight ${
                     allDone
-                      ? "text-emerald-700 dark:text-emerald-400"
+                      ? "text-emerald-400"
                       : ""
                   }`}
                 >
                   {dayTitle}
                 </h3>
                 {goalBlock && goalBlock.content && (
-                  <p className="mt-0.5 text-xs italic text-gray-400 dark:text-zinc-500 truncate">
+                  <p className="mt-0.5 text-xs italic text-zinc-500 truncate">
                     {goalBlock.content}
                   </p>
                 )}
@@ -363,12 +358,12 @@ export function TrainingProgram({
                   </svg>
                 )}
                 {dayProgress && (
-                  <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
+                  <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
                     {dayProgress.done}/{dayProgress.total}
                   </span>
                 )}
                 <svg
-                  className={`h-4 w-4 text-gray-400 transition-transform dark:text-zinc-500 ${isExpanded ? "rotate-180" : ""}`}
+                  className={`h-4 w-4 text-zinc-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -382,17 +377,17 @@ export function TrainingProgram({
 
             {/* Per-day progress bar */}
             {isExpanded && adherence && dayProgress && dayProgress.total > 0 && (
-              <div className="border-t border-gray-100 px-5 py-2.5 dark:border-zinc-800">
+              <div className="border-t border-zinc-800 px-5 py-2.5">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-gray-400 dark:text-zinc-500">
+                  <span className="text-xs font-medium text-zinc-500">
                     Progress
                   </span>
-                  <span className="text-xs font-semibold tabular-nums text-gray-500 dark:text-zinc-400">
+                  <span className="text-xs font-semibold tabular-nums text-zinc-400">
                     {dayProgress.done} / {dayProgress.total}
                   </span>
                 </div>
                 <div
-                  className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700"
+                  className="h-1.5 overflow-hidden rounded-full bg-zinc-700"
                   role="progressbar"
                   aria-valuenow={dayProgress.done}
                   aria-valuemin={0}
@@ -411,11 +406,11 @@ export function TrainingProgram({
             {isExpanded && (
               <div id={`day-body-${day.id}`}>
                 {day.blocks.length === 0 ? (
-                  <p className="px-5 py-4 text-sm text-gray-400 dark:text-zinc-500">
+                  <p className="px-5 py-4 text-sm text-zinc-500">
                     No exercises added yet.
                   </p>
                 ) : (
-                  <div className="divide-y divide-gray-100/80 border-t border-gray-100 dark:divide-zinc-800/60 dark:border-zinc-800">
+                  <div className="divide-y divide-zinc-800/60 border-t border-zinc-800">
                     {(() => {
                       let exerciseNum = 0;
                       return day.blocks.map((block) => {
@@ -444,7 +439,7 @@ export function TrainingProgram({
                           : false;
 
                         return (
-                          <div key={block.id} className={`px-5 py-3.5 ${isChecked ? "bg-emerald-50/40 dark:bg-emerald-950/10" : ""}`}>
+                          <div key={block.id} className={`px-5 py-3.5 ${isChecked ? "bg-emerald-950/10" : ""}`}>
                             <div className="flex items-start gap-3">
                               {/* Exercise checkbox or number */}
                               {isExercise && adherence ? (
@@ -457,11 +452,11 @@ export function TrainingProgram({
                                     checked={isChecked}
                                     onChange={() => handleExerciseToggle(day.dayName, block.title, currentExerciseIndex)}
                                     disabled={isPending}
-                                    className="h-[18px] w-[18px] cursor-pointer rounded border-2 border-zinc-300 accent-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 disabled:opacity-50 dark:border-zinc-600"
+                                    className="h-[18px] w-[18px] cursor-pointer rounded border-2 border-zinc-600 accent-emerald-500 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-[#0a1224] disabled:opacity-50"
                                   />
                                 </label>
                               ) : isExercise ? (
-                                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-semibold text-gray-500 dark:bg-zinc-800 dark:text-zinc-400">
+                                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-zinc-400">
                                   {currentExerciseIndex + 1}
                                 </span>
                               ) : null}
@@ -470,7 +465,7 @@ export function TrainingProgram({
                                 {/* Title + badge */}
                                 <div className="flex flex-wrap items-baseline gap-2">
                                   {block.title && (
-                                    <span className={`text-sm font-semibold ${isChecked ? "text-emerald-700 dark:text-emerald-400" : ""}`}>
+                                    <span className={`text-sm font-semibold ${isChecked ? "text-emerald-400" : ""}`}>
                                       {block.title}
                                     </span>
                                   )}
@@ -485,7 +480,7 @@ export function TrainingProgram({
                                   {parsed?.equipment.map((eq, eqI) => (
                                     <span
                                       key={eqI}
-                                      className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 dark:bg-zinc-800 dark:text-zinc-400"
+                                      className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-400"
                                     >
                                       {eq}
                                     </span>
@@ -494,21 +489,21 @@ export function TrainingProgram({
 
                                 {/* Inline details for exercises */}
                                 {parsed && parsed.details.length > 0 && (
-                                  <p className="mt-1 text-sm text-gray-600 dark:text-zinc-400">
+                                  <p className="mt-1 text-sm text-zinc-400">
                                     {parsed.details.join(" · ")}
                                   </p>
                                 )}
 
                                 {/* Notes as italic */}
                                 {parsed && parsed.notes.length > 0 && (
-                                  <p className="mt-0.5 text-xs italic text-gray-400 dark:text-zinc-500">
+                                  <p className="mt-0.5 text-xs italic text-zinc-500">
                                     {parsed.notes.join(" · ")}
                                   </p>
                                 )}
 
                                 {/* Non-exercise content (instructions etc) */}
                                 {!isExercise && block.content && (
-                                  <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-500 dark:text-zinc-400">
+                                  <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
                                     {block.content}
                                   </p>
                                 )}
@@ -538,7 +533,7 @@ export function TrainingProgram({
       })}
 
       {program.publishedAt && (
-        <p className="text-xs text-gray-400 dark:text-zinc-500">
+        <p className="text-xs text-zinc-500">
           Updated{" "}
           {program.publishedAt.toLocaleDateString("en-US", {
             month: "short",
@@ -643,7 +638,7 @@ function ExerciseProgressInput({
   }
 
   return (
-    <div className="ml-9 mt-2 rounded-lg border border-gray-100 bg-gray-50/60 px-3 py-2.5 dark:border-zinc-800 dark:bg-zinc-900/40 space-y-2.5">
+    <div className="ml-9 mt-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2.5 space-y-2.5">
       {Array.from({ length: setCount }, (_, i) => {
         const prev = previousAll[lookupKey(i)] ?? (i === 0 ? previousAll[legacyKey] : undefined);
         const { weight, reps } = sets[i] ?? { weight: "", reps: "" };
@@ -653,18 +648,18 @@ function ExerciseProgressInput({
             {/* Set label + previous result */}
             <div className="mb-1.5 flex items-center justify-between">
               {setCount > 1 ? (
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-zinc-500">
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
                   Set {i + 1}
                 </span>
               ) : (
-                <span className="text-xs text-gray-400 dark:text-zinc-500">
+                <span className="text-xs text-zinc-500">
                   {prev ? "Last week" : "No previous result"}
                 </span>
               )}
               {prev && (
-                <span className="text-xs text-gray-400 dark:text-zinc-500">
+                <span className="text-xs text-zinc-500">
                   {setCount > 1 ? "Last: " : ""}
-                  <span className="font-semibold text-gray-500 dark:text-zinc-400">
+                  <span className="font-semibold text-zinc-400">
                     {prev.weight} × {prev.reps}
                   </span>
                 </span>
@@ -674,7 +669,7 @@ function ExerciseProgressInput({
             {/* Weight × Reps inputs */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1.5">
-                <label htmlFor={`w-${programDay}-${exerciseName}-${i}`} className="text-xs font-medium text-gray-500 dark:text-zinc-400">Weight</label>
+                <label htmlFor={`w-${programDay}-${exerciseName}-${i}`} className="text-xs font-medium text-zinc-400">Weight</label>
                 <input
                   id={`w-${programDay}-${exerciseName}-${i}`}
                   type="number" inputMode="decimal" step="any" min="0"
@@ -682,13 +677,14 @@ function ExerciseProgressInput({
                   onChange={(e) => updateSet(i, "weight", e.target.value)}
                   onBlur={() => saveSet(i)}
                   placeholder="lbs"
-                  className="w-16 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm tabular-nums text-gray-800 placeholder:text-gray-300 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-500 dark:focus:ring-zinc-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  style={{ fontSize: "max(1rem, 16px)" }}
+                  className="w-16 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 tabular-nums text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   aria-label={`Weight for ${exerciseName} set ${i + 1}`}
                 />
               </div>
-              <span className="text-gray-300 dark:text-zinc-600">×</span>
+              <span className="text-zinc-600">×</span>
               <div className="flex items-center gap-1.5">
-                <label htmlFor={`r-${programDay}-${exerciseName}-${i}`} className="text-xs font-medium text-gray-500 dark:text-zinc-400">Reps</label>
+                <label htmlFor={`r-${programDay}-${exerciseName}-${i}`} className="text-xs font-medium text-zinc-400">Reps</label>
                 <input
                   id={`r-${programDay}-${exerciseName}-${i}`}
                   type="number" inputMode="numeric" min="0"
@@ -696,13 +692,14 @@ function ExerciseProgressInput({
                   onChange={(e) => updateSet(i, "reps", e.target.value)}
                   onBlur={() => saveSet(i)}
                   placeholder="0"
-                  className="w-14 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-sm tabular-nums text-gray-800 placeholder:text-gray-300 focus:border-zinc-400 focus:outline-none focus:ring-1 focus:ring-zinc-400 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-600 dark:focus:border-zinc-500 dark:focus:ring-zinc-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  style={{ fontSize: "max(1rem, 16px)" }}
+                  className="w-14 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 tabular-nums text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   aria-label={`Reps for ${exerciseName} set ${i + 1}`}
                 />
               </div>
-              {saveState === "saving" && <span className="text-xs text-gray-400 dark:text-zinc-500">Saving…</span>}
+              {saveState === "saving" && <span className="text-xs text-zinc-500">Saving…</span>}
               {saveState === "saved" && (
-                <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="flex items-center gap-1 text-xs font-medium text-emerald-400">
                   <svg aria-hidden="true" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                   Saved
                 </span>
@@ -712,7 +709,7 @@ function ExerciseProgressInput({
 
             {/* Divider between sets */}
             {setCount > 1 && i < setCount - 1 && (
-              <div className="mt-2.5 border-t border-gray-100 dark:border-zinc-800/60" />
+              <div className="mt-2.5 border-t border-zinc-800/60" />
             )}
           </div>
         );
