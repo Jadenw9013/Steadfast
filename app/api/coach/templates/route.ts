@@ -2,52 +2,35 @@ import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 
+// GET  /api/coach/templates — list all templates for this coach
+// POST /api/coach/templates — create a new (empty) training template
+
 export async function GET() {
-  // ── Auth ──────────────────────────────────────────────────────────────────
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
   try {
     user = await getCurrentDbUser();
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   if (!user.isCoach) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
     const [snippets, templates, checkInTemplates] = await Promise.all([
-      // ── Meal Snippets ───────────────────────────────────────────────────
       db.planSnippet.findMany({
         where: { coachId: user.id },
-        select: {
-          id: true,
-          name: true,
-          payload: true,
-        },
+        select: { id: true, name: true, payload: true },
         orderBy: { name: "asc" },
       }),
-
-      // ── Training Templates ──────────────────────────────────────────────
       db.trainingTemplate.findMany({
         where: { coachId: user.id },
-        select: {
-          id: true,
-          name: true,
-          _count: { select: { days: true } },
-        },
+        select: { id: true, name: true, _count: { select: { days: true } } },
         orderBy: { name: "asc" },
       }),
-
-      // ── Check-In Templates ──────────────────────────────────────────────
       db.checkInTemplate.findMany({
         where: { coachId: user.id },
-        select: {
-          id: true,
-          name: true,
-          isDefault: true,
-          questions: true,
-        },
+        select: { id: true, name: true, isDefault: true, questions: true },
         orderBy: [{ isDefault: "desc" }, { name: "asc" }],
       }),
     ]);
@@ -74,9 +57,40 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[GET /api/coach/templates]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+export async function POST(req: Request) {
+  let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
+  try {
+    user = await getCurrentDbUser();
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!user.isCoach) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json().catch(() => null);
+  const name = (body?.name as string)?.trim();
+  if (!name) {
+    return NextResponse.json({ error: "name is required" }, { status: 400 });
+  }
+
+  try {
+    const template = await db.trainingTemplate.create({
+      data: {
+        coachId: user.id,
+        name,
+        description: (body?.description as string)?.trim() || null,
+      },
+      select: { id: true, name: true },
+    });
+
+    return NextResponse.json({ template });
+  } catch (err) {
+    console.error("[POST /api/coach/templates]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
