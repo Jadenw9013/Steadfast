@@ -20,7 +20,7 @@ function formatSize(bytes: number): string {
 export function PhotoUpload({
   files,
   onFilesChange,
-  maxFiles = 3,
+  maxFiles = 10,
 }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
