@@ -25,6 +25,7 @@
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^2.0.0",
     "dayjs": "^1.11.19",
+    "jsonwebtoken": "^9.0.3",
     "next": "16.1.6",
     "pg": "^8.18.0",
     "react": "19.2.3",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
     "@types/react": "^19",

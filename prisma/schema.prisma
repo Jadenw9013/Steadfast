@@ -46,6 +46,7 @@ model User {
   isCoach    Boolean  @default(false)
   isClient   Boolean  @default(true)
   phoneNumber           String?
+  apnsToken             String?
   smsOptIn              Boolean  @default(false)
   smsMealPlanUpdates    Boolean  @default(false)
   smsDailyCheckInReminder Boolean @default(false)
@@ -63,6 +64,12 @@ model User {
   emailClientCheckIns    Boolean @default(true)
   emailClientMessages    Boolean @default(true)
   emailCoachingRequests  Boolean @default(true)
+  pushMealPlanUpdates    Boolean @default(true)
+  pushCheckInReminders   Boolean @default(true)
+  pushCoachMessages      Boolean @default(true)
+  pushClientCheckIns     Boolean @default(true)
+  pushClientMessages     Boolean @default(true)
+  pushCoachingRequests   Boolean @default(true)
   defaultNotifyOnPublish Boolean @default(true)
   checkInDaysOfWeek     Int[]   @default([1])   // 0=Sun..6=Sat. Default: Monday
   cadenceConfig         Json?   // CadenceConfig object (null = legacy checkInDaysOfWeek)
