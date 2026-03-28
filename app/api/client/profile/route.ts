@@ -36,7 +36,8 @@ export async function GET() {
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
-    photoUrl: signedPhotoUrl,
+    profilePhotoUrl: signedPhotoUrl,
+    photoUrl: signedPhotoUrl,  // backward compat
     timezone: user.timezone,
     clientBio: user.clientBio,
     fitnessGoal: user.fitnessGoal,
@@ -104,7 +105,8 @@ export async function PUT(req: NextRequest) {
       firstName: updated.firstName,
       lastName: updated.lastName,
       email: updated.email,
-      photoUrl: signedPhotoUrl,
+      profilePhotoUrl: signedPhotoUrl,
+      photoUrl: signedPhotoUrl,  // backward compat
       timezone: updated.timezone,
       clientBio: updated.clientBio,
       fitnessGoal: updated.fitnessGoal,

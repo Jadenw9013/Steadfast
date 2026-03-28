@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { getEffectiveScheduleDays } from "@/lib/scheduling/periods";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
+import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 
 export async function getClientProfile(coachId: string, clientId: string) {
   const [assignment, coach] = await Promise.all([
@@ -11,7 +12,7 @@ export async function getClientProfile(coachId: string, clientId: string) {
       },
       include: {
         client: {
-          select: { id: true, firstName: true, lastName: true, email: true, timezone: true },
+          select: { id: true, firstName: true, lastName: true, email: true, timezone: true, profilePhotoPath: true },
         },
       },
     }),
@@ -94,8 +95,17 @@ export async function getClientProfile(coachId: string, clientId: string) {
   );
   const cadencePreview = getCadencePreview(effectiveCadence);
 
+  // Sign profile photo URL
+  let profilePhotoUrl: string | null = null;
+  if (assignment.client.profilePhotoPath) {
+    try {
+      profilePhotoUrl = await getProfilePhotoUrl(assignment.client.profilePhotoPath);
+    } catch { /* ignore */ }
+  }
+
   return {
     client: assignment.client,
+    profilePhotoUrl,
     coachNotes: assignment.coachNotes,
     latestCheckIn,
     previousCheckIn,

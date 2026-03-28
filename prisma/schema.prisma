@@ -981,6 +981,7 @@ model ExerciseResult {
   clientId     String
   exerciseName String   // snapshot: "Incline Press"
   programDay   String   // snapshot: "Day 1 — Chest"
+  setNumber    Int      @default(1) // 1-indexed set number
   weekOf       DateTime // normalizeToMonday()
   weight       Float
   reps         Int
@@ -989,7 +990,7 @@ model ExerciseResult {
 
   client User @relation("ExerciseResults", fields: [clientId], references: [id])
 
-  @@unique([clientId, exerciseName, programDay, weekOf])
+  @@unique([clientId, exerciseName, programDay, setNumber, weekOf])
   @@index([clientId])
 }
 

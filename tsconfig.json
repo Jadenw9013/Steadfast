@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "scripts", "analyze-recovery.ts", "restore-meals.ts", "test-db.ts", "test-db.js", "test-pg.js", "test-pg2.js", "test-pg3.js", "test-pg4.js", "test-pg5.js", "tmp-refactor.js", "tmp-schema-clean.js"]
 }

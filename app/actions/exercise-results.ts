@@ -34,10 +34,11 @@ export async function saveExerciseResult(input: unknown) {
 
   await db.exerciseResult.upsert({
     where: {
-      clientId_exerciseName_programDay_weekOf: {
+      clientId_exerciseName_programDay_setNumber_weekOf: {
         clientId: user.id,
         exerciseName,
         programDay,
+        setNumber: 1,
         weekOf,
       },
     },
@@ -45,6 +46,7 @@ export async function saveExerciseResult(input: unknown) {
       clientId: user.id,
       exerciseName,
       programDay,
+      setNumber: 1,
       weekOf,
       weight,
       reps,

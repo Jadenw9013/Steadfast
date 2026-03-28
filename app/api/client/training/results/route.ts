@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
         id: true,
         exerciseName: true,
         programDay: true,
+        setNumber: true,
         weight: true,
         reps: true,
         weekOf: true,
@@ -43,6 +44,7 @@ export async function GET(req: NextRequest) {
         id: r.id,
         exerciseName: r.exerciseName,
         programDay: r.programDay,
+        setNumber: r.setNumber,
         weight: r.weight,
         reps: r.reps,
         weekOf: r.weekOf.toISOString(),
@@ -62,10 +64,10 @@ export async function GET(req: NextRequest) {
 const saveResultSchema = z.object({
   exerciseName: z.string().min(1).max(200),
   programDay: z.string().min(1).max(200),
+  setNumber: z.number().int().positive().default(1),
   weekOf: z.string().optional(),
-  weight: z.number().positive().max(9999).optional(),
-  reps: z.number().int().positive().max(999).optional(),
-  set: z.number().int().positive().optional(),
+  weight: z.number().min(0).max(9999).optional(),
+  reps: z.number().int().min(0).max(999).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -90,7 +92,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { exerciseName, programDay, weight, reps } = parsed.data;
+    const { exerciseName, programDay, setNumber, weight, reps } = parsed.data;
 
     // Verify client has a coach assignment (mirrors server action)
     const assignment = await db.coachClient.findFirst({
@@ -105,12 +107,13 @@ export async function POST(req: NextRequest) {
       ? normalizeToMonday(new Date(parsed.data.weekOf))
       : normalizeToMonday(new Date());
 
-    await db.exerciseResult.upsert({
+    const result = await db.exerciseResult.upsert({
       where: {
-        clientId_exerciseName_programDay_weekOf: {
+        clientId_exerciseName_programDay_setNumber_weekOf: {
           clientId: user.id,
           exerciseName,
           programDay,
+          setNumber,
           weekOf,
         },
       },
@@ -118,6 +121,7 @@ export async function POST(req: NextRequest) {
         clientId: user.id,
         exerciseName,
         programDay,
+        setNumber,
         weekOf,
         weight: weight ?? 0,
         reps: reps ?? 0,
@@ -126,9 +130,26 @@ export async function POST(req: NextRequest) {
         ...(weight !== undefined && { weight }),
         ...(reps !== undefined && { reps }),
       },
+      select: {
+        id: true,
+        exerciseName: true,
+        programDay: true,
+        setNumber: true,
+        weight: true,
+        reps: true,
+        weekOf: true,
+      },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      id: result.id,
+      exerciseName: result.exerciseName,
+      programDay: result.programDay,
+      setNumber: result.setNumber,
+      weight: result.weight,
+      reps: result.reps,
+      weekOf: result.weekOf.toISOString(),
+    });
   } catch (err) {
     console.error("[POST /api/client/training/results]", err);
     return NextResponse.json(

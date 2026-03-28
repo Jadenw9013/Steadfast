@@ -5,12 +5,14 @@ import { createServiceClient } from "@/lib/supabase/server";
 
 const BUCKET = "profile-photos";
 const TTL = 60 * 60; // 1 hour
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME = new Set([
   "image/jpeg",
   "image/jpg",
   "image/png",
   "image/webp",
+  "image/heic",
+  "image/heif",
 ]);
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -25,6 +27,8 @@ function extFromMime(mime: string): string {
     "image/jpg": "jpg",
     "image/png": "png",
     "image/webp": "webp",
+    "image/heic": "heic",
+    "image/heif": "heif",
   };
   return map[mime] ?? "jpg";
 }
@@ -165,6 +169,7 @@ export async function POST(req: NextRequest) {
       success: true,
       photoUrl,
       photoPath: newPath,
+      profilePhotoPath: newPath,
     });
   } catch (err) {
     console.error("[POST /api/coach/profile-photo]", err);

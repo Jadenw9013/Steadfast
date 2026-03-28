@@ -8,6 +8,7 @@ export type InboxClient = {
   firstName: string | null;
   lastName: string | null;
   email: string;
+  profilePhotoUrl?: string | null;
   weekStatus: WeekStatus;
   isDueToday: boolean;
   hasClientMessage: boolean;
@@ -182,9 +183,17 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
           className="relative shrink-0 h-12 w-12 rounded-full p-[2px]"
           style={{ background: ringGradient }}
         >
-          <div className="flex h-full w-full items-center justify-center rounded-full bg-[#111c30] text-sm font-bold text-zinc-100">
-            {client.firstName?.[0]?.toUpperCase() ?? "?"}
-          </div>
+          {client.profilePhotoUrl ? (
+            <img
+              src={client.profilePhotoUrl}
+              alt={`${client.firstName ?? ""} ${client.lastName ?? ""}`}
+              className="h-full w-full rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#111c30] text-sm font-bold text-zinc-100">
+              {client.firstName?.[0]?.toUpperCase() ?? "?"}
+            </div>
+          )}
           {client.hasClientMessage && (
             <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-60 motion-safe:animate-ping" />

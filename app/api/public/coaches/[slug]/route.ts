@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { createServiceClient } from "@/lib/supabase/server";
 
 const PHOTO_BUCKET = "profile-photos";
-const PORTFOLIO_BUCKET = "portfolio";
+const PORTFOLIO_MEDIA_BUCKET = "portfolio-media";
 const TTL = 60 * 60; // 1 hour
 
 // ── GET — public coach profile by slug (no auth) ─────────────────────────────
@@ -78,11 +78,12 @@ export async function GET(
       profile.portfolioItems.map(async (p) => {
         let signedUrl = "";
         if (p.mediaPath) {
-          // Portfolio items may be in the portfolio bucket or profile-photos bucket
-          const bucket = p.mediaPath.startsWith("portfolio") ? PHOTO_BUCKET : PORTFOLIO_BUCKET;
-          const { data } = await supabase.storage
-            .from(bucket)
+          const { data, error: signErr } = await supabase.storage
+            .from(PORTFOLIO_MEDIA_BUCKET)
             .createSignedUrl(p.mediaPath, TTL);
+          if (signErr) {
+            console.warn(`[portfolio] sign failed for "${p.mediaPath}":`, signErr.message);
+          }
           signedUrl = data?.signedUrl ?? p.mediaPath;
         }
         return {

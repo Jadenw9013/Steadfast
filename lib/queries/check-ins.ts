@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { getSignedDownloadUrl, getSignedDownloadUrls } from "@/lib/supabase/storage";
+import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, getCoachStatusLabel, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 
@@ -173,7 +174,23 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
 
   const coachCadence = parseCadenceConfig(coach.cadenceConfig);
 
-  return assignments.map((a) => {
+  // Sign profile photo URLs in parallel
+  const photoSignPromises = assignments.map(async (a) => {
+    if (a.client.profilePhotoPath) {
+      try {
+        const url = await getProfilePhotoUrl(a.client.profilePhotoPath);
+        console.log("[clients] signed photo for %s path=%s", a.client.email, a.client.profilePhotoPath);
+        return url;
+      } catch (err) {
+        console.warn("[clients] photo sign FAILED for %s path=%s err=%s", a.client.email, a.client.profilePhotoPath, (err as Error).message);
+        return null;
+      }
+    }
+    return null;
+  });
+  const signedPhotos = await Promise.all(photoSignPromises);
+
+  return assignments.map((a, idx) => {
     const latestCheckIn = a.client.checkIns[0] ?? null;
     const previousCheckIn = a.client.checkIns[1] ?? null;
 
@@ -206,11 +223,15 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
       clientTz
     );
 
+    // Resolve profile photo: signed Supabase URL → null
+    const profilePhotoUrl = signedPhotos[idx] ?? null;
+
     return {
       id: a.client.id,
       firstName: a.client.firstName,
       lastName: a.client.lastName,
       email: a.client.email,
+      profilePhotoUrl,
       weekStatus,
       isDueToday: cadenceResult.status === "due" || cadenceResult.status === "overdue",
       hasClientMessage: a.client.clientMessages.length > 0,

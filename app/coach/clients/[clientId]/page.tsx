@@ -92,6 +92,7 @@ export default async function ClientProfilePage({
 
   const {
     client,
+    profilePhotoUrl,
     latestCheckIn,
     previousCheckIn,
     weightDelta,
@@ -187,9 +188,17 @@ export default async function ClientProfilePage({
             &larr;
           </Link>
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-[2px]" style={{ background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)" }}>
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#111c30] text-sm font-bold text-zinc-100">
-              {client.firstName?.[0] ?? "?"}
-            </div>
+            {profilePhotoUrl ? (
+              <img
+                src={profilePhotoUrl}
+                alt={`${client.firstName ?? ""} ${client.lastName ?? ""}`}
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-full bg-[#111c30] text-sm font-bold text-zinc-100">
+                {client.firstName?.[0] ?? "?"}
+              </div>
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
