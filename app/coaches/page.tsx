@@ -195,9 +195,9 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
         : null;
 
     return (
-        <div className="min-h-screen bg-[#080d1a] text-zinc-100">
+        <div className="min-h-screen bg-black text-zinc-100">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 border-b border-white/[0.08] bg-[#080d1a]/85 backdrop-blur-2xl" style={{ backdropFilter: "blur(40px) saturate(180%)", WebkitBackdropFilter: "blur(40px) saturate(180%)" }}>
+            <header className="sticky top-0 z-30 border-b border-white/[0.08] bg-black/85 backdrop-blur-2xl" style={{ backdropFilter: "blur(40px) saturate(180%)", WebkitBackdropFilter: "blur(40px) saturate(180%)" }}>
                 <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:px-8">
                     <Link href="/" className="group flex items-center gap-2.5" aria-label="Steadfast home">
                         <div className="relative h-7 w-7 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8">

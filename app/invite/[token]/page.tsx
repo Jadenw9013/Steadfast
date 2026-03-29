@@ -34,7 +34,7 @@ export default async function InviteRedemptionPage({ params }: { params: Promise
 
         // If there was an error (wrong email, etc.) — show it
         return (
-            <div className="flex min-h-screen items-center justify-center bg-[#020815] px-5">
+            <div className="flex min-h-screen items-center justify-center bg-black px-5">
                 <div className="w-full max-w-md sf-glass-card !border-red-500/20 p-8 text-center space-y-4">
                     <p className="text-lg font-semibold text-zinc-100">Invite Error</p>
                     <p className="text-sm text-red-400">{result.error}</p>
@@ -51,7 +51,7 @@ export default async function InviteRedemptionPage({ params }: { params: Promise
     const signUpUrl = `/sign-up?redirect_url=${encodeURIComponent(`/invite/${token}`)}`;
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-[#020815] px-5">
+        <div className="flex min-h-screen items-center justify-center bg-black px-5">
             <div className="w-full max-w-md space-y-6">
                 {/* Card */}
                 <div className="sf-glass-card p-8 text-center space-y-5">

@@ -26,7 +26,7 @@ export default async function SignRoute({ params }: { params: Promise<{ token: s
     const answers = request.formSubmission.answers as Record<string, unknown>;
 
     return (
-        <div className="min-h-screen bg-[#060d1b]">
+        <div className="min-h-screen bg-black">
             <SignaturePage
                 token={token}
                 prospectName={request.prospectName}
@@ -40,7 +40,7 @@ export default async function SignRoute({ params }: { params: Promise<{ token: s
 
 function ErrorPage({ title, message }: { title: string; message: string }) {
     return (
-        <div className="min-h-screen bg-[#060d1b] flex items-center justify-center px-4">
+        <div className="min-h-screen bg-black flex items-center justify-center px-4">
             <div className="max-w-md text-center space-y-4">
                 <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-zinc-800">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>

@@ -102,9 +102,9 @@ export default async function CoachProfilePage({ params }: PageProps) {
     const initials = `${profile.user.firstName?.[0] ?? ""}${profile.user.lastName?.[0] ?? ""}`.toUpperCase() || "?";
 
     return (
-        <div className="min-h-screen bg-[#020815]">
+        <div className="min-h-screen bg-black">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 border-b border-white/[0.04] bg-[#020815]/80 backdrop-blur-xl">
+            <header className="sticky top-0 z-30 border-b border-white/[0.04] bg-black/80 backdrop-blur-xl">
                 <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-5 sm:px-8">
                     <Link
                         href="/coaches"
@@ -514,7 +514,7 @@ export default async function CoachProfilePage({ params }: PageProps) {
 
             {/* ── Mobile Sticky CTA ── */}
             {!isExistingClient && (
-                <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/[0.08] bg-[#020815]/95 px-5 py-3 backdrop-blur-sm lg:hidden">
+                <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-white/[0.08] bg-black/95 px-5 py-3 backdrop-blur-sm lg:hidden">
                     <div className="flex items-center gap-3">
                         <Link
                             href={`/coaches/${profile.slug}/request`}

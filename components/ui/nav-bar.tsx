@@ -77,8 +77,8 @@ export function NavBar({
                 key={link.href}
                 href={link.href}
                 className={`hidden rounded-lg px-3 py-1.5 text-sm font-medium transition-colors sm:block ${active
-                  ? "bg-white/[0.10] text-white"
-                  : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-100"
+                  ? "bg-white/[0.12] text-white"
+                  : "text-zinc-300 hover:bg-white/[0.06] hover:text-white"
                   }`}
                 aria-current={active ? "page" : undefined}
               >
