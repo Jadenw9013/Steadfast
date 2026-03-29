@@ -283,11 +283,11 @@ export default async function ClientDashboard() {
           >
             Your Program
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
             {mealPlan ? (
               <Link
                 href="/client/meal-plan"
-                className="group flex flex-col gap-2 overflow-hidden sf-glass-card p-5 transition-all hover:border-blue-500/20 hover:shadow-lg hover:shadow-zinc-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]"
+                className="group flex flex-col gap-2 overflow-hidden sf-glass-card p-4 sm:p-5 transition-all hover:border-blue-500/20 hover:shadow-lg hover:shadow-zinc-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 aria-label="View your nutrition plan"
                 style={{ minHeight: "100px" }}
               >
@@ -301,7 +301,7 @@ export default async function ClientDashboard() {
                 </span>
               </Link>
             ) : (
-              <div className="flex flex-col gap-2 overflow-hidden sf-surface-card p-5" style={{ minHeight: "100px" }}>
+              <div className="flex flex-col gap-2 overflow-hidden sf-surface-card p-4 sm:p-5" style={{ minHeight: "100px" }}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/60">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
                 </div>
@@ -313,7 +313,7 @@ export default async function ClientDashboard() {
             {trainingProgram && trainingProgram.days.length > 0 ? (
               <Link
                 href="/client/training"
-                className="group flex flex-col gap-2 overflow-hidden sf-glass-card p-5 transition-all hover:border-emerald-500/20 hover:shadow-lg hover:shadow-zinc-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]"
+                className="group flex flex-col gap-2 overflow-hidden sf-glass-card p-4 sm:p-5 transition-all hover:border-emerald-500/20 hover:shadow-lg hover:shadow-zinc-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 aria-label="View your training program"
                 style={{ minHeight: "100px" }}
               >
@@ -327,7 +327,7 @@ export default async function ClientDashboard() {
                 </span>
               </Link>
             ) : (
-              <div className="flex flex-col gap-2 overflow-hidden sf-surface-card p-5" style={{ minHeight: "100px" }}>
+              <div className="flex flex-col gap-2 overflow-hidden sf-surface-card p-4 sm:p-5" style={{ minHeight: "100px" }}>
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/60">
                   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600" aria-hidden="true"><path d="M6 5v11"/><path d="M18 5v11"/><path d="M2 9h4"/><path d="M18 9h4"/><path d="M2 15h4"/><path d="M18 15h4"/><path d="M6 9h12"/><path d="M6 15h12"/></svg>
                 </div>

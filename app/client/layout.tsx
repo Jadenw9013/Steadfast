@@ -48,7 +48,7 @@ export default async function ClientLayout({
         canSwitchRole={user.isCoach && user.isClient}
         hasCoach={!!coachClient}
       />
-      <main id="main-content" className="mx-auto max-w-5xl px-5 pb-24 pt-8 sm:px-8 sm:pb-8">{children}</main>
+      <main id="main-content" className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-8 sm:pb-8 sm:pt-8">{children}</main>
       <MobileBottomNav role="client" hasCoach={!!coachClient} />
     </div>
   );
