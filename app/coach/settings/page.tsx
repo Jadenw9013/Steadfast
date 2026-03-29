@@ -126,7 +126,7 @@ export default async function CoachSettingsPage({
               {template && <ResetTemplateButton />}
               <Link
                 href="/coach/settings/check-in-form"
-                className="rounded-lg border border-white/[0.08] bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-all hover:border-white/[0.14] hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1224]" style={{ minHeight: "44px" }}
+                className="sf-button-secondary text-sm"
               >
                 Customize Form
               </Link>
@@ -151,7 +151,7 @@ export default async function CoachSettingsPage({
             </div>
             <Link
               href="/coach/templates/onboarding"
-              className="rounded-lg border border-white/[0.08] bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition-all hover:border-white/[0.14] hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1224]" style={{ minHeight: "44px" }}
+              className="sf-button-secondary text-sm"
             >
               Go to Templates →
             </Link>

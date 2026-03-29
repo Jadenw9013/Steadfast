@@ -221,7 +221,7 @@ export function TrainingProgram({
     <div className="space-y-3">
       {/* Frequency / notes banner */}
       {(program.weeklyFrequency || program.clientNotes) && (
-        <div className="rounded-2xl border border-zinc-800/80 bg-[#0a1224] px-5 py-4">
+        <div className="sf-glass-card px-5 py-4">
           {program.weeklyFrequency && (
             <p className="text-sm">
               <span className="font-semibold">{program.weeklyFrequency}×</span>{" "}
@@ -253,7 +253,7 @@ export function TrainingProgram({
         const cardioDetails = [frequency, duration, intensity].filter(Boolean).join(" \u00b7 ");
 
         return (
-          <div className="rounded-2xl border border-green-900/40 bg-[#0a1224]">
+          <div className="sf-glass-card" style={{ borderColor: "rgba(34, 197, 94, 0.20)" }}>
             <div className="flex items-center gap-2 border-b border-green-900/30 px-5 py-3">
               <span className="rounded-full bg-green-900/40 px-2 py-0.5 text-xs font-semibold text-green-300">
                 Cardio
@@ -293,10 +293,10 @@ export function TrainingProgram({
         return (
           <div
             key={day.id}
-            className={`overflow-hidden rounded-2xl border bg-[#0a1224] ${
+            className={`overflow-hidden sf-glass-card ${
               allDone
                 ? "border-emerald-900/40"
-                : "border-zinc-800/80"
+                : ""
             }`}
           >
             {/* Card header row */}
@@ -358,7 +358,7 @@ export function TrainingProgram({
                   </svg>
                 )}
                 {dayProgress && (
-                  <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
+                  <span className="sf-section-label text-xs">
                     {dayProgress.done}/{dayProgress.total}
                   </span>
                 )}
@@ -638,7 +638,7 @@ function ExerciseProgressInput({
   }
 
   return (
-    <div className="ml-9 mt-2 rounded-lg border border-zinc-800 bg-zinc-900/40 px-3 py-2.5 space-y-2.5">
+    <div className="ml-9 mt-2 sf-glass-card px-3 py-2.5 space-y-2.5">
       {Array.from({ length: setCount }, (_, i) => {
         const prev = previousAll[lookupKey(i)] ?? (i === 0 ? previousAll[legacyKey] : undefined);
         const { weight, reps } = sets[i] ?? { weight: "", reps: "" };
@@ -678,7 +678,7 @@ function ExerciseProgressInput({
                   onBlur={() => saveSet(i)}
                   placeholder="lbs"
                   style={{ fontSize: "max(1rem, 16px)" }}
-                  className="w-16 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 tabular-nums text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="sf-input w-16 px-2 py-1.5 tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   aria-label={`Weight for ${exerciseName} set ${i + 1}`}
                 />
               </div>
@@ -693,7 +693,7 @@ function ExerciseProgressInput({
                   onBlur={() => saveSet(i)}
                   placeholder="0"
                   style={{ fontSize: "max(1rem, 16px)" }}
-                  className="w-14 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-1.5 tabular-nums text-zinc-100 placeholder:text-zinc-600 focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-500 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                  className="sf-input w-14 px-2 py-1.5 tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   aria-label={`Reps for ${exerciseName} set ${i + 1}`}
                 />
               </div>

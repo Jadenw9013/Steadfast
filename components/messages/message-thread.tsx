@@ -228,7 +228,7 @@ export function MessageThread({
 
   return (
     <section
-      className="flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-[#0a1224] shadow-xl shadow-black/20"
+      className="flex flex-col overflow-hidden sf-glass-card shadow-xl shadow-black/20"
       aria-label="Messages"
     >
       {/* ── Inline animation styles ─────────────────────────────── */}
@@ -350,7 +350,7 @@ export function MessageThread({
           >
             {messages.length === 0 ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.06]">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
@@ -490,7 +490,7 @@ export function MessageThread({
           {/* ── Compose bar ──────────────────────────────────────── */}
           <form
             onSubmit={handleSend}
-            className="flex items-end gap-2 border-t border-white/[0.05] bg-[#0a1224] px-3 py-3"
+            className="flex items-end gap-2 border-t border-white/[0.05] bg-transparent px-3 py-3"
           >
             <label htmlFor="message-input" className="sr-only">
               Type a message
@@ -513,14 +513,14 @@ export function MessageThread({
                 maxHeight: "120px",
                 fontSize: "max(1rem, 16px)",
               }}
-              className="flex-1 resize-none overflow-hidden rounded-xl border border-white/[0.08] bg-zinc-800/60 px-3.5 py-2.5 text-zinc-100 placeholder-zinc-500 transition-colors focus:border-blue-500/50 focus:bg-zinc-800 focus:outline-none focus:ring-1 focus:ring-blue-500/30"
+              className="sf-input flex-1 resize-none overflow-hidden px-3.5 py-2.5"
             />
             <button
               type="submit"
               disabled={sending || !body.trim()}
               aria-label="Send message"
               style={{ minHeight: "44px", minWidth: "44px" }}
-              className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-600/30 transition-all hover:bg-blue-500 hover:shadow-blue-500/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a1224] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+              className="sf-button-primary flex h-11 w-11 shrink-0 !p-0 !min-h-[44px] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
             >
               {sending ? (
                 <svg

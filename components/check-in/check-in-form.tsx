@@ -285,11 +285,11 @@ export function CheckInForm({
     "ring-2 ring-indigo-500/60 bg-indigo-500/20 text-indigo-300",
   ];
 
-  const stepCard = "rounded-2xl border border-white/[0.07] bg-[#111827] p-5 shadow-lg";
+  const stepCard = "sf-glass-card p-5 shadow-lg";
   const stepLabel = "mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400/80";
   const stepTitle = "text-xl font-bold text-white";
   const stepSub = "mt-0.5 text-[12px] text-zinc-500";
-  const emojiBtn = "flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.07] bg-white/[0.04] py-3 text-[11px] font-semibold text-zinc-400 transition-all duration-150 active:scale-95 cursor-pointer";
+  const emojiBtn = "flex flex-col items-center gap-1.5 sf-chip py-3 text-[11px] font-semibold text-zinc-400 transition-all duration-150 active:scale-95 cursor-pointer border-white/[0.07]";
   const emojiBtnActive = "scale-[1.04]";
 
   return (
@@ -313,20 +313,20 @@ export function CheckInForm({
 
       {/* Conflict modal */}
       {conflictModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-white/[0.08] bg-[#111827] p-6 shadow-2xl">
+        <div className="sf-modal-backdrop">
+          <div className="sf-modal-card">
             <h3 className="text-lg font-bold text-white">Already checked in today</h3>
             <p className="mt-2 text-sm text-zinc-400">
               You submitted at {conflictTimeLabel} today. What would you like to do?
             </p>
             <div className="mt-5 flex flex-col gap-2.5">
-              <button onClick={handleOverwrite} className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 cursor-pointer">
+              <button onClick={handleOverwrite} className="sf-button-primary w-full">
                 Overwrite today&apos;s check-in
               </button>
-              <button onClick={handleAddNew} className="w-full rounded-xl border border-white/10 px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/[0.05] cursor-pointer">
+              <button onClick={handleAddNew} className="sf-button-secondary w-full">
                 Add as new check-in
               </button>
-              <button onClick={() => setConflictModal(null)} className="w-full rounded-xl px-4 py-3 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-300 cursor-pointer">
+              <button onClick={() => setConflictModal(null)} className="sf-button-ghost w-full">
                 Cancel
               </button>
             </div>
@@ -335,7 +335,7 @@ export function CheckInForm({
       )}
 
       {/* Sticky progress header */}
-      <div className="sticky top-0 z-20 -mx-4 bg-[#070d1a]/90 px-4 pt-3 pb-3 backdrop-blur-md sm:-mx-6 sm:px-6">
+      <div className="sf-nav-bar -mx-4 px-4 pt-3 pb-3 sm:-mx-6 sm:px-6">
         {/* Step labels */}
         <div className="mb-2 flex justify-between">
           {STEPS.map((step, i) => (
@@ -406,7 +406,7 @@ export function CheckInForm({
               aria-required="true"
               aria-invalid={errors.weight ? "true" : undefined}
               style={{ fontSize: "max(1rem, 16px)" }}
-              className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-center font-bold tabular-nums text-white placeholder-zinc-700 transition-all focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+              className="sf-input text-center font-bold tabular-nums"
             />
           </div>
           {errors.weight && (
@@ -494,7 +494,7 @@ export function CheckInForm({
               placeholder="Wins, struggles, questions — your coach reads every word"
               aria-invalid={errors.notes ? "true" : undefined}
               style={{ fontSize: "max(1rem, 16px)" }}
-              className="block w-full resize-none rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 leading-relaxed text-zinc-200 placeholder-zinc-700 transition-all focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30"
+              className="sf-textarea block w-full resize-none leading-relaxed"
             />
             {errors.notes && (
               <p className="mt-2 text-sm text-red-400">{errors.notes.message}</p>
@@ -523,7 +523,7 @@ export function CheckInForm({
       </form>
 
       {/* Fixed bottom CTA — step 4 */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] bg-[#070d1a]/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md">
+      <div className="fixed bottom-0 left-0 right-0 z-30 sf-nav-bar !top-auto !border-t !border-b-0 border-white/[0.06] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-lg">
           <button
             type="submit"
@@ -531,7 +531,7 @@ export function CheckInForm({
             disabled={uploadState !== "idle"}
             onClick={handleSubmit(onSubmit)}
             style={{ minHeight: "56px" }}
-            className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-2xl bg-blue-600 px-4 py-3.5 text-base font-bold tracking-wide text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-500 hover:shadow-blue-500/30 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#070d1a] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="sf-button-primary w-full text-base tracking-wide shadow-lg shadow-blue-600/25"
           >
             {uploadState !== "idle" ? (
               <>
@@ -570,7 +570,7 @@ function CustomQuestionField({
   const config = question.config as Record<string, unknown>;
 
   const inputClasses =
-    "block w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-zinc-200 placeholder-zinc-600 focus-visible:border-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
+    "sf-input px-3 py-2.5 text-sm";
 
   return (
     <div>
@@ -618,7 +618,7 @@ function CustomQuestionField({
         return (
           <select id={fieldId} value={value} onChange={(e) => onChange(e.target.value)}
             style={{ fontSize: "max(1rem, 16px)", minHeight: "48px" }}
-            className="block w-full rounded-xl border border-white/[0.08] bg-[#111827] px-3 py-2.5 text-zinc-200 focus-visible:border-blue-500 focus-visible:outline-none">
+            className="sf-select px-3 py-2.5">
             <option value="">Select...</option>
             {Array.from({ length: Math.floor((max - min) / step) + 1 }, (_, i) => min + i * step).map((n) => (
               <option key={n} value={n}>{n}</option>

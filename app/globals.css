@@ -1174,6 +1174,319 @@ a,
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* ─── Buttons (iOS SFButton parity) ─── */
+
+.sf-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  color: #fff;
+  background: var(--sf-accent);
+  border: none;
+  border-radius: var(--sf-radius-button);
+  padding: 14px 24px;
+  min-height: 52px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 4px 14px rgba(59, 91, 219, 0.25);
+}
+.sf-button-primary:hover {
+  background: var(--sf-accent-light);
+  box-shadow: 0 6px 20px rgba(91, 124, 250, 0.30);
+  transform: translateY(-1px);
+}
+.sf-button-primary:active {
+  transform: scale(0.97);
+}
+.sf-button-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.sf-button-primary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.40);
+}
+
+.sf-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: var(--sf-radius-button);
+  padding: 12px 20px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.sf-button-secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.sf-button-secondary:active {
+  transform: scale(0.97);
+}
+.sf-button-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sf-button-secondary:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.15);
+}
+
+.sf-button-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.55);
+  background: transparent;
+  border: none;
+  border-radius: var(--sf-radius-button);
+  padding: 10px 16px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sf-button-ghost:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+.sf-button-ghost:active {
+  transform: scale(0.97);
+}
+.sf-button-ghost:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.10);
+}
+
+.sf-button-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.20);
+  border-radius: var(--sf-radius-button);
+  padding: 12px 20px;
+  min-height: 48px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sf-button-danger:hover {
+  background: rgba(239, 68, 68, 0.20);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #fecaca;
+}
+.sf-button-danger:active {
+  transform: scale(0.97);
+}
+
+/* ─── Inputs (iOS sfTextField parity) ─── */
+
+.sf-input {
+  width: 100%;
+  border-radius: var(--sf-radius-input);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 14px 16px;
+  font-size: max(1rem, 16px);
+  font-weight: 500;
+  transition: all 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.sf-input::placeholder {
+  color: rgba(255, 255, 255, 0.22);
+}
+.sf-input:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.sf-input:focus {
+  outline: none;
+  border-color: var(--sf-accent);
+  box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.20);
+  background: rgba(255, 255, 255, 0.06);
+}
+.sf-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.sf-input[aria-invalid="true"] {
+  border-color: rgba(239, 68, 68, 0.50);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.sf-textarea {
+  width: 100%;
+  border-radius: var(--sf-radius-input);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 14px 16px;
+  font-size: max(1rem, 16px);
+  font-weight: 500;
+  line-height: 1.6;
+  resize: vertical;
+  transition: all 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.sf-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.22);
+}
+.sf-textarea:focus {
+  outline: none;
+  border-color: var(--sf-accent);
+  box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.20);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sf-select {
+  width: 100%;
+  border-radius: var(--sf-radius-input);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.92);
+  padding: 14px 16px;
+  font-size: max(1rem, 16px);
+  font-weight: 500;
+  transition: all 0.15s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.sf-select:focus {
+  outline: none;
+  border-color: var(--sf-accent);
+  box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.20);
+}
+
+/* ─── Nav Bar (iOS glass nav parity) ─── */
+
+.sf-nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 13, 26, 0.80);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+}
+
+/* ─── Toggle (iOS UISwitch parity) ─── */
+
+.sf-toggle {
+  position: relative;
+  display: inline-flex;
+  height: 31px;
+  width: 51px;
+  flex-shrink: 0;
+  cursor: pointer;
+  align-items: center;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.2s ease;
+}
+.sf-toggle[aria-checked="true"] {
+  background: #34C759;
+}
+.sf-toggle:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 199, 89, 0.30);
+}
+.sf-toggle .sf-toggle-thumb {
+  pointer-events: none;
+  display: inline-block;
+  height: 27px;
+  width: 27px;
+  border-radius: 9999px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.20);
+  transition: transform 0.2s ease;
+  transform: translateX(0px);
+}
+.sf-toggle[aria-checked="true"] .sf-toggle-thumb {
+  transform: translateX(20px);
+}
+.sf-toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ─── Chip/Pill (iOS rounded filter pills) ─── */
+
+.sf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 8px 14px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.sf-chip:hover {
+  background: rgba(255, 255, 255, 0.10);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.85);
+}
+.sf-chip[data-active="true"], .sf-chip.sf-chip-active {
+  background: rgba(59, 91, 219, 0.15);
+  border-color: rgba(59, 91, 219, 0.30);
+  color: var(--sf-accent-light);
+}
+
+/* ─── Modal Overlay ─── */
+
+.sf-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.70);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 16px;
+}
+
+.sf-modal-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--sf-radius-card);
+  border: 1px solid var(--sf-glass-border);
+  background:
+    linear-gradient(180deg, var(--sf-glass-sheen) 0%, transparent 40%),
+    rgba(14, 20, 32, 0.96);
+  padding: 24px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.40);
+}
+
 /* ── Reduced Motion ─── */
 
 @media (prefers-reduced-motion: reduce) {
