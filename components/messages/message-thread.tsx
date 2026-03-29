@@ -439,7 +439,7 @@ export function MessageThread({
                               className={`relative px-3.5 py-2.5 text-sm leading-relaxed ${
                                 isOwn
                                   ? "rounded-2xl rounded-br-sm bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                                  : "rounded-2xl rounded-bl-sm bg-zinc-800 text-zinc-100 shadow-sm"
+                                  : "rounded-2xl rounded-bl-sm bg-white/[0.07] backdrop-blur-md text-zinc-100 shadow-sm border border-white/[0.08]"
                               } ${isOptimistic ? "opacity-70" : ""}`}
                             >
                               <p className="whitespace-pre-wrap">{msg.body}</p>

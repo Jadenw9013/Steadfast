@@ -45,7 +45,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" className="dark" suppressHydrationWarning>
         <body
-          className={`${sora.variable} ${chakraPetch.variable} ${geistMono.variable} antialiased bg-[#020815] text-gray-100`}
+          className={`${sora.variable} ${chakraPetch.variable} ${geistMono.variable} antialiased bg-black text-white`}
         >
           <a
             href="#main-content"

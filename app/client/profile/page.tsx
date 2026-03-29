@@ -4,6 +4,9 @@ import { ProfilePhotoUpload } from "@/components/profile/profile-photo-upload";
 import { ClientProfileForm } from "@/components/client/client-profile-form";
 import { Metadata } from "next";
 import { ClientTeamBanner } from "@/components/client/ClientTeamBanner";
+import Link from "next/link";
+import { RoleSwitcher } from "@/components/ui/role-switcher";
+import { SignOutButton } from "@clerk/nextjs";
 
 export const metadata: Metadata = {
     title: "My Profile | Steadfast",
@@ -64,6 +67,106 @@ export default async function ClientProfilePage() {
                     fitnessGoal: user.fitnessGoal,
                 }}
             />
+
+            {/* ── Navigation Rows ── */}
+            <div className="mt-8 space-y-2">
+                <p className="px-1 text-xs font-semibold uppercase tracking-wider text-zinc-500">Account</p>
+
+                <Link
+                    href="/client/settings"
+                    className="group flex items-center gap-4 sf-glass-card p-4 transition-all hover:border-white/[0.16]"
+                >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-zinc-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-zinc-100">Settings</p>
+                        <p className="text-xs text-zinc-500">Notifications and preferences</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-600 transition-colors group-hover:text-zinc-400">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </Link>
+
+                <Link
+                    href="/terms"
+                    className="group flex items-center gap-4 sf-glass-card p-4 transition-all hover:border-white/[0.16]"
+                >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-zinc-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                        </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-zinc-100">Terms of Service</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-600 transition-colors group-hover:text-zinc-400">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </Link>
+
+                <Link
+                    href="/privacy"
+                    className="group flex items-center gap-4 sf-glass-card p-4 transition-all hover:border-white/[0.16]"
+                >
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-zinc-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-zinc-100">Privacy Policy</p>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-600 transition-colors group-hover:text-zinc-400">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg>
+                </Link>
+
+                {user.isCoach && (
+                    <div className="flex items-center gap-4 sf-glass-card p-4 transition-all hover:border-white/[0.16]">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-zinc-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            </svg>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-zinc-100">Switch to Coach</p>
+                            <p className="text-xs text-zinc-500">View your coach dashboard</p>
+                        </div>
+                        <RoleSwitcher currentRole="client" />
+                    </div>
+                )}
+
+                <div className="flex items-center gap-4 sf-glass-card p-4 transition-all hover:border-white/[0.16]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-red-400">Sign Out</p>
+                    </div>
+                    <SignOutButton>
+                        <button
+                            type="button"
+                            className="rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
+                        >
+                            Sign Out
+                        </button>
+                    </SignOutButton>
+                </div>
+            </div>
         </div>
     );
 }
