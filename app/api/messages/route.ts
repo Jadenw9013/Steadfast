@@ -49,15 +49,25 @@ export async function GET(req: NextRequest) {
         body: true,
         senderId: true,
         createdAt: true,
+        sender: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            activeRole: true,
+          },
+        },
       },
     });
 
     return NextResponse.json({
       messages: messages.map((m) => ({
         id: m.id,
+        body: m.body,
         content: m.body,
         senderId: m.senderId,
         createdAt: m.createdAt.toISOString(),
+        sender: m.sender,
         isDraft: false,
       })),
     });

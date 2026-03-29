@@ -44,6 +44,7 @@ export async function GET(
         lastName: profile.client.lastName,
         email: profile.client.email,
         timezone: profile.client.timezone,
+        profilePhotoUrl: profile.profilePhotoUrl ?? null,
         coachNotes: profile.coachNotes,
         currentWeekStatus: profile.currentWeekStatus,
         currentWeekOf: profile.currentWeekOf.toISOString(),

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { notifyDailyCheckInReminder, notifyMissedCheckInAlert } from "@/lib/sms/notify";
 import { sendEmail } from "@/lib/email/sendEmail";
-import { checkinReminderEmail } from "@/lib/email/templates";
+import { checkinReminderEmail, checkinOverdueEmail } from "@/lib/email/templates";
+import { pushCheckinReminder, pushCheckinOverdue } from "@/lib/notifications/push";
 import { getLocalDate } from "@/lib/utils/date";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays } from "@/lib/scheduling/cadence";
 
@@ -110,6 +111,13 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Push notification (always, regardless of SMS/email opt-in)
+      if (cadenceResult.status === "overdue") {
+        pushCheckinOverdue(client.id).catch(console.error);
+      } else {
+        pushCheckinReminder(client.id).catch(console.error);
+      }
+
       // SMS reminder (if opted in)
       if (client.smsOptIn && client.smsDailyCheckInReminder) {
         try {
@@ -136,7 +144,10 @@ export async function POST(req: NextRequest) {
             },
           });
           if (!existing) {
-            const email = checkinReminderEmail(client.firstName || "there");
+            // Use overdue template if overdue, standard reminder if due
+            const email = cadenceResult.status === "overdue"
+              ? checkinOverdueEmail(client.firstName || "there")
+              : checkinReminderEmail(client.firstName || "there");
             const result = await sendEmail({ to: client.email, ...email });
             if (result.success) {
               await db.notificationLog.create({

@@ -2,6 +2,15 @@ import { db } from "@/lib/db";
 import { sendSms } from "./sendSms";
 import { SMSTemplates } from "./templates";
 import type { NotificationType } from "@/app/generated/prisma/enums";
+import {
+    pushNewMessage,
+    pushCheckinReminder,
+    pushCheckinReviewed,
+    pushMealPlanUpdated,
+    pushClientCheckinSubmitted,
+    pushMissedCheckin,
+    pushNewClientSignup,
+} from "@/lib/notifications/push";
 
 /**
  * Standardized SMS send handler that enforces universal opt-in, phone number presence,
@@ -74,6 +83,10 @@ async function triggerSmsEvent({
 
 export async function notifyMealPlanUpdated(clientId: string, coachName?: string | null) {
     const client = await db.user.findUnique({ where: { id: clientId }, select: { firstName: true } });
+
+    // Push notification (fire-and-forget, independent of SMS opt-in)
+    pushMealPlanUpdated(clientId, coachName || "Your coach").catch(console.error);
+
     return triggerSmsEvent({
         userId: clientId,
         toggleKeys: ["smsMealPlanUpdates"],
@@ -83,6 +96,9 @@ export async function notifyMealPlanUpdated(clientId: string, coachName?: string
 }
 
 export async function notifyDailyCheckInReminder(clientId: string) {
+    // Push notification (fire-and-forget)
+    pushCheckinReminder(clientId).catch(console.error);
+
     return triggerSmsEvent({
         userId: clientId,
         toggleKeys: ["smsDailyCheckInReminder"],
@@ -92,6 +108,9 @@ export async function notifyDailyCheckInReminder(clientId: string) {
 }
 
 export async function notifyCoachMessage(clientId: string) {
+    // Push notification (fire-and-forget)
+    pushNewMessage(clientId, "Your coach").catch(console.error);
+
     return triggerSmsEvent({
         userId: clientId,
         toggleKeys: ["smsCoachMessages"],
@@ -101,6 +120,9 @@ export async function notifyCoachMessage(clientId: string) {
 }
 
 export async function notifyCheckInFeedback(clientId: string) {
+    // Push notification (fire-and-forget)
+    pushCheckinReviewed(clientId).catch(console.error);
+
     return triggerSmsEvent({
         userId: clientId,
         toggleKeys: ["smsCheckInFeedback"],
@@ -114,6 +136,9 @@ export async function notifyCheckInFeedback(clientId: string) {
 // ==========================================
 
 export async function notifyClientCheckInSubmitted(coachId: string, clientName: string) {
+    // Push notification (fire-and-forget)
+    pushClientCheckinSubmitted(coachId, clientName).catch(console.error);
+
     return triggerSmsEvent({
         userId: coachId,
         toggleKeys: ["smsClientCheckIns"],
@@ -123,6 +148,9 @@ export async function notifyClientCheckInSubmitted(coachId: string, clientName: 
 }
 
 export async function notifyMissedCheckInAlert(coachId: string, clientName: string) {
+    // Push notification (fire-and-forget)
+    pushMissedCheckin(coachId, clientName).catch(console.error);
+
     return triggerSmsEvent({
         userId: coachId,
         toggleKeys: ["smsMissedCheckInAlerts"],
@@ -132,6 +160,9 @@ export async function notifyMissedCheckInAlert(coachId: string, clientName: stri
 }
 
 export async function notifyNewClientSignup(coachId: string, clientName: string) {
+    // Push notification (fire-and-forget)
+    pushNewClientSignup(coachId, clientName).catch(console.error);
+
     return triggerSmsEvent({
         userId: coachId,
         toggleKeys: ["smsNewClientSignups"],
@@ -141,6 +172,9 @@ export async function notifyNewClientSignup(coachId: string, clientName: string)
 }
 
 export async function notifyClientMessage(coachId: string, clientName: string) {
+    // Push notification (fire-and-forget)
+    pushNewMessage(coachId, clientName).catch(console.error);
+
     return triggerSmsEvent({
         userId: coachId,
         toggleKeys: ["smsClientMessages"],

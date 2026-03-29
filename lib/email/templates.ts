@@ -87,6 +87,20 @@ ${appUrl}/client/check-in${FOOTER}`;
     return { subject, text };
 }
 
+export function checkinOverdueEmail(clientName: string) {
+    const subject = `Your check-in is overdue`;
+    const text = `Hi ${clientName},
+
+Your check-in is overdue — your coach is waiting on your update. Please submit it as soon as possible so they can adjust your plan if needed.
+
+Don't worry if it's been a few days — submitting now is better than skipping entirely.
+
+Submit check-in:
+${appUrl}/client/check-in${FOOTER}`;
+
+    return { subject, text };
+}
+
 export function clientCheckinSubmittedEmail(coachName: string, clientName: string) {
     const subject = `${clientName} submitted a check-in`;
     const text = `Hi ${coachName},

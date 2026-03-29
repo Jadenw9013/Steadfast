@@ -6,12 +6,14 @@ import { getMessages } from "@/lib/queries/messages";
 import { formatDateUTC } from "@/lib/utils/date";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { MessageThread } from "@/components/messages/message-thread";
 import { MealPlanEditorV2 } from "@/components/coach/meal-plan/meal-plan-editor-v2";
 import { CheckInSummary } from "@/components/coach/review/check-in-summary";
 import { getFoodLibrary } from "@/lib/queries/food-library";
 import { getEffectiveMealPlanForReview } from "@/lib/queries/meal-plans";
 import { getPreviousBodyweight } from "@/lib/queries/check-ins";
+import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 
 export default async function CheckInReviewPage({
   params,
@@ -27,6 +29,16 @@ export default async function CheckInReviewPage({
 
   const client = checkIn.client;
   const weekOf = checkIn.weekOf;
+
+  // Resolve client profile photo signed URL
+  let clientPhotoUrl: string | null = null;
+  if (client.profilePhotoPath) {
+    try {
+      clientPhotoUrl = await getProfilePhotoUrl(client.profilePhotoPath);
+    } catch {
+      // silent — fall back to initials
+    }
+  }
 
   const [effectivePlan, messages, foodLibrary, previousWeight] =
     await Promise.all([
@@ -74,10 +86,21 @@ export default async function CheckInReviewPage({
           </Link>
           <Link
             href={`/coach/clients/${clientId}`}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 dark:bg-zinc-800 dark:hover:bg-zinc-700 overflow-hidden"
             aria-label="View client profile"
           >
-            {client.firstName?.[0] ?? "?"}
+            {clientPhotoUrl ? (
+              <Image
+                src={clientPhotoUrl}
+                alt={`${client.firstName ?? "Client"}'s photo`}
+                width={36}
+                height={36}
+                className="h-full w-full object-cover"
+                unoptimized
+              />
+            ) : (
+              client.firstName?.[0] ?? "?"
+            )}
           </Link>
           <div>
             <h1 className="text-base font-bold tracking-tight sm:text-lg">

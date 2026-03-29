@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { getSignedDownloadUrls } from "@/lib/supabase/storage";
+import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 
 type Params = { params: Promise<{ clientId: string; checkInId: string }> };
 
@@ -65,10 +66,25 @@ export async function GET(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Generate signed download URLs
+    // Generate signed download URLs for check-in photos
     const storagePaths = checkIn.photos.map((p) => p.storagePath);
     const signedUrls = await getSignedDownloadUrls(storagePaths);
     const urlMap = new Map(signedUrls.map((u) => [u.path, u.signedUrl]));
+
+    // Fetch client info for display (name + profile photo)
+    const clientUser = await db.user.findUnique({
+      where: { id: clientId },
+      select: { firstName: true, lastName: true, email: true, profilePhotoPath: true },
+    });
+
+    let clientProfilePhotoUrl: string | null = null;
+    if (clientUser?.profilePhotoPath) {
+      try {
+        clientProfilePhotoUrl = await getProfilePhotoUrl(clientUser.profilePhotoPath);
+      } catch (e) {
+        console.warn("[check-in detail] Failed to sign client profile photo:", e);
+      }
+    }
 
     return NextResponse.json({
       checkIn: {
@@ -93,6 +109,13 @@ export async function GET(_req: NextRequest, { params }: Params) {
           url: urlMap.get(p.storagePath) ?? "",
           sortOrder: p.sortOrder,
         })),
+        client: clientUser ? {
+          id: clientId,
+          firstName: clientUser.firstName,
+          lastName: clientUser.lastName,
+          email: clientUser.email,
+          profilePhotoUrl: clientProfilePhotoUrl,
+        } : undefined,
       },
     });
   } catch (err) {
