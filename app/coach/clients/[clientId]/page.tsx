@@ -215,7 +215,7 @@ export default async function ClientProfilePage({
               <span>{client.email}</span>
               {lastMessageAt && (
                 <>
-                  <span className="text-zinc-700">&middot;</span>
+                  <span className="text-zinc-500">&middot;</span>
                   <span>Last msg {timeAgo(lastMessageAt)}</span>
                 </>
               )}
@@ -551,7 +551,7 @@ export default async function ClientProfilePage({
                 <Link
                   key={checkIn.id}
                   href={`/coach/clients/${clientId}/check-ins/${checkIn.id}`}
-                  className={`flex items-center gap-3 rounded-lg border border-l-[3px] border-zinc-800 bg-zinc-900 px-4 py-2.5 transition-colors hover:border-zinc-700 hover:bg-zinc-800/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 ${
+                  className={`flex items-center gap-3 rounded-lg border border-l-[3px] border-white/[0.08] bg-white/[0.04] px-4 py-2.5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 ${
                     checkIn.status === "REVIEWED" ? "border-l-emerald-500/60" : "border-l-blue-500/60"
                   }`}
                 >
@@ -630,7 +630,7 @@ function MetricCard({
           {subtext && <p className="text-xs text-zinc-400">{subtext}</p>}
         </div>
       ) : (
-        <p className="mt-1 text-2xl font-bold text-zinc-600">&mdash;</p>
+        <p className="mt-1 text-2xl font-bold text-zinc-500">&mdash;</p>
       )}
     </div>
   );

@@ -33,7 +33,7 @@ export default async function ClientCheckInDetailPage({
       <div className="flex items-center gap-3">
         <Link
           href="/client"
-          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
           aria-label="Back to dashboard"
         >
           &larr;
@@ -53,8 +53,8 @@ export default async function ClientCheckInDetailPage({
         <span
           className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
             checkIn.status === "REVIEWED"
-              ? "bg-emerald-500/10 text-emerald-600"
-              : "bg-amber-500/10 text-amber-600"
+              ? "bg-emerald-500/10 text-emerald-400"
+              : "bg-amber-500/10 text-amber-400"
           }`}
         >
           {checkIn.status === "REVIEWED" ? "Reviewed" : "Pending Review"}
@@ -108,7 +108,7 @@ export default async function ClientCheckInDetailPage({
           >
             Notes
           </h2>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+          <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">
             {checkIn.notes}
           </p>
         </section>
@@ -130,7 +130,7 @@ export default async function ClientCheckInDetailPage({
             {checkIn.photos.map((photo) => (
               <div
                 key={photo.id}
-                className="relative aspect-square overflow-hidden rounded-lg bg-zinc-100"
+                className="relative aspect-square overflow-hidden rounded-lg bg-white/[0.04]"
               >
                 <Image
                   src={photo.url}

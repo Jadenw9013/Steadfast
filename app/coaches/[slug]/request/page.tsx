@@ -43,39 +43,39 @@ export default async function CoachingRequestPage({ params }: PageProps) {
     const isAccepting = profile.acceptingClients;
 
     return (
-        <div className="min-h-screen bg-zinc-50">
+        <div className="min-h-screen bg-black">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 border-b border-zinc-200/60 bg-white/90 backdrop-blur-md">
-                <div className="mx-auto flex h-16 max-w-2xl items-center justify-between px-5 sm:px-8">
+            <header className="sticky top-0 z-30 border-b border-white/[0.04] bg-black/80 backdrop-blur-xl">
+                <div className="mx-auto flex h-14 max-w-2xl items-center justify-between px-5 sm:px-8">
                     <Link
                         href={`/coaches/${profile.slug}`}
-                        className="flex items-center gap-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900"
+                        className="text-sm font-medium text-zinc-400 transition-colors hover:text-white"
                     >
                         ← Back to Profile
                     </Link>
                     <Link
                         href="/"
-                        className="flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2"
+                        className="group flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     >
-                        <div className="relative h-8 w-8">
+                        <div className="relative h-7 w-7 transition-transform duration-200 group-hover:scale-110">
                             <Image
                                 src="/brand/Steadfast_logo_pictoral.png"
                                 alt=""
                                 fill
-                                className="object-contain"
+                                className="object-contain brightness-0 invert"
                             />
                         </div>
-                        <span className="font-semibold tracking-tight text-zinc-900">Steadfast</span>
+                        <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] text-zinc-100 sm:inline">Steadfast</span>
                     </Link>
                 </div>
             </header>
 
             <main className="mx-auto max-w-2xl px-5 py-12 sm:px-8" id="main-content">
                 <div className="mb-8">
-                    <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+                    <h1 className="text-3xl font-semibold tracking-tight text-white">
                         {isAccepting ? "Request Coaching" : "Join Waitlist"}
                     </h1>
-                    <p className="mt-2 text-zinc-600">
+                    <p className="mt-2 text-zinc-400">
                         {isAccepting
                             ? `Submit your intake to coach ${profile.user.firstName} ${profile.user.lastName}.`
                             : `${profile.user.firstName} is currently full, but you can join the waitlist to be notified when a spot opens.`
@@ -83,7 +83,7 @@ export default async function CoachingRequestPage({ params }: PageProps) {
                     </p>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-200/80 bg-white p-6 shadow-sm sm:p-8">
+                <div className="sf-glass-card p-6 sm:p-8">
                     {isAccepting ? (
                         <RequestForm coachProfileId={profile.id} />
                     ) : (

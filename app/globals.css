@@ -135,9 +135,14 @@
 .text-zinc-200, .text-gray-200 { color: #d4d8e1    !important; }
 .text-zinc-300, .text-gray-300 { color: #c2c7d0    !important; }
 
-/* text-zinc-800+ / text-gray-800+ legacy overrides — keep text light */
-.text-zinc-800, .text-gray-800 { color: #e4e4e7    !important; }
-.text-zinc-900, .text-gray-900 { color: #fafafa    !important; }
+/* text-zinc-800+ / text-gray-800+ legacy overrides — keep text light
+   EXCEPT on bg-white elements where dark text is needed for contrast */
+.text-zinc-800:not(.bg-white), .text-gray-800:not(.bg-white) { color: #e4e4e7 !important; }
+.text-zinc-900:not(.bg-white), .text-gray-900:not(.bg-white) { color: #fafafa !important; }
+
+/* bg-white elements: always use dark text for accessibility */
+.bg-white.text-zinc-900, .bg-white.text-gray-900 { color: #18181b !important; }
+.bg-white.text-zinc-800, .bg-white.text-gray-800 { color: #27272a !important; }
 
 /* bg-white on interactive surfaces → dark surface */
 .dark input.bg-white,

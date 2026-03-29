@@ -81,7 +81,7 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                                 {lead.prospectEmailAddr}
                             </a>
                         )}
-                        <p className="mt-1 text-xs text-zinc-600">
+                        <p className="mt-1 text-xs text-zinc-500">
                             Submitted {new Date(lead.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                         </p>
                     </div>
@@ -113,7 +113,7 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     </div>
                 )}
                 {!answers.goals && !answers.experience && !answers.injuries && (
-                    <p className="text-sm text-zinc-600">No intake answers recorded.</p>
+                    <p className="text-sm text-zinc-400">No intake answers recorded.</p>
                 )}
             </div>
 

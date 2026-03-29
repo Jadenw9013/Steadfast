@@ -20,7 +20,7 @@ export default async function IntakeFormPage() {
       <section className="animate-fade-in">
         <Link
           href="/coach/templates/onboarding"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white"
         >
           &larr; Onboarding
         </Link>
@@ -29,7 +29,7 @@ export default async function IntakeFormPage() {
       </section>
 
       <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
-        <div className="rounded-2xl border border-zinc-200/80 bg-white px-4 py-4">
+        <div className="sf-glass-card px-4 py-4">
           <IntakeFormSectionPanel initialSections={intakeFormSections} />
         </div>
       </section>

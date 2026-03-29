@@ -128,7 +128,7 @@ export default async function CoachMarketplaceProfilePage() {
                     {stats && stats.reviews.count > 0 && (
                         <span className="inline-flex items-center gap-1">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-amber-400"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
-                            <span className="font-semibold text-zinc-900">{stats.reviews.averageRating.toFixed(1)}</span>
+                            <span className="font-semibold text-white">{stats.reviews.averageRating.toFixed(1)}</span>
                             <span>({stats.reviews.count})</span>
                         </span>
                     )}
@@ -199,7 +199,7 @@ export default async function CoachMarketplaceProfilePage() {
                     <h2 className="text-lg font-bold text-white">About</h2>
 
                     {profile.bio && (
-                        <p className="mt-3 text-sm leading-relaxed text-zinc-600 whitespace-pre-wrap">
+                        <p className="mt-3 text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
                             {profile.bio}
                         </p>
                     )}
@@ -207,7 +207,7 @@ export default async function CoachMarketplaceProfilePage() {
                     {profile.experience && (
                         <div className="mt-5">
                             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Experience</p>
-                            <p className="mt-1.5 text-sm leading-relaxed text-zinc-600 whitespace-pre-wrap">
+                            <p className="mt-1.5 text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
                                 {profile.experience}
                             </p>
                         </div>
@@ -216,7 +216,7 @@ export default async function CoachMarketplaceProfilePage() {
                     {profile.certifications && (
                         <div className="mt-5">
                             <p className="text-xs font-semibold uppercase tracking-wider text-zinc-400">Certifications</p>
-                            <p className="mt-1.5 text-sm leading-relaxed text-zinc-600 whitespace-pre-wrap">
+                            <p className="mt-1.5 text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
                                 {profile.certifications}
                             </p>
                         </div>

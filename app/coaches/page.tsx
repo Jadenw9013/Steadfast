@@ -209,7 +209,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                         <Link href="/sign-in" className="text-sm font-medium text-zinc-400 transition-colors hover:text-white">Sign In</Link>
                         <Link
                             href="/sign-up"
-                            className="rounded-lg bg-white px-4 py-1.5 text-sm font-semibold text-zinc-900 shadow-lg shadow-black/20 transition-all hover:bg-zinc-100 active:scale-[0.97]"
+                            className="sf-button-primary rounded-lg px-4 py-1.5 text-sm font-semibold active:scale-[0.97]"
                         >
                             Get Started
                         </Link>

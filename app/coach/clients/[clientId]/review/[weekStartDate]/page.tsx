@@ -119,14 +119,14 @@ export default async function ReviewWorkspacePage({
         <div className="flex items-center gap-3">
           <Link
             href="/coach/dashboard"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-zinc-100 hover:text-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.08] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50"
             aria-label="Back to inbox"
           >
             &larr;
           </Link>
           <Link
             href={`/coach/clients/${clientId}`}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-100 text-sm font-semibold transition-colors hover:bg-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/[0.10] bg-white/[0.07] text-sm font-semibold transition-colors hover:bg-white/[0.12] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50"
             aria-label="View client profile"
           >
             {client.firstName?.[0] ?? "?"}
@@ -154,7 +154,7 @@ export default async function ReviewWorkspacePage({
         </div>
 
         {/* Right column: plans (toggle between Meal Plan / Training Plan) */}
-        <div className="rounded-xl border border-zinc-200 bg-white p-5">
+        <div className="sf-glass-card p-5">
           <PlanTabs
             mealPlan={{
               clientId,

@@ -12,7 +12,7 @@ export default async function CoachWorkoutTemplatesPage() {
       <section className="animate-fade-in">
         <Link
           href="/coach/templates"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-zinc-400 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50"
           aria-label="Back to templates"
         >
           &larr; Templates
@@ -29,7 +29,7 @@ export default async function CoachWorkoutTemplatesPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/coach/templates/import"
-              className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+              className="rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm font-semibold text-zinc-200 transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50"
             >
               Import
             </Link>
@@ -40,7 +40,7 @@ export default async function CoachWorkoutTemplatesPage() {
 
       <section className="animate-fade-in" style={{ animationDelay: "80ms" }}>
         {templates.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-white px-8 py-16 text-center">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-white/[0.10] bg-white/[0.02] px-8 py-16 text-center">
             <p className="text-sm font-semibold">No templates yet</p>
             <p className="text-sm text-zinc-400">
               Create a reusable training template or import one from a file or pasted text.
@@ -49,7 +49,7 @@ export default async function CoachWorkoutTemplatesPage() {
               <CreateTemplateButton variant="inline" />
               <Link
                 href="/coach/templates/import"
-                className="rounded-xl border border-zinc-200 px-4 py-2.5 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+                className="rounded-xl border border-white/[0.12] px-4 py-2.5 text-sm font-semibold text-zinc-200 transition-colors hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50"
               >
                 Import from file or text
               </Link>
@@ -61,7 +61,7 @@ export default async function CoachWorkoutTemplatesPage() {
               <li key={t.id}>
                 <Link
                   href={`/coach/templates/${t.id}`}
-                  className="flex items-center justify-between rounded-2xl border border-zinc-200/80 bg-white px-5 py-4 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+                  className="flex items-center justify-between rounded-2xl border border-white/[0.08] bg-white/[0.04] px-5 py-4 transition-colors hover:border-white/[0.14] hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold">{t.name}</p>
