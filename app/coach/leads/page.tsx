@@ -142,7 +142,7 @@ export default async function CoachLeadsPage() {
       {/* ── Pipeline groups ────────────────────────────────────────────────── */}
       {activeRequests.length === 0 ? (
         /* Full empty state */
-        <div className="flex flex-col items-center gap-5 rounded-2xl border border-dashed border-zinc-800/80 py-20 text-center">
+        <div className="sf-surface-card flex flex-col items-center gap-5 py-20 text-center" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.06)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}>
           <div className="relative flex h-16 w-16 items-center justify-center">
             <div className="absolute inset-0 rounded-full border-2 border-dashed border-zinc-700/60" />
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-800/60 ring-1 ring-white/[0.06]">
@@ -213,7 +213,7 @@ export default async function CoachLeadsPage() {
 
                 {leads.length === 0 ? (
                   /* Empty group state — only for PENDING (alwaysShow) */
-                  <div className="flex items-center gap-3 rounded-2xl border border-dashed border-zinc-800/60 px-5 py-5">
+                  <div className="sf-glass-card flex items-center gap-3 px-5 py-5">
                     <p className="text-sm text-zinc-600">No leads in this stage yet</p>
                   </div>
                 ) : (

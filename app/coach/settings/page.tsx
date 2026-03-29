@@ -61,7 +61,7 @@ export default async function CoachSettingsPage({
             <span>/</span>
             <span className="text-zinc-300">Settings</span>
           </nav>
-          <h1 className="text-2xl font-semibold tracking-tight">Coach Settings</h1>
+          <h1 className="text-2xl font-black tracking-tight text-white">Coach Settings</h1>
           <p className="text-xs text-zinc-500">
             Configure check-ins for all clients
           </p>
@@ -76,7 +76,7 @@ export default async function CoachSettingsPage({
         >
           Profile Photo
         </h2>
-        <div className="rounded-2xl border border-white/[0.06] bg-[#0a1224] px-5 py-5">
+        <div className="sf-glass-card px-5 py-5">
           <CoachProfilePhotoSection
             initialPhotoUrl={initialPhotoUrl}
             initials={initials}
@@ -92,7 +92,7 @@ export default async function CoachSettingsPage({
         >
           Check-in Schedule
         </h2>
-        <div className="rounded-2xl border border-white/[0.06] bg-[#0a1224] px-4 py-4">
+        <div className="sf-glass-card px-4 py-4">
           <CadenceEditor
             mode="coach"
             initialConfig={cadenceConfig}
@@ -108,7 +108,7 @@ export default async function CoachSettingsPage({
         >
           Check-in Form
         </h2>
-        <div className="rounded-2xl border border-white/[0.06] bg-[#0a1224] px-4 py-4">
+        <div className="sf-glass-card px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">
@@ -143,7 +143,7 @@ export default async function CoachSettingsPage({
         >
           Intake Forms & Documents
         </h2>
-        <div className="rounded-2xl border border-white/[0.06] bg-[#0a1224] px-4 py-4">
+        <div className="sf-glass-card px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">Onboarding Templates</p>
@@ -167,7 +167,7 @@ export default async function CoachSettingsPage({
         >
           Email Notifications
         </h2>
-        <div className="rounded-2xl border border-white/[0.06] bg-[#0a1224] px-4 py-4">
+        <div className="sf-glass-card px-4 py-4">
           <CoachEmailSettings
             initialEmailClientCheckIns={user.emailClientCheckIns}
             initialEmailClientMessages={user.emailClientMessages}

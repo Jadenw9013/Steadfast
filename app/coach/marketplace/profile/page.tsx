@@ -92,7 +92,7 @@ export default async function CoachMarketplaceProfilePage() {
 
             {/* Name + Headline */}
             <div className="animate-fade-in flex flex-col items-center text-center sm:items-start sm:text-left" style={{ animationDelay: "100ms" }}>
-                <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+                <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
                     {displayName}
                 </h1>
                 {profile?.headline && (
@@ -166,7 +166,7 @@ export default async function CoachMarketplaceProfilePage() {
             </div>
 
             {/* ── Team Affiliation (read-only) ── */}
-            <div className="animate-fade-in mt-6 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5" style={{ animationDelay: "180ms" }}>
+            <div className="animate-fade-in mt-6 sf-glass-card p-5" style={{ animationDelay: "180ms" }}>
                 <div className="flex items-center justify-between gap-4">
                     <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">Team</p>
                     <a href="/coach/settings#team" className="text-xs text-zinc-500 transition hover:text-zinc-300">Manage in Settings →</a>
@@ -196,7 +196,7 @@ export default async function CoachMarketplaceProfilePage() {
             ═══════════════════════════════════════════════ */}
             {(profile?.bio || profile?.experience || profile?.certifications) && (
                 <div className="animate-fade-in mt-10" style={{ animationDelay: "200ms" }}>
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">About</h2>
+                    <h2 className="text-lg font-bold text-white">About</h2>
 
                     {profile.bio && (
                         <p className="mt-3 text-sm leading-relaxed text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
@@ -230,10 +230,10 @@ export default async function CoachMarketplaceProfilePage() {
             ═══════════════════════════════════════════════ */}
             {(profile?.services?.length ?? 0) > 0 && (
                 <div className="animate-fade-in mt-10" style={{ animationDelay: "250ms" }}>
-                    <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-100">Services</h2>
+                    <h2 className="text-lg font-bold text-white">Services</h2>
                     <div className="mt-3 flex flex-wrap gap-2">
                         {profile!.services!.map((s, i) => (
-                            <span key={i} className="inline-flex rounded-full bg-zinc-100 px-3.5 py-1.5 text-sm font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                            <span key={i} className="inline-flex rounded-full bg-white/[0.06] px-3.5 py-1.5 text-sm font-medium text-zinc-300 backdrop-blur-sm border border-white/[0.08]">
                                 {s}
                             </span>
                         ))}

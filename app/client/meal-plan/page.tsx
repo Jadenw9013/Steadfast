@@ -44,7 +44,7 @@ export default async function ClientMealPlanPage() {
         {/* Page header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">
+            <h1 className="mt-3 text-2xl font-black tracking-tight text-white">
               Meal Plan
             </h1>
             <p className="mt-1.5 text-sm text-zinc-500">
@@ -58,7 +58,7 @@ export default async function ClientMealPlanPage() {
       {/* Cardio prescription banner — shown when coach has configured cardio */}
       {cardioPrescription && (
         <section className="animate-fade-in" style={{ animationDelay: "60ms" }} aria-label="Cardio prescription">
-          <div className="rounded-2xl border border-green-500/20 bg-green-500/[0.05] px-5 py-4">
+          <div className="sf-glass-card px-5 py-4" style={{ borderColor: "rgba(34, 197, 94, 0.20)" }}>
             <div className="mb-3 flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
               <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-green-400">Cardio Prescription</span>
@@ -101,7 +101,7 @@ export default async function ClientMealPlanPage() {
           Meal plan details
         </h2>
         {!mealPlan ? (
-          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-zinc-700/60 bg-[#0a1224] px-8 py-20 text-center">
+          <div className="sf-surface-card flex flex-col items-center gap-4 px-8 py-20 text-center" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.08)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}>
             <div>
               <p className="text-sm font-semibold">No meal plan yet</p>
               <p className="mt-1 text-sm text-zinc-400">

@@ -46,10 +46,10 @@ export default async function CoachDashboard() {
         {/* Greeting row */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-zinc-100">
+            <h1 className="text-2xl font-black tracking-tight text-white">
               {greeting}, {coachFirstName}
             </h1>
-            <p className="mt-1 text-sm text-zinc-500">{weekLabel}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-500">{weekLabel}</p>
           </div>
 
           {/* Stats pills */}
@@ -60,7 +60,7 @@ export default async function CoachDashboard() {
               aria-label="Client summary"
             >
               <span
-                className="inline-flex items-center rounded-full bg-zinc-800/60 px-3 py-1 text-xs font-semibold text-zinc-400"
+                className="sf-section-label"
                 aria-label={`${totalCount} total clients`}
               >
                 {totalCount} client{totalCount !== 1 ? "s" : ""}
@@ -95,7 +95,7 @@ export default async function CoachDashboard() {
 
       {/* ── Client list ─────────────────────────────────────────────────────── */}
       {clients.length === 0 ? (
-        <div className="animate-fade-in-up flex flex-col items-center gap-5 rounded-2xl border border-dashed border-blue-500/10 bg-[#0a1224] px-8 py-20 text-center">
+        <div className="animate-fade-in-up sf-surface-card flex flex-col items-center gap-5 px-8 py-20 text-center" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.08)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}>
           {/* Abstract coaching illustration — pure CSS/SVG */}
           <div className="relative flex h-16 w-16 items-center justify-center">
             {/* Outer ring */}

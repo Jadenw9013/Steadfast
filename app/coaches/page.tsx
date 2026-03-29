@@ -197,7 +197,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
     return (
         <div className="min-h-screen bg-[#080d1a] text-zinc-100">
             {/* ── Nav ── */}
-            <header className="sticky top-0 z-30 border-b border-white/[0.05] bg-[#080d1a]/95 backdrop-blur-sm">
+            <header className="sticky top-0 z-30 border-b border-white/[0.08] bg-[#080d1a]/85 backdrop-blur-2xl" style={{ backdropFilter: "blur(40px) saturate(180%)", WebkitBackdropFilter: "blur(40px) saturate(180%)" }}>
                 <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-5 sm:px-8">
                     <Link href="/" className="group flex items-center gap-2.5" aria-label="Steadfast home">
                         <div className="relative h-7 w-7 transition-transform duration-200 group-hover:scale-110 sm:h-8 sm:w-8">
@@ -253,7 +253,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                 </div>
 
                 {/* ── Trust Stats Bar ── */}
-                <div className="mb-10 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-5 py-3.5">
+                <div className="mb-10 sf-glass-card flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-3.5">
                     <div className="flex items-baseline gap-1.5">
                         <span className="font-display text-xl font-bold text-white">{totalCoaches}</span>
                         <span className="text-xs text-zinc-500 uppercase tracking-wider">coaches available</span>
@@ -290,7 +290,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                 <div className="flex gap-8">
                     {/* ── Desktop Filter Sidebar ── */}
                     <div className="hidden lg:block w-64 shrink-0">
-                        <div className="sticky top-24 overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
+                        <div className="sticky top-24 sf-glass-card overflow-hidden p-5">
                             <h3 className="mb-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Filters</h3>
                             <Suspense>
                                 <CoachFilters />
@@ -339,7 +339,7 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                                         <Link
                                             key={profile.id}
                                             href={`/coaches/${profile.slug}`}
-                                            className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0d1428] transition-all duration-200 ease-out hover:-translate-y-[3px] hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10"
+                                            className="group relative flex flex-col overflow-hidden sf-glass-card transition-all duration-200 ease-out hover:-translate-y-[3px] hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/10"
                                             style={{ "--tw-shadow-color": "rgba(59,124,244,0.15)" } as React.CSSProperties}
                                         >
                                             {/* Top accent line */}

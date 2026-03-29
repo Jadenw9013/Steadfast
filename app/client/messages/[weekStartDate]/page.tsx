@@ -49,8 +49,8 @@ export default async function ClientMessagesPage({
         </Link>
 
         <div className="mt-3 flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-100">Messages</h1>
-          <span className="rounded-lg bg-zinc-800 px-2.5 py-0.5 text-xs font-medium text-zinc-400">
+          <h1 className="text-2xl font-black tracking-tight text-white">Messages</h1>
+          <span className="sf-section-label">
             Week of {weekLabel}
           </span>
         </div>

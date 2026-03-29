@@ -27,7 +27,7 @@ export default async function SavedCoachesPage() {
     return (
         <div className="mx-auto max-w-3xl">
             <div className="mb-8">
-                <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+                <h1 className="text-2xl font-black tracking-tight text-white">
                     Saved Coaches
                 </h1>
                 <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
@@ -36,8 +36,8 @@ export default async function SavedCoachesPage() {
             </div>
 
             {coachesWithPhotos.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50 p-12 text-center dark:border-zinc-800 dark:bg-[#0a1224]">
-                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800">
+                <div className="sf-surface-card p-12 text-center" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.06)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}>
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-white/[0.06]">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
                             <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
                         </svg>
@@ -60,7 +60,7 @@ export default async function SavedCoachesPage() {
                     {coachesWithPhotos.map((sc) => {
                         const name = `${sc.coachProfile.user.firstName ?? ""} ${sc.coachProfile.user.lastName ?? ""}`.trim() || "Coach";
                         return (
-                            <div key={sc.id} className="rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-zinc-800/80 dark:bg-[#0a1224]">
+                            <div key={sc.id} className="sf-glass-card p-5">
                                 <div className="flex items-start gap-4">
                                     <Link href={`/coaches/${sc.coachProfile.slug}`} className="shrink-0">
                                         {sc.photoUrl ? (

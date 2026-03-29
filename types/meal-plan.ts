@@ -43,7 +43,8 @@ export function groupItemsToMeals(
       foodName: item.foodName,
       quantity: item.quantity,
       unit: item.unit,
-      servingDescription: item.servingDescription ?? "",
+      servingDescription: item.servingDescription
+        || (item.quantity && item.unit ? `${item.quantity} ${item.unit}`.trim() : item.quantity || item.unit || ""),
       calories: item.calories,
       protein: item.protein,
       carbs: item.carbs,

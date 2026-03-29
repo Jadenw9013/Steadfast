@@ -325,7 +325,7 @@ export default async function ClientProfilePage({
             })}
           />
 
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+          <div className="sf-glass-card px-4 py-3">
             <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
               Change
             </p>
@@ -360,7 +360,7 @@ export default async function ClientProfilePage({
           )}
         </div>
 
-        <div className="mt-3 rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-3">
+        <div className="mt-3 sf-glass-card px-4 py-3">
           <WeightProgress data={weightHistory} clientId={clientId} />
         </div>
       </section>
@@ -376,7 +376,7 @@ export default async function ClientProfilePage({
         <p className="mt-1 text-sm text-zinc-400">
           Send quick updates and keep communication in one place.
         </p>
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900">
+        <div className="sf-glass-card">
           <MessageThread
             messages={serializedMessages}
             clientId={clientId}
@@ -393,7 +393,7 @@ export default async function ClientProfilePage({
           <h2 id="intake-pending-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Intake Questionnaire
           </h2>
-          <div className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-900 px-5 py-4">
+          <div className="sf-glass-card flex items-center justify-between px-5 py-4">
             <div className="flex items-center gap-3">
               {(() => {
                 const cfg = intakeStatusConfig[clientIntake.status];
@@ -431,7 +431,7 @@ export default async function ClientProfilePage({
         <h2 id="plans-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
           Plans
         </h2>
-        <div className="rounded-xl border border-zinc-800 bg-[#0a1224] p-5">
+        <div className="sf-glass-card p-5" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.06)" } as React.CSSProperties}>
           <PlanTabs
             mealPlan={{
               clientId,
@@ -510,7 +510,7 @@ export default async function ClientProfilePage({
               <SendIntakeButton clientId={clientId} isResend />
             </div>
           </div>
-          <div className="rounded-xl border border-zinc-800 bg-[#0a1224]">
+          <div className="sf-glass-card" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.05)" } as React.CSSProperties}>
             {/* Key stats row */}
             <div className="grid grid-cols-2 divide-x divide-zinc-800 border-b border-zinc-800 sm:grid-cols-4">
               <IntakeStatCell label="Bodyweight" value={clientIntake.bodyweightLbs ? `${clientIntake.bodyweightLbs} lbs` : "—"} />
@@ -540,7 +540,7 @@ export default async function ClientProfilePage({
           Check-in History
         </h2>
         {checkIns.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-zinc-700/60 bg-zinc-900 px-6 py-8 text-center">
+          <div className="sf-glass-card px-6 py-8 text-center">
             <p className="text-sm text-zinc-400">No check-ins yet.</p>
           </div>
         ) : (
@@ -589,7 +589,7 @@ export default async function ClientProfilePage({
       </section>
 
       {/* Danger Zone */}
-      <section className="rounded-xl border border-red-900/50 bg-zinc-900/50 p-5">
+      <section className="sf-glass-card p-5" style={{ borderColor: "rgba(239, 68, 68, 0.2)" }}>
         <h2 className="mb-1 text-xs font-semibold uppercase tracking-wider text-red-500">
           Danger Zone
         </h2>
@@ -619,7 +619,7 @@ function MetricCard({
   accent?: string;
 }) {
   return (
-    <div className={`rounded-lg border border-zinc-800 border-t-2 bg-zinc-900 px-4 py-3 ${accent}`}>
+    <div className={`sf-glass-card border-t-2 px-4 py-3 ${accent}`}>
       <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">{label}</p>
       {value != null ? (
         <div className="mt-1">

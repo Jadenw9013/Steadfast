@@ -15,11 +15,11 @@ export default async function ClientSettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="animate-fade-in text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
+      <h1 className="animate-fade-in text-2xl font-black tracking-tight text-white">
         Settings
       </h1>
 
-      <div className="animate-fade-in rounded-2xl border border-zinc-200/80 bg-white p-5 dark:border-white/[0.06] dark:bg-[#0a1224]" style={{ animationDelay: "60ms" }}>
+      <div className="animate-fade-in sf-glass-card p-5" style={{ animationDelay: "60ms" }}>
         <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400">
           Email Notifications
         </h2>
@@ -31,7 +31,7 @@ export default async function ClientSettingsPage() {
       </div>
 
       {coachAssignment && (
-        <div className="animate-fade-in rounded-2xl border border-red-200/80 bg-white p-5 dark:border-red-900/50 dark:bg-[#0a1224]" style={{ animationDelay: "120ms" }}>
+        <div className="animate-fade-in sf-glass-card p-5" style={{ animationDelay: "120ms", borderColor: "rgba(239, 68, 68, 0.2)" }}>
           <h2 className="mb-1 text-xs font-semibold uppercase tracking-widest text-red-500">
             Danger Zone
           </h2>

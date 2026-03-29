@@ -35,7 +35,7 @@ export default async function ClientProfilePage() {
                 />
 
                 <div className="flex-1 min-w-0">
-                    <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 sm:text-3xl">
+                    <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
                         {displayName}
                     </h1>
                     {user.fitnessGoal && (
@@ -44,7 +44,7 @@ export default async function ClientProfilePage() {
                         </p>
                     )}
                     <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-600 dark:bg-blue-500/20 dark:text-blue-400">
+                        <span className="sf-section-label gap-1.5">
                             <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
                             Client
                         </span>

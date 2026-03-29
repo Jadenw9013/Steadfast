@@ -63,7 +63,7 @@ export default async function ClientCheckInDetailPage({
 
       {/* Metrics */}
       <section
-        className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+        className="sf-glass-card p-5"
         aria-labelledby="metrics-heading"
       >
         <h2
@@ -99,7 +99,7 @@ export default async function ClientCheckInDetailPage({
       {/* Notes */}
       {checkIn.notes && (
         <section
-          className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+          className="sf-glass-card p-5"
           aria-labelledby="notes-heading"
         >
           <h2
@@ -117,7 +117,7 @@ export default async function ClientCheckInDetailPage({
       {/* Photos */}
       {checkIn.photos.length > 0 && (
         <section
-          className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+          className="sf-glass-card p-5"
           aria-labelledby="photos-heading"
         >
           <h2
@@ -147,7 +147,7 @@ export default async function ClientCheckInDetailPage({
 
       {/* Coach Feedback */}
       <section
-        className="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900/50"
+        className="sf-glass-card p-5"
         aria-labelledby="feedback-heading"
       >
         <h2
