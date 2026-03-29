@@ -9,18 +9,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* ─── Light ─── */
+/* ─── Dark-only theme ─── */
 :root {
-  --background: #fafafa;
-  --foreground: #111827;
-  --surface: #ffffff;
-  --surface-elevated: #f3f4f6;
-  --border: #e5e7eb;
-  --muted: #6b7280;
-}
-
-/* ─── Dark ─── */
-:root.dark {
   --background: #020815;
   --foreground: #e5e7eb;
   --surface: #0a1224;
@@ -47,9 +37,9 @@ h6,
   font-family: var(--font-chakra), system-ui, sans-serif;
 }
 
-/* ─── Global Dot Grid Background (dark mode) ─── */
+/* ─── Global Dot Grid Background ─── */
 
-:root.dark body::before {
+body::before {
   content: "";
   position: fixed;
   inset: 0;
@@ -178,8 +168,8 @@ html {
 .card-glass {
   position: relative;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.5);
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(17, 24, 39, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(12px);
   transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -198,8 +188,9 @@ html {
 
 .card-glass:hover {
   transform: translateY(-2px);
-  border-color: rgba(59, 130, 246, 0.2);
-  box-shadow: 0 12px 40px -8px rgba(59, 130, 246, 0.08), 0 4px 12px -4px rgba(0, 0, 0, 0.04);
+  background: rgba(10, 18, 36, 0.8);
+  border-color: rgba(59, 130, 246, 0.25);
+  box-shadow: 0 12px 40px -8px rgba(59, 130, 246, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.05);
 }
 
 .card-glass:hover::before {
@@ -208,31 +199,16 @@ html {
   right: 10%;
 }
 
-:root.dark .card-glass {
-  background: rgba(17, 24, 39, 0.6);
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-:root.dark .card-glass:hover {
-  background: rgba(10, 18, 36, 0.8);
-  border-color: rgba(59, 130, 246, 0.25);
-  box-shadow: 0 12px 40px -8px rgba(59, 130, 246, 0.12), 0 0 0 1px rgba(59, 130, 246, 0.05);
-}
-
 /* ─── App Card (reusable dark card pattern) ─── */
 
 .app-card {
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
+  background: #0a1224;
   transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root.dark .app-card {
-  background: #0a1224;
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
-:root.dark .app-card:hover {
+.app-card:hover {
   border-color: rgba(59, 130, 246, 0.15);
   box-shadow: 0 8px 32px -8px rgba(59, 130, 246, 0.08);
 }
@@ -1000,7 +976,7 @@ a,
 
 /* ─── Steadfast Design Tokens (iOS Parity) ─── */
 
-:root.dark {
+:root {
   /* Spacing tokens (match iOS Spacing enum) */
   --sf-spacing-xs: 4px;
   --sf-spacing-sm: 8px;

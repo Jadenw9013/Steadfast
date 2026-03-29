@@ -42,7 +42,7 @@ export default async function ClientLayout({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50">
+    <div className="min-h-screen bg-[#020815]">
       <NavBar
         role="client"
         canSwitchRole={user.isCoach && user.isClient}

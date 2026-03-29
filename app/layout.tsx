@@ -4,7 +4,6 @@ import { Chakra_Petch, Sora } from "next/font/google";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { ThemeProvider } from "@/components/ui/theme-provider";
 import { Footer } from "@/components/footer";
 import "./globals.css";
 
@@ -45,20 +44,17 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className="dark" suppressHydrationWarning>
-      
         <body
-          className={`${sora.variable} ${chakraPetch.variable} ${geistMono.variable} antialiased bg-gray-950 text-gray-100`}
+          className={`${sora.variable} ${chakraPetch.variable} ${geistMono.variable} antialiased bg-[#020815] text-gray-100`}
         >
-          <ThemeProvider>
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
-            >
-              Skip to content
-            </a>
-            {children}
-            <Footer />
-          </ThemeProvider>
+          <a
+            href="#main-content"
+            className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-gray-900 focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-white focus:shadow-lg"
+          >
+            Skip to content
+          </a>
+          {children}
+          <Footer />
           <Analytics />
           <SpeedInsights />
         </body>
