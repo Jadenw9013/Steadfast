@@ -129,21 +129,7 @@ export default async function ClientProfilePage() {
                 </Link>
 
                 {user.isCoach && (
-                    <div className="flex items-center gap-4 sf-glass-card p-4 transition-all hover:border-white/[0.16]">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.05] text-zinc-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-zinc-100">Switch to Coach</p>
-                            <p className="text-xs text-zinc-500">View your coach dashboard</p>
-                        </div>
-                        <RoleSwitcher currentRole="client" />
-                    </div>
+                    <RoleSwitcher currentRole="client" variant="row" />
                 )}
 
                 <div className="flex items-center gap-4 sf-glass-card p-4 transition-all hover:border-white/[0.16]">
