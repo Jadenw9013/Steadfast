@@ -4,7 +4,6 @@ import { resolveZipCode } from "@/lib/utils/zip-lookup";
 import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { Footer } from "@/components/footer";
 import { CoachFilters } from "@/components/public/coach-filters";
 import { SaveCoachButton } from "@/components/public/save-coach-button";
 import { getSavedCoachIds } from "@/lib/queries/saved-coaches";
@@ -516,7 +515,6 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                     </div>
                 </div>
             </main>
-            <Footer />
         </div>
     );
 }
