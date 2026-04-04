@@ -37,21 +37,30 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
 
     if (!lead || lead.coachProfileId !== profile.id) notFound();
 
-    // Fetch consultation meeting separately (simple model, adapter handles it)
+    // Fetch consultation meeting separately — select only to avoid relation loading (adapter-pg safe)
     const consultationMeeting = await db.consultationMeeting.findUnique({
         where: { requestId },
-    });
+        select: { meetingLink: true, scheduledTime: true, notes: true },
+    }).catch(() => null);
 
-    const answers = (lead.intakeAnswers ?? {}) as Record<string, string>;
+    // Safely parse intakeAnswers (raw SQL may return string)
+    let answers: Record<string, string> = {};
+    try {
+        answers = typeof lead.intakeAnswers === "string"
+            ? JSON.parse(lead.intakeAnswers)
+            : (lead.intakeAnswers ?? {}) as Record<string, string>;
+    } catch { answers = {}; }
 
     // Fetch active documents for this coach (for the intake packet UI)
-    const activeDocuments = await getCoachDocuments(user.id).then(docs => docs.filter(d => d.isActive).map(d => ({ id: d.id, title: d.title, type: d.type })));
+    const activeDocuments = await getCoachDocuments(user.id)
+        .then(docs => docs.filter(d => d.isActive).map(d => ({ id: d.id, title: d.title, type: d.type })))
+        .catch(() => [] as { id: string; title: string; type: string }[]);
 
     // Fetch intake packet sent date if it exists
     const intakePacket = await db.intakePacket.findUnique({
         where: { coachingRequestId: requestId },
         select: { sentAt: true },
-    });
+    }).catch(() => null);
 
     // ── Status badge colors ──────────────────────────────────────────────────
     const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
@@ -263,8 +272,8 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     prospectId={lead.prospectId}
                     prospectName={lead.prospectName}
                     consultationStage={effectiveStage}
-                    consultationDate={(lead.consultationDate ?? consultationMeeting?.scheduledTime)?.toISOString() ?? null}
-                    formsSignedAt={lead.formsSignedAt?.toISOString() ?? null}
+                    consultationDate={(() => { try { return lead.consultationDate ? new Date(lead.consultationDate).toISOString() : consultationMeeting?.scheduledTime ? new Date(consultationMeeting.scheduledTime).toISOString() : null; } catch { return null; } })()}
+                    formsSignedAt={(() => { try { return lead.formsSignedAt ? new Date(lead.formsSignedAt).toISOString() : null; } catch { return null; } })()}
                     prospectEmailAddr={lead.prospectEmailAddr ?? null}
                     existingMeeting={consultationMeeting ? {
                         meetingLink: consultationMeeting.meetingLink,

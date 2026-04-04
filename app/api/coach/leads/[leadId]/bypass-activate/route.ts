@@ -11,9 +11,9 @@ export async function POST(_req: NextRequest, { params }: Params) {
   try {
     user = await getCurrentDbUser();
   } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
   }
-  if (!user.isCoach) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!user.isCoach) return NextResponse.json({ success: false, message: "Forbidden" }, { status: 403 });
 
   try {
     const { leadId } = await params;
@@ -21,7 +21,7 @@ export async function POST(_req: NextRequest, { params }: Params) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.message ?? "Failed to activate." },
+        { success: false, message: result.message ?? "Failed to activate." },
         { status: 422 }
       );
     }
@@ -29,6 +29,6 @@ export async function POST(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ success: true, message: result.message });
   } catch (err) {
     console.error("[POST /api/coach/leads/[leadId]/bypass-activate]", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
   }
 }
