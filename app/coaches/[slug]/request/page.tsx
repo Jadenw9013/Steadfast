@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { RequestForm } from "@/components/coaches/request-form";
 import { WaitlistForm } from "@/components/coaches/waitlist-form";
 import { Footer } from "@/components/footer";
+import { auth } from "@clerk/nextjs/server";
 
 interface PageProps {
     params: Promise<{
@@ -51,6 +52,28 @@ export default async function CoachingRequestPage({ params }: PageProps) {
 
     const isAccepting = profile.acceptingClients;
 
+    // Pre-fill form from logged-in user's account (if authenticated)
+    let userPrefill: { name?: string; email?: string; phone?: string } = {};
+    try {
+        const { userId: clerkId } = await auth();
+        if (clerkId) {
+            const user = await db.user.findUnique({
+                where: { clerkId },
+                select: { firstName: true, lastName: true, email: true, phoneNumber: true },
+            });
+            if (user) {
+                const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ");
+                userPrefill = {
+                    name: fullName || undefined,
+                    email: user.email || undefined,
+                    phone: user.phoneNumber || undefined,
+                };
+            }
+        }
+    } catch {
+        // Not logged in — form stays empty, that's fine
+    }
+
     return (
         <div className="min-h-screen bg-black">
             {/* ── Nav ── */}
@@ -94,7 +117,7 @@ export default async function CoachingRequestPage({ params }: PageProps) {
 
                 <div className="sf-glass-card p-6 sm:p-8">
                     {isAccepting ? (
-                        <RequestForm coachProfileId={profile.id} />
+                        <RequestForm coachProfileId={profile.id} prefill={userPrefill} />
                     ) : (
                         <WaitlistForm coachProfileId={profile.id} />
                     )}

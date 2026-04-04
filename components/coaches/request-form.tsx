@@ -56,7 +56,10 @@ function FieldError({ message }: { message?: string }) {
 
 /* ── Main Form ── */
 
-export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
+export function RequestForm({ coachProfileId, prefill }: {
+    coachProfileId: string;
+    prefill?: { name?: string; email?: string; phone?: string };
+}) {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -66,7 +69,14 @@ export function RequestForm({ coachProfileId }: { coachProfileId: string }) {
 
     const form = useForm<FormValues>({
         resolver: zodResolver(intakeSchema),
-        defaultValues: { prospectName: "", prospectEmail: "", prospectPhone: "", goals: "", experience: "", injuries: "" },
+        defaultValues: {
+            prospectName: prefill?.name ?? "",
+            prospectEmail: prefill?.email ?? "",
+            prospectPhone: prefill?.phone ?? "",
+            goals: "",
+            experience: "",
+            injuries: "",
+        },
         mode: "onBlur",
     });
 
