@@ -119,9 +119,23 @@ export default async function CoachLeadsPage() {
     );
   }
 
+  // NOTE: explicit select avoids pulling all columns (including Json/String[]
+  // fields) that crash @prisma/adapter-pg on Neon pooled connections during SSR.
   const requests = await db.coachingRequest.findMany({
     where: { coachProfileId: profile.id },
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      prospectName: true,
+      prospectEmail: true,
+      status: true,
+      consultationStage: true,
+      intakeAnswers: true,
+      source: true,
+      formsSignedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
   const activeRequests = requests.filter(

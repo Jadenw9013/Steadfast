@@ -45,7 +45,12 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
     // Check if profile exists and is published
     const profile = await db.coachProfile.findUnique({
         where: { id: validated.coachProfileId },
-        include: { user: { select: { firstName: true, email: true, emailCoachingRequests: true } } },
+        select: {
+            id: true,
+            isPublished: true,
+            acceptingClients: true,
+            user: { select: { firstName: true, email: true, emailCoachingRequests: true } },
+        },
     });
 
     if (!profile || !profile.isPublished) {
@@ -63,6 +68,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
             prospectEmail: normalizedPhone,
             status: "PENDING",
         },
+        select: { id: true },
     });
 
     if (existingPending) {
@@ -81,18 +87,34 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
     } catch { /* unauthenticated — continue without linking */ }
 
     // Create Request
-    const request = await db.coachingRequest.create({
-        data: {
-            coachProfileId: validated.coachProfileId,
-            prospectName: validated.prospectName,
-            prospectEmail: normalizedPhone,
-            prospectEmailAddr: validated.prospectEmailAddr?.toLowerCase(),
-            prospectPhone: validated.prospectPhone,
-            intakeAnswers: validated.intakeAnswers,
-            status: "PENDING",
-            prospectId,
-        },
-    });
+    // NOTE: adapter-pg@7.5.0 + query-plan-executor@7.2.0 version mismatch causes
+    // "column (not available) does not exist" on create(). Use raw SQL to bypass.
+    const requestId = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 9)}`;
+    const cleanAnswers = JSON.parse(JSON.stringify(validated.intakeAnswers));
+
+    await db.$executeRawUnsafe(
+        `INSERT INTO "CoachingRequest" (
+            "id", "coachProfileId", "prospectName", "prospectEmail",
+            "prospectEmailAddr", "prospectPhone", "intakeAnswers",
+            "status", "consultationStage", "prospectId", "inviteSendCount",
+            "createdAt", "updatedAt"
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8::text::"RequestStatus",$9::text::"ConsultationStage",$10,$11,$12,$13)`,
+        requestId,
+        validated.coachProfileId,
+        validated.prospectName,
+        normalizedPhone,
+        validated.prospectEmailAddr?.toLowerCase() ?? null,
+        validated.prospectPhone ?? null,
+        JSON.stringify(cleanAnswers),
+        "PENDING",
+        "PENDING",
+        prospectId ?? null,
+        0,
+        new Date(),
+        new Date(),
+    );
+
+    const request = { id: requestId };
 
     console.info(JSON.stringify({
         event: "marketplace.request.submitted",
