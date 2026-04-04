@@ -21,21 +21,9 @@ export async function getCurrentDbUser() {
   const { userId } = await auth();
   if (!userId) throw new Error("Not authenticated");
 
-  // Raw SQL: User model has cadenceConfig Json? which crashes adapter-pg
-  // Must alias @map columns: role→activeRole, team_id→teamId, team_role→teamRole
-  const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-    `SELECT *, "role" AS "activeRole", "team_id" AS "teamId", "team_role" AS "teamRole"
-     FROM "User" WHERE "clerkId" = $1 LIMIT 1`, userId
-  );
-  const existing = rows[0] ?? null;
-
-  if (existing) {
-    // Parse cadenceConfig from JSON string if needed
-    if (typeof existing.cadenceConfig === "string") {
-      try { existing.cadenceConfig = JSON.parse(existing.cadenceConfig); } catch { existing.cadenceConfig = null; }
-    }
-    return existing as ReturnType_getCurrentDbUser;
-  }
+  // Try to find the user in the DB
+  const existing = await db.user.findUnique({ where: { clerkId: userId } });
+  if (existing) return existing;
 
   // JIT fallback: create the user if webhook hasn't fired yet
   const clerkUser = await currentUser();
@@ -48,27 +36,26 @@ export async function getCurrentDbUser() {
     (clerkUser.publicMetadata?.role as string)?.toUpperCase() === "COACH";
   const activeRole = isCoach ? "COACH" : "CLIENT" as const;
 
-  // Use raw SQL for upsert to avoid adapter-pg crash
-  await db.$executeRawUnsafe(
-    `INSERT INTO "User" ("id", "clerkId", "email", "firstName", "lastName", "role", "isCoach", "isClient", "createdAt", "updatedAt")
-     VALUES (gen_random_uuid()::text, $1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
-     ON CONFLICT ("clerkId") DO UPDATE SET
-       "email" = $2, "firstName" = $3, "lastName" = $4, "role" = $5, "isCoach" = $6, "isClient" = $7, "updatedAt" = NOW()`,
-    userId, email, clerkUser.firstName, clerkUser.lastName, activeRole, isCoach, !isCoach
-  );
-
-  // Re-fetch the user via raw SQL (alias @map columns)
-  const newRows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-    `SELECT *, "role" AS "activeRole", "team_id" AS "teamId", "team_role" AS "teamRole"
-     FROM "User" WHERE "clerkId" = $1 LIMIT 1`, userId
-  );
-  const newUser = newRows[0] as ReturnType_getCurrentDbUser;
-  if (!newUser) throw new Error("Failed to create user");
-
-  // Parse cadenceConfig from JSON string if needed
-  if (typeof newUser.cadenceConfig === "string") {
-    try { (newUser as Record<string, unknown>).cadenceConfig = JSON.parse(newUser.cadenceConfig as unknown as string); } catch { (newUser as Record<string, unknown>).cadenceConfig = null; }
-  }
+  const newUser = await db.user.upsert({
+    where: { clerkId: userId },
+    update: {
+      email,
+      firstName: clerkUser.firstName,
+      lastName: clerkUser.lastName,
+      activeRole,
+      isCoach,
+      isClient: !isCoach,
+    },
+    create: {
+      clerkId: userId,
+      email,
+      firstName: clerkUser.firstName,
+      lastName: clerkUser.lastName,
+      activeRole,
+      isCoach,
+      isClient: !isCoach,
+    },
+  });
 
   // Welcome email for new clients (fire-and-forget)
   if (newUser.isClient) {
@@ -82,97 +69,43 @@ export async function getCurrentDbUser() {
 
   // Process any approved marketplace requests pending for this email
   if (newUser.isClient) {
-    try {
-      const unhandledRequests = await db.$queryRawUnsafe<Array<{
-        id: string; coachProfileId: string;
-      }>>(
-        `SELECT cr."id", cr."coachProfileId"
-         FROM "CoachingRequest" cr
-         WHERE cr."prospectEmail" = $1
-           AND cr."status" IN ('APPROVED','ACCEPTED')
-           AND cr."prospectId" IS NULL`, email.toLowerCase()
-      );
+    const unhandledRequests = await db.coachingRequest.findMany({
+      where: {
+        prospectEmail: email.toLowerCase(),
+        status: { in: ["APPROVED", "ACCEPTED"] },
+        prospectId: null,
+      },
+      include: {
+        coachProfile: true,
+      },
+    });
 
-      for (const req of unhandledRequests) {
-        const coachProfile = await db.coachProfile.findUnique({
-          where: { id: req.coachProfileId },
-          select: { userId: true },
+    for (const req of unhandledRequests) {
+      const existingConnection = await db.coachClient.findUnique({
+        where: {
+          coachId_clientId: { coachId: req.coachProfile.userId, clientId: newUser.id },
+        },
+      });
+
+      if (!existingConnection) {
+        await db.coachClient.create({
+          data: {
+            coachId: req.coachProfile.userId,
+            clientId: newUser.id,
+            coachNotes: `Converted from marketplace request.`,
+          },
         });
-        if (!coachProfile) continue;
-
-        const existingConnection = await db.$queryRawUnsafe<Array<{ id: string }>>(
-          `SELECT "id" FROM "CoachClient" WHERE "coachId" = $1 AND "clientId" = $2 LIMIT 1`,
-          coachProfile.userId, newUser.id
-        );
-
-        if (!existingConnection.length) {
-          await db.$executeRawUnsafe(
-            `INSERT INTO "CoachClient" ("id", "coachId", "clientId", "coachNotes", "createdAt")
-             VALUES (gen_random_uuid()::text, $1, $2, 'Converted from marketplace request.', NOW())`,
-            coachProfile.userId, newUser.id
-          );
-        }
-
-        await db.$executeRawUnsafe(
-          `UPDATE "CoachingRequest" SET "prospectId" = $1 WHERE "id" = $2`,
-          newUser.id, req.id
-        );
       }
-    } catch (err) {
-      console.error("[getCurrentDbUser] Failed to process pending requests:", err);
+
+      await db.coachingRequest.update({
+        where: { id: req.id },
+        data: { prospectId: newUser.id },
+      });
     }
   }
 
   return newUser;
 }
-
-// Return type for getCurrentDbUser (matches User model minus Prisma type wrapper)
-type ReturnType_getCurrentDbUser = {
-  id: string;
-  clerkId: string;
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
-  profilePhotoPath: string | null;
-  clientBio: string | null;
-  fitnessGoal: string | null;
-  activeRole: string;
-  isCoach: boolean;
-  isClient: boolean;
-  phoneNumber: string | null;
-  apnsToken: string | null;
-  smsOptIn: boolean;
-  smsMealPlanUpdates: boolean;
-  smsDailyCheckInReminder: boolean;
-  smsCoachMessages: boolean;
-  smsCheckInFeedback: boolean;
-  smsCheckInReminderTime: string;
-  smsClientCheckIns: boolean;
-  smsMissedCheckInAlerts: boolean;
-  smsClientMessages: boolean;
-  smsNewClientSignups: boolean;
-  smsMissedCheckInAlertTime: string;
-  emailCheckInReminders: boolean;
-  emailMealPlanUpdates: boolean;
-  emailCoachMessages: boolean;
-  emailClientCheckIns: boolean;
-  emailClientMessages: boolean;
-  emailCoachingRequests: boolean;
-  pushMealPlanUpdates: boolean;
-  pushCheckInReminders: boolean;
-  pushCoachMessages: boolean;
-  pushClientCheckIns: boolean;
-  pushClientMessages: boolean;
-  pushCoachingRequests: boolean;
-  defaultNotifyOnPublish: boolean;
-  checkInDaysOfWeek: number[];
-  cadenceConfig: unknown;
-  timezone: string;
-  teamId: string | null;
-  teamRole: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
 /**
  * @deprecated Coach codes have been replaced by the invite + request system.

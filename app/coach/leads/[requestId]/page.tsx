@@ -20,61 +20,41 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
     });
     if (!profile) notFound();
 
-    // Raw SQL: adapter-pg crashes on models with Json columns regardless of select/include
-    type LeadRow = {
-        id: string; coachProfileId: string; prospectName: string; prospectEmail: string;
-        prospectPhone: string | null; prospectEmailAddr: string | null; prospectId: string | null;
-        intakeAnswers: unknown; status: string; consultationStage: string;
-        consultationDate: string | null; formsSignedAt: string | null;
-        source: string | null; createdAt: string; updatedAt: string;
-    };
-
-    let lead: LeadRow | null = null;
-
-    try {
-        const leadRows = await db.$queryRawUnsafe<LeadRow[]>(
-            `SELECT "id","coachProfileId","prospectName","prospectEmail","prospectPhone",
-                    "prospectEmailAddr","prospectId","intakeAnswers","status","consultationStage",
-                    "consultationDate","formsSignedAt","source","createdAt","updatedAt"
-             FROM "CoachingRequest" WHERE "id" = $1 LIMIT 1`, requestId
-        );
-        lead = leadRows[0] ?? null;
-    } catch (err) {
-        console.error("[LeadProfilePage] raw SQL CoachingRequest failed:", err);
-        throw new Error("Failed to load lead data");
-    }
+    // Standard Prisma queries — adapter-pg has been removed, so Json columns are safe
+    const lead = await db.coachingRequest.findUnique({
+        where: { id: requestId },
+        select: {
+            id: true, coachProfileId: true, prospectName: true, prospectEmail: true,
+            prospectPhone: true, prospectEmailAddr: true, prospectId: true,
+            intakeAnswers: true, status: true, consultationStage: true,
+            consultationDate: true, formsSignedAt: true, source: true,
+            createdAt: true, updatedAt: true,
+        },
+    });
 
     if (!lead || lead.coachProfileId !== profile.id) notFound();
 
-    // Raw SQL for consultation meeting (avoids adapter-pg relation issues)
-    let consultationMeeting: { meetingLink: string | null; scheduledTime: string | null; notes: string | null } | null = null;
-    try {
-        const meetingRows = await db.$queryRawUnsafe<Array<{ meetingLink: string | null; scheduledTime: string | null; notes: string | null }>>(
-            `SELECT "meetingLink","scheduledTime","notes" FROM "ConsultationMeeting" WHERE "requestId" = $1 LIMIT 1`, requestId
-        );
-        consultationMeeting = meetingRows[0] ?? null;
-    } catch { /* meeting not found is fine */ }
+    const consultationMeeting = await db.consultationMeeting.findUnique({
+        where: { requestId },
+        select: { meetingLink: true, scheduledTime: true, notes: true },
+    }).catch(() => null);
 
-    // Safely parse intakeAnswers (raw SQL may return string or object)
+    // Parse intakeAnswers (Prisma returns it as JsonValue)
     let answers: Record<string, string> = {};
     try {
-        const raw = lead.intakeAnswers;
-        answers = typeof raw === "string" ? JSON.parse(raw) : (raw ?? {}) as Record<string, string>;
+        answers = (lead.intakeAnswers ?? {}) as Record<string, string>;
     } catch { answers = {}; }
 
-    // Fetch active documents for this coach (for the intake packet UI)
+    // Fetch active documents for this coach
     const activeDocuments = await getCoachDocuments(user.id)
         .then(docs => docs.filter(d => d.isActive).map(d => ({ id: d.id, title: d.title, type: d.type })))
         .catch(() => [] as { id: string; title: string; type: string }[]);
 
-    // Raw SQL for intake packet (IntakePacket has formAnswers Json? — adapter-pg unsafe)
-    let intakePacketSentAt: string | null = null;
-    try {
-        const ipRows = await db.$queryRawUnsafe<Array<{ sentAt: string }>>(
-            `SELECT "sentAt" FROM "IntakePacket" WHERE "coachingRequestId" = $1 LIMIT 1`, requestId
-        );
-        intakePacketSentAt = ipRows[0]?.sentAt ? new Date(ipRows[0].sentAt).toISOString() : null;
-    } catch { /* packet not found is fine */ }
+    // Fetch intake packet sent date
+    const intakePacket = await db.intakePacket.findUnique({
+        where: { coachingRequestId: requestId },
+        select: { sentAt: true },
+    }).catch(() => null);
 
     // ── Status badge colors ──────────────────────────────────────────────────
     const statusMeta: Record<string, { label: string; color: string; bg: string }> = {
@@ -286,16 +266,16 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     prospectId={lead.prospectId}
                     prospectName={lead.prospectName}
                     consultationStage={effectiveStage}
-                    consultationDate={lead.consultationDate ?? consultationMeeting?.scheduledTime ?? null}
-                    formsSignedAt={lead.formsSignedAt ?? null}
+                    consultationDate={lead.consultationDate?.toISOString() ?? consultationMeeting?.scheduledTime?.toISOString() ?? null}
+                    formsSignedAt={lead.formsSignedAt?.toISOString() ?? null}
                     prospectEmailAddr={lead.prospectEmailAddr ?? null}
                     existingMeeting={consultationMeeting ? {
                         meetingLink: consultationMeeting.meetingLink,
-                        scheduledTime: consultationMeeting.scheduledTime ?? null,
+                        scheduledTime: consultationMeeting.scheduledTime?.toISOString() ?? null,
                         notes: consultationMeeting.notes,
                     } : null}
                     activeDocuments={activeDocuments}
-                    intakePacketSentAt={intakePacketSentAt}
+                    intakePacketSentAt={intakePacket?.sentAt?.toISOString() ?? null}
                     coachNotes={null}
                 />
             </div>
