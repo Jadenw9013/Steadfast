@@ -100,15 +100,17 @@ export async function POST(_req: NextRequest, { params }: Params) {
       sendEmail({ to: existingUser.email, ...emailContent }).catch(console.error);
     } catch { /* email failure must not block */ }
 
-    revalidatePath("/coach/leads");
-    revalidatePath("/coach/dashboard");
+    // Revalidate cache (may throw in edge/API contexts — non-blocking)
+    try { revalidatePath("/coach/leads"); } catch {}
+    try { revalidatePath("/coach/dashboard"); } catch {}
 
     return NextResponse.json({
       success: true,
       message: `${request.prospectName} has been added to your roster.`,
     });
-  } catch (err) {
-    console.error("[POST /api/coach/leads/[leadId]/bypass-activate]", err);
-    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[POST /api/coach/leads/[leadId]/bypass-activate]", msg, err);
+    return NextResponse.json({ success: false, message: `Internal server error: ${msg}` }, { status: 500 });
   }
 }

@@ -17,12 +17,63 @@ export function generateCoachCode(): string {
   return Array.from(randomValues, (v) => chars[v % chars.length]).join("");
 }
 
+// ── Safe user select — excludes Json columns that crash adapter-pg ───────────
+const SAFE_USER_SELECT = {
+  id: true,
+  clerkId: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  profilePhotoPath: true,
+  clientBio: true,
+  fitnessGoal: true,
+  activeRole: true,
+  isCoach: true,
+  isClient: true,
+  phoneNumber: true,
+  apnsToken: true,
+  smsOptIn: true,
+  smsMealPlanUpdates: true,
+  smsDailyCheckInReminder: true,
+  smsCoachMessages: true,
+  smsCheckInFeedback: true,
+  smsCheckInReminderTime: true,
+  smsClientCheckIns: true,
+  smsMissedCheckInAlerts: true,
+  smsClientMessages: true,
+  smsNewClientSignups: true,
+  smsMissedCheckInAlertTime: true,
+  emailCheckInReminders: true,
+  emailMealPlanUpdates: true,
+  emailCoachMessages: true,
+  emailClientCheckIns: true,
+  emailClientMessages: true,
+  emailCoachingRequests: true,
+  pushMealPlanUpdates: true,
+  pushCheckInReminders: true,
+  pushCoachMessages: true,
+  pushClientCheckIns: true,
+  pushClientMessages: true,
+  pushCoachingRequests: true,
+  defaultNotifyOnPublish: true,
+  checkInDaysOfWeek: true,
+  // cadenceConfig: EXCLUDED — Json column crashes adapter-pg
+  timezone: true,
+  teamId: true,
+  teamRole: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 export async function getCurrentDbUser() {
   const { userId } = await auth();
   if (!userId) throw new Error("Not authenticated");
 
-  // Try to find the user in the DB
-  const existing = await db.user.findUnique({ where: { clerkId: userId } });
+  // Try to find the user in the DB — use select to avoid Json columns (adapter-pg safe)
+  const existing = await db.user.findUnique({
+    where: { clerkId: userId },
+    select: SAFE_USER_SELECT,
+  });
   if (existing) return existing;
 
   // JIT fallback: create the user if webhook hasn't fired yet
@@ -55,6 +106,7 @@ export async function getCurrentDbUser() {
       isCoach,
       isClient: !isCoach,
     },
+    select: SAFE_USER_SELECT,
   });
 
   // Welcome email for new clients (fire-and-forget)
@@ -68,39 +120,51 @@ export async function getCurrentDbUser() {
   }
 
   // Process any approved marketplace requests pending for this email
+  // Use raw SQL to avoid adapter-pg crash (CoachingRequest has intakeAnswers Json)
   if (newUser.isClient) {
-    const unhandledRequests = await db.coachingRequest.findMany({
-      where: {
-        prospectEmail: email.toLowerCase(),
-        status: { in: ["APPROVED", "ACCEPTED"] },
-        prospectId: null,
-      },
-      include: {
-        coachProfile: true,
-      },
-    });
+    try {
+      const unhandledRequests = await db.$queryRawUnsafe<Array<{
+        id: string; coachProfileId: string;
+      }>>(
+        `SELECT cr."id", cr."coachProfileId"
+         FROM "CoachingRequest" cr
+         WHERE cr."prospectEmail" = $1
+           AND cr."status" IN ('APPROVED','ACCEPTED')
+           AND cr."prospectId" IS NULL`, email.toLowerCase()
+      );
 
-    for (const req of unhandledRequests) {
-      const existingConnection = await db.coachClient.findUnique({
-        where: {
-          coachId_clientId: { coachId: req.coachProfile.userId, clientId: newUser.id },
-        },
-      });
+      for (const req of unhandledRequests) {
+        // Look up the coach's userId from their coachProfile
+        const coachProfile = await db.coachProfile.findUnique({
+          where: { id: req.coachProfileId },
+          select: { userId: true },
+        });
+        if (!coachProfile) continue;
 
-      if (!existingConnection) {
-        await db.coachClient.create({
-          data: {
-            coachId: req.coachProfile.userId,
-            clientId: newUser.id,
-            coachNotes: `Converted from marketplace request.`,
+        const existingConnection = await db.coachClient.findUnique({
+          where: {
+            coachId_clientId: { coachId: coachProfile.userId, clientId: newUser.id },
           },
         });
-      }
 
-      await db.coachingRequest.update({
-        where: { id: req.id },
-        data: { prospectId: newUser.id },
-      });
+        if (!existingConnection) {
+          await db.coachClient.create({
+            data: {
+              coachId: coachProfile.userId,
+              clientId: newUser.id,
+              coachNotes: `Converted from marketplace request.`,
+            },
+          });
+        }
+
+        await db.$executeRawUnsafe(
+          `UPDATE "CoachingRequest" SET "prospectId" = $1 WHERE "id" = $2`,
+          newUser.id, req.id
+        );
+      }
+    } catch (err) {
+      console.error("[getCurrentDbUser] Failed to process pending requests:", err);
+      // Don't block auth flow
     }
   }
 
