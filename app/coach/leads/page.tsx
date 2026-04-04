@@ -119,24 +119,17 @@ export default async function CoachLeadsPage() {
     );
   }
 
-  // NOTE: explicit select avoids pulling all columns (including Json/String[]
-  // fields) that crash @prisma/adapter-pg on Neon pooled connections during SSR.
-  const requests = await db.coachingRequest.findMany({
-    where: { coachProfileId: profile.id },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      prospectName: true,
-      prospectEmail: true,
-      status: true,
-      consultationStage: true,
-      intakeAnswers: true,
-      source: true,
-      formsSignedAt: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-  });
+  // Raw SQL: adapter-pg crashes on CoachingRequest (Json columns) regardless of select/include
+  const requests = await db.$queryRawUnsafe<Array<{
+    id: string; prospectName: string; prospectEmail: string;
+    status: string; consultationStage: string; intakeAnswers: Record<string, string>;
+    source: string; formsSignedAt: Date | null; createdAt: Date; updatedAt: Date;
+  }>>(
+    `SELECT "id","prospectName","prospectEmail","status","consultationStage",
+            "intakeAnswers","source","formsSignedAt","createdAt","updatedAt"
+     FROM "CoachingRequest" WHERE "coachProfileId" = $1
+     ORDER BY "createdAt" DESC`, profile.id
+  );
 
   const activeRequests = requests.filter(
     (r) => r.status !== "DECLINED" && r.status !== "REJECTED"

@@ -20,29 +20,27 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
     });
     if (!profile) notFound();
 
-    const lead = await db.coachingRequest.findUnique({
-        where: { id: requestId },
-        select: {
-            id: true,
-            coachProfileId: true,
-            prospectName: true,
-            prospectEmail: true,
-            prospectPhone: true,
-            prospectEmailAddr: true,
-            prospectId: true,
-            intakeAnswers: true,
-            status: true,
-            consultationStage: true,
-            consultationDate: true,
-            coachNotes: true,
-            formsSignedAt: true,
-            createdAt: true,
-            updatedAt: true,
-            consultationMeeting: true,
-        },
-    });
+    // Raw SQL: adapter-pg crashes on CoachingRequest (Json columns) regardless of select/include
+    const leadRows = await db.$queryRawUnsafe<Array<{
+        id: string; coachProfileId: string; prospectName: string; prospectEmail: string;
+        prospectPhone: string | null; prospectEmailAddr: string | null; prospectId: string | null;
+        intakeAnswers: Record<string, string>; status: string; consultationStage: string;
+        consultationDate: Date | null; coachNotes: string | null; formsSignedAt: Date | null;
+        createdAt: Date; updatedAt: Date;
+    }>>(
+        `SELECT "id","coachProfileId","prospectName","prospectEmail","prospectPhone",
+                "prospectEmailAddr","prospectId","intakeAnswers","status","consultationStage",
+                "consultationDate","coachNotes","formsSignedAt","createdAt","updatedAt"
+         FROM "CoachingRequest" WHERE "id" = $1 LIMIT 1`, requestId
+    );
+    const lead = leadRows[0] ?? null;
 
     if (!lead || lead.coachProfileId !== profile.id) notFound();
+
+    // Fetch consultation meeting separately (simple model, adapter handles it)
+    const consultationMeeting = await db.consultationMeeting.findUnique({
+        where: { requestId },
+    });
 
     const answers = lead.intakeAnswers as Record<string, string>;
 
@@ -135,26 +133,26 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
             </div>
 
             {/* Consultation */}
-            {lead.consultationMeeting && (
+            {consultationMeeting && (
                 <div className="sf-glass-card p-6 space-y-3" style={{ borderColor: "rgba(245, 158, 11, 0.20)" }}>
                     <h2 className="text-sm font-semibold text-amber-400 uppercase tracking-wider">Consultation</h2>
-                    {lead.consultationMeeting.scheduledTime && (
+                    {consultationMeeting.scheduledTime && (
                         <p className="inline-flex items-center gap-1.5 text-sm text-zinc-300">
                             <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
-                            {new Date(lead.consultationMeeting.scheduledTime).toLocaleString("en-US", {
+                            {new Date(consultationMeeting.scheduledTime).toLocaleString("en-US", {
                                 month: "short", day: "numeric", year: "numeric",
                                 hour: "numeric", minute: "2-digit",
                             })}
                         </p>
                     )}
-                    {lead.consultationMeeting.meetingLink && (
-                        <a href={lead.consultationMeeting.meetingLink} target="_blank" rel="noopener noreferrer"
+                    {consultationMeeting.meetingLink && (
+                        <a href={consultationMeeting.meetingLink} target="_blank" rel="noopener noreferrer"
                            className="text-sm text-blue-400 hover:underline break-all">
-                            {lead.consultationMeeting.meetingLink}
+                            {consultationMeeting.meetingLink}
                         </a>
                     )}
-                    {lead.consultationMeeting.notes && (
-                        <p className="text-sm text-zinc-400">{lead.consultationMeeting.notes}</p>
+                    {consultationMeeting.notes && (
+                        <p className="text-sm text-zinc-400">{consultationMeeting.notes}</p>
                     )}
                 </div>
             )}
@@ -168,13 +166,13 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     prospectId={lead.prospectId}
                     prospectName={lead.prospectName}
                     consultationStage={lead.consultationStage}
-                    consultationDate={(lead.consultationDate ?? lead.consultationMeeting?.scheduledTime)?.toISOString() ?? null}
+                    consultationDate={(lead.consultationDate ?? consultationMeeting?.scheduledTime)?.toISOString() ?? null}
                     formsSignedAt={lead.formsSignedAt?.toISOString() ?? null}
                     prospectEmailAddr={lead.prospectEmailAddr ?? null}
-                    existingMeeting={lead.consultationMeeting ? {
-                        meetingLink: lead.consultationMeeting.meetingLink,
-                        scheduledTime: lead.consultationMeeting.scheduledTime,
-                        notes: lead.consultationMeeting.notes,
+                    existingMeeting={consultationMeeting ? {
+                        meetingLink: consultationMeeting.meetingLink,
+                        scheduledTime: consultationMeeting.scheduledTime,
+                        notes: consultationMeeting.notes,
                     } : null}
                     activeDocuments={activeDocuments}
                     intakePacketSentAt={intakePacket?.sentAt?.toISOString() ?? null}
