@@ -71,24 +71,22 @@ export async function POST(_req: NextRequest, { params }: Params) {
       }, { status: 422 });
     }
 
-    // Idempotent CoachClient creation
-    const existingConn = await db.coachClient.findUnique({
-      where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
-    });
-    if (!existingConn) {
-      await db.coachClient.create({
-        data: { coachId: user.id, clientId: existingUser.id, coachNotes: "Activated via pipeline bypass." },
-      });
-    }
+    // Idempotent CoachClient creation (raw SQL to avoid adapter-pg issues)
+    await db.$executeRaw`
+      INSERT INTO "CoachClient" ("id", "coachId", "clientId", "coachNotes", "createdAt", "updatedAt")
+      VALUES (gen_random_uuid()::text, ${user.id}, ${existingUser.id}, 'Activated via pipeline bypass.', NOW(), NOW())
+      ON CONFLICT ("coachId", "clientId") DO NOTHING
+    `;
 
-    await db.coachingRequest.update({
-      where: { id: leadId },
-      data: {
-        consultationStage: "ACTIVE",
-        status: "ACCEPTED",
-        prospectId: existingUser.id,
-      },
-    });
+    // Update the coaching request to ACTIVE
+    await db.$executeRaw`
+      UPDATE "CoachingRequest"
+      SET "consultationStage" = 'ACTIVE'::"ConsultationStage",
+          "status" = 'ACCEPTED'::"RequestStatus",
+          "prospectId" = ${existingUser.id},
+          "updatedAt" = NOW()
+      WHERE "id" = ${leadId}
+    `;
 
     // Send welcome email (fire-and-forget)
     try {

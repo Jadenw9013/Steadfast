@@ -22,8 +22,10 @@ export async function getCurrentDbUser() {
   if (!userId) throw new Error("Not authenticated");
 
   // Raw SQL: User model has cadenceConfig Json? which crashes adapter-pg
+  // Must alias @map columns: role→activeRole, team_id→teamId, team_role→teamRole
   const rows = await db.$queryRawUnsafe<Array<Record<string, unknown>>>(
-    `SELECT * FROM "User" WHERE "clerkId" = $1 LIMIT 1`, userId
+    `SELECT *, "role" AS "activeRole", "team_id" AS "teamId", "team_role" AS "teamRole"
+     FROM "User" WHERE "clerkId" = $1 LIMIT 1`, userId
   );
   const existing = rows[0] ?? null;
 
