@@ -69,24 +69,25 @@ export async function POST(_req: NextRequest, { params }: Params) {
       }, { status: 422 });
     }
 
-    // 4. Create CoachClient link (idempotent — ON CONFLICT DO NOTHING)
-    //    CoachClient table has: id, coachId, clientId, coachNotes, checkInDaysOfWeekOverride,
-    //    cadenceConfig, adherenceEnabled, sortOrder, createdAt (NO updatedAt)
-    await db.$executeRaw`
-      INSERT INTO "CoachClient" ("id", "coachId", "clientId", "coachNotes", "createdAt")
-      VALUES (gen_random_uuid()::text, ${user.id}, ${existingUser.id}, 'Activated via pipeline bypass.', NOW())
-      ON CONFLICT ("coachId", "clientId") DO NOTHING
-    `;
+    // 4. Create CoachClient link (idempotent)
+    const existingConn = await db.coachClient.findUnique({
+      where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
+    });
+    if (!existingConn) {
+      await db.coachClient.create({
+        data: { coachId: user.id, clientId: existingUser.id, coachNotes: "Activated via pipeline bypass." },
+      });
+    }
 
     // 5. Update the coaching request to ACTIVE
-    await db.$executeRaw`
-      UPDATE "CoachingRequest"
-      SET "consultationStage" = 'ACTIVE'::"ConsultationStage",
-          "status" = 'ACCEPTED'::"RequestStatus",
-          "prospectId" = ${existingUser.id},
-          "updatedAt" = NOW()
-      WHERE "id" = ${leadId}
-    `;
+    await db.coachingRequest.update({
+      where: { id: leadId },
+      data: {
+        consultationStage: "ACTIVE",
+        status: "ACCEPTED",
+        prospectId: existingUser.id,
+      },
+    });
 
     // 6. Send welcome email (fire-and-forget — never blocks)
     try {
