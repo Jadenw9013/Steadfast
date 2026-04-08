@@ -71,6 +71,26 @@ export async function POST(req: NextRequest, { params }: Params) {
       data: { status: "PUBLISHED", publishedAt: new Date() },
     });
 
+    // Fire-and-forget push to client
+    // NOTE: The schema has no separate pushTrainingUpdates preference column. We gate
+    // on pushMealPlanUpdates as a short-term approximation — both are "plan published"
+    // events from the client's perspective. Add a dedicated column when training
+    // notifications need a separate opt-in.
+    Promise.resolve().then(async () => {
+      try {
+        const client = await db.user.findUnique({
+          where: { id: clientId },
+          select: { pushMealPlanUpdates: true },
+        });
+        if (client?.pushMealPlanUpdates) {
+          const { pushTrainingProgramPublished } = await import("@/lib/notifications/push");
+          await pushTrainingProgramPublished(clientId);
+        }
+      } catch (err) {
+        console.error("[training publish] Failed to send push:", err);
+      }
+    }).catch(console.error);
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[POST /api/coach/clients/[clientId]/training/publish]", err);

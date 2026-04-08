@@ -37,9 +37,11 @@ export async function POST(req: NextRequest) {
         acceptingClients: true,
         user: {
           select: {
+            id: true,
             firstName: true,
             email: true,
             emailCoachingRequests: true,
+            pushCoachingRequests: true,
           },
         },
       },
@@ -132,6 +134,16 @@ export async function POST(req: NextRequest) {
         );
       } catch {
         /* email failure must not break request */
+      }
+    }
+
+    // Coach push notification (preference-gated, fire-and-forget)
+    if (profile.user.pushCoachingRequests) {
+      try {
+        const { pushNewCoachingRequest } = await import("@/lib/notifications/push");
+        pushNewCoachingRequest(profile.user.id, prospectName).catch(console.error);
+      } catch {
+        /* push failure must not break request */
       }
     }
 

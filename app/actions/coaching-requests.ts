@@ -56,7 +56,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
             id: true,
             isPublished: true,
             acceptingClients: true,
-            user: { select: { firstName: true, email: true, emailCoachingRequests: true } },
+            user: { select: { id: true, firstName: true, email: true, emailCoachingRequests: true, pushCoachingRequests: true } },
         },
     });
 
@@ -138,6 +138,14 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
             const notifEmail = newRequestNotificationEmail(coachName, validated.prospectName, `Phone: ${normalizedPhone}`);
             await sendEmail({ to: profile.user.email, ...notifEmail });
         } catch { /* email failure must not break request */ }
+    }
+
+    // Coach push notification (preference-gated, fire-and-forget)
+    if (profile.user.pushCoachingRequests) {
+        try {
+            const { pushNewCoachingRequest } = await import("@/lib/notifications/push");
+            pushNewCoachingRequest(profile.user.id, validated.prospectName).catch(console.error);
+        } catch { /* push failure must not break request */ }
     }
 
     // Revalidate the coach's leads page so they see it

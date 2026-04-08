@@ -10,9 +10,11 @@ export type PushType =
   | "CHECKIN_REVIEWED"
   | "CHECKIN_FEEDBACK"
   | "MEAL_PLAN_UPDATED"
+  | "TRAINING_PLAN_UPDATED"
   | "CLIENT_CHECKIN_SUBMITTED"
   | "MISSED_CHECKIN"
-  | "NEW_CLIENT_SIGNUP";
+  | "NEW_CLIENT_SIGNUP"
+  | "NEW_COACHING_REQUEST";
 
 interface PushPayload {
   title: string;
@@ -126,5 +128,21 @@ export async function pushNewClientSignup(coachId: string, clientName: string) {
     title: "New Client",
     body: `${clientName} just signed up.`,
     type: "NEW_CLIENT_SIGNUP",
+  });
+}
+
+export async function pushNewCoachingRequest(coachId: string, prospectName: string) {
+  return sendPushToUser(coachId, {
+    title: "New Coaching Request",
+    body: `${prospectName} submitted a coaching request.`,
+    type: "NEW_COACHING_REQUEST",
+  });
+}
+
+export async function pushTrainingProgramPublished(clientId: string) {
+  return sendPushToUser(clientId, {
+    title: "New Training Program",
+    body: "Your coach posted your training program for this week.",
+    type: "TRAINING_PLAN_UPDATED",
   });
 }

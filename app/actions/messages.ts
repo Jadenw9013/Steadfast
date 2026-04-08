@@ -67,12 +67,17 @@ export async function sendMessage(input: unknown) {
       notifyCoachMessage(clientId).catch(console.error);
 
       // Background email to client (preference-gated)
-      const client = await db.user.findUnique({ where: { id: clientId }, select: { email: true, firstName: true, emailCoachMessages: true } });
+      const client = await db.user.findUnique({ where: { id: clientId }, select: { email: true, firstName: true, emailCoachMessages: true, pushCoachMessages: true } });
       if (client?.email && client.emailCoachMessages) {
         const { sendEmail } = await import("@/lib/email/sendEmail");
         const { newMessageEmail } = await import("@/lib/email/templates");
         const email = newMessageEmail(client.firstName || "there", senderName, "/client/messages");
         sendEmail({ to: client.email, ...email }).catch(console.error);
+      }
+      // Background push to client (preference-gated)
+      if (client?.pushCoachMessages) {
+        const { pushNewMessage } = await import("@/lib/notifications/push");
+        pushNewMessage(clientId, senderName).catch(console.error);
       }
     } else {
       const { notifyClientMessage } = await import("@/lib/sms/notify");
@@ -81,12 +86,17 @@ export async function sendMessage(input: unknown) {
         notifyClientMessage(assignment.coachId, senderName).catch(console.error);
 
         // Background email to coach (preference-gated)
-        const coach = await db.user.findUnique({ where: { id: assignment.coachId }, select: { email: true, firstName: true, emailClientMessages: true } });
+        const coach = await db.user.findUnique({ where: { id: assignment.coachId }, select: { email: true, firstName: true, emailClientMessages: true, pushClientMessages: true } });
         if (coach?.email && coach.emailClientMessages) {
           const { sendEmail } = await import("@/lib/email/sendEmail");
           const { newMessageEmail } = await import("@/lib/email/templates");
           const email = newMessageEmail(coach.firstName || "Coach", senderName, "/coach");
           sendEmail({ to: coach.email, ...email }).catch(console.error);
+        }
+        // Background push to coach (preference-gated)
+        if (coach?.pushClientMessages) {
+          const { pushNewMessage } = await import("@/lib/notifications/push");
+          pushNewMessage(assignment.coachId, senderName).catch(console.error);
         }
       }
     }

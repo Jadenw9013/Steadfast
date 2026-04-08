@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
             const client = await db.user.findUnique({
               where: { id: clientId },
-              select: { email: true, firstName: true, emailMealPlanUpdates: true },
+              select: { email: true, firstName: true, emailMealPlanUpdates: true, pushMealPlanUpdates: true },
             });
             if (client?.email && client.emailMealPlanUpdates) {
               const { sendEmail } = await import("@/lib/email/sendEmail");
@@ -89,6 +89,10 @@ export async function POST(req: NextRequest, { params }: Params) {
                 user.firstName ?? "your coach"
               );
               sendEmail({ to: client.email, ...email }).catch(console.error);
+            }
+            if (client?.pushMealPlanUpdates) {
+              const { pushMealPlanUpdated } = await import("@/lib/notifications/push");
+              pushMealPlanUpdated(clientId, user.firstName ?? "your coach").catch(console.error);
             }
           } catch (err) {
             console.error("[meal-plan publish] Failed to send notification:", err);

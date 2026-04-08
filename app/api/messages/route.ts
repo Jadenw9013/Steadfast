@@ -152,13 +152,17 @@ export async function POST(req: NextRequest) {
           notifyCoachMessage(clientId).catch(console.error);
           const client = await db.user.findUnique({
             where: { id: clientId },
-            select: { email: true, firstName: true, emailCoachMessages: true },
+            select: { email: true, firstName: true, emailCoachMessages: true, pushCoachMessages: true },
           });
           if (client?.email && client.emailCoachMessages) {
             const { sendEmail } = await import("@/lib/email/sendEmail");
             const { newMessageEmail } = await import("@/lib/email/templates");
             const email = newMessageEmail(client.firstName || "there", senderName, "/client/messages");
             sendEmail({ to: client.email, ...email }).catch(console.error);
+          }
+          if (client?.pushCoachMessages) {
+            const { pushNewMessage } = await import("@/lib/notifications/push");
+            pushNewMessage(clientId, senderName).catch(console.error);
           }
         } else {
           const assignment = await db.coachClient.findFirst({
@@ -170,13 +174,17 @@ export async function POST(req: NextRequest) {
             notifyClientMessage(assignment.coachId, senderName).catch(console.error);
             const coach = await db.user.findUnique({
               where: { id: assignment.coachId },
-              select: { email: true, firstName: true, emailClientMessages: true },
+              select: { email: true, firstName: true, emailClientMessages: true, pushClientMessages: true },
             });
             if (coach?.email && coach.emailClientMessages) {
               const { sendEmail } = await import("@/lib/email/sendEmail");
               const { newMessageEmail } = await import("@/lib/email/templates");
               const email = newMessageEmail(coach.firstName || "Coach", senderName, "/coach");
               sendEmail({ to: coach.email, ...email }).catch(console.error);
+            }
+            if (coach?.pushClientMessages) {
+              const { pushNewMessage } = await import("@/lib/notifications/push");
+              pushNewMessage(assignment.coachId, senderName).catch(console.error);
             }
           }
         }
