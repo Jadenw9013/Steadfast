@@ -1,7 +1,7 @@
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import Link from "next/link";
-import { getMessages } from "@/lib/queries/messages";
+import { getAllMessages } from "@/lib/queries/messages";
 import { normalizeToMonday } from "@/lib/utils/date";
 import { MessageThread } from "@/components/messages/message-thread";
 
@@ -10,7 +10,13 @@ export default async function ClientMessagesPage() {
 
   const coachClient = await db.coachClient.findFirst({
     where: { clientId: user.id },
-    select: { id: true, coachId: true },
+    select: {
+      id: true,
+      coachId: true,
+      coach: {
+        select: { firstName: true, lastName: true },
+      },
+    },
   });
 
   if (!coachClient) {
@@ -38,8 +44,7 @@ export default async function ClientMessagesPage() {
     );
   }
 
-  const weekOf = normalizeToMonday(new Date());
-  const messages = await getMessages(user.id, weekOf);
+  const messages = await getAllMessages(user.id);
 
   const serializedMessages = messages.map((m) => ({
     id: m.id,
@@ -48,28 +53,42 @@ export default async function ClientMessagesPage() {
     sender: m.sender,
   }));
 
-  // Format weekStartDate as YYYY-MM-DD
-  const weekStartDate = weekOf.toISOString().slice(0, 10);
-
-  const weekLabel = weekOf.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  const weekStartDate = normalizeToMonday(new Date()).toISOString().slice(0, 10);
+  const coachName = coachClient.coach.firstName ?? "Coach";
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black tracking-tight text-white">Messages</h1>
-        <span className="sf-section-label mt-1 block">Week of {weekLabel}</span>
+    <div
+      className="flex flex-col -mx-4 -mt-6 sm:-mx-8 sm:-mt-8"
+      style={{ height: "calc(100dvh - 56px)" }}
+    >
+      {/* DM header bar */}
+      <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3 sm:px-6">
+        <Link
+          href="/client"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.08] hover:text-white"
+          aria-label="Back"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
+        </Link>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[11px] font-bold text-white">
+            {coachName[0]?.toUpperCase() ?? "C"}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-zinc-100 truncate">{coachName}</p>
+            <p className="text-[11px] text-zinc-500">Your Coach</p>
+          </div>
+        </div>
       </div>
 
+      {/* Full-height message thread */}
       <MessageThread
         messages={serializedMessages}
         clientId={user.id}
         weekStartDate={weekStartDate}
         currentUserId={user.id}
-        alwaysExpanded={true}
+        fullScreen={true}
+        coachName={coachName}
       />
     </div>
   );

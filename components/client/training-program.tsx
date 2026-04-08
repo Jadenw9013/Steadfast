@@ -135,9 +135,9 @@ export function TrainingProgram({
 }) {
   const workoutDays = program.days.filter((d) => d.dayName !== "__CARDIO__");
 
-  // Custom expand/collapse state — first day open by default
+  // Custom expand/collapse state — all days closed by default
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
-    () => new Set(workoutDays[0] ? [workoutDays[0].id] : [])
+    () => new Set()
   );
 
   // Per-exercise completion state
@@ -365,7 +365,7 @@ export function TrainingProgram({
                   </span>
                 )}
                 <svg
-                  className={`h-4 w-4 text-zinc-500 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                  className={`h-4 w-4 text-zinc-500 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${isExpanded ? "rotate-180" : ""}`}
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -404,9 +404,16 @@ export function TrainingProgram({
               </div>
             )}
 
-            {/* Collapsible body */}
-            {isExpanded && (
-              <div id={`day-body-${day.id}`}>
+            {/* Collapsible body — animated */}
+            <div
+              id={`day-body-${day.id}`}
+              className={`grid transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                isExpanded
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="overflow-hidden">
                 {day.blocks.length === 0 ? (
                   <p className="px-5 py-4 text-sm text-zinc-500">
                     No exercises added yet.
@@ -529,7 +536,7 @@ export function TrainingProgram({
                   </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
         );
       })}

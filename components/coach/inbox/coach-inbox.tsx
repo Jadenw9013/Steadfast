@@ -30,9 +30,26 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
   const isMissing = (c: InboxClient) =>
     c.weekStatus === "missing" || c.cadenceStatus === "overdue";
 
+  // Priority order for the "All" tab: overdue → due → submitted/new → upcoming → reviewed
+  const STATUS_PRIORITY: Record<string, number> = {
+    overdue: 0,
+    due: 1,
+    missing: 2,
+    submitted: 3,
+    new: 3,
+    upcoming: 4,
+    not_due: 4,
+    reviewed: 5,
+  };
+
+  function getStatusPriority(c: InboxClient): number {
+    const key = c.cadenceStatus ?? c.weekStatus;
+    return STATUS_PRIORITY[key] ?? 4;
+  }
+
   const tabFiltered =
     activeFilter === "all"
-      ? orderedClients
+      ? [...orderedClients].sort((a, b) => getStatusPriority(a) - getStatusPriority(b))
       : activeFilter === "missing"
       ? orderedClients.filter(isMissing)
       : activeFilter === "reviewed"
@@ -132,7 +149,7 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400"
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300"
           aria-hidden="true"
         >
           <circle cx="11" cy="11" r="8" />
@@ -185,20 +202,20 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
               onKeyDown={(e) => handleKeyDown(e, i)}
               className={`min-h-[44px] shrink-0 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
                 activeFilter === f.key
-                  ? "bg-white/[0.08] text-zinc-100 shadow-sm border border-white/[0.08]"
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "bg-white/[0.10] text-white shadow-sm border border-white/[0.10]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]"
               }`}
             >
               {f.label}
               <span
                 className={`ml-1.5 inline-block min-w-[1.25rem] rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
                   f.key === "new"
-                    ? "bg-blue-500/20 text-blue-400"
+                    ? "bg-blue-500/20 text-blue-300"
                     : f.key === "reviewed"
-                    ? "bg-emerald-500/20 text-emerald-400"
+                    ? "bg-emerald-500/20 text-emerald-300"
                     : f.key === "missing"
-                    ? "bg-zinc-700/60 text-zinc-400"
-                    : "bg-zinc-700/60 text-zinc-400"
+                    ? "bg-red-500/20 text-red-300"
+                    : "bg-slate-500/15 text-slate-300"
                 }`}
               >
                 {count}
@@ -212,10 +229,10 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
       <div role="tabpanel">
         {filtered.length === 0 ? (
           <div className="animate-fade-in sf-surface-card flex flex-col items-center gap-2 py-16">
-            <p className="text-sm font-medium text-zinc-400">
+            <p className="text-sm font-medium text-zinc-300">
               {query ? `No clients match "${query}"` : "No clients match this filter"}
             </p>
-            <p className="text-xs text-zinc-400/70">
+            <p className="text-xs text-zinc-400">
               {query ? "Try a different name." : "Try selecting a different category above."}
             </p>
           </div>
@@ -254,7 +271,7 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
 
       {/* Hint */}
       {isDragEnabled && orderedClients.length > 1 && (
-        <p className="text-center text-xs text-zinc-400/50">
+        <p className="text-center text-xs text-zinc-400">
           Drag to reorder · Saved automatically
         </p>
       )}

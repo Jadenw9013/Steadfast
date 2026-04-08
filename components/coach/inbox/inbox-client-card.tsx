@@ -30,10 +30,10 @@ const RING_GRADIENT: Record<string, string> = {
   due:       "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
   submitted: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
   reviewed:  "linear-gradient(135deg, #10b981 0%, #2dd4bf 100%)",
-  upcoming:  "linear-gradient(180deg, #3f3f46 0%, #27272a 100%)",
+  upcoming:  "linear-gradient(180deg, #334155 0%, #1e293b 100%)",
   new:       "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
-  missing:   "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)",
-  not_due:   "linear-gradient(180deg, #3f3f46 0%, #27272a 100%)",
+  missing:   "linear-gradient(135deg, #ef4444 0%, #f97316 100%)",
+  not_due:   "linear-gradient(180deg, #334155 0%, #1e293b 100%)",
 };
 
 // ── Status badge config: icon + color per status ──────────────────────────────
@@ -67,7 +67,7 @@ const BADGE_MAP: Record<string, BadgeInfo> = {
     defaultLabel: "Reviewed",
   },
   upcoming: {
-    classes: "bg-zinc-700/50 text-zinc-400 border border-zinc-700",
+    classes: "bg-slate-500/15 text-slate-300 border border-slate-500/20",
     icon: "clock",
     defaultLabel: "Upcoming",
   },
@@ -78,12 +78,12 @@ const BADGE_MAP: Record<string, BadgeInfo> = {
     defaultLabel: "Review",
   },
   missing: {
-    classes: "bg-amber-500/15 text-amber-400 border border-amber-500/20",
-    icon: "pulse-amber",
-    defaultLabel: "Due Today",
+    classes: "bg-red-500/15 text-red-400 border border-red-500/20",
+    icon: "pulse-red",
+    defaultLabel: "Missing",
   },
   not_due: {
-    classes: "bg-zinc-700/50 text-zinc-400 border border-zinc-700",
+    classes: "bg-slate-500/15 text-slate-300 border border-slate-500/20",
     icon: "clock",
     defaultLabel: "Upcoming",
   },
@@ -203,7 +203,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
           <p className="text-[15px] font-semibold leading-snug text-zinc-100 sm:truncate">
             {client.firstName} {client.lastName}
           </p>
-          <p className="mt-0.5 text-sm leading-relaxed text-zinc-400 sm:text-xs sm:text-zinc-500">
+          <p className="mt-0.5 text-sm leading-relaxed text-zinc-400 sm:text-xs sm:text-zinc-400">
             {client.submittedAt
               ? `Checked in ${formatTimeAgo(client.submittedAt)}`
               : client.nextDueLabel || "Waiting for submission"}
@@ -215,7 +215,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
           <div className="hidden shrink-0 text-right sm:block">
             <p className="font-mono text-2xl font-bold tabular-nums leading-tight tracking-tight text-zinc-100">
               {client.weight}
-              <span className="ml-0.5 text-sm font-normal text-zinc-500">lbs</span>
+              <span className="ml-0.5 text-sm font-normal text-zinc-400">lbs</span>
             </p>
             {hasWeightChange && (
               <p className="mt-0.5 flex items-center justify-end gap-0.5 text-xs font-medium tabular-nums">
@@ -248,7 +248,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
         <div className="mt-2 flex items-center gap-2 pl-[60px] sm:hidden">
           <span className="font-mono text-xl font-bold tabular-nums text-zinc-100">
             {client.weight}
-            <span className="ml-0.5 text-sm font-normal text-zinc-500">lbs</span>
+            <span className="ml-0.5 text-sm font-normal text-zinc-400">lbs</span>
           </span>
           {hasWeightChange && (
             <>

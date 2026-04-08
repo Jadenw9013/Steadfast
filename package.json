@@ -9,6 +9,9 @@
     "lint": "eslint",
     "postinstall": "prisma generate",
     "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:smoke": "SMOKE=1 vitest run",
     "release-check": "bash release.sh"
   },
   "dependencies": {

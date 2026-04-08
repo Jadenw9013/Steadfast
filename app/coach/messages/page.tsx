@@ -44,7 +44,7 @@ export default async function CoachMessagesPage() {
           <p className="text-sm text-zinc-500">Add clients to start conversations.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2 card-list">
           {clients.map((client) => {
             const statusKey = client.cadenceStatus ?? client.weekStatus;
             const ringGradient = RING_GRADIENT[statusKey] ?? RING_GRADIENT.not_due;
@@ -52,7 +52,7 @@ export default async function CoachMessagesPage() {
             return (
               <Link
                 key={client.id}
-                href={`/coach/clients/${client.id}`}
+                href={`/coach/clients/${client.id}/messages`}
                 className="group flex items-center gap-3 sf-glass-card p-4 transition-all hover:border-white/[0.16] hover:shadow-[0_4px_24px_rgba(0,0,0,0.4)] sm:gap-4 sm:p-5"
               >
                 {/* Avatar with gradient ring */}

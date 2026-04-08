@@ -26,10 +26,9 @@ export default async function ClientCheckInPage() {
   return (
     <div className="mx-auto max-w-lg">
       {/* Page header */}
-      <div className="mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400/70">Weekly Update</p>
-        <h1 className="mt-0.5 text-2xl font-black tracking-tight text-white">Check-In</h1>
-        <p className="mt-0.5 text-sm text-zinc-500">Your coach reviews every submission</p>
+      <div className="mb-4 sm:mb-5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">Weekly Update</p>
+        <h1 className="mt-0.5 text-xl sm:text-2xl font-black tracking-tight text-white">Check-In</h1>
       </div>
 
       <CheckInForm

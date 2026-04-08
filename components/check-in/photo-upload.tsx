@@ -65,14 +65,14 @@ export function PhotoUpload({
 
   return (
     <div className="space-y-3">
-      <label className="block text-sm font-medium text-gray-700">
-        Progress pics <span className="text-gray-400">({files.length}/{maxFiles})</span>
-      </label>
+      <p className="text-sm font-medium text-zinc-300">
+        {files.length}/{maxFiles} photos
+      </p>
 
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-600"
+          className="rounded-xl border border-red-900/50 bg-red-950/50 px-4 py-2.5 text-sm text-red-400"
         >
           {error}
         </div>
@@ -87,7 +87,7 @@ export function PhotoUpload({
               <img
                 src={URL.createObjectURL(file)}
                 alt={`Preview ${i + 1}`}
-                className="aspect-square w-full rounded-xl border border-zinc-200 object-cover"
+                className="aspect-square w-full rounded-xl border border-white/10 object-cover"
               />
               <button
                 type="button"
@@ -119,8 +119,8 @@ export function PhotoUpload({
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
           className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${dragOver
-              ? "border-zinc-500 bg-zinc-100"
-              : "border-zinc-300 hover:border-zinc-400"
+              ? "border-blue-500/50 bg-blue-500/5"
+              : "border-white/15 hover:border-white/25"
             }`}
           aria-label="Drop photos here or click to browse"
         >
@@ -132,12 +132,12 @@ export function PhotoUpload({
             onChange={handleChange}
             className="sr-only"
           />
-          <p className="text-sm font-medium text-zinc-500">
+          <p className="text-sm font-medium text-zinc-300">
             {files.length === 0
-              ? "Drop photos here or tap to browse"
+              ? "Tap to add photos"
               : `Add ${maxFiles - files.length} more`}
           </p>
-          <p className="text-xs text-zinc-400">JPEG, PNG, or WebP &middot; Max 5 MB each</p>
+          <p className="text-xs text-zinc-500">JPEG, PNG, or WebP &middot; 5 MB max</p>
         </div>
       )}
     </div>

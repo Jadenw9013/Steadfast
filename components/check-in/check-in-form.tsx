@@ -285,11 +285,10 @@ export function CheckInForm({
     "ring-2 ring-indigo-500/60 bg-indigo-500/20 text-indigo-300",
   ];
 
-  const stepCard = "sf-glass-card p-5 shadow-lg";
-  const stepLabel = "mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400/80";
-  const stepTitle = "text-xl font-bold text-white";
-  const stepSub = "mt-0.5 text-[12px] text-zinc-500";
-  const emojiBtn = "flex flex-col items-center gap-1.5 sf-chip py-3 text-[11px] font-semibold text-zinc-400 transition-all duration-150 active:scale-95 cursor-pointer border-white/[0.07]";
+  const stepCard = "sf-glass-card p-4 sm:p-5 shadow-lg";
+  const stepLabel = "mb-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400";
+  const stepTitle = "text-lg sm:text-xl font-bold text-white";
+  const emojiBtn = "flex flex-col items-center gap-1 sm:gap-1.5 sf-chip py-2.5 sm:py-3 text-[10px] sm:text-[11px] font-semibold text-zinc-400 transition-all duration-150 active:scale-95 cursor-pointer border-white/[0.07]";
   const emojiBtnActive = "scale-[1.04]";
 
   return (
@@ -335,13 +334,13 @@ export function CheckInForm({
       )}
 
       {/* Sticky progress header */}
-      <div className="sf-nav-bar -mx-4 px-4 pt-3 pb-3 sm:-mx-6 sm:px-6">
+      <div className="sf-nav-bar -mx-4 px-4 pt-2.5 pb-2.5 sm:-mx-6 sm:px-6 sm:pt-3 sm:pb-3">
         {/* Step labels */}
-        <div className="mb-2 flex justify-between">
+        <div className="mb-1.5 flex justify-between">
           {STEPS.map((step, i) => (
             <span
               key={step.label}
-              className={`text-[10px] font-semibold uppercase tracking-wider transition-colors ${
+              className={`text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider transition-colors ${
                 i <= activeStep ? "text-blue-400" : "text-zinc-600"
               }`}
             >
@@ -350,11 +349,11 @@ export function CheckInForm({
           ))}
         </div>
         {/* Segmented bar */}
-        <div className="flex gap-1.5">
+        <div className="flex gap-1">
           {filledSegments.map((filled, i) => (
             <div
               key={i}
-              className={`h-1 flex-1 rounded-full transition-all duration-500 ${
+              className={`h-[3px] flex-1 rounded-full transition-all duration-500 ${
                 filled ? "bg-blue-500" : i === activeStep ? "bg-blue-500/30" : "bg-white/10"
               }`}
             />
@@ -362,7 +361,7 @@ export function CheckInForm({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-3 pb-28" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-3 space-y-3 pb-36 sm:pb-28" noValidate>
 
         {error && (
           <div role="alert" className="rounded-xl border border-red-900/50 bg-red-950/50 px-4 py-3 text-sm text-red-400">
@@ -372,23 +371,22 @@ export function CheckInForm({
 
         {/* STEP 1 — Weight */}
         <div className={stepCard}>
-          <p className={stepLabel}>Step 1 · Weight</p>
-          <p className={stepTitle}>What&apos;s your weight?</p>
-          <p className={stepSub}>Morning weight, after bathroom</p>
+          <p className={stepLabel}>Weight</p>
+          <p className={stepTitle}>Morning weight</p>
 
           {weightValue && (
-            <p className="mt-3 font-display text-5xl font-black tabular-nums text-white">
-              {weightValue}<span className="ml-1.5 text-xl font-normal text-zinc-500">lbs</span>
+            <p className="mt-3 font-display text-4xl sm:text-5xl font-black tabular-nums text-white">
+              {weightValue}<span className="ml-1.5 text-base sm:text-xl font-normal text-zinc-500">lbs</span>
             </p>
           )}
           {!weightValue && (
-            <p className="mt-3 font-display text-5xl font-black tabular-nums text-zinc-600">—<span className="ml-1.5 text-xl font-normal text-zinc-700">lbs</span></p>
+            <p className="mt-3 font-display text-4xl sm:text-5xl font-black tabular-nums text-zinc-600">—<span className="ml-1.5 text-base sm:text-xl font-normal text-zinc-700">lbs</span></p>
           )}
 
           {previousWeight && (
-            <p className="mt-1 text-xs text-zinc-600">
-              Last week: <span className="text-zinc-400">{previousWeight.weight} lbs</span>
-              <span className="ml-1.5 text-zinc-600">{previousDateLabel}</span>
+            <p className="mt-1 text-xs text-zinc-400">
+              Last week: <span className="font-medium text-zinc-300">{previousWeight.weight} lbs</span>
+              <span className="ml-1.5 text-zinc-500">{previousDateLabel}</span>
             </p>
           )}
 
@@ -416,9 +414,8 @@ export function CheckInForm({
 
         {/* STEP 2 — Progress photos */}
         <div className={stepCard}>
-          <p className={stepLabel}>Step 2 · Photos</p>
-          <p className={stepTitle}>Add your photos</p>
-          <p className={stepSub}>Front, side, and back — required on Fridays</p>
+          <p className={stepLabel}>Photos</p>
+          <p className={stepTitle}>Progress pics</p>
           <div className="mt-4">
             <PhotoUpload files={files} onFilesChange={setFiles} />
           </div>
@@ -426,14 +423,13 @@ export function CheckInForm({
 
         {/* STEP 3 — Details: Nutrition + Energy + Notes */}
         <div className={stepCard}>
-          <p className={stepLabel}>Step 3 · Details</p>
+          <p className={stepLabel}>Details</p>
           <p className={stepTitle}>How was your week?</p>
-          <p className={stepSub}>Nutrition, energy, and anything on your mind</p>
 
           {/* Nutrition */}
           <div className="mt-5">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">Nutrition</p>
-            <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Nutrition rating">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2" role="radiogroup" aria-label="Nutrition rating">
               {dietLabels.map((label, i) => {
                 const val = String((i + 1) * 2);
                 const isActive = dietValue === val;
@@ -459,7 +455,7 @@ export function CheckInForm({
           {/* Energy */}
           <div className="mt-5">
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-400">Energy</p>
-            <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Energy rating">
+            <div className="grid grid-cols-5 gap-1.5 sm:gap-2" role="radiogroup" aria-label="Energy rating">
               {energyLabels.map((label, i) => {
                 const val = String((i + 1) * 2);
                 const isActive = energyValue === val;
@@ -485,13 +481,13 @@ export function CheckInForm({
           {/* Notes */}
           <div className="mt-5">
             <label htmlFor="notes" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              Notes <span className="font-normal normal-case tracking-normal text-zinc-600">(optional)</span>
+              Notes <span className="font-normal normal-case tracking-normal text-zinc-500">(optional)</span>
             </label>
             <textarea
               id="notes"
-              rows={4}
+              rows={3}
               {...register("notes")}
-              placeholder="Wins, struggles, questions — your coach reads every word"
+              placeholder="Anything for your coach"
               aria-invalid={errors.notes ? "true" : undefined}
               style={{ fontSize: "max(1rem, 16px)" }}
               className="sf-textarea block w-full resize-none leading-relaxed"
@@ -522,16 +518,25 @@ export function CheckInForm({
 
       </form>
 
-      {/* Fixed bottom CTA — step 4 */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 sf-nav-bar !top-auto !border-t !border-b-0 border-white/[0.06] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto max-w-lg">
+      {/* Fixed bottom CTA — step 4, sits above mobile bottom nav */}
+      <div
+        className="fixed left-0 right-0 z-30 border-t border-white/[0.06] bg-[#0a0a0b]/95 backdrop-blur-2xl px-4 py-3 sm:py-4"
+        style={{
+          bottom: 0,
+          paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+          backdropFilter: "blur(40px) saturate(180%)",
+          WebkitBackdropFilter: "blur(40px) saturate(180%)",
+        }}
+      >
+        {/* On mobile (sm:hidden bottom nav is ~56px), add offset so button doesn't sit behind it */}
+        <div className="mx-auto max-w-lg mb-14 sm:mb-0">
           <button
             type="submit"
             form="checkin-form"
             disabled={uploadState !== "idle"}
             onClick={handleSubmit(onSubmit)}
-            style={{ minHeight: "56px" }}
-            className="sf-button-primary w-full text-base tracking-wide shadow-lg shadow-blue-600/25"
+            style={{ minHeight: "52px" }}
+            className="sf-button-primary w-full text-[15px] tracking-wide shadow-lg shadow-blue-600/25"
           >
             {uploadState !== "idle" ? (
               <>

@@ -12,6 +12,18 @@ export async function getMessages(clientId: string, weekOf: Date) {
   });
 }
 
+export async function getAllMessages(clientId: string) {
+  return db.message.findMany({
+    where: { clientId },
+    orderBy: { createdAt: "asc" },
+    include: {
+      sender: {
+        select: { id: true, firstName: true, lastName: true, activeRole: true },
+      },
+    },
+  });
+}
+
 export async function hasUnreadMessages(
   clientId: string,
   weekOf: Date,

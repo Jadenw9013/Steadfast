@@ -49,7 +49,7 @@ export default async function CoachDashboard() {
             <h1 className="text-2xl font-black tracking-tight text-white">
               {greeting}, {coachFirstName}
             </h1>
-            <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-500">{weekLabel}</p>
+            <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-400">{weekLabel}</p>
           </div>
 
           {/* Stats pills */}
@@ -60,7 +60,7 @@ export default async function CoachDashboard() {
               aria-label="Client summary"
             >
               <span
-                className="sf-section-label"
+                className="text-xs font-bold uppercase tracking-widest text-zinc-300"
                 aria-label={`${totalCount} total clients`}
               >
                 {totalCount} client{totalCount !== 1 ? "s" : ""}
@@ -96,7 +96,7 @@ export default async function CoachDashboard() {
       {/* ── Client list ─────────────────────────────────────────────────────── */}
       {clients.length > 0 && (
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-300">
             Clients
           </h2>
           <Link

@@ -20,6 +20,7 @@ import { StatusCard, type StatusCardData } from "@/components/client/status-card
 import { deriveStatusState } from "@/lib/status";
 import { TodayAdherence } from "@/components/client/today-adherence";
 import { DeleteCheckInButton } from "@/components/client/delete-check-in-button";
+import { RecentCheckIns } from "@/components/client/recent-check-ins";
 import { WeightProgress } from "@/components/charts/weight-progress";
 import { getWeightHistory } from "@/lib/queries/weight-history";
 import dayjs from "dayjs";
@@ -507,143 +508,72 @@ export default async function ClientDashboard() {
         </div>
       )}
 
-      {/* Recent Check-Ins — flat list with submission dates */}
-      <section
-        className="animate-fade-in"
-        style={{ animationDelay: "400ms" }}
-        aria-labelledby="checkins-heading"
-      >
-        <h2
-          id="checkins-heading"
-          className="mb-5 text-lg font-semibold tracking-tight"
-        >
-          Recent Check-Ins
-        </h2>
-        {checkIns.length === 0 ? (
-          <div className="sf-surface-card flex flex-col items-center gap-4 px-8 py-16 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-zinc-800">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /></svg>
+      {/* Recent Check-Ins — collapsible dropdown */}
+      <RecentCheckIns
+        checkIns={checkIns.map((ci) => ({
+          id: ci.id,
+          weight: ci.weight,
+          status: ci.status,
+          notes: ci.notes,
+          submittedAt: ci.submittedAt.toISOString(),
+          _count: ci._count,
+        }))}
+      />
+
+      {latestCoachMessage && (() => {
+        // Parse check-in protocol messages — don't show raw [CHECKIN:...] strings
+        const checkinMatch = latestCoachMessage.body.match(/^\[CHECKIN:([a-zA-Z0-9_-]+):([^\]]+)\]([\s\S]*)$/);
+        const isCheckIn = !!checkinMatch;
+        const checkInId = checkinMatch?.[1];
+        const checkInDate = checkinMatch?.[2];
+        const checkInNotes = checkinMatch?.[3]?.trim();
+
+        const href = isCheckIn && checkInId
+          ? `/client/check-ins/${checkInId}`
+          : `/client/messages/${formatDateUTC(latestCoachMessage.weekOf)}`;
+
+        return (
+          <Link
+            href={href}
+            className="group animate-fade-in block overflow-hidden sf-glass-card p-5 transition-all hover:border-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]"
+            style={{ animationDelay: "160ms" }}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
+                {isCheckIn ? "Latest Check-In" : "Coach Feedback"}
+              </p>
+              <span className="text-xs font-medium text-zinc-400 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-300">
+                View →
+              </span>
             </div>
-            <div>
-              <p className="text-sm font-semibold">No check-ins yet</p>
-              <Link
-                href="/client/check-in"
-                className="mt-1.5 inline-block text-sm font-semibold underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
-              >
-                Submit your first check-in
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="stagger-children space-y-3">
-            {checkIns.map((checkIn, idx) => {
-              const prev = checkIns[idx + 1];
-              const delta =
-                prev?.weight && checkIn.weight
-                  ? +(checkIn.weight - prev.weight).toFixed(1)
-                  : null;
 
-              const dateLabel = checkIn.submittedAt.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                hour: "numeric",
-                minute: "2-digit",
-              });
-
-              return (
-                <div
-                  key={checkIn.id}
-                  className="relative sf-glass-card transition-all hover:border-blue-500/20"
-                >
-                  {/* Overflow menu — top right */}
-                  <div className="absolute right-1 top-1 z-10 sm:right-2 sm:top-2">
-                    <DeleteCheckInButton checkInId={checkIn.id} />
-                  </div>
-
-                  <Link
-                    href={`/client/check-ins/${checkIn.id}`}
-                    className="block rounded-2xl px-4 py-3.5 pr-12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 sm:px-5 sm:py-4"
-                    aria-label={`View check-in from ${dateLabel}`}
-                  >
-                    {/* Mobile: stacked | Desktop: horizontal */}
-                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-                      {/* Weight + delta */}
-                      <div className="flex items-baseline gap-2">
-                        {checkIn.weight ? (
-                          <p className="text-xl font-bold tabular-nums leading-tight tracking-tight">
-                            {checkIn.weight}
-                            <span className="ml-0.5 text-[10px] font-normal text-zinc-400">lbs</span>
-                          </p>
-                        ) : (
-                          <p className="text-xl font-bold text-zinc-700">
-                            &mdash;
-                          </p>
-                        )}
-                        {delta != null && delta !== 0 && (
-                          <span
-                            className={`text-xs font-semibold ${delta < 0
-                              ? "text-emerald-500"
-                              : "text-red-400"
-                              }`}
-                          >
-                            {delta < 0 ? "\u2193" : "\u2191"} {Math.abs(delta)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Date + meta row */}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-zinc-300">
-                          {dateLabel}
-                        </p>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
-                          {checkIn._count.photos > 0 && (
-                            <span>{checkIn._count.photos} photo{checkIn._count.photos > 1 ? "s" : ""}</span>
-                          )}
-                          {checkIn.notes && (
-                            <span className="truncate max-w-[200px] sm:max-w-[180px]">{checkIn.notes}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Status badge — mr-10 to clear the absolute three-dot button on all sizes */}
-                      <span
-                        className={`self-start shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold mr-10 sm:self-center ${checkIn.status === "REVIEWED"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-amber-500/20 text-amber-400"
-                          }`}
-                      >
-                        {checkIn.status === "REVIEWED" ? "Reviewed" : "Pending"}
-                      </span>
-                    </div>
-                  </Link>
+            {isCheckIn ? (
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/15">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                  </svg>
                 </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* Coach Feedback */}
-      {latestCoachMessage && (
-        <Link
-          href={`/client/messages/${formatDateUTC(latestCoachMessage.weekOf)}`}
-          className="group animate-fade-in block overflow-hidden sf-glass-card p-5 transition-all hover:border-blue-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0a0f1e]"
-          style={{ animationDelay: "160ms" }}
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-zinc-500">
-              Coach Feedback
-            </p>
-            <span className="text-xs font-medium text-zinc-400 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-300">
-              View →
-            </span>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-zinc-300 line-clamp-2">
-            {latestCoachMessage.body}
-          </p>
-        </Link>
-      )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-zinc-200">
+                    Check-in submitted
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    {checkInDate}{checkInNotes && checkInNotes !== "Check-in submitted" ? ` · ${checkInNotes}` : ""}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm leading-relaxed text-zinc-300 line-clamp-2">
+                {latestCoachMessage.body}
+              </p>
+            )}
+          </Link>
+        );
+      })()}
 
       {/* Become a Coach */}
       {!user.isCoach && (

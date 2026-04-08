@@ -42,7 +42,13 @@ export function NavBar({
       ];
 
   return (
-    <header className="sticky top-0 z-30 border-b border-blue-500/[0.12] bg-black/85 backdrop-blur-2xl" style={{ backdropFilter: "blur(40px) saturate(180%)", WebkitBackdropFilter: "blur(40px) saturate(180%)" }}>
+    <header
+      className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0a0a0b]/80 backdrop-blur-2xl"
+      style={{
+        backdropFilter: "blur(40px) saturate(180%)",
+        WebkitBackdropFilter: "blur(40px) saturate(180%)",
+      }}
+    >
       <div className={`mx-auto flex h-14 ${maxWidth} items-center justify-between px-4 sm:px-8`}>
         {/* Logo */}
         <Link
@@ -59,13 +65,13 @@ export function NavBar({
               className="object-contain brightness-0 invert"
             />
           </div>
-          <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] text-zinc-100 sm:inline">
+          <span className="hidden font-display text-[11px] font-bold uppercase tracking-[0.3em] text-zinc-200 sm:inline">
             Steadfast
           </span>
         </Link>
 
         {/* Right side */}
-        <nav className="flex items-center gap-0.5 sm:gap-1" aria-label="Main navigation">
+        <nav className="flex items-center gap-1 sm:gap-1.5" aria-label="Main navigation">
           {canSwitchRole && <RoleSwitcher currentRole={role} />}
 
           {/* Desktop nav links — hidden on mobile */}
@@ -75,9 +81,9 @@ export function NavBar({
               <Link
                 key={link.href}
                 href={link.href}
-                className={`hidden rounded-lg px-3 py-1.5 text-sm font-medium transition-colors sm:block ${active
-                  ? "bg-white/[0.12] text-white"
-                  : "text-zinc-300 hover:bg-white/[0.06] hover:text-white"
+                className={`hidden rounded-lg px-3.5 py-1.5 text-[13px] font-medium tracking-wide transition-all duration-150 sm:block ${active
+                  ? "bg-white/[0.10] text-white shadow-sm"
+                  : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
                   }`}
                 aria-current={active ? "page" : undefined}
               >
@@ -99,6 +105,9 @@ export function NavBar({
               Check-In
             </Link>
           )}
+
+          {/* Divider before avatar */}
+          <div className="mx-1 hidden h-5 w-px bg-white/[0.08] sm:block" aria-hidden="true" />
 
           <SignedIn>
             <UserButton />

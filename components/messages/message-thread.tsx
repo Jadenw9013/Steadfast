@@ -21,9 +21,9 @@ function Avatar({ name, isCoach }: { name: string; isCoach: boolean }) {
   const initial = name?.[0]?.toUpperCase() ?? "?";
   return (
     <div
-      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${
+      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white ${
         isCoach
-          ? "bg-gradient-to-br from-blue-500 to-indigo-600 shadow-sm shadow-blue-500/30"
+          ? "bg-gradient-to-br from-blue-500 to-indigo-600"
           : "bg-gradient-to-br from-zinc-500 to-zinc-700"
       }`}
       aria-hidden
@@ -58,7 +58,7 @@ function CheckInCard({
 }) {
   const href = isCoach
     ? `/coach/clients/${clientId}/check-ins/${checkInId}`
-    : `/check-in/new`;
+    : `/client/check-ins/${checkInId}`;
 
   return (
     <Link
@@ -107,12 +107,16 @@ export function MessageThread({
   weekStartDate,
   currentUserId,
   alwaysExpanded = false,
+  fullScreen = false,
+  coachName,
 }: {
   messages: Message[];
   clientId: string;
   weekStartDate: string;
   currentUserId: string;
   alwaysExpanded?: boolean;
+  fullScreen?: boolean;
+  coachName?: string;
 }) {
   const router = useRouter();
   const [body, setBody] = useState("");
@@ -148,7 +152,7 @@ export function MessageThread({
 
   // Polling for real-time updates
   useEffect(() => {
-    if (!expanded && !alwaysExpanded) return;
+    if (!expanded && !alwaysExpanded && !fullScreen) return;
 
     const poll = async () => {
       try {
@@ -185,7 +189,7 @@ export function MessageThread({
     poll();
     const interval = setInterval(poll, 4000);
     return () => clearInterval(interval);
-  }, [expanded, alwaysExpanded, clientId, weekStartDate, removedIds, currentUserId]);
+  }, [expanded, alwaysExpanded, fullScreen, clientId, weekStartDate, removedIds, currentUserId]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -297,9 +301,16 @@ export function MessageThread({
     ? latestMsg.body.slice(0, 60) + (latestMsg.body.length > 60 ? "…" : "")
     : null;
 
+  // When fullScreen, force expanded
+  const isExpanded = fullScreen || expanded || alwaysExpanded;
+
   return (
     <section
-      className="flex flex-col overflow-hidden sf-glass-card shadow-xl shadow-black/20"
+      className={`flex flex-col overflow-hidden ${
+        fullScreen
+          ? "flex-1 min-h-0"
+          : "sf-glass-card shadow-xl shadow-black/20"
+      }`}
       aria-label="Messages"
     >
       {/* ── Inline animation styles ─────────────────────────────── */}
@@ -338,7 +349,7 @@ export function MessageThread({
       `}</style>
 
       {/* ── Header ──────────────────────────────────────────────── */}
-      {alwaysExpanded ? (
+      {fullScreen ? null : alwaysExpanded ? (
         <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -407,27 +418,35 @@ export function MessageThread({
       )}
 
       {/* ── Chat body ───────────────────────────────────────────── */}
-      {(expanded || alwaysExpanded) && (
-        <div id="message-thread-body" className="flex flex-col">
+      {isExpanded && (
+        <div id="message-thread-body" className={`flex flex-col ${fullScreen ? "flex-1 min-h-0" : ""}`}>
           <div
             ref={scrollContainerRef}
-            className="flex flex-col gap-1.5 overflow-y-auto px-4 py-4"
-            style={{
-              minHeight: alwaysExpanded ? "360px" : "260px",
-              maxHeight: alwaysExpanded ? "520px" : "320px",
-            }}
+            className={`flex flex-col gap-1.5 overflow-y-auto px-4 py-4 ${
+              fullScreen ? "flex-1" : ""
+            }`}
+            style={
+              fullScreen
+                ? {}
+                : {
+                    minHeight: alwaysExpanded ? "360px" : "260px",
+                    maxHeight: alwaysExpanded ? "520px" : "320px",
+                  }
+            }
             role="log"
             aria-live="polite"
           >
             {messages.length === 0 ? (
-              <div className="flex flex-1 flex-col items-center justify-center gap-2 py-12 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.06]">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#52525b" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <div className="flex flex-1 flex-col items-center justify-center gap-3 py-16 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/[0.04]">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3f3f46" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-zinc-500">No messages yet</p>
-                <p className="text-xs text-zinc-600">Send the first message to start the conversation</p>
+                <div>
+                  <p className="text-sm font-medium text-zinc-400">No messages yet</p>
+                  <p className="mt-0.5 text-xs text-zinc-600">Start the conversation</p>
+                </div>
               </div>
             ) : (
               <>
@@ -435,11 +454,17 @@ export function MessageThread({
                   const isOwn = msg.sender.id === currentUserId;
                   const isCoach = msg.sender.activeRole === "COACH";
                   const senderName = msg.sender.firstName ?? "User";
-                  const showAvatar =
-                    i === 0 || messages[i - 1].sender.id !== msg.sender.id;
+
+                  // Grouping logic: consecutive messages from the same sender
+                  const prevMsg = i > 0 ? messages[i - 1] : null;
+                  const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
+                  const sameSenderAsPrev = prevMsg?.sender.id === msg.sender.id;
+                  const sameSenderAsNext = nextMsg?.sender.id === msg.sender.id;
+                  const isFirstInGroup = !sameSenderAsPrev;
+                  const isLastInGroup = !sameSenderAsNext;
 
                   const msgDate = new Date(msg.createdAt);
-                  const prevDate = i > 0 ? new Date(messages[i - 1].createdAt) : null;
+                  const prevDate = prevMsg ? new Date(prevMsg.createdAt) : null;
                   const showDateSeparator =
                     !prevDate || msgDate.toDateString() !== prevDate.toDateString();
                   const dateLabel = msgDate.toLocaleDateString("en-US", {
@@ -454,19 +479,42 @@ export function MessageThread({
                   const isDeleting = deletingIds.has(msg.id);
                   const isOptimistic = msg.id.startsWith("optimistic-");
 
+                  // If date separator is shown, force "first in group"
+                  const effectiveFirstInGroup = isFirstInGroup || showDateSeparator;
+
+                  // Bubble corner radius based on grouping position
+                  const ownBubbleRadius = `rounded-2xl ${
+                    effectiveFirstInGroup && isLastInGroup
+                      ? "rounded-br-md"
+                      : effectiveFirstInGroup
+                        ? "rounded-br-md"
+                        : isLastInGroup
+                          ? "rounded-tr-md rounded-br-md"
+                          : "rounded-r-md"
+                  }`;
+                  const otherBubbleRadius = `rounded-2xl ${
+                    effectiveFirstInGroup && isLastInGroup
+                      ? "rounded-bl-md"
+                      : effectiveFirstInGroup
+                        ? "rounded-bl-md"
+                        : isLastInGroup
+                          ? "rounded-tl-md rounded-bl-md"
+                          : "rounded-l-md"
+                  }`;
+
                   return (
                     <div
                       key={msg.id}
-                      className={isDeleting ? "msg-deleting" : "msg-enter"}
+                      className={`${
+                        isDeleting ? "msg-deleting" : "msg-enter"
+                      } ${effectiveFirstInGroup ? "mt-3" : "mt-0.5"}`}
                     >
                       {/* Date separator */}
                       {showDateSeparator && (
-                        <div className="my-3 flex items-center gap-3">
-                          <div className="h-px flex-1 bg-white/[0.06]" />
-                          <span className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-[10px] font-medium text-zinc-500">
+                        <div className="mb-3 mt-4 flex justify-center first:mt-0">
+                          <span className="rounded-full bg-white/[0.06] px-3 py-1 text-[10px] font-medium text-zinc-500">
                             {dateLabel}
                           </span>
-                          <div className="h-px flex-1 bg-white/[0.06]" />
                         </div>
                       )}
 
@@ -475,32 +523,28 @@ export function MessageThread({
                           isOwn ? "flex-row-reverse" : "flex-row"
                         }`}
                       >
-                        {/* Avatar */}
-                        <div className="w-7 shrink-0">
-                          {showAvatar && !isOwn && (
-                            <Avatar name={senderName} isCoach={isCoach} />
-                          )}
-                        </div>
+                        {/* Avatar — only for others, only on last message in group */}
+                        {!isOwn && (
+                          <div className="w-7 shrink-0">
+                            {isLastInGroup && (
+                              <Avatar name={senderName} isCoach={isCoach} />
+                            )}
+                          </div>
+                        )}
 
                         <div
-                          className={`relative flex max-w-[75%] flex-col gap-0.5 ${
+                          className={`relative flex max-w-[78%] flex-col gap-0.5 ${
                             isOwn ? "items-end" : "items-start"
                           }`}
                         >
-                          {/* Sender label */}
-                          {showAvatar && (
+                          {/* Sender label — only on first in group, only for others */}
+                          {effectiveFirstInGroup && !isOwn && (
                             <span
-                              className={`px-1 text-[10px] font-medium ${
-                                isOwn
-                                  ? "text-zinc-500"
-                                  : isCoach
-                                    ? "text-blue-400"
-                                    : "text-zinc-500"
+                              className={`mb-0.5 px-1 text-[10px] font-semibold ${
+                                isCoach ? "text-blue-400" : "text-zinc-500"
                               }`}
                             >
-                              {isOwn
-                                ? "You"
-                                : `${senderName}${isCoach ? " · Coach" : ""}`}
+                              {senderName}
                             </span>
                           )}
 
@@ -521,18 +565,18 @@ export function MessageThread({
                               }
                               return (
                                 <div
-                                  className={`relative px-3.5 py-2.5 text-sm leading-relaxed ${
+                                  className={`relative px-3.5 py-2 text-[15px] leading-relaxed ${
                                     isOwn
-                                      ? "rounded-2xl rounded-br-sm bg-blue-600 text-white shadow-md shadow-blue-600/20"
-                                      : "rounded-2xl rounded-bl-sm bg-white/[0.07] backdrop-blur-md text-zinc-100 shadow-sm border border-white/[0.08]"
-                                  } ${isOptimistic ? "opacity-70" : ""}`}
+                                      ? `${ownBubbleRadius} bg-blue-600 text-white`
+                                      : `${otherBubbleRadius} bg-[#1c1c1e] text-zinc-100 border border-white/[0.06]`
+                                  } ${isOptimistic ? "opacity-60" : ""}`}
                                 >
                                   <p className="whitespace-pre-wrap">{msg.body}</p>
                                 </div>
                               );
                             })()}
 
-                            {/* Unsend button — only for own messages, on hover (not for check-in cards) */}
+                            {/* Unsend button */}
                             {isOwn && !isOptimistic && !parseCheckInMessage(msg.body) && (
                               <button
                                 type="button"
@@ -560,10 +604,12 @@ export function MessageThread({
                             )}
                           </div>
 
-                          {/* Timestamp */}
-                          <span className="px-1 text-[10px] text-zinc-600 opacity-0 transition-opacity group-hover:opacity-100">
-                            {timeStr}
-                          </span>
+                          {/* Timestamp — shown on last message in group */}
+                          {isLastInGroup && (
+                            <span className="mt-0.5 px-1 text-[10px] text-zinc-600">
+                              {timeStr}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -577,7 +623,19 @@ export function MessageThread({
           {/* ── Compose bar ──────────────────────────────────────── */}
           <form
             onSubmit={handleSend}
-            className="flex items-end gap-2 border-t border-white/[0.05] bg-transparent px-3 py-3"
+            className={`flex items-end gap-2.5 border-t border-white/[0.08] px-4 py-3 ${
+              fullScreen ? "mb-14 sm:mb-0" : ""
+            }`}
+            style={
+              fullScreen
+                ? {
+                    paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))",
+                    background: "rgba(10, 10, 11, 0.9)",
+                    backdropFilter: "blur(20px)",
+                    WebkitBackdropFilter: "blur(20px)",
+                  }
+                : undefined
+            }
           >
             <label htmlFor="message-input" className="sr-only">
               Type a message
@@ -596,18 +654,18 @@ export function MessageThread({
               onKeyDown={handleKeyDown}
               placeholder="Message…"
               style={{
-                minHeight: "44px",
+                minHeight: "40px",
                 maxHeight: "120px",
                 fontSize: "max(1rem, 16px)",
               }}
-              className="sf-input flex-1 resize-none overflow-hidden px-3.5 py-2.5"
+              className="flex-1 resize-none overflow-hidden rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-2 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/30 transition-colors"
             />
             <button
               type="submit"
               disabled={sending || !body.trim()}
               aria-label="Send message"
-              style={{ minHeight: "44px", minWidth: "44px" }}
-              className="sf-button-primary flex h-11 w-11 shrink-0 !p-0 !min-h-[44px] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
+              style={{ minHeight: "40px", minWidth: "40px" }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-30 disabled:bg-zinc-700 hover:bg-blue-500"
             >
               {sending ? (
                 <svg
