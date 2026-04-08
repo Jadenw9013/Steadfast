@@ -280,7 +280,7 @@ export function MealPlanEditorV2({
         <div className="flex items-center gap-2">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">{statusLabel}</h3>
           {effectivePlan.source === "published" && isUnsaved && (
-            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-700">
+            <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-xs font-medium text-amber-400">
               from published
             </span>
           )}
@@ -289,7 +289,7 @@ export function MealPlanEditorV2({
           <button
             type="button"
             onClick={() => setAiOpen(true)}
-            className="group flex items-center gap-1.5 rounded-lg border border-blue-300 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-600 transition-all hover:bg-blue-100 hover:border-blue-400 hover:shadow-sm active:scale-[0.97] sm:px-3"
+            className="group flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1.5 text-xs font-semibold text-blue-400 transition-all hover:bg-blue-500/20 hover:border-blue-500/40 hover:shadow-sm hover:shadow-blue-500/10 active:scale-[0.97] sm:px-3"
             aria-label="Modify plan with AI"
           >
             <svg className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -310,7 +310,7 @@ export function MealPlanEditorV2({
             type="button"
             onClick={undo}
             disabled={!previousMeals}
-            className="rounded-lg px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="rounded-lg px-2 py-1 text-xs font-medium text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-300 disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Undo last change"
           >
             Undo
@@ -361,7 +361,7 @@ export function MealPlanEditorV2({
       )}
 
       {/* Meal cards */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {meals.map((meal, i) => (
           <div
             key={`${meal.mealName}-${i}`}
@@ -373,6 +373,7 @@ export function MealPlanEditorV2({
           >
             <MealCard
               meal={meal}
+              mealIndex={i}
               showMacros={false}
               foods={foods}
               isFirst={i === 0}

@@ -167,7 +167,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
 
   return (
     <div
-      className="group relative overflow-hidden sf-glass-card p-4 transition-all duration-200 hover:border-white/[0.16] hover:shadow-[0_4px_24px_rgba(0,0,0,0.4)] sm:p-5"
+      className="group relative overflow-hidden sf-glass-card p-4 transition-all duration-200 hover:border-white/[0.20] hover:bg-white/[0.03] hover:shadow-[0_4px_24px_rgba(0,0,0,0.5)] sm:p-5"
     >
       <Link
         href={profileHref}
@@ -186,7 +186,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
               className="h-full w-full rounded-full object-cover"
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#111c30] text-sm font-bold text-zinc-100">
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-[#131d33] text-sm font-bold text-white">
               {client.firstName?.[0]?.toUpperCase() ?? "?"}
             </div>
           )}
@@ -200,10 +200,10 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
 
         {/* Name + sub-line */}
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-semibold leading-snug text-zinc-100 sm:truncate">
+          <p className="text-[15px] font-bold leading-snug text-white sm:truncate">
             {client.firstName} {client.lastName}
           </p>
-          <p className="mt-0.5 text-sm leading-relaxed text-zinc-400 sm:text-xs sm:text-zinc-400">
+          <p className="mt-0.5 text-sm leading-relaxed text-zinc-300 sm:text-xs sm:text-zinc-400">
             {client.submittedAt
               ? `Checked in ${formatTimeAgo(client.submittedAt)}`
               : client.nextDueLabel || "Waiting for submission"}
@@ -213,7 +213,7 @@ export function InboxClientCard({ client }: { client: InboxClient }) {
         {/* Weight — desktop column */}
         {hasWeight && (
           <div className="hidden shrink-0 text-right sm:block">
-            <p className="font-mono text-2xl font-bold tabular-nums leading-tight tracking-tight text-zinc-100">
+            <p className="font-mono text-2xl font-bold tabular-nums leading-tight tracking-tight text-white">
               {client.weight}
               <span className="ml-0.5 text-sm font-normal text-zinc-400">lbs</span>
             </p>

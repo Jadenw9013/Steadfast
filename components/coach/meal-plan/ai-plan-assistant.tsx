@@ -79,17 +79,20 @@ function mealsToApiFormat(meals: MealGroup[]) {
 
 // ── Change Preview Icons ─────────────────────────────────────────────────────
 
+const CHANGE_STYLES = {
+  added: { bg: "bg-emerald-500/15", border: "border-emerald-500/20", text: "text-emerald-400", icon: "+" },
+  removed: { bg: "bg-red-500/15", border: "border-red-500/20", text: "text-red-400", icon: "−" },
+  modified: { bg: "bg-blue-500/15", border: "border-blue-500/20", text: "text-blue-400", icon: "~" },
+  info: { bg: "bg-amber-500/15", border: "border-amber-500/20", text: "text-amber-400", icon: "i" },
+} as const;
+
 function ChangeIcon({ type }: { type: ChangeEntry["type"] }) {
-  switch (type) {
-    case "added":
-      return <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-[10px] font-bold text-emerald-400">+</span>;
-    case "removed":
-      return <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500/20 text-[10px] font-bold text-red-400">−</span>;
-    case "modified":
-      return <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-500/20 text-[10px] font-bold text-blue-400">~</span>;
-    case "info":
-      return <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-400">i</span>;
-  }
+  const style = CHANGE_STYLES[type];
+  return (
+    <span className={`flex h-5 w-5 items-center justify-center rounded-full ${style.bg} text-[10px] font-bold ${style.text}`}>
+      {style.icon}
+    </span>
+  );
 }
 
 // ── Main Component ───────────────────────────────────────────────────────────
@@ -122,6 +125,14 @@ export function AiPlanAssistant({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [open, onClose]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
+  }, [instruction]);
 
   const handleSubmit = useCallback(async () => {
     const trimmed = instruction.trim();
@@ -195,27 +206,27 @@ export function AiPlanAssistant({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-40 bg-black/50 backdrop-blur-md transition-opacity"
+        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm ai-drawer-backdrop"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Drawer panel — dark glass */}
+      {/* Drawer panel — responsive: full screen on mobile, side drawer on sm+ */}
       <div
         ref={panelRef}
-        className="fixed inset-y-0 right-0 z-50 flex w-full flex-col border-l border-white/[0.08] bg-[#0a0e18]/95 shadow-2xl shadow-black/40 backdrop-blur-2xl transition-transform duration-300 sm:w-[440px] sm:rounded-l-2xl"
+        className="fixed z-50 flex flex-col border-white/[0.08] bg-[#0a0e18]/[0.98] shadow-2xl shadow-black/50 backdrop-blur-2xl ai-drawer-panel inset-0 sm:inset-y-0 sm:left-auto sm:right-0 sm:w-[480px] sm:max-w-[90vw] sm:border-l sm:rounded-l-2xl"
         style={{ WebkitBackdropFilter: "blur(40px) saturate(180%)", backdropFilter: "blur(40px) saturate(180%)" }}
         role="dialog"
         aria-modal="true"
         aria-label="AI Plan Assistant"
       >
         {/* ── Header ── */}
-        <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.08] px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25">
               <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              {/* Pulse ring */}
-              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 opacity-40 animate-ping" style={{ animationDuration: "3s" }} />
+              {/* Subtle glow (slower, less intrusive) */}
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-500/40 to-purple-600/40 opacity-0 animate-pulse" style={{ animationDuration: "4s" }} />
             </div>
             <div>
               <h2 className="text-sm font-bold text-zinc-100">
@@ -246,13 +257,14 @@ export function AiPlanAssistant({
                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                   Quick Actions
                 </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {QUICK_ACTIONS.map((action) => (
+                <div className="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3">
+                  {QUICK_ACTIONS.map((action, idx) => (
                     <button
                       key={action.label}
                       type="button"
                       onClick={() => handleQuickAction(action.prompt)}
                       className="group flex flex-col items-center gap-1.5 rounded-xl border border-white/[0.06] bg-white/[0.03] px-2 py-3 text-center transition-all duration-200 hover:border-blue-500/30 hover:bg-blue-500/[0.08] hover:shadow-lg hover:shadow-blue-500/5 active:scale-[0.96]"
+                      style={{ animationDelay: `${idx * 30}ms` }}
                     >
                       <span className="text-zinc-400 transition-colors group-hover:text-blue-400">{action.icon}</span>
                       <span className="text-[10px] font-medium leading-tight text-zinc-400 transition-colors group-hover:text-zinc-200">
@@ -271,21 +283,24 @@ export function AiPlanAssistant({
                 >
                   Instruction
                 </label>
-                <textarea
-                  ref={inputRef}
-                  id="ai-instruction"
-                  value={instruction}
-                  onChange={(e) => setInstruction(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit();
-                    }
-                  }}
-                  placeholder="e.g., Add a bagel to meal 2 on Mondays and Fridays"
-                  rows={3}
-                  className="block w-full resize-none rounded-xl border border-white/[0.10] bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 transition-all focus:border-blue-500/40 focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                />
+                <div className="relative">
+                  <textarea
+                    ref={inputRef}
+                    id="ai-instruction"
+                    value={instruction}
+                    onChange={(e) => setInstruction(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit();
+                      }
+                    }}
+                    placeholder="e.g., Add a bagel to meal 2 on Mondays and Fridays"
+                    rows={3}
+                    className="block w-full resize-none rounded-xl border border-white/[0.10] bg-white/[0.04] px-4 py-3 text-sm leading-relaxed text-zinc-100 placeholder:text-zinc-600 transition-all focus:border-blue-500/40 focus:bg-white/[0.06] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+                    style={{ maxHeight: "180px" }}
+                  />
+                </div>
                 <p className="mt-2 text-[11px] text-zinc-600">
                   Press Enter to submit · Shift+Enter for new line
                 </p>
@@ -322,25 +337,28 @@ export function AiPlanAssistant({
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                     Changes ({aiState.changes.length})
                   </p>
-                  {aiState.changes.map((change, i) => (
-                    <div
-                      key={i}
-                      className="flex items-start gap-2.5 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3.5 py-3 transition-colors hover:bg-white/[0.05]"
-                      style={{ animationDelay: `${i * 50}ms` }}
-                    >
-                      <ChangeIcon type={change.type} />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-zinc-200">
-                          {change.label}
-                        </p>
-                        {change.detail && (
-                          <p className="mt-0.5 text-xs text-zinc-500">
-                            {change.detail}
+                  {aiState.changes.map((change, i) => {
+                    const style = CHANGE_STYLES[change.type];
+                    return (
+                      <div
+                        key={i}
+                        className={`flex items-start gap-2.5 rounded-xl border ${style.border} ${style.bg} px-3.5 py-3 transition-colors hover:brightness-110`}
+                        style={{ animationDelay: `${i * 50}ms` }}
+                      >
+                        <ChangeIcon type={change.type} />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-zinc-200">
+                            {change.label}
                           </p>
-                        )}
+                          {change.detail && (
+                            <p className="mt-0.5 text-xs text-zinc-500">
+                              {change.detail}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
@@ -397,7 +415,7 @@ export function AiPlanAssistant({
         </div>
 
         {/* ── Footer actions ── */}
-        <div className="border-t border-white/[0.08] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="shrink-0 border-t border-white/[0.08] px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {aiState.phase === "idle" && (
             <button
               type="button"

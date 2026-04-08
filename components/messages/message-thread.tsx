@@ -350,15 +350,15 @@ export function MessageThread({
 
       {/* ── Header ──────────────────────────────────────────────── */}
       {fullScreen ? null : alwaysExpanded ? (
-        <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/10">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="flex items-center gap-3 border-b border-white/[0.08] px-5 py-4">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-500/15">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-zinc-100">Conversation</h2>
-            <p className="text-[11px] text-zinc-500">
+            <h2 className="text-sm font-bold text-white">Conversation</h2>
+            <p className="text-[11px] text-zinc-400">
               {messages.length === 0
                 ? "No messages yet"
                 : `${messages.length} message${messages.length !== 1 ? "s" : ""}`}
@@ -369,27 +369,27 @@ export function MessageThread({
         <button
           type="button"
           onClick={() => setExpanded((v) => !v)}
-          className="flex w-full items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3 text-left transition-colors hover:bg-white/[0.03]"
+          className="flex w-full items-center justify-between gap-3 border-b border-white/[0.08] px-4 py-3.5 text-left transition-colors hover:bg-white/[0.04]"
           aria-expanded={expanded}
           aria-controls="message-thread-body"
         >
           <div className="flex min-w-0 items-center gap-2.5">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-500/10">
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-500/15">
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
-            <span className="shrink-0 text-xs font-semibold uppercase tracking-widest text-zinc-400">
+            <span className="shrink-0 text-xs font-bold uppercase tracking-widest text-zinc-200">
               Messages
             </span>
             {!expanded && latestMsg && (
-              <span className="truncate text-xs text-zinc-500">
-                <span className="font-medium text-zinc-400">{previewSender}:</span>{" "}
+              <span className="truncate text-xs text-zinc-400">
+                <span className="font-semibold text-zinc-300">{previewSender}:</span>{" "}
                 {previewBody}
               </span>
             )}
             {!expanded && !latestMsg && (
-              <span className="text-xs text-zinc-600">No messages yet</span>
+              <span className="text-xs text-zinc-500">No messages yet</span>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">
@@ -444,8 +444,8 @@ export function MessageThread({
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-zinc-400">No messages yet</p>
-                  <p className="mt-0.5 text-xs text-zinc-600">Start the conversation</p>
+                  <p className="text-sm font-semibold text-zinc-300">No messages yet</p>
+                  <p className="mt-0.5 text-xs text-zinc-500">Start the conversation</p>
                 </div>
               </div>
             ) : (
@@ -512,7 +512,7 @@ export function MessageThread({
                       {/* Date separator */}
                       {showDateSeparator && (
                         <div className="mb-3 mt-4 flex justify-center first:mt-0">
-                          <span className="rounded-full bg-white/[0.06] px-3 py-1 text-[10px] font-medium text-zinc-500">
+                          <span className="rounded-full bg-white/[0.08] px-3 py-1 text-[10px] font-semibold text-zinc-400">
                             {dateLabel}
                           </span>
                         </div>
@@ -568,7 +568,7 @@ export function MessageThread({
                                   className={`relative px-3.5 py-2 text-[15px] leading-relaxed ${
                                     isOwn
                                       ? `${ownBubbleRadius} bg-blue-600 text-white`
-                                      : `${otherBubbleRadius} bg-[#1c1c1e] text-zinc-100 border border-white/[0.06]`
+                                      : `${otherBubbleRadius} bg-[#1e1e22] text-zinc-100 border border-white/[0.10]`
                                   } ${isOptimistic ? "opacity-60" : ""}`}
                                 >
                                   <p className="whitespace-pre-wrap">{msg.body}</p>
@@ -606,7 +606,7 @@ export function MessageThread({
 
                           {/* Timestamp — shown on last message in group */}
                           {isLastInGroup && (
-                            <span className="mt-0.5 px-1 text-[10px] text-zinc-600">
+                            <span className="mt-0.5 px-1 text-[10px] text-zinc-500">
                               {timeStr}
                             </span>
                           )}
@@ -658,7 +658,7 @@ export function MessageThread({
                 maxHeight: "120px",
                 fontSize: "max(1rem, 16px)",
               }}
-              className="flex-1 resize-none overflow-hidden rounded-full bg-white/[0.06] border border-white/[0.08] px-4 py-2 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-blue-500/40 focus:border-blue-500/30 transition-colors"
+              className="flex-1 resize-none overflow-hidden rounded-full bg-white/[0.08] border border-white/[0.12] px-4 py-2 text-white placeholder:text-zinc-500 focus:outline-none focus:ring-1 focus:ring-blue-400/40 focus:border-blue-400/40 transition-colors"
             />
             <button
               type="submit"

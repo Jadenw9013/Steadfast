@@ -365,16 +365,16 @@ export function TrainingProgramEditor({
   // ── Empty state ──────────────────────────────────────────────────────────
   if (mode === "empty") {
     return (
-      <div className="rounded-2xl border border-zinc-200/80 bg-white">
-        <div className="border-b border-zinc-100 px-5 py-4">
-          <h2 className="text-sm font-semibold">Training Plan</h2>
+      <div className="sf-glass-card">
+        <div className="border-b border-white/[0.08] px-5 py-4">
+          <h2 className="text-sm font-bold text-white">Training Plan</h2>
           <p className="mt-0.5 text-xs text-zinc-400">No training plan assigned yet</p>
         </div>
         <div className="px-5 py-6 space-y-3">
           <button
             type="button"
             onClick={() => setMode(templates.length > 0 ? "assign" : "edit")}
-            className="w-full rounded-xl bg-zinc-900 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+            className="w-full rounded-xl bg-white py-3.5 text-sm font-bold text-zinc-900 transition-all hover:bg-zinc-200 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
           >
             {templates.length > 0 ? "Assign from Template" : "Create Training Plan"}
           </button>
@@ -383,13 +383,13 @@ export function TrainingProgramEditor({
               <button
                 type="button"
                 onClick={() => { setDays([]); setMode("edit"); }}
-                className="flex-1 rounded-xl border border-zinc-200 py-2.5 text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+                className="flex-1 rounded-xl border border-white/[0.12] py-2.5 text-sm font-semibold text-zinc-300 transition-all hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
               >
                 Custom Plan
               </button>
               <Link
                 href={`/coach/clients/${clientId}/import-training`}
-                className="flex-1 rounded-xl border border-zinc-200 py-2.5 text-center text-sm font-semibold text-zinc-600 transition-colors hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
+                className="flex-1 rounded-xl border border-white/[0.12] py-2.5 text-center text-sm font-semibold text-zinc-300 transition-all hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
               >
                 Import
               </Link>

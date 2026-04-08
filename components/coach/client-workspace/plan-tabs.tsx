@@ -45,8 +45,8 @@ export function PlanTabs({ mealPlan, training, defaultTab = "meal" }: Props) {
 
   return (
     <div>
-      {/* Toggle bar */}
-      <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-1">
+      {/* Toggle bar — dark glass theme */}
+      <div className="flex items-center gap-1 rounded-xl bg-white/[0.04] border border-white/[0.06] p-1">
         {(["meal", "training"] as const).map((t) => (
           <button
             key={t}
@@ -56,10 +56,10 @@ export function PlanTabs({ mealPlan, training, defaultTab = "meal" }: Props) {
             aria-selected={tab === t}
             aria-controls={`plan-panel-${t}`}
             onClick={() => setTab(t)}
-            className={`flex-1 rounded-md px-4 py-2 text-sm font-semibold transition-all ${
+            className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-200 ${
               tab === t
-                ? "bg-white text-zinc-900 shadow-sm"
-                : "text-zinc-500 hover:text-zinc-700"
+                ? "bg-white/[0.10] text-zinc-100 shadow-sm shadow-black/20"
+                : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.04]"
             }`}
           >
             {t === "meal" ? "Meal Plan" : "Training Plan"}

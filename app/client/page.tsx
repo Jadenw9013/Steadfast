@@ -315,18 +315,8 @@ export default async function ClientDashboard() {
         </div>
       )}
 
-      {/* Testimonial prompt */}
-      {coachAssignment && await (async () => {
-        const eligibility = await getTestimonialEligibility(user.id);
-        if (!eligibility.coachId) return null;
-        return (
-          <TestimonialPrompt
-            coachId={eligibility.coachId}
-            coachName={eligibility.coachName!}
-            hasExisting={!eligibility.eligible}
-          />
-        );
-      })()}
+
+
 
       {/* Primary Status Card (iOS-style atmospheric card) */}
       {statusCardData && (
@@ -335,69 +325,73 @@ export default async function ClientDashboard() {
         </div>
       )}
 
-      {/* Your Program — 2-card grid */}
+      {/* Your Program — compact 2-col grid */}
       {(mealPlan || (trainingProgram && trainingProgram.days.length > 0)) && (
         <section
-          className="animate-fade-in"
+          className="animate-fade-in -mt-2"
           style={{ animationDelay: "60ms" }}
-          aria-labelledby="plans-heading"
+          aria-label="Your program"
         >
-          <h2
-            id="plans-heading"
-            className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400"
-          >
-            Your Program
-          </h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {mealPlan ? (
               <Link
                 href="/client/meal-plan"
-                className="group flex flex-col gap-2 overflow-hidden sf-glass-card p-4 sm:p-5 transition-all hover:border-blue-500/20 hover:shadow-lg hover:shadow-zinc-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                aria-label="View your nutrition plan"
-                style={{ minHeight: "100px" }}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] border-l-[3px] border-l-blue-500 transition-all hover:bg-white/[0.06] hover:border-white/[0.14] hover:shadow-lg hover:shadow-blue-500/[0.06] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50"
+                aria-label="View your meal plan"
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+                <div className="flex items-center gap-3 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/15">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-400" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400">Nutrition</p>
+                    <p className="text-sm font-bold text-white leading-tight">Meal Plan</p>
+                  </div>
                 </div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Nutrition</p>
-                <p className="text-sm font-bold text-zinc-100">Meal Plan</p>
-                <span className="mt-auto text-xs font-medium text-zinc-500 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-300">
-                  Open Plan →
-                </span>
+                <div className="border-t border-white/[0.06] bg-blue-500/[0.08] px-4 py-2.5 text-center text-[11px] font-semibold text-blue-300 transition-colors group-hover:bg-blue-500/[0.12] group-hover:text-blue-200">
+                  Open →
+                </div>
               </Link>
             ) : (
-              <div className="flex flex-col gap-2 overflow-hidden sf-surface-card p-4 sm:p-5" style={{ minHeight: "100px" }}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/60">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800/60">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
                 </div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Nutrition</p>
-                <p className="text-sm text-zinc-600">Not yet assigned</p>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Nutrition</p>
+                  <p className="text-xs text-zinc-600">Not assigned</p>
+                </div>
               </div>
             )}
 
             {trainingProgram && trainingProgram.days.length > 0 ? (
               <Link
                 href="/client/training"
-                className="group flex flex-col gap-2 overflow-hidden sf-glass-card p-4 sm:p-5 transition-all hover:border-emerald-500/20 hover:shadow-lg hover:shadow-zinc-950/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] border-l-[3px] border-l-emerald-500 transition-all hover:bg-white/[0.06] hover:border-white/[0.14] hover:shadow-lg hover:shadow-emerald-500/[0.06] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/50"
                 aria-label="View your training program"
-                style={{ minHeight: "100px" }}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400" aria-hidden="true"><path d="M6 5v11"/><path d="M18 5v11"/><path d="M2 9h4"/><path d="M18 9h4"/><path d="M2 15h4"/><path d="M18 15h4"/><path d="M6 9h12"/><path d="M6 15h12"/></svg>
+                <div className="flex items-center gap-3 p-4">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400" aria-hidden="true"><path d="M6 5v11"/><path d="M18 5v11"/><path d="M2 9h4"/><path d="M18 9h4"/><path d="M2 15h4"/><path d="M18 15h4"/><path d="M6 9h12"/><path d="M6 15h12"/></svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">Training</p>
+                    <p className="text-sm font-bold text-white leading-tight">Workout</p>
+                  </div>
                 </div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">Training</p>
-                <p className="text-sm font-bold text-zinc-100">Workout Program</p>
-                <span className="mt-auto text-xs font-medium text-zinc-500 transition-all group-hover:translate-x-0.5 group-hover:text-zinc-300">
-                  Open Program →
-                </span>
+                <div className="border-t border-white/[0.06] bg-emerald-500/[0.08] px-4 py-2.5 text-center text-[11px] font-semibold text-emerald-300 transition-colors group-hover:bg-emerald-500/[0.12] group-hover:text-emerald-200">
+                  Open →
+                </div>
               </Link>
             ) : (
-              <div className="flex flex-col gap-2 overflow-hidden sf-surface-card p-4 sm:p-5" style={{ minHeight: "100px" }}>
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800/60">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600" aria-hidden="true"><path d="M6 5v11"/><path d="M18 5v11"/><path d="M2 9h4"/><path d="M18 9h4"/><path d="M2 15h4"/><path d="M18 15h4"/><path d="M6 9h12"/><path d="M6 15h12"/></svg>
+              <div className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-800/60">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-600" aria-hidden="true"><path d="M6 5v11"/><path d="M18 5v11"/><path d="M2 9h4"/><path d="M18 9h4"/><path d="M2 15h4"/><path d="M18 15h4"/><path d="M6 9h12"/><path d="M6 15h12"/></svg>
                 </div>
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Training</p>
-                <p className="text-sm text-zinc-600">Not yet assigned</p>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Training</p>
+                  <p className="text-xs text-zinc-600">Not assigned</p>
+                </div>
               </div>
             )}
           </div>

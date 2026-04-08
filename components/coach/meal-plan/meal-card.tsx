@@ -7,6 +7,7 @@ import type { MealGroup, MealPlanFoodItem, FoodLibraryEntry } from "@/types/meal
 
 export const MealCard = memo(function MealCard({
   meal,
+  mealIndex,
   showMacros,
   foods,
   isFirst,
@@ -21,6 +22,7 @@ export const MealCard = memo(function MealCard({
   onMoveMealDown,
 }: {
   meal: MealGroup;
+  mealIndex: number;
   showMacros: boolean;
   foods: FoodLibraryEntry[];
   isFirst: boolean;
@@ -48,89 +50,128 @@ export const MealCard = memo(function MealCard({
     { calories: 0, protein: 0, carbs: 0, fats: 0 }
   );
 
+  const formattedIndex = String(mealIndex + 1).padStart(2, "0");
+
   return (
-    <div className="group overflow-hidden sf-glass-card transition-all hover:shadow-lg hover:shadow-blue-500/[0.03] hover:border-white/[0.08]">
+    <div className="group/card overflow-hidden sf-glass-card transition-all hover:shadow-lg hover:shadow-blue-500/[0.05] hover:border-white/[0.14]">
       {/* Meal header */}
-      <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-3.5">
-        {editingName ? (
-          <input
-            autoFocus
-            value={tempName}
-            onChange={(e) => setTempName(e.target.value)}
-            onBlur={() => {
-              onUpdateMealName(tempName || "Untitled Meal");
-              setEditingName(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
+      <div className="flex items-center justify-between border-b border-white/[0.08] px-5 py-3.5">
+        <div className="flex items-center gap-3 min-w-0">
+          {/* Meal number badge */}
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-500/20 text-[10px] font-bold tabular-nums text-blue-300">
+            {formattedIndex}
+          </span>
+
+          {editingName ? (
+            <input
+              autoFocus
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              onBlur={() => {
                 onUpdateMealName(tempName || "Untitled Meal");
                 setEditingName(false);
-              }
-              if (e.key === "Escape") {
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  onUpdateMealName(tempName || "Untitled Meal");
+                  setEditingName(false);
+                }
+                if (e.key === "Escape") {
+                  setTempName(meal.mealName);
+                  setEditingName(false);
+                }
+              }}
+              className="rounded-lg border border-blue-400/40 bg-white/[0.08] px-2.5 py-1.5 text-sm font-semibold text-white focus:border-blue-400/60 focus:outline-none focus:ring-1 focus:ring-blue-400/30"
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
                 setTempName(meal.mealName);
-                setEditingName(false);
-              }
-            }}
-            className="rounded border border-zinc-300 px-2 py-0.5 text-sm font-semibold focus-visible:border-zinc-500 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500"
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setTempName(meal.mealName);
-              setEditingName(true);
-            }}
-            className="text-sm font-bold uppercase tracking-wider text-zinc-200 transition-colors hover:text-white"
-          >
-            {meal.mealName}
-          </button>
-        )}
+                setEditingName(true);
+              }}
+              className="flex items-center gap-2 text-sm font-bold uppercase tracking-wider text-white transition-colors hover:text-blue-100"
+            >
+              {meal.mealName}
+              {/* Edit pencil hint */}
+              <svg className="h-3 w-3 shrink-0 text-zinc-600 opacity-0 transition-opacity group-hover/card:opacity-100" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+          )}
 
-        <div className="flex items-center gap-1">
+          {/* Item count */}
+          <span className="hidden text-[10px] font-medium text-zinc-400 sm:inline">
+            {meal.items.length} {meal.items.length === 1 ? "item" : "items"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-0.5">
           {showMacros && (
-            <span className="mr-1 text-xs text-zinc-400 tabular-nums">
+            <span className="mr-2 hidden text-xs text-zinc-300 tabular-nums sm:inline">
               {mealTotals.calories} cal | {mealTotals.protein}p {mealTotals.carbs}c {mealTotals.fats}f
             </span>
           )}
+
+          {/* Move up */}
           <button
             type="button"
             onClick={onMoveMealUp}
             disabled={isFirst}
-            className="rounded-lg p-2 text-xs text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 disabled:opacity-20 disabled:cursor-not-allowed"
             aria-label={`Move ${meal.mealName} up`}
+            title="Move up"
           >
-            ↑
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m18 15-6-6-6 6"/>
+            </svg>
           </button>
+          {/* Move down */}
           <button
             type="button"
             onClick={onMoveMealDown}
             disabled={isLast}
-            className="rounded-lg p-2 text-xs text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 disabled:opacity-20 disabled:cursor-not-allowed"
             aria-label={`Move ${meal.mealName} down`}
+            title="Move down"
           >
-            ↓
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
           </button>
+
+          {/* Separator */}
+          <span className="mx-0.5 h-4 w-px bg-white/[0.06]" aria-hidden />
+
+          {/* Duplicate */}
           <button
             type="button"
             onClick={onDuplicateMeal}
-            className="rounded-lg p-2 text-xs text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-blue-400"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-white/[0.06] hover:text-blue-400"
             aria-label={`Duplicate ${meal.mealName}`}
+            title="Duplicate"
           >
-            ⧉
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
           </button>
+          {/* Remove meal */}
           <button
             type="button"
             onClick={onRemoveMeal}
-            className="rounded-lg p-2 text-xs text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-red-400"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
             aria-label={`Remove ${meal.mealName}`}
+            title="Remove meal"
           >
-            &times;
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
           </button>
         </div>
       </div>
 
       {/* Food rows */}
-      <div className="divide-y divide-white/[0.02]">
+      <div className="divide-y divide-white/[0.06]">
         {meal.items.map((item) => (
           <FoodRow
             key={item.id}
@@ -144,13 +185,16 @@ export const MealCard = memo(function MealCard({
       </div>
 
       {/* Add food */}
-      <div className="relative border-t border-white/[0.04] px-5 py-3">
+      <div className="relative border-t border-white/[0.08] px-5 py-3">
         <button
           type="button"
           onClick={() => setAddingFood(true)}
-          className="text-xs font-semibold uppercase tracking-wider text-zinc-500 transition-colors hover:text-zinc-300"
+          className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-400 transition-colors hover:text-white"
         >
-          + Add Food
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Add Food
         </button>
         {addingFood && (
           <FoodSearchDropdown

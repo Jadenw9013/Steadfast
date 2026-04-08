@@ -660,6 +660,37 @@ html {
   }
 }
 
+/* ── AI Drawer Animations ── */
+
+@keyframes drawer-slide-up {
+  from { transform: translateY(100%); opacity: 0.8; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes drawer-slide-right {
+  from { transform: translateX(100%); opacity: 0.8; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes drawer-backdrop-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.ai-drawer-backdrop {
+  animation: drawer-backdrop-in 0.2s ease-out forwards;
+}
+
+.ai-drawer-panel {
+  animation: drawer-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (min-width: 640px) {
+  .ai-drawer-panel {
+    animation: drawer-slide-right 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+}
+
 .animate-fade-in {
   animation: fade-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -1287,9 +1318,8 @@ a,
   border: 1px solid var(--sf-glass-border);
   background:
     linear-gradient(135deg,
-      rgba(255, 255, 255, 0.055),
-      rgba(59, 91, 219, 0.08),
-      rgba(255, 255, 255, 0.025),
+      rgba(255, 255, 255, 0.05),
+      rgba(255, 255, 255, 0.02),
       transparent
     ),
     var(--sf-glass-scrim);
@@ -1303,7 +1333,7 @@ a,
               box-shadow 0.25s ease;
 }
 
-/* Top-edge glass rim light — brighter for contrast */
+/* Top-edge glass rim light — clean neutral */
 .sf-glass-card::before {
   content: "";
   position: absolute;
@@ -1313,9 +1343,9 @@ a,
   height: 1px;
   background: linear-gradient(90deg,
     transparent 0%,
-    rgba(100, 160, 255, 0.40) 30%,
-    rgba(255, 255, 255, 0.28) 50%,
-    rgba(100, 160, 255, 0.40) 70%,
+    rgba(255, 255, 255, 0.15) 30%,
+    rgba(255, 255, 255, 0.25) 50%,
+    rgba(255, 255, 255, 0.15) 70%,
     transparent 100%
   );
   pointer-events: none;
@@ -1327,9 +1357,8 @@ a,
   transform: translateY(-2px);
   background:
     linear-gradient(135deg,
-      rgba(255, 255, 255, 0.08),
-      rgba(59, 91, 219, 0.10),
-      rgba(255, 255, 255, 0.04),
+      rgba(255, 255, 255, 0.07),
+      rgba(255, 255, 255, 0.03),
       transparent
     ),
     var(--sf-glass-scrim);

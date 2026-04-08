@@ -149,7 +149,7 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300"
+          className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400"
           aria-hidden="true"
         >
           <circle cx="11" cy="11" r="8" />
@@ -160,7 +160,7 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
           placeholder="Search clients…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="sf-input w-full py-2.5 pl-9 pr-4"
+          className="w-full rounded-xl border border-white/[0.10] bg-white/[0.05] py-3 pl-10 pr-4 text-sm font-medium text-white placeholder:text-zinc-500 transition-all focus:border-blue-400/40 focus:bg-white/[0.07] focus:outline-none focus:ring-1 focus:ring-blue-400/30"
           style={{ fontSize: "max(1rem, 16px)" }}
           aria-label="Search clients by name"
         />
@@ -178,7 +178,7 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
 
       {/* Filter bar — horizontally scrollable on mobile */}
       <div
-        className="flex gap-1 overflow-x-auto rounded-xl bg-white/[0.04] border border-white/[0.06] p-1 scrollbar-none"
+        className="flex gap-1 overflow-x-auto rounded-xl bg-white/[0.04] border border-white/[0.08] p-1.5 scrollbar-none"
         role="tablist"
         aria-label="Filter clients"
       >
@@ -200,15 +200,15 @@ export function CoachInbox({ clients }: { clients: InboxClient[] }) {
               tabIndex={activeFilter === f.key ? 0 : -1}
               onClick={() => setActiveFilter(f.key)}
               onKeyDown={(e) => handleKeyDown(e, i)}
-              className={`min-h-[44px] shrink-0 flex-1 rounded-lg px-3 py-2 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
+              className={`min-h-[44px] shrink-0 flex-1 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
                 activeFilter === f.key
-                  ? "bg-white/[0.10] text-white shadow-sm border border-white/[0.10]"
-                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]"
+                  ? "bg-white/[0.12] text-white shadow-sm shadow-black/20 border border-white/[0.12]"
+                  : "text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.05] border border-transparent"
               }`}
             >
               {f.label}
               <span
-                className={`ml-1.5 inline-block min-w-[1.25rem] rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
+                className={`ml-1.5 inline-block min-w-[1.25rem] rounded-md px-1.5 py-0.5 text-xs font-bold tabular-nums ${
                   f.key === "new"
                     ? "bg-blue-500/20 text-blue-300"
                     : f.key === "reviewed"

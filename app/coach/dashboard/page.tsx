@@ -93,10 +93,13 @@ export default async function CoachDashboard() {
         </div>
       </section>
 
+      {/* Subtle gradient divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.08] to-transparent" aria-hidden />
+
       {/* ── Client list ─────────────────────────────────────────────────────── */}
       {clients.length > 0 && (
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-300">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-white">
             Clients
           </h2>
           <Link
