@@ -20,7 +20,6 @@ export default defineConfig({
         "lib/**/*.ts",
       ],
       exclude: [
-        "lib/db.ts",             // singleton, not unit-testable
         "lib/supabase/**",       // external service
         "lib/hooks/**",          // React hooks
         "lib/email/**",          // Resend integration

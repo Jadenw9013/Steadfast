@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/app/generated/prisma/client";
+import { PrismaClient, Prisma } from "@/app/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const globalForPrisma = globalThis as unknown as {
@@ -33,21 +33,24 @@ export const db = new Proxy({} as PrismaClient, {
 });
 
 /**
- * Detect Prisma P2021 "table does not exist" errors and return a clear message.
- * Use in route handler catch blocks to surface migration issues.
+ * Detect Prisma errors and return a clear message.
+ * Use in route handler catch blocks to surface migration or database issues.
  */
 export function prismaErrorMessage(error: unknown): { message: string; status: number } {
-  if (
-    error &&
-    typeof error === "object" &&
-    "code" in error &&
-    (error as { code: string }).code === "P2021"
-  ) {
-    return {
-      message: "DB migration missing — the required table does not exist. Run: npx prisma migrate deploy",
-      status: 503,
-    };
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    switch (error.code) {
+      case "P2002":
+        return { message: "Unique constraint failed", status: 409 };
+      case "P2021":
+        return {
+          message: "DB migration missing — the required table does not exist. Run: npx prisma migrate deploy",
+          status: 503,
+        };
+      default:
+        return { message: "Database error", status: 500 };
+    }
   }
+
   return {
     message: "Internal server error",
     status: 500,
