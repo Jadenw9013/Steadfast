@@ -42,7 +42,6 @@ export async function GET() {
     });
 
     if (!assignment?.coach) {
-      console.log("[ClientCoachPhoto] no active coach assignment userId=%s", user.id);
       return NextResponse.json({ photoUrl: null, coachName: null });
     }
 
@@ -50,11 +49,6 @@ export async function GET() {
     const storagePath = coach.profilePhotoPath ?? null;
 
     if (!storagePath) {
-      console.log(
-        "[ClientCoachPhoto] coach has no photo coachId=%s userId=%s",
-        coach.id,
-        user.id
-      );
       return NextResponse.json({
         photoUrl: null,
         coachName: [coach.firstName, coach.lastName].filter(Boolean).join(" ") || null,
@@ -80,7 +74,6 @@ export async function GET() {
       });
     }
 
-    console.log("[ClientCoachPhoto] source=supabase coachId=%s userId=%s", coach.id, user.id);
     return NextResponse.json(
       {
         photoUrl: data.signedUrl,
