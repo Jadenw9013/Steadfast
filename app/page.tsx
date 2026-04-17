@@ -1,8 +1,15 @@
+import { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { Reveal } from "@/components/ui/reveal";
+
+export const metadata: Metadata = {
+  title: "Steadfast - Structured Coaching & Consistent Results",
+  description:
+    "Steadfast provides structured coaching, weekly check-ins, custom meal plans, and feedback. Your client work, finally organized. Stay accountable, see progress.",
+};
 
 export default async function Home() {
   const { userId, sessionClaims } = await auth();

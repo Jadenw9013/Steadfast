@@ -29,12 +29,40 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Steadfast",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
+  title: {
+    default: "Steadfast",
+    template: "%s | Steadfast",
+  },
   description:
     "Inspired by the call to remain steadfast under trial, Steadfast equips men to build resilient bodies and unwavering discipline through structured coaching and consistent execution.",
   icons: {
     icon: "/brand/Steadfast_logo_pictoral.png",
     apple: "/brand/Steadfast_logo_pictoral.png",
+  },
+  openGraph: {
+    title: "Steadfast",
+    description:
+      "Inspired by the call to remain steadfast under trial, Steadfast equips men to build resilient bodies and unwavering discipline through structured coaching and consistent execution.",
+    url: "/",
+    siteName: "Steadfast",
+    images: [
+      {
+        url: "/brand/Steadfast_logo.png",
+        width: 1200,
+        height: 630,
+        alt: "Steadfast Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Steadfast",
+    description:
+      "Inspired by the call to remain steadfast under trial, Steadfast equips men to build resilient bodies and unwavering discipline through structured coaching and consistent execution.",
+    images: ["/brand/Steadfast_logo.png"],
   },
 };
 
