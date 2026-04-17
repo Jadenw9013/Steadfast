@@ -1,5 +1,6 @@
 "use server";
 
+import crypto from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
@@ -96,7 +97,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
     // Create Request
     // NOTE: adapter-pg@7.5.0 + query-plan-executor@7.2.0 version mismatch causes
     // "column (not available) does not exist" on create(). Use raw SQL to bypass.
-    const requestId = `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 9)}`;
+    const requestId = "c" + crypto.randomUUID().replace(/-/g, "").slice(0, 24);
     const cleanAnswers = JSON.parse(JSON.stringify(validated.intakeAnswers));
 
     await db.$executeRawUnsafe(
