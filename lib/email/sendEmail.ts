@@ -41,7 +41,10 @@ export async function sendEmail({
             html: html || undefined,
         });
 
-        return { success: true, messageId: result.data?.id };
+        if (result.error || !result.data?.id) {
+            return { success: false, error: result.error?.message ?? "Email provider did not accept the message" };
+        }
+        return { success: true, messageId: result.data.id };
     } catch (error) {
         console.error("[Email/sendEmail] Failed to send email:", error);
         // Don't throw, let application logic proceed even if email fails

@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 export async function POST(req: NextRequest) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
   try {
-    user = await getCurrentDbUser();
+    user = await getCurrentDbUser({ allowInactive: true });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
   try {
-    user = await getCurrentDbUser();
+    user = await getCurrentDbUser({ allowInactive: true });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

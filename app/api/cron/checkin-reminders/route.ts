@@ -1,3 +1,5 @@
+import { isReminderHour } from "@/lib/scheduling/reminder-time";
+import { claimDailyReminder } from "@/lib/security/quota";
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { db } from "@/lib/db";
@@ -7,15 +9,6 @@ import { checkinReminderEmail, checkinOverdueEmail } from "@/lib/email/templates
 import { pushCheckinReminder, pushCheckinOverdue } from "@/lib/notifications/push";
 import { getLocalDate } from "@/lib/utils/date";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays } from "@/lib/scheduling/cadence";
-
-/**
- * Checks if the configured DB time string (e.g., "19:00") aligns with the current server hour.
- * Since this cron presumably runs hourly, we just check if the hours match.
- */
-function isTimeToTrigger(configuredTime: string, currentHourStr: string) {
-  const timeParts = configuredTime.split(":");
-  return timeParts[0] === currentHourStr;
-}
 
 /** Timing-safe bearer token comparison. */
 function verifyCronSecret(authHeader: string | null, secret: string): boolean {
@@ -44,13 +37,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const serverTime = new Date();
-    const currentHourStr = serverTime.getHours().toString().padStart(2, "0");
 
     // ── Client reminders ──────────────────────────────────────────────────────
     // Find all active clients with coach assignments who might need reminders
     const clientsToRemind = await db.user.findMany({
       where: {
         activeRole: "CLIENT",
+        isDeactivated: false,
         clientAssignments: { some: {} },
       },
       select: {
@@ -62,6 +55,7 @@ export async function GET(req: NextRequest) {
         smsDailyCheckInReminder: true,
         smsCheckInReminderTime: true,
         emailCheckInReminders: true,
+        pushCheckInReminders: true,
         clientAssignments: {
           take: 1,
           include: {
@@ -75,7 +69,7 @@ export async function GET(req: NextRequest) {
 
     for (const client of clientsToRemind) {
       // Check if this hour matches their configured reminder time hour block
-      if (!isTimeToTrigger(client.smsCheckInReminderTime, currentHourStr)) {
+      if (!isReminderHour(client.smsCheckInReminderTime, client.timezone || "America/Los_Angeles", serverTime)) {
         continue;
       }
 
@@ -125,10 +119,11 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
-      // Push notification (always, regardless of SMS/email opt-in)
-      if (cadenceResult.status === "overdue") {
+      if (!await claimDailyReminder("client", client.id, localDate)) continue;
+      // Respect the client's push preference independently of SMS/email.
+      if (client.pushCheckInReminders && cadenceResult.status === "overdue") {
         pushCheckinOverdue(client.id).catch(console.error);
-      } else {
+      } else if (client.pushCheckInReminders) {
         pushCheckinReminder(client.id).catch(console.error);
       }
 
@@ -185,12 +180,14 @@ export async function GET(req: NextRequest) {
     const coachesToAlert = await db.user.findMany({
       where: {
         activeRole: "COACH",
+        isDeactivated: false,
         smsOptIn: true,
         smsMissedCheckInAlerts: true,
       },
       select: {
         id: true,
         smsMissedCheckInAlertTime: true,
+        timezone: true,
         checkInDaysOfWeek: true,
         cadenceConfig: true,
         coachAssignments: {
@@ -209,10 +206,11 @@ export async function GET(req: NextRequest) {
     });
 
     for (const coach of coachesToAlert) {
-      if (!isTimeToTrigger(coach.smsMissedCheckInAlertTime, currentHourStr)) {
+      if (!isReminderHour(coach.smsMissedCheckInAlertTime, coach.timezone || "America/Los_Angeles", serverTime)) {
         continue;
       }
 
+      if (!await claimDailyReminder("coach", coach.id, getLocalDate(serverTime, coach.timezone || "America/Los_Angeles"))) continue;
       const coachCadence = parseCadenceConfig(coach.cadenceConfig);
 
       for (const assignment of coach.coachAssignments) {
@@ -265,28 +263,8 @@ export async function GET(req: NextRequest) {
     // ── Purge expired account deletions (piggybacked on this cron) ──────────
     let purgeResult = { processed: 0, errors: 0 };
     try {
-      const expired = await db.accountDeletionRequest.findMany({
-        where: { status: "PENDING", scheduledPurgeAt: { lte: new Date() } },
-        select: { id: true, userId: true },
-      });
-      for (const req of expired) {
-        try {
-          await db.accountDeletionRequest.update({
-            where: { id: req.id },
-            data: { status: "PURGING", purgeStartedAt: new Date() },
-          });
-          const { purgeUserAccount } = await import("@/lib/account-deletion/purge");
-          await purgeUserAccount(req.userId);
-          purgeResult.processed++;
-        } catch (purgeErr) {
-          console.error(`[cron] purge failed for ${req.userId}:`, purgeErr);
-          await db.accountDeletionRequest.update({
-            where: { id: req.id },
-            data: { status: "PENDING", retryCount: { increment: 1 } },
-          }).catch(() => {});
-          purgeResult.errors++;
-        }
-      }
+      const { sweepAccountDeletions } = await import("@/lib/account-deletion/sweep");
+      purgeResult = await sweepAccountDeletions();
     } catch (err) {
       console.error("[cron] purge sweep error:", err);
     }

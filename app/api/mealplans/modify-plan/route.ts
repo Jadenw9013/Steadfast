@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { consumeQuota } from "@/lib/security/quota";
+import { readBoundedBody } from "@/lib/security/body";
 import { z } from "zod";
 import { modifyMealPlan } from "@/lib/llm/modify-meal-plan";
 import { getCurrentDbUser } from "@/lib/auth/roles";
@@ -6,22 +8,23 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 export const maxDuration = 60; // Allow up to 60s for LLM
 
 const requestSchema = z.object({
+  privacyConsent: z.literal(true),
   currentPlan: z.object({
-    title: z.string().default("Meal Plan"),
+    title: z.string().max(500).default("Meal Plan"),
     meals: z.array(
       z.object({
-        name: z.string(),
+        name: z.string().max(200),
         items: z.array(
           z.object({
-            food: z.string(),
-            portion: z.string(),
+            food: z.string().max(500),
+            portion: z.string().max(200),
           })
         ),
       })
     ),
     // Use z.any() — PlanExtras contains arrays which z.record() rejects
     extras: z.any().optional(),
-    supportContent: z.string().nullable().optional(),
+    supportContent: z.string().max(20000).nullable().optional(),
   }),
   instruction: z.string().min(1).max(2000),
 });
@@ -34,7 +37,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not a coach" }, { status: 403 });
     }
 
-    const body = await req.json();
+    if (!await consumeQuota("ai-plan", user.id, 30, 600)) {
+      return NextResponse.json({ error: "Too many AI requests. Please try again in a few minutes." }, { status: 429, headers: { "Retry-After": "600" } });
+    }
+    const body = JSON.parse(new TextDecoder().decode(await readBoundedBody(req, 128 * 1024)));
     const parsed = requestSchema.safeParse(body);
     if (!parsed.success) {
       const fieldErrors = parsed.error.flatten().fieldErrors;

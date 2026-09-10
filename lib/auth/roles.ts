@@ -1,3 +1,4 @@
+import { verifiedPrimaryEmail } from "./verified-email";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import type { Roles } from "@/types/globals.d";
@@ -17,53 +18,32 @@ export function generateCoachCode(): string {
   return Array.from(randomValues, (v) => chars[v % chars.length]).join("");
 }
 
-export async function getCurrentDbUser() {
+export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}) {
   const { userId } = await auth();
   if (!userId) throw new Error("Not authenticated");
 
   // Try to find the user in the DB
   const existing = await db.user.findUnique({ where: { clerkId: userId } });
-  if (existing) return existing;
+  if (existing) {
+    if (existing.isDeactivated && !options.allowInactive) throw new Error("Account is pending deletion");
+    return existing;
+  }
 
   // JIT fallback: create the user if webhook hasn't fired yet
   const clerkUser = await currentUser();
   if (!clerkUser) throw new Error("Not authenticated");
 
-  const email = clerkUser.emailAddresses[0]?.emailAddress;
-  if (!email) throw new Error("No email found on Clerk user");
+  const email = verifiedPrimaryEmail(clerkUser.emailAddresses, clerkUser.primaryEmailAddressId);
+  if (!email) throw new Error("Verify your primary email before continuing");
 
   const isCoach =
     (clerkUser.publicMetadata?.role as string)?.toUpperCase() === "COACH";
   const activeRole = isCoach ? "COACH" : "CLIENT" as const;
 
-  // ── Handle re-registration: email may exist under a different clerkId ───
-  // This happens when a user deletes their account (purging the Clerk user)
-  // and then signs back in — Clerk issues a new clerkId for the same email.
+  // A matching email is not authorization to replace another account's Clerk identity.
   const existingByEmail = await db.user.findUnique({ where: { email } });
   if (existingByEmail && existingByEmail.clerkId !== userId) {
-    // Cancel any pending deletion request
-    const deletionRequest = await db.accountDeletionRequest.findUnique({
-      where: { userId: existingByEmail.id },
-    });
-    if (deletionRequest && deletionRequest.status === "PENDING") {
-      await db.accountDeletionRequest.update({
-        where: { id: deletionRequest.id },
-        data: { status: "CANCELLED", cancelledAt: new Date() },
-      });
-    }
-
-    // Re-associate the existing DB user with the new Clerk identity
-    const reactivatedUser = await db.user.update({
-      where: { id: existingByEmail.id },
-      data: {
-        clerkId: userId,
-        email,
-        firstName: clerkUser.firstName,
-        lastName: clerkUser.lastName,
-        isDeactivated: false,
-      },
-    });
-    return reactivatedUser;
+    throw new Error("An account with this email already exists. Sign in to that account or contact support.");
   }
 
   const newUser = await db.user.upsert({

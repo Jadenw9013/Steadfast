@@ -86,5 +86,5 @@ graphify-out/
 
 # Accidental shell artifacts
 tatus
-"({,+"
+"([{],+"
 .playwright-mcp/

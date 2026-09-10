@@ -5,7 +5,7 @@ import { CancelDeletionButton } from "./cancel-deletion-button";
 import { SignOutButton } from "@clerk/nextjs";
 
 export default async function AccountDeletionPendingPage() {
-  const user = await getCurrentDbUser();
+  const user = await getCurrentDbUser({ allowInactive: true });
 
   // If not deactivated, redirect to normal app
   if (!user.isDeactivated) {
@@ -16,10 +16,8 @@ export default async function AccountDeletionPendingPage() {
     where: { userId: user.id },
   });
 
-  if (!request || request.status !== "PENDING") {
-    // No valid request — restore access
-    await db.user.update({ where: { id: user.id }, data: { isDeactivated: false } });
-    redirect(user.activeRole === "COACH" ? "/coach/dashboard" : "/client");
+  if (!request) {
+    return <div className="p-8">Your account is unavailable. Please contact support.</div>;
   }
 
   const purgeDate = request.scheduledPurgeAt;
@@ -67,6 +65,7 @@ export default async function AccountDeletionPendingPage() {
 
         {/* What will be deleted */}
         <div className="sf-glass-card p-5 space-y-3">
+          {isCoach && <p className="text-sm text-zinc-400">Subscription renewal has been stopped. Restoring your account does not automatically restart billing.</p>}
           <h2 className="text-xs font-semibold uppercase tracking-widest text-zinc-400">
             What will be deleted
           </h2>
@@ -128,7 +127,7 @@ export default async function AccountDeletionPendingPage() {
 
         {/* Cancel + Sign Out */}
         <div className="space-y-3">
-          <CancelDeletionButton />
+          {request.status === "PENDING" && request.scheduledPurgeAt > new Date() && <CancelDeletionButton />}
 
           <div className="text-center">
             <SignOutButton>

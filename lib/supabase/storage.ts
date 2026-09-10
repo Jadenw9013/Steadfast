@@ -75,6 +75,6 @@ export async function getSignedDownloadUrls(
 
   return data.map((item) => ({
     path: item.path || "",
-    signedUrl: item.signedUrl,
+    signedUrl: item.signedUrl ?? "",
   }));
 }

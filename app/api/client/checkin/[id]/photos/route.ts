@@ -1,99 +1,66 @@
+import { randomUUID } from "crypto";
+import sharp from "sharp";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { createServiceClient } from "@/lib/supabase/server";
+import { consumeQuota } from "@/lib/security/quota";
+import { readBoundedBody } from "@/lib/security/body";
 
 const BUCKET = "check-in-photos";
 const MAX_PHOTOS = 10;
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  // ── Auth ──────────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
-  try {
-    user = await getCurrentDbUser();
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!user.isClient) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
+  try { user = await getCurrentDbUser(); }
+  catch { return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); }
+  if (!user.isClient) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const uploaded: string[] = [];
   try {
     const { id: checkInId } = await params;
-
-    // Verify check-in ownership
-    const checkIn = await db.checkIn.findUnique({
-      where: { id: checkInId },
-      select: {
-        clientId: true,
-        deletedAt: true,
-        _count: { select: { photos: true } },
-      },
-    });
-
-    if (!checkIn || checkIn.deletedAt) {
-      return NextResponse.json({ error: "Check-in not found" }, { status: 404 });
+    const owned = await db.checkIn.findFirst({ where: { id: checkInId, clientId: user.id, deletedAt: null }, select: { id: true } });
+    if (!owned) return NextResponse.json({ error: "Check-in not found" }, { status: 404 });
+    if (!await consumeQuota("photo-batches", user.id, 60, 3600)) return NextResponse.json({ error: "Upload limit reached. Please try again later." }, { status: 429 });
+    const bytes = await readBoundedBody(req, 20 * 1024 * 1024);
+    const form = await new Response(bytes as BodyInit, { headers: { "Content-Type": req.headers.get("content-type") ?? "" } }).formData();
+    const files = form.getAll("photos");
+    if (!files.length || files.length > MAX_PHOTOS || files.some(file => typeof file === "string" || file.size === 0 || file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type))) {
+      return NextResponse.json({ error: "Upload 1–10 JPEG, PNG, or WebP photos, up to 5 MB each." }, { status: 422 });
     }
-    if (checkIn.clientId !== user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const existingCount = checkIn._count.photos;
-    if (existingCount >= MAX_PHOTOS) {
-      return NextResponse.json(
-        { error: `Maximum ${MAX_PHOTOS} photos per check-in` },
-        { status: 422 }
-      );
-    }
-
-    const formData = await req.formData();
-    const files = formData.getAll("photos") as File[];
-
-    if (files.length === 0) {
-      return NextResponse.json({ error: "No photos provided" }, { status: 422 });
-    }
-
-    const slots = MAX_PHOTOS - existingCount;
-    const toUpload = files.slice(0, slots);
-
-    const supabase = createServiceClient();
-    const createdPhotos: { id: string; path: string }[] = [];
-    let sortOrder = existingCount;
-
-    for (const file of toUpload) {
-      const ext = file.name.split(".").pop() ?? "jpg";
-      const path = `${checkInId}/${Date.now()}-${sortOrder}.${ext}`;
-
-      const buffer = Buffer.from(await file.arrayBuffer());
-
-      const { error } = await supabase.storage
-        .from(BUCKET)
-        .upload(path, buffer, { contentType: file.type || "image/jpeg" });
-
-      if (error) {
-        console.error("[photo upload]", error.message);
-        continue; // skip failed uploads rather than aborting the whole batch
+    const images: Buffer[] = [];
+    try {
+      for (const file of files as File[]) {
+        // Decode instead of trusting MIME; normalize orientation and strip EXIF/location.
+        images.push(await sharp(Buffer.from(await file.arrayBuffer()), { limitInputPixels: 40_000_000 })
+          .rotate().resize({ width: 2400, height: 2400, fit: "inside", withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer());
       }
-
-      const photo = await db.checkInPhoto.create({
-        data: { checkInId, storagePath: path, sortOrder },
-        select: { id: true, storagePath: true },
-      });
-
-      createdPhotos.push({ id: photo.id, path: photo.storagePath });
-      sortOrder++;
+    } catch { return NextResponse.json({ error: "One of the images could not be read. Please choose another photo." }, { status: 422 }); }
+    const supabase = createServiceClient();
+    const photos = await db.$transaction(async tx => {
+      // Serialize batches so concurrent uploads cannot exceed the photo limit.
+      await tx.$queryRaw`SELECT id FROM "CheckIn" WHERE id = ${checkInId} FOR UPDATE`;
+      const checkIn = await tx.checkIn.findFirst({ where: { id: checkInId, clientId: user.id, deletedAt: null }, select: { _count: { select: { photos: true } } } });
+      if (!checkIn || checkIn._count.photos + images.length > MAX_PHOTOS) throw new Error("Photo limit reached or check-in unavailable");
+      const created: { id: string; path: string }[] = [];
+      for (const [index, image] of images.entries()) {
+        const path = `${checkInId}/${randomUUID()}.jpg`;
+        const { error } = await supabase.storage.from(BUCKET).upload(path, image, { contentType: "image/jpeg" });
+        if (error) throw new Error("Photo upload failed");
+        uploaded.push(path);
+        const photo = await tx.checkInPhoto.create({ data: { checkInId, storagePath: path, sortOrder: checkIn._count.photos + index } });
+        created.push({ id: photo.id, path });
+      }
+      return created;
+    }, { timeout: 30000 });
+    return NextResponse.json({ photos }, { status: 201 });
+  } catch (error) {
+    if (uploaded.length) {
+      try {
+        const result = await createServiceClient().storage.from(BUCKET).remove(uploaded);
+        if (result.error) console.error("[photo rollback] Storage cleanup requires retry", result.error.message);
+      } catch (cleanupError) { console.error("[photo rollback]", cleanupError); }
     }
-
-    return NextResponse.json({ photos: createdPhotos }, { status: 201 });
-  } catch (err) {
-    console.error("[POST /api/client/checkin/[id]/photos]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("[check-in photos]", error);
+    const tooLarge = error instanceof Error && error.message === "Request too large";
+    return NextResponse.json({ error: tooLarge ? "Upload is too large. Please use smaller photos." : "Photos could not be uploaded. Please refresh and try again." }, { status: tooLarge ? 413 : 422 });
   }
 }

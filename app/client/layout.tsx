@@ -9,7 +9,7 @@ export default async function ClientLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentDbUser();
+  const user = await getCurrentDbUser({ allowInactive: true });
 
   if (user.activeRole !== "CLIENT") {
     redirect("/coach/dashboard");

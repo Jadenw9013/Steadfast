@@ -134,9 +134,15 @@ export function AiPlanAssistant({
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
   }, [instruction]);
 
+  const [privacyConsent, setPrivacyConsent] = useState(false);
+
   const handleSubmit = useCallback(async () => {
     const trimmed = instruction.trim();
     if (!trimmed || aiState.phase === "thinking") return;
+    if (!privacyConsent) {
+      setAiState({ phase: "error", message: "Please confirm the data-sharing notice before using AI." });
+      return;
+    }
 
     setAiState({ phase: "thinking" });
 
@@ -151,6 +157,7 @@ export function AiPlanAssistant({
             extras: currentExtras,
           },
           instruction: trimmed,
+          privacyConsent,
         }),
       });
 
@@ -181,7 +188,7 @@ export function AiPlanAssistant({
         message: error instanceof Error ? error.message : "Something went wrong",
       });
     }
-  }, [instruction, aiState.phase, currentMeals, currentExtras]);
+  }, [instruction, aiState.phase, currentMeals, currentExtras, privacyConsent]);
 
   function handleApply() {
     if (aiState.phase !== "preview") return;
@@ -249,6 +256,10 @@ export function AiPlanAssistant({
 
         {/* ── Body ── */}
         <div className="flex-1 overflow-y-auto px-5 py-5">
+          <label className="mb-3 flex items-start gap-2 text-xs text-zinc-400">
+                  <input type="checkbox" checked={privacyConsent} onChange={event => setPrivacyConsent(event.target.checked)} />
+                  <span>I agree to send this plan and my instruction to OpenAI. I have removed personal client information, or obtained the client's permission to share it. AI suggestions need my review before applying.</span>
+                </label>
           {/* ── Idle: Quick actions + input ── */}
           {aiState.phase === "idle" && (
             <div className="space-y-6">
@@ -284,7 +295,8 @@ export function AiPlanAssistant({
                   Instruction
                 </label>
                 <div className="relative">
-                  <textarea
+                  
+                <textarea
                     ref={inputRef}
                     id="ai-instruction"
                     value={instruction}

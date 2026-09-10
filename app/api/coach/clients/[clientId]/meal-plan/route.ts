@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { parseWeekStartDate } from "@/lib/utils/date";
+import { parseWeekStartDate, getCurrentWeekMonday } from "@/lib/utils/date";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
 
 type Params = { params: Promise<{ clientId: string }> };
@@ -142,6 +142,9 @@ export async function GET(req: NextRequest, { params }: Params) {
       source: draft ? "draft" : published ? "published" : "empty",
       draftId: draft?.id ?? null,
       publishedId: published?.id ?? null,
+      // Server-computed "current week" — clients should prefer this over
+      // any on-device date math when seeding a brand-new plan's weekOf.
+      currentWeekOf: getCurrentWeekMonday().toISOString(),
     });
   } catch (err) {
     console.error("[GET /api/coach/clients/[clientId]/meal-plan]", err);

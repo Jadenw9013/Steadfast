@@ -3,11 +3,7 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
-const sendEmail = async (opts: { to: string; subject: string; text: string }) => {
-    const { Resend } = await import("resend");
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({ from: process.env.EMAIL_FROM || "Steadfast <noreply@steadfast.app>", ...opts });
-};
+import { sendEmail } from "@/lib/email/sendEmail";
 
 /** Resolve the current coach's CoachProfile.id. */
 async function getCoachProfileId(userId: string): Promise<string> {
@@ -26,6 +22,7 @@ async function resolveProspectEmail(request: {
 }): Promise<string | null> {
     // 1. Direct field
     if (request.prospectEmailAddr) return request.prospectEmailAddr;
+    if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(request.prospectEmail)) return request.prospectEmail;
 
     let email: string | null = null;
 
@@ -266,6 +263,11 @@ export async function sendIntakePacket(input: {
         return { success: false, message: "No email on file. Update the lead with the prospect's email before sending." };
     }
 
+    const uniqueDocumentIds = [...new Set(input.documentIds)];
+    if (uniqueDocumentIds.length > 20) return { success: false, message: "Too many documents." };
+    const ownedDocuments = await db.coachDocument.count({ where: { id: { in: uniqueDocumentIds }, coachId: user.id } });
+    if (ownedDocuments !== uniqueDocumentIds.length) throw new Error("Invalid documents");
+
     const token = crypto.randomUUID();
     const tokenExpiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days
 
@@ -302,8 +304,11 @@ export async function sendIntakePacket(input: {
         const { intakePacketSentEmail } = await import("@/lib/email/templates");
         const intakeUrl = `${appUrl}/onboarding/intake/${token}`;
         const emailContent = intakePacketSentEmail(request.prospectName, user.firstName || "Your coach", intakeUrl, input.documentIds.length);
-        await sendEmail({ to: prospectEmail, ...emailContent });
-    } catch { /* email failure must not block */ }
+        const delivery = await sendEmail({ to: prospectEmail, ...emailContent });
+        if (!delivery.success) return { success: false, message: "The intake was saved, but the email could not be sent. Please try sending again." };
+    } catch {
+        return { success: false, message: "The intake was saved, but the email could not be sent. Please try sending again." };
+    }
 
     revalidatePath("/coach/leads");
     return { success: true };

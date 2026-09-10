@@ -71,6 +71,10 @@ export default function PrivacyPage() {
                         Steadfast uses the following third-party services to operate:
                     </p>
                     <ul className="mt-2 list-disc space-y-1 pl-5">
+                        <li><strong>OpenAI and Google Cloud Vision</strong> — AI plan processing and document recognition. Do not include personal client information without their permission.</li>
+                        <li><strong>Supabase</strong> — private file storage.</li>
+                        <li><strong>Resend</strong> — email notifications.</li>
+                        <li><strong>Stripe</strong> — coach subscription billing.</li>
                         <li><strong>Clerk</strong> — user authentication and identity management.</li>
                         <li><strong>Twilio</strong> — transactional SMS delivery.</li>
                         <li><strong>Vercel</strong> — application hosting and analytics.</li>

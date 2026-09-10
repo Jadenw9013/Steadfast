@@ -1,5 +1,6 @@
 "use server";
 
+import { assertMessagingAllowed } from "@/lib/messages/permissions";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -23,6 +24,8 @@ export async function sendMessage(input: unknown) {
   const { clientId, weekStartDate, body } = parsed.data;
   const weekOf = parseWeekStartDate(weekStartDate);
 
+  let recipientId = clientId;
+
   // Authorization: client can only send on their own thread
   if (user.activeRole === "CLIENT") {
     if (user.id !== clientId) {
@@ -31,11 +34,12 @@ export async function sendMessage(input: unknown) {
     // Require an assigned coach
     const hasCoach = await db.coachClient.findFirst({
       where: { clientId: user.id },
-      select: { id: true },
+      select: { id: true, coachId: true },
     });
     if (!hasCoach) {
       throw new Error("Connect to a coach before sending messages");
     }
+    recipientId = hasCoach.coachId;
   }
 
   // Authorization: coach must be assigned to this client
@@ -47,6 +51,8 @@ export async function sendMessage(input: unknown) {
     });
     if (!assignment) throw new Error("Not assigned to this client");
   }
+
+  await assertMessagingAllowed(user.id, recipientId);
 
   const message = await db.message.create({
     data: {

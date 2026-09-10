@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertMessagingAllowed } from "@/lib/messages/permissions";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -27,8 +28,14 @@ export async function GET(req: NextRequest) {
 
     // Authorization check
     // Check client self-access first so dual-role users aren't blocked
+    let counterpartId: string | null = null;
     if (user.isClient && user.id === clientId) {
       // Client accessing their own thread — always allowed
+      const assignment = await db.coachClient.findFirst({
+        where: { clientId: user.id },
+        select: { coachId: true },
+      });
+      counterpartId = assignment?.coachId ?? null;
     } else if (user.isCoach) {
       const assignment = await db.coachClient.findUnique({
         where: { coachId_clientId: { coachId: user.id, clientId } },
@@ -37,8 +44,26 @@ export async function GET(req: NextRequest) {
       if (!assignment) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+      counterpartId = clientId;
     } else {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    let isBlockedByMe = false;
+    let blockedMe = false;
+    if (counterpartId) {
+      const [blockedByMeRow, blockedMeRow] = await Promise.all([
+        db.userBlock.findUnique({
+          where: { blockerId_blockedId: { blockerId: user.id, blockedId: counterpartId } },
+          select: { id: true },
+        }),
+        db.userBlock.findUnique({
+          where: { blockerId_blockedId: { blockerId: counterpartId, blockedId: user.id } },
+          select: { id: true },
+        }),
+      ]);
+      isBlockedByMe = !!blockedByMeRow;
+      blockedMe = !!blockedMeRow;
     }
 
     const messages = await db.message.findMany({
@@ -70,6 +95,8 @@ export async function GET(req: NextRequest) {
         sender: m.sender,
         isDraft: false,
       })),
+      isBlockedByMe,
+      blockedMe,
     });
   } catch (err) {
     console.error("[GET /api/messages]", err);
@@ -112,10 +139,11 @@ export async function POST(req: NextRequest) {
 
     // Authorization — client self-access checked first so dual-role users aren't blocked
     const actingAsClient = user.isClient && user.id === clientId;
+    let counterpartId: string;
     if (actingAsClient) {
       const hasCoach = await db.coachClient.findFirst({
         where: { clientId: user.id },
-        select: { id: true },
+        select: { coachId: true },
       });
       if (!hasCoach) {
         return NextResponse.json(
@@ -123,6 +151,7 @@ export async function POST(req: NextRequest) {
           { status: 422 }
         );
       }
+      counterpartId = hasCoach.coachId;
     } else if (user.isCoach) {
       const assignment = await db.coachClient.findUnique({
         where: { coachId_clientId: { coachId: user.id, clientId } },
@@ -134,8 +163,18 @@ export async function POST(req: NextRequest) {
           { status: 403 }
         );
       }
+      counterpartId = clientId;
     } else {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Block check — reject if either party has blocked the other, without
+    // revealing which direction the block is in.
+    try {
+      await assertMessagingAllowed(user.id, counterpartId);
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== "You can't message this user.") throw error;
+      return NextResponse.json({ error: error.message }, { status: 403 });
     }
 
     const message = await db.message.create({

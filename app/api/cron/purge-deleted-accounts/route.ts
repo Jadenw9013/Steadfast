@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
-import { db } from "@/lib/db";
-import { purgeUserAccount } from "@/lib/account-deletion/purge";
+import { sweepAccountDeletions } from "@/lib/account-deletion/sweep";
 
 /**
  * Cron endpoint: purge accounts whose 30-day grace period has expired.
@@ -29,44 +28,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  let processed = 0;
-  let errors = 0;
-
-  try {
-    const expiredRequests = await db.accountDeletionRequest.findMany({
-      where: {
-        status: "PENDING",
-        scheduledPurgeAt: { lte: new Date() },
-      },
-      select: { id: true, userId: true },
-    });
-
-    for (const request of expiredRequests) {
-      try {
-        await db.accountDeletionRequest.update({
-          where: { id: request.id },
-          data: { status: "PURGING", purgeStartedAt: new Date() },
-        });
-
-        await purgeUserAccount(request.userId);
-        processed++;
-      } catch (err) {
-        console.error(`[purge-cron] Failed to purge user ${request.userId}:`, err);
-        // Revert to PENDING so it retries next cycle
-        await db.accountDeletionRequest.update({
-          where: { id: request.id },
-          data: {
-            status: "PENDING",
-            retryCount: { increment: 1 },
-          },
-        }).catch(() => {});
-        errors++;
-      }
-    }
-  } catch (err) {
-    console.error("[purge-cron] Fatal error:", err);
-    return NextResponse.json({ error: "Internal error" }, { status: 500 });
+  try { return NextResponse.json(await sweepAccountDeletions()); }
+  catch (error) {
+    console.error("[purge-cron]", error);
+    return NextResponse.json({ error: "Purge sweep failed" }, { status: 500 });
   }
-
-  return NextResponse.json({ processed, errors });
 }

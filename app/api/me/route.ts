@@ -20,7 +20,7 @@ export async function GET() {
   // ── Auth ────────────────────────────────────────────────────────────────
   let dbUser: Awaited<ReturnType<typeof getCurrentDbUser>>;
   try {
-    dbUser = await getCurrentDbUser();
+    dbUser = await getCurrentDbUser({ allowInactive: true });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -40,6 +40,8 @@ export async function GET() {
         isCoach: true,
         isClient: true,
         timezone: true,
+        isDeactivated: true,
+        deletionRequest: { select: { status: true, scheduledPurgeAt: true } },
       },
     });
 

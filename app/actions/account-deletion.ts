@@ -1,5 +1,6 @@
 "use server";
 
+import { stopAccountBilling } from "@/lib/account-deletion/billing";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/auth/roles";
@@ -24,7 +25,7 @@ export async function requestAccountDeletion(input: unknown): Promise<{
     throw new Error('You must type "DELETE MY ACCOUNT" to confirm.');
   }
 
-  const user = await getCurrentDbUser();
+  const user = await getCurrentDbUser({ allowInactive: true });
 
   // Idempotent: return existing pending request if one exists
   const existing = await db.accountDeletionRequest.findUnique({
@@ -36,6 +37,13 @@ export async function requestAccountDeletion(input: unknown): Promise<{
       scheduledPurgeAt: existing.scheduledPurgeAt.toISOString(),
     };
   }
+
+  if (existing?.status === "PURGING" || existing?.status === "COMPLETED") {
+    throw new Error("Account deletion is already in progress.");
+  }
+  // Keep access during the grace period, but stop subscription renewal now.
+  // Cancellation failures remain visible and may be retried safely.
+  await stopAccountBilling(user.id);
 
   const scheduledPurgeAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
@@ -91,29 +99,20 @@ export async function requestAccountDeletion(input: unknown): Promise<{
   }
 
   // ── Create deletion request + deactivate user ──────────────────────────────
-  // TODO: If Stripe is integrated, cancel subscription here and set
-  //       stripeSubscriptionCancelledAt on the request.
-
-  await db.accountDeletionRequest.upsert({
-    where: { userId: user.id },
-    create: {
-      userId: user.id,
-      scheduledPurgeAt,
-      deletionReason: parsed.data.reason || null,
-      roleAtRequest,
-    },
-    update: {
-      status: "PENDING",
-      scheduledPurgeAt,
-      deletionReason: parsed.data.reason || null,
-      roleAtRequest,
-      cancelledAt: null,
-    },
-  });
-
-  await db.user.update({
-    where: { id: user.id },
-    data: { isDeactivated: true },
+  await db.$transaction(async tx => {
+    // Serialize against another request/cancellation on this account.
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+    const current = await tx.accountDeletionRequest.findUnique({ where: { userId: user.id } });
+    if (current?.status === "PURGING") throw new Error("Account deletion is already in progress.");
+    if (current?.status === "PENDING") return;
+    await tx.accountDeletionRequest.upsert({
+      where: { userId: user.id },
+      create: { userId: user.id, clerkId: user.clerkId, scheduledPurgeAt, deletionReason: parsed.data.reason || null, roleAtRequest },
+      update: { status: "PENDING", scheduledPurgeAt, requestedAt: new Date(), clerkId: user.clerkId,
+        deletionReason: parsed.data.reason || null, roleAtRequest, cancelledAt: null,
+        purgeStartedAt: null, storageCleanedAt: null, clerkDeletedAt: null },
+    });
+    await tx.user.update({ where: { id: user.id }, data: { isDeactivated: true, apnsToken: null } });
   });
 
   revalidatePath("/");
@@ -126,28 +125,16 @@ export async function cancelAccountDeletion(): Promise<{
   success: boolean;
   message?: string;
 }> {
-  const user = await getCurrentDbUser();
+  const user = await getCurrentDbUser({ allowInactive: true });
 
-  const request = await db.accountDeletionRequest.findUnique({
-    where: { userId: user.id },
-  });
-  if (!request || request.status !== "PENDING") {
-    throw new Error("No pending deletion request found.");
-  }
-  if (request.scheduledPurgeAt < new Date()) {
-    throw new Error(
-      "Grace period has expired — account cannot be restored."
-    );
-  }
-
-  await db.accountDeletionRequest.update({
-    where: { id: request.id },
-    data: { status: "CANCELLED", cancelledAt: new Date() },
-  });
-
-  await db.user.update({
-    where: { id: user.id },
-    data: { isDeactivated: false },
+  await db.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM "User" WHERE id = ${user.id} FOR UPDATE`;
+    const cancelled = await tx.accountDeletionRequest.updateMany({
+      where: { userId: user.id, status: "PENDING", scheduledPurgeAt: { gt: new Date() } },
+      data: { status: "CANCELLED", cancelledAt: new Date() },
+    });
+    if (!cancelled.count) throw new Error("Deletion has started or no cancellable request exists.");
+    await tx.user.update({ where: { id: user.id }, data: { isDeactivated: false } });
   });
 
   revalidatePath("/");

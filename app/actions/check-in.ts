@@ -1,5 +1,6 @@
 "use server";
 
+import { isOwnedUploadPath } from "@/lib/validations/storage-path";
 import { z } from "zod";
 import { createCheckInSchema } from "@/lib/validations/check-in";
 import { getCurrentDbUser } from "@/lib/auth/roles";
@@ -41,6 +42,10 @@ export async function createCheckIn(input: unknown) {
   }
 
   const { weight, dietCompliance, energyLevel, notes, photoPaths, overwriteToday, templateId, customResponses } = parsed.data;
+
+  if (photoPaths.some(path => !isOwnedUploadPath(path, user.clerkId))) {
+    return { error: { photoPaths: ["One or more photos do not belong to your account. Please upload them again."] } };
+  }
 
   const now = new Date();
   const weekDate = normalizeToMonday(now);
