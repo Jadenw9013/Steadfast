@@ -40,68 +40,68 @@ enum ReportStatus {
 }
 
 model User {
-  id         String   @id @default(cuid())
-  clerkId    String   @unique
-  email      String   @unique
-  firstName  String?
-  lastName   String?
-  profilePhotoPath String?
-  clientBio        String?  @db.Text
-  fitnessGoal      String?
-  activeRole Role     @default(CLIENT) @map("role")
-  isCoach    Boolean  @default(false)
-  isClient   Boolean  @default(true)
-  phoneNumber           String?
-  apnsToken             String?
-  smsOptIn              Boolean  @default(false)
-  smsMealPlanUpdates    Boolean  @default(false)
-  smsDailyCheckInReminder Boolean @default(false)
-  smsCoachMessages      Boolean  @default(false)
-  smsCheckInFeedback    Boolean  @default(false)
-  smsCheckInReminderTime String  @default("19:00")
-  smsClientCheckIns     Boolean  @default(false)
-  smsMissedCheckInAlerts Boolean @default(false)
-  smsClientMessages     Boolean  @default(false)
-  smsNewClientSignups   Boolean  @default(false)
-  smsMissedCheckInAlertTime String @default("21:00")
-  emailCheckInReminders  Boolean @default(true)
-  emailMealPlanUpdates   Boolean @default(true)
-  emailCoachMessages     Boolean @default(true)
-  emailClientCheckIns    Boolean @default(true)
-  emailClientMessages    Boolean @default(true)
-  emailCoachingRequests  Boolean @default(true)
-  pushMealPlanUpdates    Boolean @default(true)
-  pushCheckInReminders   Boolean @default(true)
-  pushCoachMessages      Boolean @default(true)
-  pushClientCheckIns     Boolean @default(true)
-  pushClientMessages     Boolean @default(true)
-  pushCoachingRequests   Boolean @default(true)
-  defaultNotifyOnPublish Boolean @default(true)
-  checkInDaysOfWeek     Int[]   @default([1])   // 0=Sun..6=Sat. Default: Monday
-  cadenceConfig         Json?   // CadenceConfig object (null = legacy checkInDaysOfWeek)
-  timezone              String  @default("America/New_York")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                        String   @id @default(cuid())
+  clerkId                   String   @unique
+  email                     String   @unique
+  firstName                 String?
+  lastName                  String?
+  profilePhotoPath          String?
+  clientBio                 String?  @db.Text
+  fitnessGoal               String?
+  activeRole                Role     @default(CLIENT) @map("role")
+  isCoach                   Boolean  @default(false)
+  isClient                  Boolean  @default(true)
+  phoneNumber               String?
+  apnsToken                 String?
+  smsOptIn                  Boolean  @default(false)
+  smsMealPlanUpdates        Boolean  @default(false)
+  smsDailyCheckInReminder   Boolean  @default(false)
+  smsCoachMessages          Boolean  @default(false)
+  smsCheckInFeedback        Boolean  @default(false)
+  smsCheckInReminderTime    String   @default("19:00")
+  smsClientCheckIns         Boolean  @default(false)
+  smsMissedCheckInAlerts    Boolean  @default(false)
+  smsClientMessages         Boolean  @default(false)
+  smsNewClientSignups       Boolean  @default(false)
+  smsMissedCheckInAlertTime String   @default("21:00")
+  emailCheckInReminders     Boolean  @default(true)
+  emailMealPlanUpdates      Boolean  @default(true)
+  emailCoachMessages        Boolean  @default(true)
+  emailClientCheckIns       Boolean  @default(true)
+  emailClientMessages       Boolean  @default(true)
+  emailCoachingRequests     Boolean  @default(true)
+  pushMealPlanUpdates       Boolean  @default(true)
+  pushCheckInReminders      Boolean  @default(true)
+  pushCoachMessages         Boolean  @default(true)
+  pushClientCheckIns        Boolean  @default(true)
+  pushClientMessages        Boolean  @default(true)
+  pushCoachingRequests      Boolean  @default(true)
+  defaultNotifyOnPublish    Boolean  @default(true)
+  checkInDaysOfWeek         Int[]    @default([1]) // 0=Sun..6=Sat. Default: Monday
+  cadenceConfig             Json? // CadenceConfig object (null = legacy checkInDaysOfWeek)
+  timezone                  String   @default("America/New_York")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 
-  coachAssignments  CoachClient[] @relation("Coach")
-  clientAssignments CoachClient[] @relation("Client")
+  coachAssignments  CoachClient[]      @relation("Coach")
+  clientAssignments CoachClient[]      @relation("Client")
   checkIns          CheckIn[]
-  clientMessages    Message[]     @relation("ClientMessages")
-  sentMessages      Message[]     @relation("SentMessages")
-  macroTargets      MacroTarget[] @relation("MacroTargets")
-  mealPlans         MealPlan[]    @relation("MealPlans")
-  foodLibrary       FoodLibraryItem[] @relation("FoodLibrary")
-  coachUploads      MealPlanUpload[] @relation("CoachUploads")
-  clientUploads     MealPlanUpload[] @relation("ClientUploads")
+  clientMessages    Message[]          @relation("ClientMessages")
+  sentMessages      Message[]          @relation("SentMessages")
+  macroTargets      MacroTarget[]      @relation("MacroTargets")
+  mealPlans         MealPlan[]         @relation("MealPlans")
+  foodLibrary       FoodLibraryItem[]  @relation("FoodLibrary")
+  coachUploads      MealPlanUpload[]   @relation("CoachUploads")
+  clientUploads     MealPlanUpload[]   @relation("ClientUploads")
   notificationLogs  NotificationLog[]
-  checkInTemplates  CheckInTemplate[] @relation("CheckInTemplates")
-  trainingPrograms  TrainingProgram[] @relation("TrainingPrograms")
+  checkInTemplates  CheckInTemplate[]  @relation("CheckInTemplates")
+  trainingPrograms  TrainingProgram[]  @relation("TrainingPrograms")
   trainingTemplates TrainingTemplate[] @relation("TrainingTemplates")
   workoutImports    WorkoutImport[]    @relation("WorkoutImports")
   coachProfile      CoachProfile?      @relation("MarketplaceProfile")
   prospectRequests  CoachingRequest[]  @relation("ProspectRequests")
   planSnippets      PlanSnippet[]      @relation("PlanSnippets")
-  
+
   onboardingForm     OnboardingForm?     @relation("CoachOnboardingForm")
   onboardingResponse OnboardingResponse? @relation("ClientOnboardingResponse")
 
@@ -109,13 +109,13 @@ model User {
   intakeReceived ClientIntake?  @relation("ClientIntakes")
 
   dailyAdherences DailyAdherence[] @relation("DailyAdherences")
-  exerciseResults  ExerciseResult[] @relation("ExerciseResults")
+  exerciseResults ExerciseResult[] @relation("ExerciseResults")
 
   testimonialsByCoach  Testimonial[] @relation("CoachTestimonials")
   testimonialsByClient Testimonial[] @relation("ClientTestimonials")
   savedCoaches         SavedCoach[]  @relation("UserSavedCoaches")
 
-  clientInvitesSent    ClientInvite[]       @relation("CoachInvites")
+  clientInvitesSent    ClientInvite[]        @relation("CoachInvites")
   consultationMeetings ConsultationMeeting[] @relation("CoachMeetings")
   coachSettings        CoachSettings?        @relation("CoachSettings")
 
@@ -126,8 +126,8 @@ model User {
   intakeFormTemplate IntakeFormTemplate?
   coachDocuments     CoachDocument[]
 
-  isDeactivated       Boolean                @default(false)
-  deletionRequest     AccountDeletionRequest?
+  isDeactivated   Boolean                 @default(false)
+  deletionRequest AccountDeletionRequest?
 
   blockedUsers   UserBlock[] @relation("BlockedByMe")
   blockedByUsers UserBlock[] @relation("BlockedMe")
@@ -148,15 +148,16 @@ model IntakeFormTemplate {
 }
 
 model CoachClient {
-  id         String   @id @default(cuid())
-  coachId    String
-  clientId   String
-  coachNotes String?  @db.Text
-  checkInDaysOfWeekOverride Int[]  @default([])  // empty = use coach default
-  cadenceConfig             Json?  // CadenceConfig override (null = inherit coach default)
-  adherenceEnabled          Boolean @default(false)
-  sortOrder  Int      @default(0)
-  createdAt  DateTime @default(now())
+  id                        String   @id @default(cuid())
+  coachId                   String
+  clientId                  String
+  coachNotes                String?  @db.Text
+  checkInDaysOfWeekOverride Int[]    @default([]) // empty = use coach default
+  cadenceConfig             Json? // CadenceConfig override (null = inherit coach default)
+  adherenceEnabled          Boolean  @default(false)
+  planMode                  PlanMode @default(MEAL_PLAN) // default mode for new weekly plans created for this client
+  sortOrder                 Int      @default(0)
+  createdAt                 DateTime @default(now())
 
   coach  User @relation("Coach", fields: [coachId], references: [id])
   client User @relation("Client", fields: [clientId], references: [id])
@@ -200,7 +201,7 @@ model CheckInTemplate {
   name      String
   isDefault Boolean  @default(false)
   version   Int      @default(1)
-  questions Json     // Array of question objects (see lib/validations/check-in-template.ts)
+  questions Json // Array of question objects (see lib/validations/check-in-template.ts)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -211,32 +212,32 @@ model CheckInTemplate {
 }
 
 model CheckIn {
-  id         String   @id @default(cuid())
-  clientId   String
-  weekOf     DateTime
-  weight     Float?
-  bodyFatPct Float?
-  status          CheckInStatus @default(SUBMITTED)
-  dietCompliance  Int?
-  energyLevel     Int?
-  notes           String?  @db.Text
-  deletedAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             String        @id @default(cuid())
+  clientId       String
+  weekOf         DateTime
+  weight         Float?
+  bodyFatPct     Float?
+  status         CheckInStatus @default(SUBMITTED)
+  dietCompliance Int?
+  energyLevel    Int?
+  notes          String?       @db.Text
+  deletedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   isPrimary       Boolean  @default(true)
   submittedAt     DateTime @default(now())
   localDate       String   @default("")
   timezone        String   @default("America/Los_Angeles")
-  periodStartDate String   @default("")  // "YYYY-MM-DD" start of schedule-defined period
-  periodEndDate   String   @default("")  // "YYYY-MM-DD" next scheduled day (exclusive end)
+  periodStartDate String   @default("") // "YYYY-MM-DD" start of schedule-defined period
+  periodEndDate   String   @default("") // "YYYY-MM-DD" next scheduled day (exclusive end)
 
   templateId       String?
-  templateSnapshot Json?     // Frozen copy of template.questions at submission time
-  customResponses  Json?     // Answers to custom template questions
+  templateSnapshot Json? // Frozen copy of template.questions at submission time
+  customResponses  Json? // Answers to custom template questions
 
-  client   User              @relation(fields: [clientId], references: [id])
-  template CheckInTemplate?  @relation(fields: [templateId], references: [id])
+  client   User             @relation(fields: [clientId], references: [id])
+  template CheckInTemplate? @relation(fields: [templateId], references: [id])
   photos   CheckInPhoto[]
 
   @@index([clientId, weekOf])
@@ -266,20 +267,29 @@ enum MealPlanStatus {
   PUBLISHED
 }
 
-model MealPlan {
-  id          String         @id @default(cuid())
-  clientId    String
-  weekOf      DateTime
-  version     Int            @default(1)
-  status      MealPlanStatus @default(DRAFT)
-  supportContent String?     @db.Text
-  planExtras  Json?          // PlanExtras object (see types/meal-plan-extras.ts)
-  publishedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+// MEAL_PLAN = coach fills in real foods (MealPlanItem rows, existing behavior).
+// MACROS    = coach fills in per-meal macro targets only (MealMacroTarget rows), no foods shown.
+enum PlanMode {
+  MEAL_PLAN
+  MACROS
+}
 
-  client User           @relation("MealPlans", fields: [clientId], references: [id])
-  items  MealPlanItem[]
+model MealPlan {
+  id             String         @id @default(cuid())
+  clientId       String
+  weekOf         DateTime
+  version        Int            @default(1)
+  status         MealPlanStatus @default(DRAFT)
+  planMode       PlanMode       @default(MEAL_PLAN)
+  supportContent String?        @db.Text
+  planExtras     Json? // PlanExtras object (see types/meal-plan-extras.ts)
+  publishedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  client       User              @relation("MealPlans", fields: [clientId], references: [id])
+  items        MealPlanItem[]
+  macroTargets MealMacroTarget[]
 
   @@index([clientId, weekOf])
   @@index([clientId, status])
@@ -298,6 +308,24 @@ model MealPlanItem {
   protein            Int     @default(0)
   carbs              Int     @default(0)
   fats               Int     @default(0)
+
+  mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+
+  @@index([mealPlanId])
+}
+
+/**
+ * Per-meal macro-only target — sibling to MealPlanItem, used when MealPlan.planMode = MACROS.
+ */
+model MealMacroTarget {
+  id         String @id @default(cuid())
+  mealPlanId String
+  mealName   String
+  sortOrder  Int    @default(0)
+  calories   Int    @default(0)
+  protein    Int    @default(0)
+  carbs      Int    @default(0)
+  fats       Int    @default(0)
 
   mealPlan MealPlan @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
 
@@ -398,8 +426,8 @@ model MealPlanUpload {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
-  coach  User            @relation("CoachUploads", fields: [coachId], references: [id])
-  client User            @relation("ClientUploads", fields: [clientId], references: [id])
+  coach  User           @relation("CoachUploads", fields: [coachId], references: [id])
+  client User           @relation("ClientUploads", fields: [clientId], references: [id])
   draft  MealPlanDraft?
 
   @@index([coachId])
@@ -407,13 +435,13 @@ model MealPlanUpload {
 }
 
 model MealPlanDraft {
-  id            String   @id @default(cuid())
-  uploadId      String   @unique
-  extractedText String?  @db.Text
-  supportContent String? @db.Text
-  parsedJson    Json
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String   @id @default(cuid())
+  uploadId       String   @unique
+  extractedText  String?  @db.Text
+  supportContent String?  @db.Text
+  parsedJson     Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   upload MealPlanUpload @relation(fields: [uploadId], references: [id], onDelete: Cascade)
 }
@@ -441,7 +469,7 @@ model WorkoutImport {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  coach User               @relation("WorkoutImports", fields: [coachId], references: [id])
+  coach User                @relation("WorkoutImports", fields: [coachId], references: [id])
   draft WorkoutImportDraft?
 
   @@index([coachId])
@@ -468,7 +496,7 @@ model TrainingTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  coach    User                   @relation("TrainingTemplates", fields: [coachId], references: [id])
+  coach    User                    @relation("TrainingTemplates", fields: [coachId], references: [id])
   days     TrainingTemplateDay[]
   cardio   TrainingTemplateCardio?
   programs TrainingProgram[]       @relation("TemplateSource")
@@ -477,13 +505,13 @@ model TrainingTemplate {
 }
 
 model TrainingTemplateDay {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   templateId  String
   dayName     String
-  description String?  @db.Text
-  sortOrder   Int      @default(0)
+  description String? @db.Text
+  sortOrder   Int     @default(0)
 
-  template  TrainingTemplate          @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template  TrainingTemplate           @relation(fields: [templateId], references: [id], onDelete: Cascade)
   exercises TrainingTemplateExercise[]
   blocks    TrainingTemplateBlock[]
 
@@ -495,7 +523,7 @@ model TrainingTemplateBlock {
   dayId     String
   type      BlockType @default(EXERCISE)
   title     String    @default("")
-  content   String    @db.Text @default("")
+  content   String    @default("") @db.Text
   sortOrder Int       @default(0)
 
   day TrainingTemplateDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
@@ -582,13 +610,13 @@ model TrainingProgramCardio {
 }
 
 model TrainingDay {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   programId   String
   dayName     String
-  description String?  @db.Text
-  sortOrder   Int      @default(0)
+  description String? @db.Text
+  sortOrder   Int     @default(0)
 
-  program   TrainingProgram    @relation(fields: [programId], references: [id], onDelete: Cascade)
+  program   TrainingProgram        @relation(fields: [programId], references: [id], onDelete: Cascade)
   exercises TrainingExercise[]
   blocks    TrainingProgramBlock[]
 
@@ -600,7 +628,7 @@ model TrainingProgramBlock {
   dayId     String
   type      BlockType @default(EXERCISE)
   title     String    @default("")
-  content   String    @db.Text @default("")
+  content   String    @default("") @db.Text
   sortOrder Int       @default(0)
 
   day TrainingDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
@@ -655,40 +683,40 @@ model CoachProfile {
   bannerPhotoPath  String?
   experience       String?  @db.Text
   certifications   String?  @db.Text
-  coachingType     String?              // "online" | "in-person" | "hybrid"
-  location         String?              // display string (freeform)
-  city             String?              // structured city for filter/matching
-  state            String?              // state/province/region for filter/matching
-  serviceTier      String?              // "training-only" | "nutrition-only" | "full-coaching"
+  coachingType     String? // "online" | "in-person" | "hybrid"
+  location         String? // display string (freeform)
+  city             String? // structured city for filter/matching
+  state            String? // state/province/region for filter/matching
+  serviceTier      String? // "training-only" | "nutrition-only" | "full-coaching"
   gymName          String?
   yearsCoaching    Int?
-  phoneNumber      String?              // optional contact phone shown on public profile
+  phoneNumber      String? // optional contact phone shown on public profile
   services         String[] @default([])
   clientGoals      String[] @default([])
   clientTypes      String[] @default([])
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  user             User              @relation("MarketplaceProfile", fields: [userId], references: [id], onDelete: Cascade)
-  requests         CoachingRequest[]
-  portfolioItems   PortfolioItem[]
-  savedBy          SavedCoach[]
+  user           User              @relation("MarketplaceProfile", fields: [userId], references: [id], onDelete: Cascade)
+  requests       CoachingRequest[]
+  portfolioItems PortfolioItem[]
+  savedBy        SavedCoach[]
 }
 
 model PortfolioItem {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   coachProfileId String
   title          String
-  result         String?      @db.Text
-  description    String?      @db.Text
+  result         String?  @db.Text
+  description    String?  @db.Text
   category       String?
   mediaPath      String?
-  mediaType      String?      // "image" or "video"
-  sortOrder      Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  mediaType      String? // "image" or "video"
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  coachProfile   CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+  coachProfile CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
 
   @@index([coachProfileId])
 }
@@ -697,12 +725,12 @@ model Testimonial {
   id           String   @id @default(cuid())
   coachId      String
   clientId     String
-  rating       Int                         // 1–5
-  reviewText   String?  @db.Text           // optional — star-only reviews permitted
-  anonymous    Boolean  @default(false)    // hide client name on public profile
-  images       String[] @default([])       // up to 4 Supabase storage paths
+  rating       Int // 1–5
+  reviewText   String?  @db.Text // optional — star-only reviews permitted
+  anonymous    Boolean  @default(false) // hide client name on public profile
+  images       String[] @default([]) // up to 4 Supabase storage paths
   status       String   @default("published") // "published" | "hidden" | "flagged"
-  reportReason String?                     // reason text when coach flags a review
+  reportReason String? // reason text when coach flags a review
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -714,10 +742,10 @@ model Testimonial {
 }
 
 model SavedCoach {
-  id             String       @id @default(cuid())
+  id             String   @id @default(cuid())
   userId         String
   coachProfileId String
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime @default(now())
 
   user         User         @relation("UserSavedCoaches", fields: [userId], references: [id], onDelete: Cascade)
   coachProfile CoachProfile @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
@@ -732,8 +760,8 @@ enum RequestStatus {
   CALL_SCHEDULED
   ACCEPTED
   DECLINED
-  APPROVED      // legacy — kept for backward compat
-  REJECTED      // legacy — kept for backward compat
+  APPROVED // legacy — kept for backward compat
+  REJECTED // legacy — kept for backward compat
   WAITLISTED
 }
 
@@ -778,39 +806,39 @@ enum SignatureType {
 }
 
 model CoachingRequest {
-  id              String   @id @default(cuid())
-  coachProfileId  String
-  prospectName    String
-  prospectEmail   String
-  prospectPhone       String?
-  prospectEmailAddr   String?
-  intakeAnswers   Json
-  status          RequestStatus @default(PENDING)
-  consultationStage   ConsultationStage @default(PENDING)
-  consultationDate    DateTime?
-  source              LeadSource @default(MARKETPLACE)
-  sourceDetail        String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                String            @id @default(cuid())
+  coachProfileId    String
+  prospectName      String
+  prospectEmail     String
+  prospectPhone     String?
+  prospectEmailAddr String?
+  intakeAnswers     Json
+  status            RequestStatus     @default(PENDING)
+  consultationStage ConsultationStage @default(PENDING)
+  consultationDate  DateTime?
+  source            LeadSource        @default(MARKETPLACE)
+  sourceDetail      String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
-  prospectId      String?  // Optional User ID if the prospect has an account
-  prospect        User?    @relation("ProspectRequests", fields: [prospectId], references: [id], onDelete: SetNull)
+  prospectId String? // Optional User ID if the prospect has an account
+  prospect   User?   @relation("ProspectRequests", fields: [prospectId], references: [id], onDelete: SetNull)
 
-  inviteLastSentAt DateTime?     // Last time invite/sign-up email was sent
-  inviteSendCount  Int      @default(0) // Total invite sends (initial approval + resends)
+  inviteLastSentAt DateTime? // Last time invite/sign-up email was sent
+  inviteSendCount  Int       @default(0) // Total invite sends (initial approval + resends)
 
-  coachNotes          String?  @db.Text
+  coachNotes String? @db.Text
 
-  formsToken          String?  @unique
+  formsToken          String?   @unique
   formsTokenExpiresAt DateTime?
   formsSentAt         DateTime?
   formsSignedAt       DateTime?
 
-  coachProfile         CoachProfile          @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
-  consultationMeeting  ConsultationMeeting?
-  formSubmission       ClientFormSubmission?
-  signature            ClientFormSignature?
-  intakePacket         IntakePacket?
+  coachProfile        CoachProfile          @relation(fields: [coachProfileId], references: [id], onDelete: Cascade)
+  consultationMeeting ConsultationMeeting?
+  formSubmission      ClientFormSubmission?
+  signature           ClientFormSignature?
+  intakePacket        IntakePacket?
 
   @@index([coachProfileId])
   @@index([status])
@@ -887,7 +915,7 @@ model CoachSettings {
 model OnboardingForm {
   id        String   @id @default(cuid())
   coachId   String   @unique
-  questions Json     // Array of standard question objects (id, type, label, required)
+  questions Json // Array of standard question objects (id, type, label, required)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -903,7 +931,7 @@ model OnboardingResponse {
   clientId  String   @unique
   coachId   String
   formId    String
-  answers   Json     // Array of { questionId, answer }
+  answers   Json // Array of { questionId, answer }
   createdAt DateTime @default(now())
 
   client User           @relation("ClientOnboardingResponse", fields: [clientId], references: [id])
@@ -939,10 +967,10 @@ model ClientIntake {
   gender              String?
   primaryGoal         String?
   targetTimeline      String?
-  injuries            String?  @db.Text
+  injuries            String? @db.Text
   dietaryRestrictions String?
-  dietaryPreferences  String?  @db.Text
-  currentDiet         String?  @db.Text
+  dietaryPreferences  String? @db.Text
+  currentDiet         String? @db.Text
   trainingExperience  String?
   trainingDaysPerWeek Int?
   gymAccess           String?
@@ -950,7 +978,7 @@ model ClientIntake {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  coach  User @relation("CoachIntakes",  fields: [coachId],  references: [id])
+  coach  User @relation("CoachIntakes", fields: [coachId], references: [id])
   client User @relation("ClientIntakes", fields: [clientId], references: [id])
 
   @@index([coachId])
@@ -962,9 +990,9 @@ model ClientIntake {
 model PlanSnippet {
   id        String   @id @default(cuid())
   coachId   String
-  type      String   // "supplements" | "override" | "rules" | "allowances"
+  type      String // "supplements" | "override" | "rules" | "allowances"
   name      String
-  payload   Json     // section data (Supplement[], DayOverride, Rule[], Allowance[])
+  payload   Json // section data (Supplement[], DayOverride, Rule[], Allowance[])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -976,17 +1004,17 @@ model PlanSnippet {
 // ── Daily Adherence Tracking ────────────────────────────────────────────────
 
 model DailyAdherence {
-  id                 String   @id @default(cuid())
+  id                 String    @id @default(cuid())
   clientId           String
-  date               String   // YYYY-MM-DD client local date
+  date               String // YYYY-MM-DD client local date
   weekOf             DateTime // normalized Monday UTC (for weekly aggregation)
-  workoutCompleted   Boolean  @default(false)
+  workoutCompleted   Boolean   @default(false)
   workoutCompletedAt DateTime?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  client User               @relation("DailyAdherences", fields: [clientId], references: [id])
-  meals  DailyMealCheckoff[]
+  client    User                @relation("DailyAdherences", fields: [clientId], references: [id])
+  meals     DailyMealCheckoff[]
   exercises ExerciseCheckoff[]
 
   @@unique([clientId, date])
@@ -994,14 +1022,14 @@ model DailyAdherence {
 }
 
 model DailyMealCheckoff {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   dailyAdherenceId String
-  mealNameSnapshot String   // snapshot of mealName — stable even if coach later edits plan
-  displayOrder     Int      @default(0)
-  completed        Boolean  @default(false)
+  mealNameSnapshot String // snapshot of mealName — stable even if coach later edits plan
+  displayOrder     Int       @default(0)
+  completed        Boolean   @default(false)
   completedAt      DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   dailyAdherence DailyAdherence @relation(fields: [dailyAdherenceId], references: [id], onDelete: Cascade)
 
@@ -1010,15 +1038,15 @@ model DailyMealCheckoff {
 }
 
 model ExerciseCheckoff {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   dailyAdherenceId String
-  dayLabel         String   // snapshot: "Day 1 — Chest"
-  exerciseName     String   // snapshot: "Incline Press"
-  exerciseOrder    Int      @default(0) // position within the day
-  completed        Boolean  @default(false)
+  dayLabel         String // snapshot: "Day 1 — Chest"
+  exerciseName     String // snapshot: "Incline Press"
+  exerciseOrder    Int       @default(0) // position within the day
+  completed        Boolean   @default(false)
   completedAt      DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   dailyAdherence DailyAdherence @relation(fields: [dailyAdherenceId], references: [id], onDelete: Cascade)
 
@@ -1031,8 +1059,8 @@ model ExerciseCheckoff {
 model ExerciseResult {
   id           String   @id @default(cuid())
   clientId     String
-  exerciseName String   // snapshot: "Incline Press"
-  programDay   String   // snapshot: "Day 1 — Chest"
+  exerciseName String // snapshot: "Incline Press"
+  programDay   String // snapshot: "Day 1 — Chest"
   setNumber    Int      @default(1) // 1-indexed set number
   weekOf       DateTime // normalizeToMonday()
   weight       Float
@@ -1068,31 +1096,31 @@ model CoachDocument {
 }
 
 model IntakePacket {
-  id                String              @id @default(cuid())
-  coachingRequestId String              @unique
-  coachingRequest   CoachingRequest     @relation(fields: [coachingRequestId], references: [id])
-  token             String              @unique
+  id                String                 @id @default(cuid())
+  coachingRequestId String                 @unique
+  coachingRequest   CoachingRequest        @relation(fields: [coachingRequestId], references: [id])
+  token             String                 @unique
   tokenExpiresAt    DateTime
-  sentAt            DateTime            @default(now())
+  sentAt            DateTime               @default(now())
   submittedAt       DateTime?
   formAnswers       Json?
-  coachNotes        String?             @db.Text
+  coachNotes        String?                @db.Text
   documents         IntakePacketDocument[]
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
 }
 
 model IntakePacketDocument {
-  id              String        @id @default(cuid())
-  intakePacketId  String
-  intakePacket    IntakePacket  @relation(fields: [intakePacketId], references: [id])
-  coachDocumentId String
-  coachDocument   CoachDocument @relation(fields: [coachDocumentId], references: [id])
-  sortOrder               Int           @default(0)
-  signature               DocumentSignature?
-  uploadedSignedFilePath  String?
-  uploadedSignedFileName  String?
-  uploadedSignedAt        DateTime?
+  id                     String             @id @default(cuid())
+  intakePacketId         String
+  intakePacket           IntakePacket       @relation(fields: [intakePacketId], references: [id])
+  coachDocumentId        String
+  coachDocument          CoachDocument      @relation(fields: [coachDocumentId], references: [id])
+  sortOrder              Int                @default(0)
+  signature              DocumentSignature?
+  uploadedSignedFilePath String?
+  uploadedSignedFileName String?
+  uploadedSignedAt       DateTime?
 
   @@index([intakePacketId])
 }
@@ -1120,24 +1148,24 @@ enum AccountDeletionStatus {
 }
 
 model AccountDeletionRequest {
-  id                              String                @id @default(cuid())
-  userId                          String?               @unique
-  user                            User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
-  status                          AccountDeletionStatus @default(PENDING)
-  requestedAt                     DateTime              @default(now())
-  scheduledPurgeAt                DateTime
-  cancelledAt                     DateTime?
-  purgeStartedAt                  DateTime?
-  purgeCompletedAt                DateTime?
-  deletionReason                  String?
-  roleAtRequest                   String
-  clerkId                         String?
-  retryCount                      Int                   @default(0)
-  stripeSubscriptionCancelledAt   DateTime?
-  storageCleanedAt                DateTime?
-  clerkDeletedAt                  DateTime?
-  createdAt                       DateTime              @default(now())
-  updatedAt                       DateTime              @updatedAt
+  id                            String                @id @default(cuid())
+  userId                        String?               @unique
+  user                          User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status                        AccountDeletionStatus @default(PENDING)
+  requestedAt                   DateTime              @default(now())
+  scheduledPurgeAt              DateTime
+  cancelledAt                   DateTime?
+  purgeStartedAt                DateTime?
+  purgeCompletedAt              DateTime?
+  deletionReason                String?
+  roleAtRequest                 String
+  clerkId                       String?
+  retryCount                    Int                   @default(0)
+  stripeSubscriptionCancelledAt DateTime?
+  storageCleanedAt              DateTime?
+  clerkDeletedAt                DateTime?
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
 }
 
 // ── Coach Billing (Stripe) ───────────────────────────────────────────────────
@@ -1182,5 +1210,6 @@ model RequestQuota {
   key       String   @id
   count     Int
   expiresAt DateTime
+
   @@index([expiresAt])
 }
