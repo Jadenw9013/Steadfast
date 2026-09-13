@@ -4,6 +4,12 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { parseWeekStartDate, getCurrentWeekMonday } from "@/lib/utils/date";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
+import {
+  mealMacroTargetSchema,
+  planModeSchema,
+  macroTargetTransactionOps,
+  resolveDefaultPlanMode,
+} from "@/lib/meal-plans/macro-targets";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -69,6 +75,29 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
 
     // Draft takes priority over published for the given week
+    const itemSelect = {
+      id: true,
+      mealName: true,
+      sortOrder: true,
+      foodName: true,
+      quantity: true,
+      unit: true,
+      servingDescription: true,
+      calories: true,
+      protein: true,
+      carbs: true,
+      fats: true,
+    } as const;
+    const macroTargetSelect = {
+      id: true,
+      mealName: true,
+      sortOrder: true,
+      calories: true,
+      protein: true,
+      carbs: true,
+      fats: true,
+    } as const;
+
     const draft = await db.mealPlan.findFirst({
       where: { clientId, weekOf, status: "DRAFT" },
       orderBy: { createdAt: "desc" },
@@ -77,23 +106,10 @@ export async function GET(req: NextRequest, { params }: Params) {
         weekOf: true,
         version: true,
         status: true,
+        planMode: true,
         planExtras: true,
-        items: {
-          orderBy: { sortOrder: "asc" },
-          select: {
-            id: true,
-            mealName: true,
-            sortOrder: true,
-            foodName: true,
-            quantity: true,
-            unit: true,
-            servingDescription: true,
-            calories: true,
-            protein: true,
-            carbs: true,
-            fats: true,
-          },
-        },
+        items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
+        macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
       },
     });
 
@@ -105,24 +121,11 @@ export async function GET(req: NextRequest, { params }: Params) {
         weekOf: true,
         version: true,
         status: true,
+        planMode: true,
         planExtras: true,
         publishedAt: true,
-        items: {
-          orderBy: { sortOrder: "asc" },
-          select: {
-            id: true,
-            mealName: true,
-            sortOrder: true,
-            foodName: true,
-            quantity: true,
-            unit: true,
-            servingDescription: true,
-            calories: true,
-            protein: true,
-            carbs: true,
-            fats: true,
-          },
-        },
+        items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
+        macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
       },
     });
 
@@ -135,8 +138,10 @@ export async function GET(req: NextRequest, { params }: Params) {
             weekOf: active.weekOf.toISOString(),
             version: active.version,
             status: active.status,
+            planMode: active.planMode,
             planExtras: active.planExtras ?? null,
             items: active.items,
+            macroTargets: active.macroTargets,
           }
         : null,
       source: draft ? "draft" : published ? "published" : "empty",
@@ -161,6 +166,8 @@ const createDraftSchema = z.object({
   weekOf: z.string().min(1),
   copyFromPublished: z.boolean().default(false),
   items: z.array(mealPlanItemSchema).max(50).optional(),
+  macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
+  planMode: planModeSchema.optional(),
   planExtras: planExtrasSchema.optional(),
 });
 
@@ -209,15 +216,18 @@ export async function POST(req: NextRequest, { params }: Params) {
     const nextVersion = (latestVersion?.version ?? 0) + 1;
 
     let itemsToCreate: z.infer<typeof mealPlanItemSchema>[] = [];
+    let macroTargetsToCreate: z.infer<typeof mealMacroTargetSchema>[] = parsed.data.macroTargets ?? [];
     let extrasToStore = parsed.data.planExtras;
+    let planMode = parsed.data.planMode;
 
-    if (parsed.data.items) {
-      itemsToCreate = parsed.data.items;
+    if (parsed.data.items || parsed.data.macroTargets) {
+      itemsToCreate = parsed.data.items ?? [];
     } else if (copyFromPublished) {
       const publishedPlan = await db.mealPlan.findFirst({
         where: { clientId, status: "PUBLISHED" },
         orderBy: { publishedAt: "desc" },
         select: {
+          planMode: true,
           planExtras: true,
           items: {
             orderBy: { sortOrder: "asc" },
@@ -234,6 +244,10 @@ export async function POST(req: NextRequest, { params }: Params) {
               fats: true,
             },
           },
+          macroTargets: {
+            orderBy: { sortOrder: "asc" },
+            select: { mealName: true, sortOrder: true, calories: true, protein: true, carbs: true, fats: true },
+          },
         },
       });
       if (publishedPlan) {
@@ -249,11 +263,17 @@ export async function POST(req: NextRequest, { params }: Params) {
           carbs: item.carbs,
           fats: item.fats,
         }));
+        macroTargetsToCreate = publishedPlan.macroTargets.map((t) => ({ ...t }));
+        if (planMode === undefined) planMode = publishedPlan.planMode;
         if (!extrasToStore && publishedPlan.planExtras) {
           const validated = planExtrasSchema.safeParse(publishedPlan.planExtras);
           if (validated.success) extrasToStore = validated.data;
         }
       }
+    }
+
+    if (planMode === undefined) {
+      planMode = await resolveDefaultPlanMode(user.id, clientId);
     }
 
     const plan = await db.mealPlan.create({
@@ -262,14 +282,17 @@ export async function POST(req: NextRequest, { params }: Params) {
         weekOf,
         version: nextVersion,
         status: "DRAFT",
+        planMode,
         planExtras: extrasToStore ?? undefined,
         items: { create: itemsToCreate },
+        macroTargets: { create: macroTargetsToCreate },
       },
       select: {
         id: true,
         weekOf: true,
         version: true,
         status: true,
+        planMode: true,
       },
     });
 
@@ -287,7 +310,8 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 const saveDraftSchema = z.object({
   mealPlanId: z.string().min(1),
-  items: z.array(mealPlanItemSchema).max(50),
+  items: z.array(mealPlanItemSchema).max(50).optional(),
+  macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
   planExtras: planExtrasSchema.optional().nullable(),
 });
 
@@ -319,7 +343,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
       );
     }
 
-    const { mealPlanId, items, planExtras } = parsed.data;
+    const { mealPlanId, items, macroTargets, planExtras } = parsed.data;
 
     const plan = await db.mealPlan.findUnique({
       where: { id: mealPlanId },
@@ -333,24 +357,29 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     await db.$transaction([
-      db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
-      ...items.map((item, i) =>
-        db.mealPlanItem.create({
-          data: {
-            mealPlanId,
-            mealName: item.mealName,
-            sortOrder: i,
-            foodName: item.foodName,
-            quantity: item.quantity,
-            unit: item.unit,
-            servingDescription: item.servingDescription ?? null,
-            calories: item.calories,
-            protein: item.protein,
-            carbs: item.carbs,
-            fats: item.fats,
-          },
-        })
-      ),
+      ...(items !== undefined
+        ? [
+            db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
+            ...items.map((item, i) =>
+              db.mealPlanItem.create({
+                data: {
+                  mealPlanId,
+                  mealName: item.mealName,
+                  sortOrder: i,
+                  foodName: item.foodName,
+                  quantity: item.quantity,
+                  unit: item.unit,
+                  servingDescription: item.servingDescription ?? null,
+                  calories: item.calories,
+                  protein: item.protein,
+                  carbs: item.carbs,
+                  fats: item.fats,
+                },
+              })
+            ),
+          ]
+        : []),
+      ...(macroTargets !== undefined ? macroTargetTransactionOps(mealPlanId, macroTargets) : []),
       ...(planExtras !== undefined
         ? [
             db.mealPlan.update({

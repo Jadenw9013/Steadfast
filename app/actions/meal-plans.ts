@@ -8,6 +8,12 @@ import { revalidatePath } from "next/cache";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
+import {
+  mealMacroTargetSchema,
+  planModeSchema,
+  macroTargetTransactionOps,
+  resolveDefaultPlanMode,
+} from "@/lib/meal-plans/macro-targets";
 
 const mealPlanItemSchema = z.object({
   mealName: z.string().min(1).max(100),
@@ -27,6 +33,8 @@ const createDraftSchema = z.object({
   weekStartDate: z.string().min(1),
   copyFromPublished: z.boolean().default(false),
   items: z.array(mealPlanItemSchema).max(50).optional(),
+  macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
+  planMode: planModeSchema.optional(),
   planExtras: planExtrasSchema.optional(),
   supportContent: z.string().optional().nullable(),
 });
@@ -36,7 +44,7 @@ export async function createDraftMealPlan(input: unknown) {
   if (!parsed.success) throw new Error("Invalid input");
 
   const { clientId, weekStartDate, copyFromPublished } = parsed.data;
-  await verifyCoachAccessToClient(clientId);
+  const coach = await verifyCoachAccessToClient(clientId);
 
   const weekOf = parseWeekStartDate(weekStartDate);
 
@@ -50,17 +58,22 @@ export async function createDraftMealPlan(input: unknown) {
 
   // Resolve items: explicit items > copy from published > empty
   let itemsToCreate: z.infer<typeof mealPlanItemSchema>[] = [];
+  let macroTargetsToCreate: z.infer<typeof mealMacroTargetSchema>[] = parsed.data.macroTargets ?? [];
   let extrasToStore: z.infer<typeof planExtrasSchema> | undefined =
     parsed.data.planExtras;
   let supportContent = parsed.data.supportContent;
+  let planMode = parsed.data.planMode;
 
-  if (parsed.data.items) {
-    itemsToCreate = parsed.data.items;
+  if (parsed.data.items || parsed.data.macroTargets) {
+    itemsToCreate = parsed.data.items ?? [];
   } else if (copyFromPublished) {
     const published = await db.mealPlan.findFirst({
       where: { clientId, status: "PUBLISHED" },
       orderBy: { publishedAt: "desc" },
-      include: { items: { orderBy: { sortOrder: "asc" } } },
+      include: {
+        items: { orderBy: { sortOrder: "asc" } },
+        macroTargets: { orderBy: { sortOrder: "asc" } },
+      },
     });
     if (published) {
       itemsToCreate = published.items.map((item) => ({
@@ -75,6 +88,15 @@ export async function createDraftMealPlan(input: unknown) {
         carbs: item.carbs,
         fats: item.fats,
       }));
+      macroTargetsToCreate = published.macroTargets.map((t) => ({
+        mealName: t.mealName,
+        sortOrder: t.sortOrder,
+        calories: t.calories,
+        protein: t.protein,
+        carbs: t.carbs,
+        fats: t.fats,
+      }));
+      if (planMode === undefined) planMode = published.planMode;
       // Also copy plan extras and support content from the published plan
       if (!extrasToStore && published.planExtras) {
         const validated = planExtrasSchema.safeParse(published.planExtras);
@@ -86,17 +108,26 @@ export async function createDraftMealPlan(input: unknown) {
     }
   }
 
+  if (planMode === undefined) {
+    planMode = await resolveDefaultPlanMode(coach.id, clientId);
+  }
+
   const plan = await db.mealPlan.create({
     data: {
       clientId,
       weekOf,
       version: nextVersion,
       status: "DRAFT",
+      planMode,
       planExtras: extrasToStore ?? undefined,
       supportContent: supportContent ?? undefined,
       items: { create: itemsToCreate },
+      macroTargets: { create: macroTargetsToCreate },
     },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      items: { orderBy: { sortOrder: "asc" } },
+      macroTargets: { orderBy: { sortOrder: "asc" } },
+    },
   });
 
   revalidatePath("/coach", "layout");
@@ -105,7 +136,8 @@ export async function createDraftMealPlan(input: unknown) {
 
 const saveDraftSchema = z.object({
   mealPlanId: z.string().min(1),
-  items: z.array(mealPlanItemSchema).max(50),
+  items: z.array(mealPlanItemSchema).max(50).optional(),
+  macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
   planExtras: planExtrasSchema.optional().nullable(),
   supportContent: z.string().optional().nullable(),
 });
@@ -116,7 +148,7 @@ export async function saveDraftMealPlan(input: unknown) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { mealPlanId, items, planExtras, supportContent } = parsed.data;
+  const { mealPlanId, items, macroTargets, planExtras, supportContent } = parsed.data;
 
   const plan = await db.mealPlan.findUnique({
     where: { id: mealPlanId },
@@ -126,26 +158,31 @@ export async function saveDraftMealPlan(input: unknown) {
 
   await verifyCoachAccessToClient(plan.clientId);
 
-  // Replace all items + update extras
+  // Replace all items/macroTargets (whichever was provided) + update extras
   await db.$transaction([
-    db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
-    ...items.map((item, i) =>
-      db.mealPlanItem.create({
-        data: {
-          mealPlanId,
-          mealName: item.mealName,
-          sortOrder: i,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          unit: item.unit,
-          servingDescription: item.servingDescription || null,
-          calories: item.calories,
-          protein: item.protein,
-          carbs: item.carbs,
-          fats: item.fats,
-        },
-      })
-    ),
+    ...(items !== undefined
+      ? [
+          db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
+          ...items.map((item, i) =>
+            db.mealPlanItem.create({
+              data: {
+                mealPlanId,
+                mealName: item.mealName,
+                sortOrder: i,
+                foodName: item.foodName,
+                quantity: item.quantity,
+                unit: item.unit,
+                servingDescription: item.servingDescription || null,
+                calories: item.calories,
+                protein: item.protein,
+                carbs: item.carbs,
+                fats: item.fats,
+              },
+            })
+          ),
+        ]
+      : []),
+    ...(macroTargets !== undefined ? macroTargetTransactionOps(mealPlanId, macroTargets) : []),
     // Update planExtras/supportContent if provided
     ...(planExtras !== undefined || supportContent !== undefined
       ? [

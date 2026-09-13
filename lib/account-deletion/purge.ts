@@ -100,6 +100,11 @@ export async function purgeUserAccount(userId: string): Promise<void> {
         SELECT "id" FROM "MealPlan" WHERE "clientId" = ${userId}
       )
     `;
+    await tx.$executeRaw`
+      DELETE FROM "MealMacroTarget" WHERE "mealPlanId" IN (
+        SELECT "id" FROM "MealPlan" WHERE "clientId" = ${userId}
+      )
+    `;
     await tx.$executeRaw`DELETE FROM "MealPlan" WHERE "clientId" = ${userId}`;
     await tx.$executeRaw`DELETE FROM "MacroTarget" WHERE "clientId" = ${userId}`;
 

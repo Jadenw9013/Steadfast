@@ -26,6 +26,7 @@ export async function GET() {
         id: true,
         weekOf: true,
         status: true,
+        planMode: true,
         publishedAt: true,
         planExtras: true,
         supportContent: true,
@@ -43,6 +44,10 @@ export async function GET() {
             carbs: true,
             fats: true,
           },
+        },
+        macroTargets: {
+          orderBy: { sortOrder: "asc" },
+          select: { id: true, mealName: true, calories: true, protein: true, carbs: true, fats: true },
         },
       },
     });
@@ -73,6 +78,7 @@ export async function GET() {
         id: plan.id,
         weekOf: plan.weekOf.toISOString(),
         status: plan.status,
+        planMode: plan.planMode,
         publishedAt: plan.publishedAt?.toISOString() ?? null,
         planExtras: planExtrasOut,
         planNotes: plan.supportContent,
@@ -88,6 +94,14 @@ export async function GET() {
           protein: item.protein,
           carbs: item.carbs,
           fats: item.fats,
+        })),
+        macroTargets: plan.macroTargets.map((t) => ({
+          id: t.id,
+          mealName: t.mealName,
+          calories: t.calories,
+          protein: t.protein,
+          carbs: t.carbs,
+          fats: t.fats,
         })),
         macroTarget: macro
           ? {
