@@ -3,6 +3,8 @@
 import { useState, useMemo, useTransition } from "react";
 import { parsePlanExtras, SUPPLEMENT_TIMING_ORDER, getOverrideColor, type PlanExtras, type DayOverride, type MealAdjustment, type MealChange } from "@/types/meal-plan-extras";
 import { toggleMealCheckoff } from "@/app/actions/adherence";
+import { MacroPlanView } from "./macro-plan-view";
+import type { MacroMealTarget } from "@/types/meal-plan";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -21,10 +23,12 @@ type MealPlanItem = {
 
 type MealPlan = {
   publishedAt: Date | null;
+  planMode?: "MEAL_PLAN" | "MACROS";
   planExtras?: unknown;
 
   supportContent?: string | null;
   items: MealPlanItem[];
+  macroTargets?: MacroMealTarget[];
 };
 
 type MealAdherenceProps = {
@@ -463,7 +467,30 @@ function SupportContentSection({ content }: { content?: string | null }) {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
+/** Dispatches to the macro-only view or the full food-based body — kept hook-free
+ *  so switching planMode across a re-render never violates the Rules of Hooks
+ *  (each branch below is its own component instance, not a conditional hook call). */
 export function SimpleMealPlan({
+  mealPlan,
+  adherence,
+}: {
+  mealPlan: MealPlan;
+  adherence?: MealAdherenceProps;
+}) {
+  if (mealPlan.planMode === "MACROS") {
+    return (
+      <MacroPlanView
+        meals={mealPlan.macroTargets ?? []}
+        supportContent={mealPlan.supportContent}
+        adherence={adherence ? { date: adherence.date, completedMeals: adherence.completedMeals } : undefined}
+      />
+    );
+  }
+
+  return <MealPlanBody mealPlan={mealPlan} adherence={adherence} />;
+}
+
+function MealPlanBody({
   mealPlan,
   adherence,
 }: {

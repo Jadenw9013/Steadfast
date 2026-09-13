@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { MealCard } from "./meal-card";
 import { MealPlanActions } from "./meal-plan-actions";
+import { MacroPlanEditor } from "./macro-plan-editor";
+import { PlanModeToggle } from "@/components/coach/plan-mode-toggle";
 import { PlanExtrasEditor } from "./plan-extras-display";
 import { AiPlanAssistant } from "./ai-plan-assistant";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
@@ -24,6 +26,54 @@ import type { PlanExtras } from "@/types/meal-plan-extras";
 import type { EffectiveMealPlan } from "@/lib/queries/meal-plans";
 
 export function MealPlanEditorV2({
+  clientId,
+  weekStartDate,
+  effectivePlan,
+  foods,
+  coachDefaultNotify,
+  publishedMealPlanId,
+  cardioPrescription,
+}: {
+  clientId: string;
+  weekStartDate: string;
+  effectivePlan: EffectiveMealPlan;
+  foods: FoodLibraryEntry[];
+  coachDefaultNotify?: boolean;
+  publishedMealPlanId?: string | null;
+  cardioPrescription?: {
+    modality: string;
+    frequency: string;
+    duration: string;
+    intensity: string;
+    notes: string;
+  } | null;
+}) {
+  return (
+    <div className="space-y-4">
+      <PlanModeToggle clientId={clientId} initialMode={effectivePlan.planMode} />
+      {effectivePlan.planMode === "MACROS" ? (
+        <MacroPlanEditor
+          clientId={clientId}
+          weekStartDate={weekStartDate}
+          effectivePlan={effectivePlan}
+          coachDefaultNotify={coachDefaultNotify}
+        />
+      ) : (
+        <MealPlanEditorV2Body
+          clientId={clientId}
+          weekStartDate={weekStartDate}
+          effectivePlan={effectivePlan}
+          foods={foods}
+          coachDefaultNotify={coachDefaultNotify}
+          publishedMealPlanId={publishedMealPlanId}
+          cardioPrescription={cardioPrescription}
+        />
+      )}
+    </div>
+  );
+}
+
+function MealPlanEditorV2Body({
   clientId,
   weekStartDate,
   effectivePlan,

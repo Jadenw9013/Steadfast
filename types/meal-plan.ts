@@ -21,6 +21,36 @@ export type FoodLibraryEntry = {
   defaultUnit: string;
 };
 
+// ── Macro-only plans (MealMacroTarget) ────────────────────────────────────────
+
+export type MacroMealTarget = {
+  mealName: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+};
+
+/** Local editor row — same shape as MacroMealTarget plus a stable client-side id for React keys. */
+export type EditableMacroMeal = MacroMealTarget & { id: string };
+
+export function macroTargetsToEditable(targets: MacroMealTarget[]): EditableMacroMeal[] {
+  return targets.map((t) => ({ ...t, id: crypto.randomUUID() }));
+}
+
+export function flattenMacroMeals(
+  meals: EditableMacroMeal[]
+): { mealName: string; sortOrder: number; calories: number; protein: number; carbs: number; fats: number }[] {
+  return meals.map((meal, i) => ({
+    mealName: meal.mealName,
+    sortOrder: i,
+    calories: meal.calories,
+    protein: meal.protein,
+    carbs: meal.carbs,
+    fats: meal.fats,
+  }));
+}
+
 export function groupItemsToMeals(
   items: {
     mealName: string;
