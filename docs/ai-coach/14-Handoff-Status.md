@@ -555,3 +555,16 @@ uncertain retry, correction, missing weight, concern despite invalid date,
 consecutive typed sets and 390px layout. Screenshots were visually inspected at
 `/private/tmp/steadfast-evidence-qa/`. This is not an authenticated production E2E
 or clinical usability study. All changes remain local and fixture-gated.
+
+## A12a — shared provider and current-plan contract (2026-09-14)
+
+Added one provider resolver and private no-store `/api/client/coaching-context`
+and `/api/client/plan/current` responses. AI, human and unassigned are explicit
+branches; ambiguity requires resolution. The AI branch reuses the authorized
+workspace DTO and never synthesizes a human relationship. The human branch only
+returns publications from the current relationship period (legacy plan tables
+have no author-coach column) and rechecks provider state after reading.
+
+Type-check/build, 202 integration and 424 unit tests pass; lint remains the
+established 78-problem baseline. Main web screens and native consumers are the
+next integration slices. No live flag, migration or deployment was changed.
