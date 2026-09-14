@@ -46,8 +46,9 @@ export async function getClientProfile(coachId: string, clientId: string) {
         _count: { select: { photos: true } },
       },
     }),
+    // CB03: only this coach's own conversation, never a predecessor's.
     db.message.findFirst({
-      where: { clientId },
+      where: { clientId, coachId },
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
     }),

@@ -61,7 +61,7 @@ export default async function ClientProfilePage({
   const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory, onboardingResponse, clientIntake, coachClientAdherence, adherenceSummary, exerciseProgress, intakePacket] =
     await Promise.all([
       getEffectiveMealPlanForReview(clientId, weekOf),
-      getMessages(clientId, weekOf),
+      getMessages(clientId, weekOf, coach.id),
       getFoodLibrary(coach.id),
       getTrainingProgramForReview(clientId, weekOf),
       getCoachTemplatesForPicker(coach.id),

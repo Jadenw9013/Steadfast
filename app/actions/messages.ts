@@ -25,6 +25,10 @@ export async function sendMessage(input: unknown) {
   const weekOf = parseWeekStartDate(weekStartDate);
 
   let recipientId = clientId;
+  // The specific coach this conversation belongs to (CB03) — always the
+  // acting coach when a coach sends, or the resolved current coach when a
+  // client sends. Never guessed or left to a later, possibly-stale lookup.
+  let coachIdForMessage: string;
 
   // Authorization: client can only send on their own thread
   if (user.activeRole === "CLIENT") {
@@ -40,16 +44,18 @@ export async function sendMessage(input: unknown) {
       throw new Error("Connect to a coach before sending messages");
     }
     recipientId = hasCoach.coachId;
-  }
-
-  // Authorization: coach must be assigned to this client
-  if (user.activeRole === "COACH") {
+    coachIdForMessage = hasCoach.coachId;
+  } else if (user.activeRole === "COACH") {
+    // Authorization: coach must be assigned to this client
     const assignment = await db.coachClient.findUnique({
       where: {
         coachId_clientId: { coachId: user.id, clientId },
       },
     });
     if (!assignment) throw new Error("Not assigned to this client");
+    coachIdForMessage = user.id;
+  } else {
+    throw new Error("Not authorized");
   }
 
   await assertMessagingAllowed(user.id, recipientId);
@@ -60,6 +66,7 @@ export async function sendMessage(input: unknown) {
       weekOf,
       senderId: user.id,
       body,
+      coachId: coachIdForMessage,
     },
   });
 

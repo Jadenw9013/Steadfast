@@ -29,8 +29,11 @@ export async function GET(req: NextRequest) {
     // Authorization check
     // Check client self-access first so dual-role users aren't blocked
     let counterpartId: string | null = null;
+    // CB03: when the requester is a coach, only their own conversation with
+    // this client — never a predecessor coach's history.
+    let coachScope: string | undefined;
     if (user.isClient && user.id === clientId) {
-      // Client accessing their own thread — always allowed
+      // Client accessing their own thread — always allowed, full archive.
       const assignment = await db.coachClient.findFirst({
         where: { clientId: user.id },
         select: { coachId: true },
@@ -45,6 +48,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       counterpartId = clientId;
+      coachScope = user.id;
     } else {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -67,7 +71,7 @@ export async function GET(req: NextRequest) {
     }
 
     const messages = await db.message.findMany({
-      where: { clientId },
+      where: { clientId, ...(coachScope ? { coachId: coachScope } : {}) },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
@@ -140,6 +144,8 @@ export async function POST(req: NextRequest) {
     // Authorization — client self-access checked first so dual-role users aren't blocked
     const actingAsClient = user.isClient && user.id === clientId;
     let counterpartId: string;
+    // CB03: the specific coach this message belongs to.
+    let coachIdForMessage: string;
     if (actingAsClient) {
       const hasCoach = await db.coachClient.findFirst({
         where: { clientId: user.id },
@@ -152,6 +158,7 @@ export async function POST(req: NextRequest) {
         );
       }
       counterpartId = hasCoach.coachId;
+      coachIdForMessage = hasCoach.coachId;
     } else if (user.isCoach) {
       const assignment = await db.coachClient.findUnique({
         where: { coachId_clientId: { coachId: user.id, clientId } },
@@ -164,6 +171,7 @@ export async function POST(req: NextRequest) {
         );
       }
       counterpartId = clientId;
+      coachIdForMessage = user.id;
     } else {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -178,7 +186,7 @@ export async function POST(req: NextRequest) {
     }
 
     const message = await db.message.create({
-      data: { clientId, weekOf, senderId: user.id, body: content },
+      data: { clientId, weekOf, senderId: user.id, body: content, coachId: coachIdForMessage },
       select: { id: true, body: true, senderId: true, weekOf: true, createdAt: true },
     });
 

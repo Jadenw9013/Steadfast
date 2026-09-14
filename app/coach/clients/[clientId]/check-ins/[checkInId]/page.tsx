@@ -43,7 +43,7 @@ export default async function CheckInReviewPage({
   const [effectivePlan, messages, foodLibrary, previousWeight] =
     await Promise.all([
       getEffectiveMealPlanForReview(clientId, weekOf),
-      getMessages(clientId, weekOf),
+      getMessages(clientId, weekOf, coach.id),
       getFoodLibrary(coach.id),
       getPreviousBodyweight(clientId, weekOf),
     ]);

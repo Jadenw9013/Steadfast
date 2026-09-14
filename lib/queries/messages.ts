@@ -1,8 +1,15 @@
 import { db } from "@/lib/db";
 
-export async function getMessages(clientId: string, weekOf: Date) {
+/**
+ * `asCoachId`: when set, scopes results to this specific coach's
+ * conversation with the client — pass the requesting coach's own id.
+ * Omit only for the client's own view of their full archive (CB03 — a
+ * successor or second coach must never see a predecessor's conversation;
+ * the client keeps everything).
+ */
+export async function getMessages(clientId: string, weekOf: Date, asCoachId?: string) {
   return db.message.findMany({
-    where: { clientId, weekOf },
+    where: { clientId, weekOf, ...(asCoachId ? { coachId: asCoachId } : {}) },
     orderBy: { createdAt: "asc" },
     include: {
       sender: {

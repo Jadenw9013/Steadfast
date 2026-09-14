@@ -48,7 +48,7 @@ export default async function ReviewWorkspacePage({
   const [effectivePlan, messages, foodLibrary, previousWeight, trainingData, templates] =
     await Promise.all([
       getEffectiveMealPlanForReview(clientId, weekOf),
-      getMessages(clientId, weekOf),
+      getMessages(clientId, weekOf, coach.id),
       getFoodLibrary(coach.id),
       getPreviousBodyweight(clientId, weekOf),
       getTrainingProgramForReview(clientId, weekOf),

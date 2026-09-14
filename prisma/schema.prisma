@@ -88,6 +88,7 @@ model User {
   checkIns          CheckIn[]
   clientMessages    Message[]          @relation("ClientMessages")
   sentMessages      Message[]          @relation("SentMessages")
+  coachScopedMessages Message[]        @relation("CoachScopedMessages")
   macroTargets      MacroTarget[]      @relation("MacroTargets")
   mealPlans         MealPlan[]         @relation("MealPlans")
   foodLibrary       FoodLibraryItem[]  @relation("FoodLibrary")
@@ -340,11 +341,26 @@ model Message {
   body      String   @db.Text
   createdAt DateTime @default(now())
 
-  client User @relation("ClientMessages", fields: [clientId], references: [id])
-  sender User @relation("SentMessages", fields: [senderId], references: [id])
+  // The specific coach this message belongs to (the other participant in
+  // the conversation, from the client's perspective). Set at creation time
+  // from the resolved current coach, independent of whether the CoachClient
+  // relationship still exists later (CoachClient rows are hard-deleted on
+  // disconnect). Null means "no single coach can be attributed" — either a
+  // pre-migration client-authored message (recipient was never recorded and
+  // cannot be reconstructed once a past relationship is deleted) or a
+  // message sent while unassigned. A coach can only ever read messages
+  // where this matches their own id; the client's own view is never
+  // filtered by it (CB03 — conversations are participant-scoped, but the
+  // client keeps their full archive).
+  coachId String?
+
+  client User  @relation("ClientMessages", fields: [clientId], references: [id])
+  sender User  @relation("SentMessages", fields: [senderId], references: [id])
+  coach  User? @relation("CoachScopedMessages", fields: [coachId], references: [id])
 
   @@index([clientId, weekOf])
   @@index([senderId])
+  @@index([clientId, coachId])
 }
 
 // ── Messaging Safety: Block & Report ────────────────────────────────────────
