@@ -1,3 +1,4 @@
+import { weeklyCandidateIsValid } from "@/lib/ai-coach/weekly-proof";
 import { evidenceIsCurrent } from "@/lib/ai-coach/evidence-snapshot";
 import { Prisma } from "@/app/generated/prisma/client";
 import { intakeAnswersSchema } from "@/lib/ai-coach/intake";
@@ -35,7 +36,7 @@ export async function getAiWorkspace(clientId: string) {
         cardio: profile.cardioPermission === "PAUSED" ? [] : activePayload.cardio,
       } } : null,
       proposals: await Promise.all(proposals.map(async candidate => {
-        const fresh = await evidenceIsCurrent(tx, clientId, candidate.sourceRefs) && allowed && candidate.contextRevision === context?.revision && candidate.profileRevision === profile.profileRevision && candidate.observationRevision === profile.observationRevision && candidate.safetyRevision === profile.safetyRevision && candidate.baseVersionId === profile.activePlanVersionId && (!candidate.activationEndsAt || candidate.activationEndsAt > new Date()) && [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].every(p => p === "ALLOW");
+        const fresh = await weeklyCandidateIsValid(tx, candidate) && await evidenceIsCurrent(tx, clientId, candidate.sourceRefs) && allowed && candidate.contextRevision === context?.revision && candidate.profileRevision === profile.profileRevision && candidate.observationRevision === profile.observationRevision && candidate.safetyRevision === profile.safetyRevision && candidate.baseVersionId === profile.activePlanVersionId && (!candidate.activationEndsAt || candidate.activationEndsAt > new Date()) && [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].every(p => p === "ALLOW");
         const approved = candidate.reviewerStatus === "APPROVED" && candidate.approval?.approved && candidate.approval.approvedHash === candidate.payloadHash && !candidate.approval.reviewerGrant.user.isDeactivated && grantCoversPlan(candidate.approval.reviewerGrant, clientId, candidate.payload) && candidate.approval.stateHash === approvalStateHash(candidate);
         const checked = validatedManagedPayload(candidate);
         const intake = intakeAnswersSchema.safeParse(profile.confirmedIntake);

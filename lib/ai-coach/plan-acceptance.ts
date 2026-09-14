@@ -1,3 +1,4 @@
+import { weeklyCandidateIsValid } from "./weekly-proof";
 import { evidenceIsCurrent } from "./evidence-snapshot";
 import { z } from "zod";
 import { intakeAnswersSchema } from "./intake";
@@ -184,7 +185,8 @@ export async function acceptPlanVersionAtomic(
             return { success: false, code: "VALIDATION_ERROR", error: "This presentation change does not preserve the current prescription." };
           }
         }
-        if (candidate.changeClass === "INITIAL" && candidate.reviewerStatus !== "APPROVED") {
+        if (!await weeklyCandidateIsValid(tx, candidate)) return { success: false, code: "VALIDATION_ERROR", error: "The weekly proposal no longer satisfies its evidence and cumulative policy." };
+        if (candidate.changeClass !== "TARGET_PRESERVING" && candidate.reviewerStatus !== "APPROVED") {
           return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The initial proposal requires qualified review." };
         }
       }

@@ -514,3 +514,25 @@ lookback. No numerical weekly controller is claimed by this slice.
 Type-check, production build, 194 integration tests and 411 unit tests pass.
 Full lint remains 78 baseline problems; changed files have no lint findings.
 No migration or live environment change in this slice.
+
+## A09b — coordinated weekly controller (2026-09-14)
+
+Implemented a deterministic, versioned SYNTHETIC weekly policy with meaningful
+HOLD, CLARIFY, SIMPLIFY, ADJUST and PAUSE_REFER outcomes. The fixture controller
+uses three consecutive weeks of shipped structured inputs, explicit measurement
+units/comparability, missingness, barriers and recovery; notes cannot choose
+numbers. Strength/cardio progression additionally requires complete typed
+prescribed sessions. It filters evidence predating the current material
+prescription, changes at most one intensifying domain, validates practical meals,
+and checks retained history, cooldowns and cumulative limits. Schedule changes
+use the same ROUTINE slot. No physiological cause, exact food intake or calorie
+expenditure is inferred. All constants remain synthetic, gated off for real use.
+
+Weekly proposals require qualified review. Their source-bound snapshot and exact
+deterministic output are re-derived at review, client visibility and acceptance;
+relabeling a change as protective cannot waive these checks. Database trajectories
+exercise observations through generation, approval, concurrent acceptance and
+post-approval source deletion. Type-check/build pass; 197 integration and 424 unit
+tests pass; lint remains 14 errors/64 warnings. No live migration/deployment.
+The check-in and activity UI, operational resolution/capacity and provider-aware
+web/native integration still need completion; clinical gates remain external.

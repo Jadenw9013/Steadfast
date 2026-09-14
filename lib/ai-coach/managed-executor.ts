@@ -1,3 +1,4 @@
+import { buildWeeklyFixtureReview } from "./weekly-controller";
 import { evidenceIsCurrent } from "./evidence-snapshot";
 import { representFixturePlan } from "./representation";
 import { db } from "@/lib/db";
@@ -22,7 +23,7 @@ export async function processManagedRun(claim: Extract<ClaimResult, { claimed: t
       ? buildInitialFixturePlan(snapshot.intake, `rx-${claim.run.id}`, snapshot.representation)
       : claim.run.kind === "REPRESENTATION" && snapshot.basePayload
         ? representFixturePlan(snapshot.basePayload, snapshot.intake, snapshot.representation, snapshot.substitution)
-        : null;
+        : claim.run.kind === "WEEKLY_REVIEW" ? buildWeeklyFixtureReview(snapshot) : null;
     if (!generated) throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "This run type is not available yet.");
     await db.$transaction(async tx => { await lockAiClient(tx, claim.run.clientId); });
     if (!isAiCoachGenerationEnabled()) throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "Generation paused.");
