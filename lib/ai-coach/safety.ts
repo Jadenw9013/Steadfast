@@ -109,7 +109,7 @@ export type SubmitSafetyDisclosureResult =
  * existing restriction (that's clearSafetyRestriction's job, a distinct,
  * deliberate action never reachable from this function).
  */
-export async function submitSafetyDisclosure(clientId: string, rawAnswers: unknown): Promise<SubmitSafetyDisclosureResult> {
+export async function submitSafetyDisclosure(clientId: string, rawAnswers: unknown, transaction?: Prisma.TransactionClient): Promise<SubmitSafetyDisclosureResult> {
   const parsed = safetyDisclosureSchema.safeParse(rawAnswers);
   if (!parsed.success) {
     return { success: false, error: "Invalid safety disclosure — every question requires yes, no, or unsure." };
@@ -117,7 +117,7 @@ export async function submitSafetyDisclosure(clientId: string, rawAnswers: unkno
 
   const computed = evaluateSyntheticSafetyRules(parsed.data);
 
-  const result = await db.$transaction(async (tx) => {
+  const apply = async (tx: Prisma.TransactionClient) => {
     const existing = await tx.aiCoachProfile.findUnique({ where: { clientId } });
 
     const nextDisposition = existing ? moreRestrictiveDisposition(existing.safetyDisposition, computed.disposition) : computed.disposition;
@@ -157,8 +157,8 @@ export async function submitSafetyDisclosure(clientId: string, rawAnswers: unkno
     });
 
     return profile;
-  });
-
+  };
+  const result = transaction ? await apply(transaction) : await db.$transaction(apply);
   return { success: true, disposition: result.safetyDisposition, safetyRevision: result.safetyRevision };
 }
 

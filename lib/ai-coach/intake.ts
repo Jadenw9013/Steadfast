@@ -31,7 +31,7 @@ export const intakeAnswersSchema = z.object({
 }).strict();
 export type IntakeAnswers = z.infer<typeof intakeAnswersSchema>;
 
-const intakeDraftSchema = intakeAnswersSchema.partial();
+export const intakeDraftSchema = intakeAnswersSchema.partial();
 export type IntakeDraftAnswers = z.infer<typeof intakeDraftSchema>;
 
 export type SaveIntakeDraftResult =
@@ -39,16 +39,17 @@ export type SaveIntakeDraftResult =
   | { success: false; error: Record<string, string[]> };
 
 /** Merges partial answers into the existing draft. Never requires completeness. */
-export async function saveIntakeDraft(clientId: string, rawPartialAnswers: unknown): Promise<SaveIntakeDraftResult> {
+export async function saveIntakeDraft(clientId: string, rawPartialAnswers: unknown, transaction?: Prisma.TransactionClient): Promise<SaveIntakeDraftResult> {
   const parsed = intakeDraftSchema.safeParse(rawPartialAnswers);
   if (!parsed.success) {
     return { success: false, error: parsed.error.flatten().fieldErrors };
   }
 
-  const existing = await db.aiIntakeDraft.findUnique({ where: { clientId } });
+  const client = transaction ?? db;
+  const existing = await client.aiIntakeDraft.findUnique({ where: { clientId } });
   const merged = { ...(existing?.answers as IntakeDraftAnswers | undefined), ...parsed.data };
 
-  await db.aiIntakeDraft.upsert({
+  await client.aiIntakeDraft.upsert({
     where: { clientId },
     create: { clientId, answers: merged as Prisma.InputJsonValue },
     update: { answers: merged as Prisma.InputJsonValue },
@@ -72,13 +73,13 @@ export type ConfirmIntakeResult =
  * is removed once confirmed (it is no longer a draft, and keeping a stale
  * copy around risks it being read as if still pending).
  */
-export async function confirmIntake(clientId: string, rawAnswers: unknown): Promise<ConfirmIntakeResult> {
+export async function confirmIntake(clientId: string, rawAnswers: unknown, transaction?: Prisma.TransactionClient): Promise<ConfirmIntakeResult> {
   const parsed = intakeAnswersSchema.safeParse(rawAnswers);
   if (!parsed.success) {
     return { success: false, error: parsed.error.flatten().fieldErrors };
   }
 
-  const profile = await db.$transaction(async (tx) => {
+  const confirm = async (tx: Prisma.TransactionClient) => {
     const updated = await tx.aiCoachProfile.upsert({
       where: { clientId },
       create: { clientId, confirmedIntake: parsed.data as unknown as Prisma.InputJsonValue, profileRevision: 1, consentedAt: new Date() },
@@ -86,7 +87,7 @@ export async function confirmIntake(clientId: string, rawAnswers: unknown): Prom
     });
     await tx.aiIntakeDraft.deleteMany({ where: { clientId } });
     return updated;
-  });
-
+  };
+  const profile = transaction ? await confirm(transaction) : await db.$transaction(confirm);
   return { success: true, profileRevision: profile.profileRevision };
 }

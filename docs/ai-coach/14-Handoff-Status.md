@@ -114,6 +114,20 @@ filtering. Verification: 165 integration + 402 unit tests, type-check/build pass
 lint baseline unchanged. No additional migration. Initial engine flow is wired;
 intake/HTTP/UI and non-initial run kinds remain in progress.
 
+## A06d — intake commands and protected HTTP transport
+
+Added shared client commands for draft/confirm, independent safety/allergy
+reports, explicit enrollment consent, fixed review timezone and pause. Existing
+intake/safety implementations can join the command transaction rather than
+opening nested transactions. Relevant changes invalidate pending work. Safety
+reports are not blocked by unrelated stale/invalid form fields and cannot clear
+restrictions. The versioned workspace, run-request and command APIs apply
+verified identity, same-origin cookie mutation checks, byte limits, quotas,
+private no-store responses and safe error envelopes. Tests cover resumable
+intake, consent, key conflicts, urgent/allergy handling and HTTP boundaries.
+Verification: 170 integration + 402 unit tests pass, type-check/build pass,
+lint unchanged. No schema change. Client UI is next.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):
