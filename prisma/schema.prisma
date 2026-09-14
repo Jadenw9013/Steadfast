@@ -150,6 +150,7 @@ model User {
   aiSafetyDisclosures  AiSafetyDisclosureEvent[]
   aiPlanAcceptanceReceipts AiPlanAcceptanceReceipt[]
   aiPlanAcceptanceOutbox   AiPlanAcceptanceOutbox[]
+  aiOperationReceipts     AiOperationReceipt[]
 }
 
 enum CoachingMode {
@@ -184,6 +185,7 @@ model ClientCoachingContext {
 // content are added by later A-series slices. `activePlanVersionId` has no
 // FK yet — AiPlanVersion doesn't exist until A02.
 model AiCoachProfile {
+  isSynthetic Boolean @default(false) // Explicit test subject; never client-writable.
   id                   String    @id @default(cuid())
   clientId             String    @unique
   profileRevision      Int       @default(0)
@@ -369,6 +371,8 @@ model AiCoachRun {
   // progress instead of repeating a stage. Never holds prompts/model
   // traces meant for end-user or reviewer display — see run-status.ts.
   checkpointData Json?
+  inputSnapshot Json? // Immutable minimized inputs for managed runs.
+  resultDecision Json? // Validated safe decision, never a model trace.
 
   // Result — set once, on the terminal COMPLETED transition.
   resultPlanVersionId String?
@@ -427,6 +431,9 @@ model AiPlanVersion {
 
   reviewerStatus       AiReviewerStatus @default(NOT_REQUIRED)
   reviewerApprovalHash String?
+  reviewWindowKey String?
+  validationReport Json?
+  sourceRefs Json?
 
   acceptedAt DateTime? // permanent once set — never cleared or reused
   // A10: bounded, optional — set only by declinePlanVersion, only from PROPOSED.
@@ -564,6 +571,21 @@ model AiWorkoutSession {
 
   @@unique([clientId, clientEventId])
   @@index([clientId, occurredAt])
+}
+
+
+// Durable mutation receipts shared by web/native commands. Cascade is intentional:
+// account deletion must not retain intake/evidence response payloads.
+model AiOperationReceipt {
+  id String @id @default(cuid())
+  clientId String
+  operation String
+  requestKey String
+  inputDigest String
+  result Json
+  createdAt DateTime @default(now())
+  client User @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId, operation, requestKey])
 }
 
 model IntakeFormTemplate {

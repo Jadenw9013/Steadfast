@@ -86,6 +86,20 @@ pass, lint stays 78 problems. No schema change in this sub-slice.
 The post-commit graphify hook successfully rebuilt the graph using its own
 installed Python runtime; the earlier default-python failure does not block it.
 
+## A06b — durable managed-run requests
+
+Added `access.ts` and `run-command.ts`: explicit nonproduction fixture mode,
+server-designated synthetic accounts, active account/entitlement/provider checks,
+immutable input snapshots, permanent owner/operation/request-key receipts,
+server-derived business deduplication and bounded daily creation. Client input
+cannot select owner, revisions, snapshots or retry generations. Eleven new real
+PostgreSQL cases cover races, replay, fail-closed flags and receipt purge.
+Migration `20260914000200_ai_managed_run_contract` was executed only on the
+local disposable database; live environments remain untouched. No schema/data
+backfill and no account was marked synthetic outside test fixtures. Verification:
+160 integration + 402 unit tests pass, type-check/build/schema validation pass,
+lint remains 78 problems. Execution/proposal-read/UI wiring is the next slice.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):
