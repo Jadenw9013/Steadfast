@@ -91,11 +91,20 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(await db.accountDeletionRequest.findUnique({ where: { id: receipt.id } })).toMatchObject({ status: "COMPLETED", userId: null });
     expect(mocks.remove).toHaveBeenCalledWith("check-in-photos", expect.arrayContaining([`${user.clerkId}/web-batch/photo.jpg`, "ios-checkin/photo.jpg"]));
   });
-  it("purges AI Coach records (A02) on account deletion", async () => {
+  it("purges AI Coach records (A02/A03) on account deletion", async () => {
     const { user } = await fixture();
     await db.clientCoachingContext.create({ data: { clientId: user.id, mode: "AI", revision: 1 } });
     await db.aiCoachEntitlement.create({ data: { clientId: user.id } });
+    await db.aiIntakeDraft.create({ data: { clientId: user.id, answers: { goal: "STRENGTH" } } });
+    await db.aiCoachReviewerGrant.create({ data: { userId: user.id, qualificationNote: "test fixture" } });
     const profile = await db.aiCoachProfile.create({ data: { clientId: user.id } });
+    await db.aiSafetyDisclosureEvent.create({
+      data: {
+        clientId: user.id, structuredAnswers: {}, dispositionAfter: "CLEAR",
+        nutritionPermissionAfter: "ALLOW", strengthPermissionAfter: "ALLOW", cardioPermissionAfter: "ALLOW",
+        safetyRevisionAfter: 1,
+      },
+    });
     const plan = await db.aiPlanVersion.create({
       data: {
         clientId: user.id, version: 1, status: "ACCEPTED", acceptedAt: new Date(),
@@ -116,6 +125,9 @@ suite("account deletion with real PostgreSQL constraints", () => {
 
     expect(await db.clientCoachingContext.findUnique({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiCoachEntitlement.findUnique({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiIntakeDraft.findUnique({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiCoachReviewerGrant.findUnique({ where: { userId: user.id } })).toBeNull();
+    expect(await db.aiSafetyDisclosureEvent.findFirst({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiCoachProfile.findUnique({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiPlanVersion.findUnique({ where: { id: plan.id } })).toBeNull();
     expect(await db.aiAdjustmentSlot.findFirst({ where: { clientId: user.id } })).toBeNull();

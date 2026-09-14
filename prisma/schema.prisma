@@ -146,6 +146,8 @@ model User {
   aiAdjustmentSlots    AiAdjustmentSlot[]
   aiWorkoutSessions    AiWorkoutSession[]
   aiCoachReviewerGrant AiCoachReviewerGrant?
+  aiIntakeDraft        AiIntakeDraft?
+  aiSafetyDisclosures  AiSafetyDisclosureEvent[]
 }
 
 enum CoachingMode {
@@ -188,10 +190,73 @@ model AiCoachProfile {
   reviewTimezone       String?
   activePlanVersionId  String?
   consentedAt          DateTime?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+
+  // Confirmed structured intake (A03) — set only by an explicit confirm
+  // action, never by a draft save. A new allergy or goal change cannot
+  // remain only in a pending draft (docs/ai-coach/05).
+  confirmedIntake Json?
+
+  // Current safety disposition and per-domain permissions (A03). Only
+  // submitSafetyDisclosure (lib/ai-coach/safety.ts) may change these — it
+  // can increase caution but never clear a restriction; clearing is a
+  // separate, deliberate reviewed-resolution action (clearSafetyRestriction),
+  // never reachable from the client's own disclosure submission.
+  safetyDisposition   AiSafetyDisposition @default(CLEAR)
+  nutritionPermission AiDomainPermission  @default(ALLOW)
+  strengthPermission  AiDomainPermission  @default(ALLOW)
+  cardioPermission    AiDomainPermission  @default(ALLOW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   client User @relation(fields: [clientId], references: [id])
+}
+
+enum AiSafetyDisposition {
+  CLEAR
+  CLARIFY
+  RESTRICTED
+  REFER
+  URGENT
+}
+
+enum AiDomainPermission {
+  ALLOW
+  HOLD_ONLY
+  PAUSED
+}
+
+// Unconfirmed, partially-completed intake — separate from
+// AiCoachProfile.confirmedIntake so an in-progress edit never counts as
+// confirmed (A03). Available to an authenticated invited applicant before
+// AI becomes the active provider (docs/ai-coach/05).
+model AiIntakeDraft {
+  id        String   @id @default(cuid())
+  clientId  String   @unique
+  answers   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client User @relation(fields: [clientId], references: [id])
+}
+
+// Append-only audit log of every safety disclosure received and what it
+// changed (A03) — "History remains distinguishable from current advice"
+// (docs/ai-coach/06 §1). Never edited or deleted except by account purge.
+model AiSafetyDisclosureEvent {
+  id                    String              @id @default(cuid())
+  clientId              String
+  reportedAt            DateTime            @default(now())
+  structuredAnswers     Json
+  dispositionAfter      AiSafetyDisposition
+  nutritionPermissionAfter AiDomainPermission
+  strengthPermissionAfter  AiDomainPermission
+  cardioPermissionAfter    AiDomainPermission
+  safetyRevisionAfter   Int
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, reportedAt])
 }
 
 // Invited-pilot entitlement (A01) — separate from coach billing
