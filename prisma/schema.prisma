@@ -151,6 +151,7 @@ model User {
   aiPlanAcceptanceReceipts AiPlanAcceptanceReceipt[]
   aiPlanAcceptanceOutbox   AiPlanAcceptanceOutbox[]
   aiOperationReceipts     AiOperationReceipt[]
+  aiObservations          AiCheckInObservation[]
 }
 
 enum CoachingMode {
@@ -579,6 +580,26 @@ model AiWorkoutSession {
 
 // Durable mutation receipts shared by web/native commands. Cascade is intentional:
 // account deletion must not retain intake/evidence response payloads.
+
+// AI evidence is deliberately separate from human check-in queries: a later
+// human relationship is not implicit consent to read prior AI health answers.
+model AiCheckInObservation {
+  id String @id @default(cuid())
+  clientId String
+  clientEventId String
+  occurredAt DateTime
+  payload Json
+  revision Int @default(1)
+  submitted Boolean @default(false)
+  inputDigest String
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client User @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId, clientEventId])
+  @@index([clientId, occurredAt])
+}
+
 model AiOperationReceipt {
   id String @id @default(cuid())
   clientId String

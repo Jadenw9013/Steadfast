@@ -192,3 +192,7 @@ async function postCheckInMessage(clientId: string, coachId: string, weekOf: Dat
     });
   } catch { /* message creation must not break check-in */ }
 }
+
+// Provider-specific storage preserves privacy; both web and native AI clients
+// use this same canonical ingestion facade rather than a fabricated CoachClient.
+export { submitAiCheckIn } from "./ai-observation";

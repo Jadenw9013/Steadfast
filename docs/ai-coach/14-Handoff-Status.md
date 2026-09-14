@@ -190,6 +190,20 @@ quantities stay separate from unverified purchase weights. One rendering case
 verifies actionable-only swap controls. Verification: 179 integration + 411 unit
 tests, type-check/build pass, lint unchanged. No schema change.
 
+## A08a — structured private check-in observations
+
+Added revisioned AI observation records, draft/submit ingestion through the shared
+check-in facade, and owner-scoped HTTP reads/writes. Explicit completeness,
+nullable measurements with units, recovery, barriers and concern answers are
+retained without converting unknowns to zero. Storage is separate from legacy
+human check-ins so a later human relationship cannot implicitly expose AI health
+history. Replays are bound to keys/digests; relevant corrections/late evidence
+invalidate pending work while ordinary later logs do not. Explicit concern
+handling commits independently of unrelated validation failures. Five new DB
+cases pass; totals 184 integration + 411 unit tests; type-check/build/schema
+validation pass, lint unchanged. Migration `20260914000400_ai_observation_records`
+was applied only locally. Session storage and observation UI remain next.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):
