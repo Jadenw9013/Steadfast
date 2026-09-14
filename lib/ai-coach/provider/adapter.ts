@@ -43,8 +43,13 @@ export class ProviderTimeoutError extends Error {
 
 /** Races a provider call against the fixed A05 timeout default. */
 export async function callProviderWithTimeout(provider: ModelProvider, input: ModelStageInput): Promise<ModelStageResult> {
-  return Promise.race([
-    provider.runStage(input),
-    new Promise<never>((_, reject) => setTimeout(() => reject(new ProviderTimeoutError()), PROVIDER_TIMEOUT_MS)),
-  ]);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      provider.runStage(input),
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new ProviderTimeoutError()), PROVIDER_TIMEOUT_MS); }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }

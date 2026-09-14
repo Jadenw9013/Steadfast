@@ -1,3 +1,4 @@
+import { processManagedRun } from "./managed-executor";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
@@ -33,6 +34,7 @@ export type ProcessedOutcome = "completed" | "requeued" | "failed" | "rateLimite
  * independently of what else happens to be QUEUED at the moment.
  */
 export async function processClaimedRun(claim: Extract<ClaimResult, { claimed: true }>, provider: ModelProvider): Promise<ProcessedOutcome> {
+  if (claim.run.inputSnapshot !== null) return processManagedRun(claim, provider);
   const withinRate = await checkProviderRateLimit(claim.run.clientId, claim.run.kind);
   if (!withinRate) {
     await failRunAttempt(claim.run.id, claim.fencingToken, "Client model-call rate limit exceeded for this period.");

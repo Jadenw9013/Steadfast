@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { validatedManagedPayload } from "./validated-plan";
+import { requireFixtureRuntime } from "./access";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import type { AiDomainPermission } from "@/app/generated/prisma/client";
@@ -163,6 +165,18 @@ export async function acceptPlanVersionAtomic(
         return { success: false, code: "REVISION_CONFLICT", error: "The client's coaching state has changed since this proposal was computed." };
       }
 
+      if (candidate.validationReport !== null) {
+        try { requireFixtureRuntime(); } catch {
+          return { success: false, code: "TEMPORARILY_UNAVAILABLE", error: "This plan is only available in the synthetic test environment." };
+        }
+        if (!profile.isSynthetic || !validatedManagedPayload(candidate)) {
+          return { success: false, code: "VALIDATION_ERROR", error: "This proposal did not pass content validation." };
+        }
+        if (candidate.changeClass === "INITIAL" && candidate.reviewerStatus !== "APPROVED") {
+          return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The initial proposal requires qualified review." };
+        }
+      }
+
       // Step 3: policy availability, safety/domain permission, reviewer
       // approval, exact base version, activation window.
       const policyCheck = checkPolicyVersionUsable(candidate.policyVersion);
@@ -197,7 +211,7 @@ export async function acceptPlanVersionAtomic(
 
 
       if (candidate.changeClass === "ROUTINE") {
-        const reviewWindowKey = reviewWindowKeyFor(candidate.activationStartsAt ?? candidate.createdAt);
+        const reviewWindowKey = candidate.reviewWindowKey ?? reviewWindowKeyFor(candidate.activationStartsAt ?? candidate.createdAt);
         const slot = await tx.aiAdjustmentSlot.findUnique({ where: { clientId_reviewWindowKey: { clientId, reviewWindowKey } } });
         if (slot) return { success: false, code: "ADJUSTMENT_LIMIT_REACHED", error: "A routine change was already accepted for this review window." };
         await tx.aiAdjustmentSlot.create({

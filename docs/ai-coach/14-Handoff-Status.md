@@ -100,6 +100,20 @@ backfill and no account was marked synthetic outside test fixtures. Verification
 160 integration + 402 unit tests pass, type-check/build/schema validation pass,
 lint remains 78 problems. Execution/proposal-read/UI wiring is the next slice.
 
+## A06c — managed execution and shared permitted reads
+
+Managed runs now call the provider outside transactions and atomically save a
+strictly validated candidate plus terminal result after rechecking lease,
+authority, revisions, active base and safety. Initial candidates always enter
+PENDING review. `getAiWorkspace` is the common web/native reader: it hides
+unapproved numerical content, follows the active pointer and removes paused
+domains. Managed acceptance verifies canonical content integrity and test-only
+runtime/account status. Provider timeout timers are cleared after settlement.
+Five PostgreSQL cases cover publication visibility, late output and domain
+filtering. Verification: 165 integration + 402 unit tests, type-check/build pass,
+lint baseline unchanged. No additional migration. Initial engine flow is wired;
+intake/HTTP/UI and non-initial run kinds remain in progress.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):
