@@ -515,6 +515,8 @@ model AiAdjustmentSlot {
 // ordinary isCoach flag is never sufficient authority (docs/ai-coach/05,
 // docs/ai-coach/06 §2) — this is an explicit, revocable capability grant.
 model AiCoachReviewerGrant {
+  clientIds String[] @default([]) // Explicit consented case assignments; never isCoach-derived.
+  domains String[] @default([]) // NUTRITION, STRENGTH, CARDIO verified capability scopes.
   id                String    @id @default(cuid())
   userId            String    @unique
   qualificationNote String    @db.Text
@@ -532,6 +534,7 @@ model AiPlanReviewerApproval {
   id              String   @id @default(cuid())
   planVersionId   String   @unique
   reviewerGrantId String
+  stateHash       String? // Binds policy, catalog, evidence and revisions as well as content.
   approvedHash    String
   approved        Boolean
   rationale       String   @db.Text

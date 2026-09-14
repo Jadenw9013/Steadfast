@@ -227,6 +227,7 @@ export async function purgeUserAccount(userId: string): Promise<void> {
   await tx.$executeRaw`DELETE FROM "AiPlanVersion" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiCoachProfile" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiCoachEntitlement" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`UPDATE "AiCoachReviewerGrant" SET "clientIds" = array_remove("clientIds", ${userId}) WHERE ${userId} = ANY("clientIds")`;
   await tx.$executeRaw`DELETE FROM "AiCoachReviewerGrant" WHERE "userId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiSafetyDisclosureEvent" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiIntakeDraft" WHERE "clientId" = ${userId}`;

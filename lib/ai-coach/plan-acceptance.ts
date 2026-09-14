@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { validatedManagedPayload } from "./validated-plan";
+import { approvalStateHash, grantCoversPlan, validatedManagedPayload } from "./validated-plan";
 import { requireFixtureRuntime } from "./access";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
@@ -193,8 +193,8 @@ export async function acceptPlanVersionAtomic(
         if (!candidate.approval || !candidate.approval.approved || candidate.approval.approvedHash !== candidate.payloadHash) {
           return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The recorded reviewer approval no longer matches this proposal's exact content." };
         }
-        const reviewerGrant = await tx.aiCoachReviewerGrant.findUnique({ where: { id: candidate.approval.reviewerGrantId } });
-        if (!reviewerGrant || reviewerGrant.revokedAt) {
+        const reviewerGrant = await tx.aiCoachReviewerGrant.findUnique({ where: { id: candidate.approval.reviewerGrantId }, include: { user: { select: { isDeactivated: true } } } });
+        if (!reviewerGrant || reviewerGrant.revokedAt || reviewerGrant.user.isDeactivated || (candidate.validationReport !== null && (!grantCoversPlan(reviewerGrant, clientId, candidate.payload) || candidate.approval.stateHash !== approvalStateHash(candidate)))) {
           return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The reviewer who approved this proposal no longer holds an active grant." };
         }
       }

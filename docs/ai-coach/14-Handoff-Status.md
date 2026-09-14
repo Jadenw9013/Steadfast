@@ -144,6 +144,20 @@ end-to-end run of the deployed app. Verification: 170 integration + 405 unit
 checks, type-check/build pass, lint baseline unchanged. Reviewer operations,
 non-initial generation, logging and provider-aware main navigation remain next.
 
+## A11a — scoped reviewer service
+
+Pulled reviewer operations forward to complete the initial vertical path.
+Reviewer grants now require explicit client assignments and domain capabilities;
+ordinary coach status, self-review, revoked grants and inactive reviewers cannot
+authorize a decision. Approval binds exact content plus policy/catalog/source
+references and revisions. Shared participant reads and acceptance recheck this
+binding and current capability. Queue reads are case-scoped, bounded and report
+backlog/capacity. Purge removes deleted client IDs from assignments.
+Migration `20260914000300_reviewer_case_scope` is local-test-only so far. Seven
+new PostgreSQL cases pass; full totals 177 integration and 405 unit tests;
+type-check/build/schema validation pass, lint remains 78 problems. No real
+reviewer grants or qualification records were created. Reviewer UI/API next.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):

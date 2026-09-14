@@ -1,7 +1,7 @@
 import { Prisma } from "@/app/generated/prisma/client";
 import { db } from "@/lib/db";
 import { lockAiClient } from "@/lib/ai-coach/access";
-import { validatedManagedPayload } from "@/lib/ai-coach/validated-plan";
+import { approvalStateHash, grantCoversPlan, validatedManagedPayload } from "@/lib/ai-coach/validated-plan";
 import { decisionSchema } from "@/lib/ai-coach/plan-contract";
 import { checkPolicyVersionUsable } from "@/lib/ai-coach/policy/policy-version";
 
@@ -15,7 +15,7 @@ export async function getAiWorkspace(clientId: string) {
     const active = profile.activePlanVersionId ? await tx.aiPlanVersion.findFirst({ where: { id: profile.activePlanVersionId, clientId, acceptedAt: { not: null } } }) : null;
     const allowed = context?.mode === "AI" && !context.resolutionRequired;
     const activePayload = active && allowed && checkPolicyVersionUsable(active.policyVersion).usable ? validatedManagedPayload(active) : null;
-    const proposals = await tx.aiPlanVersion.findMany({ where: { clientId, status: "PROPOSED" }, orderBy: { createdAt: "desc" }, take: 20, include: { approval: { include: { reviewerGrant: true } } } });
+    const proposals = await tx.aiPlanVersion.findMany({ where: { clientId, status: "PROPOSED" }, orderBy: { createdAt: "desc" }, take: 20, include: { approval: { include: { reviewerGrant: { include: { user: { select: { isDeactivated: true } } } } } } } });
     const runs = await tx.aiCoachRun.findMany({ where: { clientId, inputSnapshot: { not: Prisma.DbNull } }, orderBy: { createdAt: "desc" }, take: 30 });
     const draft = await tx.aiIntakeDraft.findUnique({ where: { clientId } });
     return {
@@ -33,7 +33,7 @@ export async function getAiWorkspace(clientId: string) {
       } } : null,
       proposals: proposals.map(candidate => {
         const fresh = allowed && candidate.contextRevision === context?.revision && candidate.profileRevision === profile.profileRevision && candidate.observationRevision === profile.observationRevision && candidate.safetyRevision === profile.safetyRevision && candidate.baseVersionId === profile.activePlanVersionId && (!candidate.activationEndsAt || candidate.activationEndsAt > new Date()) && [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].every(p => p === "ALLOW");
-        const approved = candidate.reviewerStatus === "APPROVED" && candidate.approval?.approved && candidate.approval.approvedHash === candidate.payloadHash && !candidate.approval.reviewerGrant.revokedAt;
+        const approved = candidate.reviewerStatus === "APPROVED" && candidate.approval?.approved && candidate.approval.approvedHash === candidate.payloadHash && !candidate.approval.reviewerGrant.user.isDeactivated && grantCoversPlan(candidate.approval.reviewerGrant, clientId, candidate.payload) && candidate.approval.stateHash === approvalStateHash(candidate);
         const payload = fresh && approved && checkPolicyVersionUsable(candidate.policyVersion).usable ? validatedManagedPayload(candidate) : null;
         return { id: candidate.id, status: !fresh ? "STALE" : payload ? "READY" : "PENDING_REVIEW", payload,
           expectedBaseVersionId: candidate.baseVersionId, expectedContextRevision: candidate.contextRevision, expectedProfileRevision: candidate.profileRevision, expectedObservationRevision: candidate.observationRevision, expectedSafetyRevision: candidate.safetyRevision };

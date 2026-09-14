@@ -5,6 +5,7 @@ import { requestAiRun } from "@/lib/ai-coach/run-command";
 import { claimQueuedRun } from "@/lib/ai-coach/runs";
 import { processClaimedRun } from "@/lib/ai-coach/executor";
 import { SyntheticFixtureProvider } from "@/lib/ai-coach/provider/synthetic-provider";
+import { approvalStateHash } from "@/lib/ai-coach/validated-plan";
 import { getAiWorkspace } from "@/lib/queries/ai-coach";
 import { acceptPlanVersionAtomic } from "@/lib/ai-coach/plan-acceptance";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
@@ -50,8 +51,8 @@ suite("managed execution and permitted reads", () => {
     const input = { requestKey: randomUUID(), expectedBaseVersionId: null, expectedContextRevision: 0, expectedProfileRevision: 0, expectedObservationRevision: 0, expectedSafetyRevision: 0 };
     expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({ success: false, code: "REVIEWER_APPROVAL_REQUIRED" });
     const reviewerId = randomUUID(); const reviewer = await db.user.create({ data: { clerkId: reviewerId, email: `${reviewerId}@example.test` } });
-    const grant = await db.aiCoachReviewerGrant.create({ data: { userId: reviewer.id, qualificationNote: "SYNTHETIC TEST REVIEWER" } });
-    await db.aiPlanReviewerApproval.create({ data: { planVersionId: candidate.id, reviewerGrantId: grant.id, approvedHash: candidate.payloadHash, approved: true, rationale: "fixture" } });
+    const grant = await db.aiCoachReviewerGrant.create({ data: { userId: reviewer.id, qualificationNote: "SYNTHETIC TEST REVIEWER", clientIds: [client.id], domains: ["NUTRITION", "STRENGTH", "CARDIO"] } });
+    await db.aiPlanReviewerApproval.create({ data: { planVersionId: candidate.id, reviewerGrantId: grant.id, approvedHash: candidate.payloadHash, stateHash: approvalStateHash(candidate), approved: true, rationale: "fixture" } });
     await db.aiPlanVersion.update({ where: { id: candidate.id }, data: { reviewerStatus: "APPROVED" } });
     expect((await getAiWorkspace(client.id)).proposals[0].status).toBe("READY");
     expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({ success: true });
