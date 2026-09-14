@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
 
     const coach = await db.user.findUnique({ where: { clerkId: userId } });
     if (!coach?.isCoach) return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    if (coach.isDeactivated) return NextResponse.json({ error: "Account is pending deletion" }, { status: 403 });
 
     const rawBody = await req.json();
     const bodyParsed = bodySchema.safeParse(rawBody);

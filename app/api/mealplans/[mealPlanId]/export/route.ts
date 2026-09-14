@@ -19,7 +19,7 @@ export async function GET(
   }
 
   const user = await db.user.findUnique({ where: { clerkId: userId } });
-  if (!user) {
+  if (!user || user.isDeactivated) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

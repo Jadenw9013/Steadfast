@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getSignedDownloadUrl, getSignedDownloadUrls } from "@/lib/supabase/storage";
 import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
@@ -309,11 +309,11 @@ export async function getCheckInsByClientAndWeek(
 }
 
 export async function verifyCoachAccessToClient(clientId: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-
-  const coach = await db.user.findUnique({ where: { clerkId: userId } });
-  if (!coach || !coach.isCoach) throw new Error("Not a coach");
+  // getCurrentDbUser() rejects deactivated accounts; do not re-implement the
+  // lookup here or a deactivated coach with a still-valid Clerk session and
+  // an existing CoachClient row regains access (CB02).
+  const coach = await getCurrentDbUser();
+  if (!coach.isCoach) throw new Error("Not a coach");
 
   const assignment = await db.coachClient.findUnique({
     where: {
@@ -326,11 +326,8 @@ export async function verifyCoachAccessToClient(clientId: string) {
 }
 
 export async function verifyCoachAccessToCheckIn(checkInId: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-
-  const coach = await db.user.findUnique({ where: { clerkId: userId } });
-  if (!coach || !coach.isCoach) throw new Error("Not a coach");
+  const coach = await getCurrentDbUser();
+  if (!coach.isCoach) throw new Error("Not a coach");
 
   const checkIn = await db.checkIn.findUnique({
     where: { id: checkInId },

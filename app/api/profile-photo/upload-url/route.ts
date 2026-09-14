@@ -12,11 +12,14 @@ export async function POST(req: NextRequest) {
 
     const user = await db.user.findUnique({
         where: { clerkId },
-        select: { id: true },
+        select: { id: true, isDeactivated: true },
     });
 
     if (!user) {
         return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    if (user.isDeactivated) {
+        return NextResponse.json({ error: "Account is pending deletion" }, { status: 403 });
     }
 
     // Support avatar or banner uploads with unique filenames

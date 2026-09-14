@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { db } from "@/lib/db";
 import { createTestimonialImageUploadUrl } from "@/lib/supabase/testimonial-storage";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -8,6 +9,11 @@ const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 export async function POST(req: NextRequest) {
     const { userId } = await auth();
     if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const actingUser = await db.user.findUnique({ where: { clerkId: userId }, select: { isDeactivated: true } });
+    if (!actingUser || actingUser.isDeactivated) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
