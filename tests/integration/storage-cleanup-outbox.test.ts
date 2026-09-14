@@ -64,15 +64,16 @@ suite("CB09 — durable storage cleanup outbox with real PostgreSQL constraints"
   });
 
   it("processStorageCleanupOutbox deletes enqueued objects and marks them processed", async () => {
+    const storagePath = `test/${randomUUID()}.jpg`;
     await enqueueStorageCleanup([
-      { bucket: "check-in-photos", storagePath: `test/${randomUUID()}.jpg`, reason: "test" },
+      { bucket: "check-in-photos", storagePath, reason: "test" },
     ]);
 
     const result = await processStorageCleanupOutbox();
     expect(result.processed).toBeGreaterThanOrEqual(1);
     expect(mocks.remove).toHaveBeenCalled();
 
-    const remaining = await db.storageCleanupOutbox.count({ where: { processedAt: null } });
+    const remaining = await db.storageCleanupOutbox.count({ where: { storagePath, processedAt: null } });
     expect(remaining).toBe(0);
   });
 

@@ -68,6 +68,24 @@ Verification after the correction:
 - Required graphify rebuild attempted; unavailable (`ModuleNotFoundError: graphify`).
   Existing graph output was not regenerated.
 
+## A06a — deterministic contract and initial fixture composition
+
+Local implementation adds `plan-contract.ts`, `canonical-json.ts`,
+`review-window.ts`, `initial-plan.ts`, and ten unit cases. Strict payloads
+reject unknown catalog IDs/modalities/fields and duplicate session/day IDs.
+Synthetic initial macro and meal representations share targets; missing
+measurements or unsupported food constraints leave nutrition unavailable.
+Canonical hashes survive JSONB key reordering. Review windows use local
+calendar Mondays and pass 167/169-hour DST fixtures. This is the pure engine
+sub-slice; durable generation and UI are still next. No flags or live content
+changed. Also scoped the storage-cleanup integration assertion to its own
+fixture after the full suite exposed contamination from concurrently created
+rows. Verification: type-check/build pass, 149 integration and 402 unit tests
+pass, lint stays 78 problems. No schema change in this sub-slice.
+
+The post-commit graphify hook successfully rebuilt the graph using its own
+installed Python runtime; the earlier default-python failure does not block it.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):
