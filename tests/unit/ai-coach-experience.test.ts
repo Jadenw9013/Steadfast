@@ -5,11 +5,11 @@ import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
 import { describe, expect, it } from "vitest";
 import { AiCoachExperience } from "@/components/ai-coach/experience";
 import type { AiWorkspace } from "@/lib/queries/ai-coach";
-const initial: AiWorkspace = { schemaVersion: 1, origin: "AI", contextRevision: 1, profileRevision: 1, observationRevision: 0, safetyRevision: 0, confirmedIntake: null, draft: null, reviewTimezone: "America/Los_Angeles", permissions: { nutrition: "ALLOW", strength: "ALLOW", cardio: "ALLOW" }, safetyDisposition: "CLEAR", activePlan: null, proposals: [], runs: [] };
+const initial: AiWorkspace = { schemaVersion: 1, substitutions: [], origin: "AI", contextRevision: 1, profileRevision: 1, observationRevision: 0, safetyRevision: 0, confirmedIntake: null, draft: null, reviewTimezone: "America/Los_Angeles", permissions: { nutrition: "ALLOW", strength: "ALLOW", cardio: "ALLOW" }, safetyDisposition: "CLEAR", activePlan: null, proposals: [], runs: [] };
 describe("AI client screen states", () => {
   it("offers swaps only in actionable meal views and includes prepared grocery quantities", () => {
     const plan = buildInitialFixturePlan({ goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 }, "rx", "MEALS").payload;
-    const current = renderToStaticMarkup(createElement(PlanDisplay, { plan, onSubstitute: () => undefined }));
+    const current = renderToStaticMarkup(createElement(PlanDisplay, { plan, substitutions: [{ day: 1, mealId: plan.meals!.days[0].meals[0].id, foodId: "brown-rice-cooked", replacementId: "fixture-grain-alternative" }], onSubstitute: () => undefined }));
     expect(current).toContain("Propose an equivalent swap"); expect(current).toContain("Weekly ingredient quantities");
     expect(renderToStaticMarkup(createElement(PlanDisplay, { plan }))).not.toContain("Propose an equivalent swap");
   });

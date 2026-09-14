@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
-import { representFixturePlan, isTargetPreserving } from "@/lib/ai-coach/representation";
+import { availableSubstitutions, representFixturePlan, isTargetPreserving } from "@/lib/ai-coach/representation";
 import type { IntakeAnswers } from "@/lib/ai-coach/intake";
 import { getFoodItem } from "@/lib/ai-coach/catalog/loader";
 const answers: IntakeAnswers = { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
@@ -18,6 +18,12 @@ describe("target-preserving meal representations", () => {
     const changed = representFixturePlan(base, answers, "MEALS", { day: 1, mealId: base.meals!.days[0].meals[0].id, foodId: "brown-rice-cooked", replacementId: "fixture-grain-alternative" });
     expect(changed.payload).not.toBeNull(); expect(isTargetPreserving(base, changed.payload!, answers)).toBe(true);
     expect(base.meals!.days[0].meals[0].ingredients[1].foodId).toBe("brown-rice-cooked");
+  });
+  it("only offers feasible catalog substitutions and none for unverifiable constraints", () => {
+    const plan = buildInitialFixturePlan(answers, "rx", "MEALS").payload;
+    const offers = availableSubstitutions(plan, answers); expect(offers.length).toBeGreaterThan(0);
+    for (const offer of offers) expect(representFixturePlan(plan, answers, "MEALS", offer).payload).not.toBeNull();
+    expect(availableSubstitutions(plan, { ...answers, allergies: ["unverifiable"] })).toEqual([]);
   });
   it("rejects arbitrary food substitutions and new food constraints", () => {
     const base = buildInitialFixturePlan(answers, "rx", "MEALS").payload;

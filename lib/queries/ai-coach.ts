@@ -2,7 +2,7 @@ import { weeklyCandidateIsValid } from "@/lib/ai-coach/weekly-proof";
 import { evidenceIsCurrent } from "@/lib/ai-coach/evidence-snapshot";
 import { Prisma } from "@/app/generated/prisma/client";
 import { intakeAnswersSchema } from "@/lib/ai-coach/intake";
-import { isTargetPreserving } from "@/lib/ai-coach/representation";
+import { availableSubstitutions, isTargetPreserving } from "@/lib/ai-coach/representation";
 import { db } from "@/lib/db";
 import { lockAiClient } from "@/lib/ai-coach/access";
 import { approvalStateHash, grantCoversPlan, validatedManagedPayload } from "@/lib/ai-coach/validated-plan";
@@ -22,7 +22,10 @@ export async function getAiWorkspace(clientId: string) {
     const proposals = await tx.aiPlanVersion.findMany({ where: { clientId, status: "PROPOSED" }, orderBy: { createdAt: "desc" }, take: 20, include: { approval: { include: { reviewerGrant: { include: { user: { select: { isDeactivated: true } } } } } } } });
     const runs = await tx.aiCoachRun.findMany({ where: { clientId, inputSnapshot: { not: Prisma.DbNull } }, orderBy: { createdAt: "desc" }, take: 30 });
     const draft = await tx.aiIntakeDraft.findUnique({ where: { clientId } });
+    const confirmed = intakeAnswersSchema.safeParse(profile.confirmedIntake);
+    const substitutions = activePayload && confirmed.success && [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].every(p => p === "ALLOW") ? availableSubstitutions(activePayload, confirmed.data) : [];
     return {
+      substitutions,
       schemaVersion: 1 as const, origin: context?.mode ?? "NONE", contextRevision: context?.revision ?? 0,
       profileRevision: profile.profileRevision, observationRevision: profile.observationRevision, safetyRevision: profile.safetyRevision,
       confirmedIntake: profile.confirmedIntake, draft: draft?.answers ?? null, reviewTimezone: profile.reviewTimezone,

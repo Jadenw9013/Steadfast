@@ -1,4 +1,4 @@
-# Implementation handoff status (2026-09-13)
+# Implementation handoff status (updated 2026-09-14)
 
 **This file is not part of the original review pack (00–13).** It was added
 during implementation to record what has actually been built, verified and
@@ -13,6 +13,28 @@ has been pushed or deployed during the takeover. No real clinical/nutrition/exer
 anywhere in this codebase — every numeric threshold, food, exercise and
 policy version introduced so far is explicitly marked SYNTHETIC/FIXTURE in
 its source file and is not fit to show a real user.
+
+## Current takeover status — read before the historical log
+
+The web/backend now contains A06–A09, A11 reviewer operations, and the shared
+A12 provider/UI/reliability work. The native repository contains the corresponding
+AI navigation, intake, proposals, logging, review history, settings, exports,
+validated swaps and ingredient totals. The original “next: A06” entries below
+are historical. A12's independent adjudicated evaluation, live operations and
+real-user/staging evidence remain incomplete. Launch G01–G09 are not satisfied.
+
+Read [the engineering release evidence report](evidence/2026-09-14-engineering-release-status.md)
+for the current V01–V20 evidence matrix and remaining release work. Do not infer
+live readiness from synthetic tests, or enable production AI fixture content.
+Both repositories have local checkpoint commits; nothing has been pushed,
+deployed, signed for distribution or submitted to App Store Connect.
+
+Current verification: 219 local integration tests, 428 unit tests, 24 native
+unit tests and two native UI tests pass. The web browser form harness passes.
+Type-check passes; lint remains at its established 14 errors/64 warnings.
+Final build results are recorded in the evidence report. Heavy Xcode compilation
+and backend verification should run sequentially to avoid resource-driven
+5-second test timeouts; use `--maxWorkers=4` for the integration suite.
 
 ## Codex takeover correction — A10 acceptance boundary (2026-09-13)
 
@@ -694,3 +716,16 @@ to persist EXPIRED, preserving existing behavior. Regression coverage races real
 managed enrollment against invite acceptance and tests deactivation/current
 invite state. Full shared gate evidence: 218 integration, 427 unit, type-check
 and build pass; lint baseline unchanged. No live enrollment flag was enabled.
+
+### A12f — shared meal parity and beginner journey (2026-09-14)
+
+The workspace returns only feasible catalog-validated substitution offers; web
+and native clients use those offers rather than inventing replacements. Every
+proposal still revalidates at generation/acceptance. Native weekly ingredient
+totals preserve food state and catalog version. Web proposed plans now include
+an expandable current-plan comparison. A new real-DB beginner regression goes
+through safety/intake/consent, initial run, review, acceptance replay, typed
+activity/check-in and an early weekly clarification without losing the current
+plan or writing human coaching tables. Unit tests cover feasible/unsupported
+offers and UI scope; browser form regression remains passing. Current full suite:
+219 integration and 428 unit tests. Final logs: `/private/tmp/steadfast-final-*`.

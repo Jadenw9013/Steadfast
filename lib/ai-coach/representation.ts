@@ -59,3 +59,16 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
   if (contentHash(base) === contentHash(payload)) return noChange("UNCHANGED", "Your current plan already uses this representation.");
   return { payload, decision: { action: "HOLD", reasonCodes: ["REPRESENTATION_ONLY"], explanation: "The presentation changes while the nutrition prescription and training stay the same.", limitations: ["Synthetic portions only; real ingredient verification is still required."], nextAction: "Review and accept the new presentation if it fits your preferences.", changeClass: "TARGET_PRESERVING" } };
 }
+
+/** Catalog-backed proposals only; each offer is revalidated again by the run
+ * command and acceptance path. No client-side nutrient policy is duplicated. */
+export function availableSubstitutions(plan: PlanPayload, answers: IntakeAnswers): Substitution[] {
+  const offers: Substitution[] = [];
+  for (const day of plan.meals?.days ?? []) for (const meal of day.meals) for (const food of meal.ingredients) {
+    for (const replacementId of FOOD_SUBSTITUTIONS[food.foodId] ?? []) {
+      const offer = { day: day.day, mealId: meal.id, foodId: food.foodId, replacementId };
+      if (representFixturePlan(plan, answers, "MEALS", offer).payload) offers.push(offer);
+    }
+  }
+  return offers;
+}
