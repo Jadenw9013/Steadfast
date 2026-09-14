@@ -64,6 +64,11 @@ export type AdherenceDaySummary = {
   mealsCompleted: number;
   mealsTotal: number;
   workoutCompleted: boolean;
+  // CB08: whether a DailyAdherence record exists for this date at all. An
+  // untracked day is not verified nonadherence — the client may have been
+  // fine and simply not opened the checkoff UI. Callers must not treat
+  // `tracked: false` the same as a recorded zero/incomplete day.
+  tracked: boolean;
 };
 
 export type AdherenceSummary = {
@@ -99,10 +104,10 @@ export async function getAdherenceSummary(
 
   const summarize = (date: string): AdherenceDaySummary => {
     const r = byDate.get(date);
-    if (!r) return { date, mealsCompleted: 0, mealsTotal: 0, workoutCompleted: false };
+    if (!r) return { date, mealsCompleted: 0, mealsTotal: 0, workoutCompleted: false, tracked: false };
     const total = r.meals.length;
     const completed = r.meals.filter((m) => m.completed).length;
-    return { date, mealsCompleted: completed, mealsTotal: total, workoutCompleted: r.workoutCompleted };
+    return { date, mealsCompleted: completed, mealsTotal: total, workoutCompleted: r.workoutCompleted, tracked: true };
   };
 
   return {
