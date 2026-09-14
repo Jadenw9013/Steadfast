@@ -646,3 +646,18 @@ boundary; it is not a reconstructed historical authorship claim. Two new real-DB
 route regressions cover AI/NONE and former/current publications. Type-check,
 213 integration tests, 425 unit tests and build pass; lint unchanged at 14 errors
 and 64 warnings. Logs: `/private/tmp/steadfast-a12d-*`.
+
+### A12e — personal AI data export (2026-09-14)
+
+Owner-authenticated `/api/client/ai-coach/export` streams NDJSON in 100-record
+pages, with a manifest and terminal completion record. It includes retained
+profile/draft, evidence, plan/approval history, frozen run inputs, safety events,
+slots, receipts and notification intents; it excludes other clients, reviewer
+qualifications and raw model traces/errors. No entitlement is needed to export
+one's retained data. A two-per-hour quota, private/no-store download headers,
+cancellation and repeated active-account checks bound resource use and stop
+deactivated accounts. The manifest states that concurrent edits are not an atomic
+snapshot. Web coaching settings link to the download. Tests cover 105-record
+pagination, another owner's private record, deactivation and cancellation.
+Type-check, 216 integration tests, 425 unit tests and build pass; lint unchanged
+at 14 errors/64 warnings. Logs: `/private/tmp/steadfast-export-*`.
