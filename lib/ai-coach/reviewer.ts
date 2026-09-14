@@ -1,3 +1,4 @@
+import { getReviewerOperations } from "./reviewer-operations";
 import { weeklyCandidateIsValid } from "./weekly-proof";
 import { evidenceIsCurrent } from "./evidence-snapshot";
 import { z } from "zod";
@@ -11,10 +12,11 @@ export async function getReviewerQueue(reviewerId: string) {
   requireFixtureRuntime();
   const grant = await db.aiCoachReviewerGrant.findUnique({ where: { userId: reviewerId }, include: { user: { select: { isDeactivated: true } } } });
   if (!grant || grant.revokedAt || grant.user.isDeactivated) throw new AiCoachError("FORBIDDEN", "An active reviewer capability is required.", 403);
-  const where = { clientId: { in: grant.clientIds, not: reviewerId }, status: "PROPOSED" as const, reviewerStatus: "PENDING" as const, client: { isDeactivated: false, aiCoachProfile: { isSynthetic: true } } };
+  const where = { clientId: { in: grant.clientIds, not: reviewerId }, OR: [{ activationEndsAt: null }, { activationEndsAt: { gt: new Date() } }], status: "PROPOSED" as const, reviewerStatus: "PENDING" as const, client: { isDeactivated: false, aiCoachProfile: { isSynthetic: true } } };
   const candidates = await db.aiPlanVersion.findMany({ where, orderBy: { createdAt: "asc" }, take: 50 });
   const backlog = await db.aiPlanVersion.count({ where });
-  return { backlog, capacity: 50, capacityReached: backlog >= 50, oldestPendingAt: candidates[0]?.createdAt.toISOString() ?? null,
+  const operations = await getReviewerOperations(reviewerId);
+  return { operations, backlog, capacity: 50, capacityReached: backlog >= 50, oldestPendingAt: candidates[0]?.createdAt.toISOString() ?? null,
     candidates: candidates.filter(c => grantCoversPlan(grant, c.clientId, c.payload)).flatMap(candidate => {
       const payload = validatedManagedPayload(candidate);
       return payload ? [{ id: candidate.id, clientId: candidate.clientId, createdAt: candidate.createdAt.toISOString(), payload, stateHash: approvalStateHash(candidate), changeClass: candidate.changeClass }] : [];

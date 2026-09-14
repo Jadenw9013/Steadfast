@@ -58,7 +58,7 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     const historyExists = await tx.aiPlanVersion.count({ where: { clientId, acceptedAt: { not: null } } });
     if ((input.kind === "INITIAL" && historyExists > 0) || (input.kind !== "INITIAL" && !base)) throw new AiCoachError("REVISION_CONFLICT", "The requested operation does not match your plan history.");
     const window = reviewWindow(new Date(), profile.reviewTimezone);
-    const start = new Date(window.lookbackEnd.getTime() - 56 * 86400000);
+    const start = window.evidenceStartsAt;
     const collected = input.kind === "WEEKLY_REVIEW" ? await collectEvidence(tx, clientId, start, window.lookbackEnd) : { evidence: { observations: [], sessions: [] }, sourceRefs: base?.sourceRefs ?? [] };
     const history = await tx.aiPlanVersion.findMany({ where: { clientId, acceptedAt: { not: null } }, orderBy: { acceptedAt: "asc" }, take: 501, select: { id: true, acceptedAt: true, changeClass: true, reviewWindowKey: true, payload: true } });
     if (history.length > 500) throw new AiCoachError("VALIDATION_ERROR", "Plan history requires a reviewed archival policy before another change.", 422);

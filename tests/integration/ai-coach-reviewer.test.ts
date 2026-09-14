@@ -36,6 +36,17 @@ suite("reviewer capability and exact-state decisions", () => {
     const ordinary = await user(); authFixture.clerkId = ordinary.clerkId;
     expect((await queueRoute(new NextRequest("https://example.test/api/ops/ai-coach"))).status).toBe(403);
   });
+  it("operational metrics exclude unassigned clients and expired proposals leave the queue", async () => {
+    const a = await fixture(); const b = await fixture();
+    for (const f of [a, b]) await db.aiCoachRun.create({ data: { clientId: f.client.id, kind: "INITIAL", status: "FAILED", businessKey: randomUUID(), contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 0, lastError: "private internal trace" } });
+    await db.aiPlanVersion.update({ where: { id: a.plan.id }, data: { activationEndsAt: new Date(Date.now() - 1000) } });
+    const queue = await getReviewerQueue(a.reviewer.id);
+    expect(queue.backlog).toBe(0); expect(queue.candidates).toHaveLength(0);
+    expect(queue.operations.statuses.FAILED).toBe(1); expect(queue.operations.closedPendingProposals).toBe(1);
+    expect(JSON.stringify(queue.operations)).not.toContain("private internal trace");
+    await db.aiCoachReviewerGrant.update({ where: { id: a.grant.id }, data: { revokedAt: new Date() } });
+    await expect(getReviewerQueue(a.reviewer.id)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
   it("ordinary coaches cannot see the queue or approve plans", async () => {
     const { plan } = await fixture(); const ordinary = await user();
     await expect(getReviewerQueue(ordinary.id)).rejects.toMatchObject({ code: "FORBIDDEN" });

@@ -43,5 +43,8 @@ describe("synthetic initial plan contract", () => {
     expect((window.activationEndsAt.getTime() - window.activationStartsAt.getTime()) / 3600000).toBe(hours);
     expect(window.lookbackEnd).toEqual(window.activationStartsAt);
   });
+  it.each([["2026-04-06T12:00:00Z", "2026-02-09T08:00:00.000Z"], ["2026-11-09T12:00:00Z", "2026-09-14T07:00:00.000Z"]])("keeps eight-week evidence boundaries at local midnight: %s", (now, expected) => {
+    expect(reviewWindow(new Date(now), "America/Los_Angeles").evidenceStartsAt.toISOString()).toBe(expected);
+  });
   it("rejects invalid review zones", () => expect(() => reviewWindow(new Date(), "not-a-zone")).toThrow());
 });

@@ -16,5 +16,5 @@ export function reviewWindow(now: Date, zone: string) {
     d.setUTCDate(d.getUTCDate() + days);
     return dayjs.tz(`${d.toISOString().slice(0, 10)} 00:00`, zone).toDate();
   };
-  return { key, activationStartsAt: shift(0), activationEndsAt: shift(7), lookbackStart: shift(-7), lookbackEnd: shift(0) };
+  return { key, activationStartsAt: shift(0), activationEndsAt: shift(7), lookbackStart: shift(-7), lookbackEnd: shift(0), evidenceStartsAt: shift(-56) };
 }

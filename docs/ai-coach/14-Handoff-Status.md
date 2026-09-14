@@ -661,3 +661,21 @@ snapshot. Web coaching settings link to the download. Tests cover 105-record
 pagination, another owner's private record, deactivation and cancellation.
 Type-check, 216 integration tests, 425 unit tests and build pass; lint unchanged
 at 14 errors/64 warnings. Logs: `/private/tmp/steadfast-export-*`.
+
+### A11e — assigned operational visibility and calendar evidence (2026-09-14)
+
+Reviewer operations show seven-day run outcomes/retries, expired leases, oldest
+open run, closed-window proposals and undelivered notification intents, scoped
+to assigned synthetic clients. Revocation/assignment are rechecked after reads;
+raw errors/prompts are never returned. Closed-window proposals leave the active
+review queue. Notification delivery explicitly remains unconfigured, not falsely
+reported as sent. The eight-week evidence boundary now uses local-calendar
+midnight across DST, with spring/fall tests.
+
+Verified together with the authority follow-up: 218 integration tests and 427
+unit tests pass, type-check/build pass, lint unchanged at 14 errors/64 warnings.
+The initial unrestricted integration run hit six 5-second test timeouts while
+Xcode/web builds competed for resources. The unchanged tests passed with
+`--maxWorkers=4`; no timeouts were increased. Final logs:
+`/private/tmp/steadfast-authority-*`. Real alert owners/thresholds and deployed
+scheduler/delivery evidence remain external launch artifacts.
