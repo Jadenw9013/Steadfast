@@ -114,6 +114,8 @@ suite("account deletion with real PostgreSQL constraints", () => {
     });
     await db.aiCoachProfile.update({ where: { id: profile.id }, data: { activePlanVersionId: plan.id } });
     await db.aiAdjustmentSlot.create({ data: { clientId: user.id, reviewWindowKey: "2026-W01", acceptedPlanVersionId: plan.id } });
+    await db.aiPlanAcceptanceOutbox.create({ data: { clientId: user.id, planVersionId: plan.id } });
+    await db.aiPlanAcceptanceReceipt.create({ data: { clientId: user.id, requestKey: "test-key", inputDigest: "digest", planVersionId: plan.id, alreadyAccepted: false, activeVersionIdAtReceiptTime: plan.id } });
     await db.aiWorkoutSession.create({
       data: { clientId: user.id, clientEventId: "evt-1", planVersionId: plan.id, exerciseId: "ex-1", occurredAt: new Date(), timezone: "UTC", setIndex: 0, loadKind: "BODYWEIGHT" },
     });
@@ -133,6 +135,8 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(await db.aiAdjustmentSlot.findFirst({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiWorkoutSession.findFirst({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiCoachRun.findUnique({ where: { id: run.id } })).toBeNull();
+    expect(await db.aiPlanAcceptanceOutbox.findFirst({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiPlanAcceptanceReceipt.findFirst({ where: { clientId: user.id } })).toBeNull();
   });
   it("keeps all DB records and identity when storage cleanup fails", async () => {
     const { user, receipt, checkIn } = await fixture();

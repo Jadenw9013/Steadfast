@@ -221,6 +221,9 @@ export async function purgeUserAccount(userId: string): Promise<void> {
   await tx.$executeRaw`DELETE FROM "AiWorkoutSession" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiAdjustmentSlot" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiCoachRun" WHERE "clientId" = ${userId}`;
+  // A10 — must precede AiPlanVersion (outbox FKs to it); receipt only FKs to User.
+  await tx.$executeRaw`DELETE FROM "AiPlanAcceptanceOutbox" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "AiPlanAcceptanceReceipt" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiPlanVersion" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiCoachProfile" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "AiCoachEntitlement" WHERE "clientId" = ${userId}`;

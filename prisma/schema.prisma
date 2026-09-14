@@ -148,6 +148,8 @@ model User {
   aiCoachReviewerGrant AiCoachReviewerGrant?
   aiIntakeDraft        AiIntakeDraft?
   aiSafetyDisclosures  AiSafetyDisclosureEvent[]
+  aiPlanAcceptanceReceipts AiPlanAcceptanceReceipt[]
+  aiPlanAcceptanceOutbox   AiPlanAcceptanceOutbox[]
 }
 
 enum CoachingMode {
@@ -427,6 +429,8 @@ model AiPlanVersion {
   reviewerApprovalHash String?
 
   acceptedAt DateTime? // permanent once set — never cleared or reused
+  // A10: bounded, optional — set only by declinePlanVersion, only from PROPOSED.
+  declineReason String? @db.Text
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -437,9 +441,51 @@ model AiPlanVersion {
   approval     AiPlanReviewerApproval?
   adjustmentSlot AiAdjustmentSlot?
   workoutSessions AiWorkoutSession[]
+  acceptanceOutboxEntry AiPlanAcceptanceOutbox?
 
   @@unique([clientId, version])
   @@index([clientId, status])
+}
+
+// A10 — idempotency receipt for the accept-plan-version operation. Scoped
+// to (clientId, requestKey): the same key+payload replayed returns the
+// original receipt; the same key with a different payload (different
+// inputDigest) is a REVISION_CONFLICT, never silently re-executed
+// (docs/ai-coach/05 "Scope idempotency to authenticated owner and
+// operation"). The stored `activeVersionIdAtReceiptTime` is audit-only —
+// a replay must freshly re-read AiCoachProfile.activePlanVersionId rather
+// than trust this cached value as current state.
+model AiPlanAcceptanceReceipt {
+  id                            String   @id @default(cuid())
+  clientId                      String
+  requestKey                    String
+  inputDigest                   String
+  planVersionId                 String
+  alreadyAccepted               Boolean
+  activeVersionIdAtReceiptTime  String
+  createdAt                     DateTime @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@unique([clientId, requestKey])
+}
+
+// A10 — durable, deduplicated notification-intent record, inserted in the
+// same transaction as acceptance (docs/ai-coach/05 step 5: "insert a
+// deduplicated outbox event atomically"). One row per accepted plan
+// version, ever — a replayed acceptance can never enqueue a second
+// notification for the same version. No delivery channel is wired here;
+// `processedAt` exists for a future sweep to claim, matching this
+// codebase's StorageCleanupOutbox pattern.
+model AiPlanAcceptanceOutbox {
+  id            String    @id @default(cuid())
+  planVersionId String    @unique
+  clientId      String
+  createdAt     DateTime  @default(now())
+  processedAt   DateTime?
+
+  client      User          @relation(fields: [clientId], references: [id])
+  planVersion AiPlanVersion @relation(fields: [planVersionId], references: [id])
 }
 
 // One accepted ROUTINE change per client per canonical review window,
