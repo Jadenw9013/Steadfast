@@ -536,3 +536,22 @@ post-approval source deletion. Type-check/build pass; 197 integration and 424 un
 tests pass; lint remains 14 errors/64 warnings. No live migration/deployment.
 The check-in and activity UI, operational resolution/capacity and provider-aware
 web/native integration still need completion; clinical gates remain external.
+
+## A08c — usable evidence forms and correction/deletion (2026-09-14)
+
+Added structured check-in and strength/cardio forms, resumable server drafts,
+revisioned corrections, explicit date/units/completeness, separate concern saves,
+and repeated workout/set controls. Concerns save before unrelated client form
+validation. No health answers are written to local storage. Uncertain saves retain
+request/event identity; next sets retain workout identity and receive new events.
+Deletion requires an explicit current-record confirmation, tombstones/scrubs the
+source, invalidates referenced proposals and never clears safety restrictions.
+The UI explains that prior review snapshots follow account retention.
+
+Type-check/build, 199 integration and 424 unit tests pass; lint stays at its
+14-error/64-warning baseline. `pnpm exec node tests/browser/ai-coach-evidence.mjs`
+exercises real React controls with a synthetic HTTP boundary: draft reload,
+uncertain retry, correction, missing weight, concern despite invalid date,
+consecutive typed sets and 390px layout. Screenshots were visually inspected at
+`/private/tmp/steadfast-evidence-qa/`. This is not an authenticated production E2E
+or clinical usability study. All changes remain local and fixture-gated.

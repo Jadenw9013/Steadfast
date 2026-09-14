@@ -1,0 +1,78 @@
+// Real React controls with a synthetic HTTP boundary. No production auth bypass.
+// Run: pnpm exec node tests/browser/ai-coach-evidence.mjs
+import { createRequire } from 'node:module';
+import { readFileSync, readdirSync, mkdirSync } from 'node:fs';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+const require = createRequire(import.meta.url);
+const { build } = require('esbuild');
+const { chromium } = require('@playwright/test');
+const root = process.cwd();
+const view = { schemaVersion: 1, origin: 'AI', contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 0, confirmedIntake: null, draft: null, reviewTimezone: 'America/Los_Angeles', permissions: { nutrition: 'ALLOW', strength: 'ALLOW', cardio: 'ALLOW' }, safetyDisposition: 'CLEAR', proposals: [], runs: [], activePlan: { id: 'fixture-plan', acceptedAt: new Date().toISOString(), payload: { schemaVersion: 1, contentKind: 'SYNTHETIC_FIXTURE', nutrition: null, meals: null, strength: [{ sessionId: 'strength-1', templateId: 'fixture', day: 1, exercises: [{ exerciseId: 'bodyweight-squat', catalogVersion: 'exercise-fixture-v1', sets: 2, reps: 8, restSeconds: 90, effort: 'Fixture' }] }], cardio: [], policyVersion: 'policy-fixture-v1', catalogVersions: { food: 'food-fixture-v2', exercise: 'exercise-fixture-v1' } } } };
+const bundle = await build({ stdin: { contents: `import React from 'react'; import {createRoot} from 'react-dom/client'; import {AiCheckInForm,AiSessionForm} from './components/ai-coach/evidence-forms'; const view=${JSON.stringify(view)}; createRoot(document.getElementById('root')).render(location.pathname.includes('sessions') ? <AiSessionForm view={view} onRefresh={async()=>{}}/> : <AiCheckInForm onRefresh={async()=>{}}/>);`, resolveDir: root, loader: 'tsx' }, bundle: true, write: false, platform: 'browser', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"test"' } });
+const cssDir = path.join(root, '.next/static/chunks');
+const css = readdirSync(cssDir).filter(n => n.endsWith('.css')).map(n => readFileSync(path.join(cssDir, n), 'utf8')).join('\n');
+const browser = await chromium.launch({ args: ['--no-proxy-server'] });
+try {
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const records = { 'check-ins': [], sessions: [] }; const calls = []; let abortOnce = true;
+  await page.route('http://localhost:4175/**', async route => {
+    const req = route.request(), url = new URL(req.url());
+    if (!url.pathname.startsWith('/api/')) return route.fulfill({ contentType: 'text/html', body: `<html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css}</style></head><body style="background:#09090b;padding:16px"><div id="root"></div><script>${bundle.outputFiles[0].text}</script></body></html>` });
+    const kind = url.pathname.split('/').at(-1);
+    if (req.method() === 'GET') return route.fulfill({ json: { data: records[kind] ?? [] } });
+    const input = req.postDataJSON(); calls.push({ kind, input });
+    if (kind === 'check-ins' && abortOnce) { abortOnce = false; return route.abort('connectionreset'); }
+    if (kind === 'concerns') return route.fulfill({ json: { data: { saved: true } } });
+    const existing = records[kind].find(r => r.clientEventId === input.clientEventId);
+    const row = { ...input, id: existing?.id ?? `record-${calls.length}`, revision: (existing?.revision ?? 0) + 1, submitted: input.submit };
+    if (existing) records[kind].splice(records[kind].indexOf(existing), 1, row); else records[kind].push(row);
+    return route.fulfill({ json: { data: { id: row.id, revision: row.revision, submitted: row.submitted } } });
+  });
+  await page.goto('http://localhost:4175/check-in');
+  await page.getByLabel('Observation date and time').fill('2026-09-09T09:00');
+  await page.getByLabel('Energy', { exact: true }).selectOption('OK');
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: /fetch|connection/i }).waitFor();
+  await page.getByRole('button', { name: 'Save draft', exact: true }).click();
+  await page.getByRole('button', { name: /Resume draft/ }).waitFor();
+  assert.equal(calls[0].input.requestKey, calls[1].input.requestKey, 'uncertain retries keep the request key');
+  assert.equal(calls[0].input.clientEventId, calls[1].input.clientEventId);
+  await page.reload(); await page.getByRole('button', { name: /Resume draft/ }).click();
+  assert.equal(await page.getByLabel('Energy', { exact: true }).inputValue(), 'OK');
+  await page.getByLabel('Report completeness').selectOption('REPORTED_COMPLETE');
+  await page.getByLabel('Days you followed').fill('6');
+  await page.getByLabel('Recovery', { exact: true }).selectOption('GOOD');
+  await page.getByLabel('Hunger', { exact: true }).selectOption('MANAGEABLE');
+  await page.getByLabel('Main barrier').selectOption('NONE');
+  await page.getByLabel('Any new symptoms').selectOption('NO');
+  await page.getByRole('button', { name: 'Submit check-in', exact: true }).click();
+  await page.getByRole('button', { name: 'Save correction', exact: true }).waitFor();
+  assert.equal(records['check-ins'].length, 1); assert.equal(records['check-ins'][0].payload.weight, null);
+  await page.getByLabel('Any new symptoms').selectOption('YES');
+  await page.getByLabel('Observation date and time').fill('');
+  await page.getByRole('button', { name: 'Save correction', exact: true }).click();
+  await page.getByRole('status').filter({ hasText: /Choose the date/ }).waitFor();
+  assert.equal(calls.at(-1).kind, 'concerns', 'concern persists before date validation');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  mkdirSync('/private/tmp/steadfast-evidence-qa', { recursive: true });
+  await page.screenshot({ path: '/private/tmp/steadfast-evidence-qa/check-in.png', fullPage: true });
+  await page.goto('http://localhost:4175/sessions');
+  await page.getByLabel('Planned activity').selectOption('strength-1|bodyweight-squat');
+  await page.getByLabel('Activity date and time').fill('2026-09-09T09:00');
+  await page.getByLabel('Completion status').selectOption('REPORTED_COMPLETE');
+  await page.getByLabel('Completed repetitions').fill('8');
+  await page.getByLabel('Load type').selectOption('BODYWEIGHT');
+  await page.getByLabel('Did you experience pain').selectOption('false');
+  await page.getByRole('button', { name: 'Save activity', exact: true }).click();
+  await page.getByRole('button', { name: 'Next set in this workout' }).click();
+  await page.getByLabel('Completed repetitions').fill('7');
+  await page.getByLabel('Did you experience pain').selectOption('false');
+  await page.getByRole('button', { name: 'Save activity', exact: true }).click();
+  await page.getByRole('button', { name: /set 2 · Correct/ }).waitFor();
+  assert.equal(records.sessions.length, 2); assert.equal(records.sessions[0].sessionInstanceId, records.sessions[1].sessionInstanceId);
+  assert.equal(records.sessions[1].loadValue, 0); assert.notEqual(records.sessions[0].clientEventId, records.sessions[1].clientEventId);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: '/private/tmp/steadfast-evidence-qa/sessions.png', fullPage: true });
+  console.log('PASS: draft reload, uncertain retry, correction, missingness, independent concern, typed sets, narrow layout');
+} finally { await browser.close(); }

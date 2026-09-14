@@ -8,7 +8,7 @@ export default async function AiCoachPage({ params }: { params: Promise<{ path?:
   const user = await getCurrentDbUser();
   if (!user.isClient) redirect("/coach/dashboard");
   const { path = [] } = await params;
-  if (path.length > 2 || (path[0] && !["start", "intake", "progress", "proposals", "reviews", "settings"].includes(path[0]))) notFound();
+  if (path.length > 2 || (path[0] && !["start", "intake", "progress", "proposals", "reviews", "settings", "check-in", "sessions"].includes(path[0]))) notFound();
   let data;
   try { data = await getAiWorkspace(user.id); } catch (error) {
     if (!(error instanceof AiCoachError)) throw error;
