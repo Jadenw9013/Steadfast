@@ -1233,6 +1233,12 @@ model CoachSubscription {
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean            @default(false)
   trialEnd             DateTime?
+  // CB11: the Stripe Event.created timestamp of the last webhook event
+  // actually applied to this row. Stripe does not guarantee in-order
+  // webhook delivery; an update is only applied if its event is not
+  // older than this, so a late-arriving stale payload can't regress
+  // already-applied entitlement state.
+  lastEventAt          DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }
