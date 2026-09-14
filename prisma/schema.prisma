@@ -362,6 +362,12 @@ model AiCoachRun {
   retryOfRunId    String?
   lastError       String?   @db.Text
 
+  // A05: the last persisted stage output, written atomically with a
+  // RUNNING→QUEUED checkpoint so a resumed run continues from real
+  // progress instead of repeating a stage. Never holds prompts/model
+  // traces meant for end-user or reviewer display — see run-status.ts.
+  checkpointData Json?
+
   // Result — set once, on the terminal COMPLETED transition.
   resultPlanVersionId String?
   resultReviewAction  AiReviewAction?

@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import type { AiCoachRun, AiReviewAction } from "@/app/generated/prisma/client";
+import type { AiCoachRun, AiReviewAction, Prisma } from "@/app/generated/prisma/client";
 
 /**
  * AiCoachRun lifecycle (A02, A05 owns the actual executor/cron). All
@@ -46,15 +46,17 @@ export async function claimQueuedRun(runId: string): Promise<ClaimResult> {
 }
 
 /**
- * RUNNING → QUEUED, only for the caller holding the current fencing token
- * (a persisted stage checkpoint has already been written by the caller
- * before calling this — that write is out of scope for this module until
- * A05 defines stage-output storage).
+ * RUNNING → QUEUED, only for the caller holding the current fencing
+ * token, persisting the stage's output atomically with the state
+ * transition (A05: "stage outputs"). A resumed run reads this back via
+ * `run.checkpointData` to continue from real progress instead of
+ * repeating a completed stage. Never store prompts or raw model traces
+ * here — see run-status.ts for what may reach a client/reviewer view.
  */
-export async function checkpointAndRequeue(runId: string, fencingToken: number): Promise<boolean> {
+export async function checkpointAndRequeue(runId: string, fencingToken: number, checkpointData?: Prisma.InputJsonValue): Promise<boolean> {
   const result = await db.aiCoachRun.updateMany({
     where: { id: runId, status: "RUNNING", fencingToken },
-    data: { status: "QUEUED", leaseExpiresAt: null },
+    data: { status: "QUEUED", leaseExpiresAt: null, ...(checkpointData !== undefined ? { checkpointData } : {}) },
   });
   return result.count > 0;
 }
