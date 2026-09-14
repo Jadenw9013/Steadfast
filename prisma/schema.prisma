@@ -266,6 +266,10 @@ model MacroTarget {
 enum MealPlanStatus {
   DRAFT
   PUBLISHED
+  // A plan that was published but has since been replaced by a newer
+  // published plan for the same client/week. Content is retained (CB04 —
+  // clients keep prior published history); only PUBLISHED is "current."
+  SUPERSEDED
 }
 
 // MEAL_PLAN = coach fills in real foods (MealPlanItem rows, existing behavior).
@@ -292,6 +296,7 @@ model MealPlan {
   items        MealPlanItem[]
   macroTargets MealMacroTarget[]
 
+  @@unique([clientId, weekOf, version])
   @@index([clientId, weekOf])
   @@index([clientId, status])
 }
@@ -579,6 +584,9 @@ model TrainingTemplateCardio {
 enum TrainingProgramStatus {
   DRAFT
   PUBLISHED
+  // See MealPlanStatus.SUPERSEDED — a published program later replaced by a
+  // newer published program for the same client (CB05).
+  SUPERSEDED
 }
 
 enum BlockType {

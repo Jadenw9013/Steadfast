@@ -64,7 +64,10 @@ function buildCardioDayBlock(cardio: {
 
 type InitialProgram = {
   id: string;
-  status: "DRAFT" | "PUBLISHED";
+  // getTrainingProgramForReview only ever returns a DRAFT or PUBLISHED
+  // program; SUPERSEDED is included here only because it's part of the
+  // underlying Prisma enum type, not because it can reach this component.
+  status: "DRAFT" | "PUBLISHED" | "SUPERSEDED";
   templateSourceId: string | null;
   weeklyFrequency: number | null;
   clientNotes: string | null;
@@ -196,7 +199,7 @@ export function TrainingProgramEditor({
   const [mode, setMode] = useState<Mode>(initialProgram ? "edit" : "empty");
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
   const [programId, setProgramId] = useState<string | null>(initialProgram?.id ?? null);
-  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | null>(
+  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "SUPERSEDED" | null>(
     initialProgram?.status ?? null
   );
   const [days, setDays] = useState<TrainingDayGroup[]>(_extracted.trainingDays);

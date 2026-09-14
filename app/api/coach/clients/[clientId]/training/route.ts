@@ -284,13 +284,54 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const program = await db.trainingProgram.findUnique({
       where: { id: programId },
-      select: { clientId: true, status: true },
+      select: { clientId: true, status: true, weekOf: true, templateSourceId: true, injuries: true, equipment: true },
     });
     if (!program) {
       return NextResponse.json({ error: "Program not found" }, { status: 404 });
     }
     if (program.clientId !== clientId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // CB05: never demote or mutate a PUBLISHED/SUPERSEDED program in place —
+    // fork a new draft carrying the submitted content instead. Mirrors
+    // app/actions/training-programs.ts's saveTrainingProgram.
+    if (program.status !== "DRAFT") {
+      const forkedId = await db.$transaction(async (tx) => {
+        const fresh = await tx.trainingProgram.create({
+          data: {
+            clientId,
+            weekOf: program.weekOf,
+            status: "DRAFT",
+            weeklyFrequency: weeklyFrequency ?? null,
+            clientNotes: clientNotes ?? null,
+            injuries: program.injuries,
+            equipment: program.equipment,
+            templateSourceId: program.templateSourceId,
+          },
+          select: { id: true },
+        });
+        for (const day of days) {
+          await tx.trainingDay.create({
+            data: {
+              programId: fresh.id,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              dayName: (day.dayName || undefined) as any,
+              sortOrder: day.sortOrder,
+              blocks: {
+                create: day.blocks.map((b) => ({
+                  type: b.type,
+                  title: b.title ?? null,
+                  content: b.content ?? null,
+                  sortOrder: b.sortOrder,
+                })),
+              },
+            },
+          });
+        }
+        return fresh.id;
+      });
+      return NextResponse.json({ success: true, forkedNewProgramId: forkedId });
     }
 
     // Atomic replace: delete all days (cascades to blocks), recreate

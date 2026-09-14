@@ -198,12 +198,19 @@ function MealPlanEditorV2Body({
     setSaving(true);
     try {
       if (draftId) {
-        await saveDraftMealPlan({
+        const result = await saveDraftMealPlan({
           mealPlanId: draftId,
           items: flattenMeals(meals),
           planExtras: planExtras ?? undefined,
           supportContent: supportContent || undefined,
         });
+        // The draft we thought we had was actually published/superseded by
+        // someone else in the meantime — the server forked a fresh draft
+        // rather than corrupting the live plan. Adopt its id so the next
+        // save/publish targets the right row.
+        if ("forkedNewDraftId" in result && result.forkedNewDraftId) {
+          setDraftId(result.forkedNewDraftId);
+        }
       } else {
         await ensureDraft();
       }
@@ -216,15 +223,18 @@ function MealPlanEditorV2Body({
   async function handlePublish() {
     setPublishing(true);
     try {
-      const id = draftId ?? (await ensureDraft());
+      let id = draftId ?? (await ensureDraft());
       if (!id) return;
       // Save latest items before publishing
-      await saveDraftMealPlan({
+      const saveResult = await saveDraftMealPlan({
         mealPlanId: id,
         items: flattenMeals(meals),
         planExtras: planExtras ?? undefined,
         supportContent: supportContent || undefined,
       });
+      if ("forkedNewDraftId" in saveResult && saveResult.forkedNewDraftId) {
+        id = saveResult.forkedNewDraftId;
+      }
       await publishMealPlan({ mealPlanId: id, notifyClient });
       // Clear stale draft ID — the plan is now PUBLISHED.
       // Next edit will create a fresh draft via ensureDraft().

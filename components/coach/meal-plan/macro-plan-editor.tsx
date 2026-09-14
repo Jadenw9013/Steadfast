@@ -188,7 +188,13 @@ export function MacroPlanEditor({
     setSaving(true);
     try {
       if (draftId) {
-        await saveDraftMealPlan({ mealPlanId: draftId, macroTargets: flattenMacroMeals(meals) });
+        const result = await saveDraftMealPlan({ mealPlanId: draftId, macroTargets: flattenMacroMeals(meals) });
+        // Someone else published/superseded this draft in the meantime —
+        // the server forked a fresh one rather than corrupting the live
+        // plan. Adopt its id.
+        if ("forkedNewDraftId" in result && result.forkedNewDraftId) {
+          setDraftId(result.forkedNewDraftId);
+        }
       } else {
         await ensureDraft();
       }
@@ -201,9 +207,12 @@ export function MacroPlanEditor({
   async function handlePublish() {
     setPublishing(true);
     try {
-      const id = draftId ?? (await ensureDraft());
+      let id = draftId ?? (await ensureDraft());
       if (!id) return;
-      await saveDraftMealPlan({ mealPlanId: id, macroTargets: flattenMacroMeals(meals) });
+      const saveResult = await saveDraftMealPlan({ mealPlanId: id, macroTargets: flattenMacroMeals(meals) });
+      if ("forkedNewDraftId" in saveResult && saveResult.forkedNewDraftId) {
+        id = saveResult.forkedNewDraftId;
+      }
       await publishMealPlan({ mealPlanId: id, notifyClient });
       setDraftId(null);
       router.refresh();

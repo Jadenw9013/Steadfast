@@ -52,47 +52,25 @@ export async function saveTrainingProgram(input: unknown) {
 
   const weekOf = parseWeekStartDate(weekStartDate);
 
+  // CB05: only ever continue editing an existing DRAFT. A PUBLISHED or
+  // SUPERSEDED program for this client/week is never demoted or mutated —
+  // that previously let a save silently flip a client's live program back
+  // to DRAFT (and overwrite its content) mid-edit. Editing one instead
+  // creates a brand-new draft.
   const existing = await db.trainingProgram.findFirst({
-    where: { clientId, weekOf },
-    orderBy: { updatedAt: "desc" },
+    where: { clientId, weekOf, status: "DRAFT" },
     select: { id: true },
   });
 
-  let programId: string;
-  if (existing) {
-    programId = existing.id;
-    await db.trainingProgram.update({
-      where: { id: programId },
-      data: {
-        status: "DRAFT",
-        weeklyFrequency: weeklyFrequency ?? null,
-        clientNotes: clientNotes ?? null,
-        injuries: injuries ?? null,
-        equipment: equipment ?? null,
-        templateSourceId: templateSourceId ?? null,
-      },
-    });
-  } else {
-    const program = await db.trainingProgram.create({
-      data: {
-        clientId,
-        weekOf,
-        status: "DRAFT",
-        weeklyFrequency: weeklyFrequency ?? null,
-        clientNotes: clientNotes ?? null,
-        injuries: injuries ?? null,
-        equipment: equipment ?? null,
-        templateSourceId: templateSourceId ?? null,
-      },
-      select: { id: true },
-    });
-    programId = program.id;
-  }
-
-  // Atomically replace all days (cascade deletes blocks)
-  await db.$transaction([
-    db.trainingDay.deleteMany({ where: { programId } }),
-    ...days.map((day, i) =>
+  const metadata = {
+    weeklyFrequency: weeklyFrequency ?? null,
+    clientNotes: clientNotes ?? null,
+    injuries: injuries ?? null,
+    equipment: equipment ?? null,
+    templateSourceId: templateSourceId ?? null,
+  };
+  const dayCreateOps = (programId: string) =>
+    days.map((day, i) =>
       db.trainingDay.create({
         data: {
           programId,
@@ -108,8 +86,27 @@ export async function saveTrainingProgram(input: unknown) {
           },
         },
       })
-    ),
-  ]);
+    );
+
+  let programId: string;
+  if (existing) {
+    programId = existing.id;
+    // Metadata and children commit together (CB05 — previously the
+    // metadata update and the days/blocks replacement were two separate,
+    // non-atomic operations).
+    await db.$transaction([
+      db.trainingProgram.update({ where: { id: programId }, data: metadata }),
+      db.trainingDay.deleteMany({ where: { programId } }),
+      ...dayCreateOps(programId),
+    ]);
+  } else {
+    const program = await db.trainingProgram.create({
+      data: { clientId, weekOf, status: "DRAFT", ...metadata },
+      select: { id: true },
+    });
+    programId = program.id;
+    await db.$transaction(dayCreateOps(programId));
+  }
 
   revalidatePath("/coach", "layout");
   return { programId };
@@ -128,13 +125,31 @@ export async function publishTrainingProgram(input: unknown) {
     select: { clientId: true, status: true },
   });
   if (!program) throw new Error("Training program not found");
+  if (program.status !== "DRAFT") throw new Error("Can only publish drafts");
 
   await verifyCoachAccessToClient(program.clientId);
 
-  await db.trainingProgram.update({
-    where: { id: parsed.data.programId },
-    data: { status: "PUBLISHED", publishedAt: new Date() },
+  // Atomic: demote the client's other currently-PUBLISHED program to
+  // SUPERSEDED (CB05 — at most one PUBLISHED program per client, enforced
+  // by a partial unique index) before publishing this one, and only flip
+  // this program's status if it's still DRAFT (guards a concurrent
+  // double-publish via updateMany's affected-row count).
+  const publishedAt = new Date();
+  const result = await db.$transaction(async (tx) => {
+    await tx.trainingProgram.updateMany({
+      // Exclude the target itself — see app/actions/meal-plans.ts's identical
+      // guard against a losing racer clobbering the winner's just-published row.
+      where: { clientId: program.clientId, status: "PUBLISHED", id: { not: parsed.data.programId } },
+      data: { status: "SUPERSEDED" },
+    });
+    return tx.trainingProgram.updateMany({
+      where: { id: parsed.data.programId, status: "DRAFT" },
+      data: { status: "PUBLISHED", publishedAt },
+    });
   });
+  if (result.count === 0) {
+    throw new Error("This program was already published or changed by someone else — refresh and try again.");
+  }
 
   revalidatePath("/coach", "layout");
   revalidatePath("/client", "layout");

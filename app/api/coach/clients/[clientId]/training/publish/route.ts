@@ -66,10 +66,29 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    await db.trainingProgram.update({
-      where: { id: programId },
-      data: { status: "PUBLISHED", publishedAt: new Date() },
+    // CB05: demote the client's other currently-PUBLISHED program to
+    // SUPERSEDED atomically with this publish (partial unique index enforces
+    // at most one PUBLISHED per client), and only flip this program's
+    // status if it's still DRAFT (guards a concurrent double-publish).
+    const publishedAt = new Date();
+    const result = await db.$transaction(async (tx) => {
+      await tx.trainingProgram.updateMany({
+        // Exclude the target itself — a losing racer must never clobber the
+        // row the winner just published.
+        where: { clientId, status: "PUBLISHED", id: { not: programId } },
+        data: { status: "SUPERSEDED" },
+      });
+      return tx.trainingProgram.updateMany({
+        where: { id: programId, status: "DRAFT" },
+        data: { status: "PUBLISHED", publishedAt },
+      });
     });
+    if (result.count === 0) {
+      return NextResponse.json(
+        { error: "This program was already published or changed by someone else" },
+        { status: 409 }
+      );
+    }
 
     // Fire-and-forget push to client
     // NOTE: The schema has no separate pushTrainingUpdates preference column. We gate

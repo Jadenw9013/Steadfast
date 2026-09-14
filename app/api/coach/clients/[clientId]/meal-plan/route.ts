@@ -10,6 +10,7 @@ import {
   macroTargetTransactionOps,
   resolveDefaultPlanMode,
 } from "@/lib/meal-plans/macro-targets";
+import { createMealPlanWithNextVersion } from "@/lib/meal-plans/version";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -207,14 +208,6 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
     }
 
-    // Determine next version number
-    const latestVersion = await db.mealPlan.findFirst({
-      where: { clientId, weekOf },
-      orderBy: { version: "desc" },
-      select: { version: true },
-    });
-    const nextVersion = (latestVersion?.version ?? 0) + 1;
-
     let itemsToCreate: z.infer<typeof mealPlanItemSchema>[] = [];
     let macroTargetsToCreate: z.infer<typeof mealMacroTargetSchema>[] = parsed.data.macroTargets ?? [];
     let extrasToStore = parsed.data.planExtras;
@@ -276,27 +269,22 @@ export async function POST(req: NextRequest, { params }: Params) {
       planMode = await resolveDefaultPlanMode(user.id, clientId);
     }
 
-    const plan = await db.mealPlan.create({
-      data: {
-        clientId,
-        weekOf,
-        version: nextVersion,
-        status: "DRAFT",
-        planMode,
-        planExtras: extrasToStore ?? undefined,
-        items: { create: itemsToCreate },
-        macroTargets: { create: macroTargetsToCreate },
-      },
-      select: {
-        id: true,
-        weekOf: true,
-        version: true,
-        status: true,
-        planMode: true,
-      },
+    const plan = await createMealPlanWithNextVersion(clientId, weekOf, (version) => ({
+      clientId,
+      weekOf,
+      version,
+      status: "DRAFT",
+      planMode,
+      planExtras: extrasToStore ?? undefined,
+      items: { create: itemsToCreate },
+      macroTargets: { create: macroTargetsToCreate },
+    }));
+    const fullPlan = await db.mealPlan.findUniqueOrThrow({
+      where: { id: plan.id },
+      select: { id: true, weekOf: true, version: true, status: true, planMode: true },
     });
 
-    return NextResponse.json({ mealPlan: plan }, { status: 201 });
+    return NextResponse.json({ mealPlan: fullPlan }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
@@ -347,13 +335,33 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const plan = await db.mealPlan.findUnique({
       where: { id: mealPlanId },
-      select: { clientId: true, status: true },
+      select: { clientId: true, status: true, weekOf: true, planMode: true, planExtras: true, supportContent: true },
     });
     if (!plan) {
       return NextResponse.json({ error: "Meal plan not found" }, { status: 404 });
     }
     if (plan.clientId !== clientId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // CB04: never mutate a PUBLISHED/SUPERSEDED plan in place — fork a new
+    // draft carrying the submitted content instead. Mirrors
+    // app/actions/meal-plans.ts's saveDraftMealPlan.
+    if (plan.status !== "DRAFT") {
+      const forked = await createMealPlanWithNextVersion(plan.clientId, plan.weekOf, (version) => ({
+        clientId: plan.clientId,
+        weekOf: plan.weekOf,
+        version,
+        status: "DRAFT",
+        planMode: plan.planMode,
+        planExtras: (planExtras !== undefined ? planExtras : plan.planExtras) ?? undefined,
+        supportContent: plan.supportContent ?? undefined,
+        items: items !== undefined
+          ? { create: items.map((item, i) => ({ ...item, sortOrder: i, servingDescription: item.servingDescription ?? null })) }
+          : undefined,
+        macroTargets: macroTargets !== undefined ? { create: macroTargets } : undefined,
+      }));
+      return NextResponse.json({ success: true, forkedNewDraftId: forked.id });
     }
 
     await db.$transaction([

@@ -14,6 +14,7 @@ import {
   macroTargetTransactionOps,
   resolveDefaultPlanMode,
 } from "@/lib/meal-plans/macro-targets";
+import { createMealPlanWithNextVersion } from "@/lib/meal-plans/version";
 
 const mealPlanItemSchema = z.object({
   mealName: z.string().min(1).max(100),
@@ -47,14 +48,6 @@ export async function createDraftMealPlan(input: unknown) {
   const coach = await verifyCoachAccessToClient(clientId);
 
   const weekOf = parseWeekStartDate(weekStartDate);
-
-  // Determine next version number
-  const latestVersion = await db.mealPlan.findFirst({
-    where: { clientId, weekOf },
-    orderBy: { version: "desc" },
-    select: { version: true },
-  });
-  const nextVersion = (latestVersion?.version ?? 0) + 1;
 
   // Resolve items: explicit items > copy from published > empty
   let itemsToCreate: z.infer<typeof mealPlanItemSchema>[] = [];
@@ -112,23 +105,17 @@ export async function createDraftMealPlan(input: unknown) {
     planMode = await resolveDefaultPlanMode(coach.id, clientId);
   }
 
-  const plan = await db.mealPlan.create({
-    data: {
-      clientId,
-      weekOf,
-      version: nextVersion,
-      status: "DRAFT",
-      planMode,
-      planExtras: extrasToStore ?? undefined,
-      supportContent: supportContent ?? undefined,
-      items: { create: itemsToCreate },
-      macroTargets: { create: macroTargetsToCreate },
-    },
-    include: {
-      items: { orderBy: { sortOrder: "asc" } },
-      macroTargets: { orderBy: { sortOrder: "asc" } },
-    },
-  });
+  const plan = await createMealPlanWithNextVersion(clientId, weekOf, (version) => ({
+    clientId,
+    weekOf,
+    version,
+    status: "DRAFT",
+    planMode,
+    planExtras: extrasToStore ?? undefined,
+    supportContent: supportContent ?? undefined,
+    items: { create: itemsToCreate },
+    macroTargets: { create: macroTargetsToCreate },
+  }));
 
   revalidatePath("/coach", "layout");
   return { mealPlanId: plan.id };
@@ -152,11 +139,35 @@ export async function saveDraftMealPlan(input: unknown) {
 
   const plan = await db.mealPlan.findUnique({
     where: { id: mealPlanId },
-    select: { clientId: true, status: true },
+    select: { clientId: true, status: true, weekOf: true, planMode: true, planExtras: true, supportContent: true },
   });
   if (!plan) throw new Error("Meal plan not found");
 
   await verifyCoachAccessToClient(plan.clientId);
+
+  // CB04: a PUBLISHED (or SUPERSEDED) plan is never mutated in place — the
+  // client may be relying on its exact current content. Editing one instead
+  // forks a brand-new draft carrying the submitted content, leaving the
+  // published plan untouched. This also makes a stale client (e.g. a second
+  // tab open after someone else already published) fail safe instead of
+  // silently corrupting live content.
+  if (plan.status !== "DRAFT") {
+    const forked = await createMealPlanWithNextVersion(plan.clientId, plan.weekOf, (version) => ({
+      clientId: plan.clientId,
+      weekOf: plan.weekOf,
+      version,
+      status: "DRAFT",
+      planMode: plan.planMode,
+      planExtras: (planExtras !== undefined ? planExtras : plan.planExtras) ?? undefined,
+      supportContent: (supportContent !== undefined ? supportContent : plan.supportContent) ?? undefined,
+      items: items !== undefined
+        ? { create: items.map((item, i) => ({ ...item, sortOrder: i, servingDescription: item.servingDescription || null })) }
+        : undefined,
+      macroTargets: macroTargets !== undefined ? { create: macroTargets } : undefined,
+    }));
+    revalidatePath("/coach", "layout");
+    return { success: true, forkedNewDraftId: forked.id };
+  }
 
   // Replace all items/macroTargets (whichever was provided) + update extras
   await db.$transaction([
@@ -212,20 +223,34 @@ export async function publishMealPlan(input: unknown) {
 
   const plan = await db.mealPlan.findUnique({
     where: { id: parsed.data.mealPlanId },
-    select: { clientId: true, status: true },
+    select: { clientId: true, status: true, weekOf: true },
   });
   if (!plan) throw new Error("Meal plan not found");
   if (plan.status !== "DRAFT") throw new Error("Can only publish drafts");
 
   await verifyCoachAccessToClient(plan.clientId);
 
-  await db.mealPlan.update({
-    where: { id: parsed.data.mealPlanId },
-    data: {
-      status: "PUBLISHED",
-      publishedAt: new Date(),
-    },
+  // Atomic: demote any other currently-PUBLISHED plan for this client/week
+  // (CB04 — at most one PUBLISHED plan may exist, enforced by a partial
+  // unique index) before publishing this one, and only actually flip this
+  // plan's status if it's still DRAFT (guards a concurrent double-publish —
+  // updateMany's count tells us whether we won the race).
+  const publishedAt = new Date();
+  const result = await db.$transaction(async (tx) => {
+    // Exclude the target itself: a losing racer in a concurrent double-publish
+    // must never demote the row the winner just published.
+    await tx.mealPlan.updateMany({
+      where: { clientId: plan.clientId, weekOf: plan.weekOf, status: "PUBLISHED", id: { not: parsed.data.mealPlanId } },
+      data: { status: "SUPERSEDED" },
+    });
+    return tx.mealPlan.updateMany({
+      where: { id: parsed.data.mealPlanId, status: "DRAFT" },
+      data: { status: "PUBLISHED", publishedAt },
+    });
   });
+  if (result.count === 0) {
+    throw new Error("This plan was already published or changed by someone else — refresh and try again.");
+  }
 
   revalidatePath("/coach", "layout");
   revalidatePath("/client", "layout");
