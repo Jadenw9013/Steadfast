@@ -1,3 +1,4 @@
+import { assignFixtureReviewer } from "../helpers/ai-reviewer";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
@@ -19,7 +20,8 @@ const suite = enabled ? describe : describe.skip;
 suite("weekly review through real evidence, worker, reviewer and acceptance", () => {
   beforeEach(() => { vi.stubEnv("AI_COACH_FIXTURE_MODE", "true"); vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true"); vi.stubEnv("FEATURE_AI_COACH_PUBLICATION", "true"); }); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() {
-    const id = randomUUID(); const user = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } }); const zone = "America/Los_Angeles";
+    const id = randomUUID(); const user = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } });
+    await assignFixtureReviewer(user.id); const zone = "America/Los_Angeles";
     const intake = { goal: "BODY_COMPOSITION", experienceLevel: "NEW", trainingDaysPerWeek: 2, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
     const { payload } = buildInitialFixturePlan(intake, "initial-rx", "MEALS");
     const base = await db.aiPlanVersion.create({ data: { clientId: user.id, version: 1, status: "ACCEPTED", changeClass: "INITIAL", acceptedAt: new Date(Date.now() - 60 * 86400000), payload, payloadHash: contentHash(payload), policyVersion: payload.policyVersion, catalogVersions: payload.catalogVersions, contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 0, sourceRefs: [], validationReport: { engine: "managed-v1", passed: true, inputHash: "a".repeat(64) } } });

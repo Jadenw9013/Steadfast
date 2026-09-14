@@ -1,3 +1,4 @@
+import { assignFixtureReviewer } from "../helpers/ai-reviewer";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
@@ -16,6 +17,7 @@ suite("managed execution and permitted reads", () => {
   afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() {
     const id = randomUUID(); const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test`, isClient: true } });
+    await assignFixtureReviewer(client.id);
     await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
     await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
     await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true, consentedAt: new Date(), reviewTimezone: "America/Los_Angeles", confirmedIntake: { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 } } });

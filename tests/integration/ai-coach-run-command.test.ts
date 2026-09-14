@@ -1,3 +1,4 @@
+import { assignFixtureReviewer } from "../helpers/ai-reviewer";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
@@ -12,12 +13,25 @@ suite("managed run request boundary", () => {
   async function fixture() {
     const id = randomUUID();
     const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test`, isClient: true } });
+    await assignFixtureReviewer(client.id);
     await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
     await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
     await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true, consentedAt: new Date(), reviewTimezone: "America/Los_Angeles", confirmedIntake: { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 } } });
     return client;
   }
   const command = () => ({ requestKey: randomUUID(), kind: "INITIAL", representation: "MACROS", expectedContextRevision: 0, expectedProfileRevision: 0 });
+  it("requires current assigned reviewer scope and reserves bounded queue capacity", async () => {
+    const client = await fixture();
+    const grant = await db.aiCoachReviewerGrant.findFirstOrThrow({ where: { clientIds: { has: client.id } } });
+    await db.aiCoachReviewerGrant.update({ where: { id: grant.id }, data: { domains: ["NUTRITION"] } });
+    await expect(requestAiRun(client.id, command())).rejects.toMatchObject({ code: "REVIEWER_UNAVAILABLE" });
+    await db.aiCoachReviewerGrant.update({ where: { id: grant.id }, data: { domains: ["NUTRITION", "STRENGTH", "CARDIO"] } });
+    await db.aiPlanVersion.createMany({ data: Array.from({ length: 50 }, (_, i) => ({ clientId: client.id, version: i + 1, payload: {}, payloadHash: "fixture", policyVersion: "policy-fixture-v1", catalogVersions: {}, contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 0, reviewerStatus: "PENDING" as const })) });
+    await expect(requestAiRun(client.id, command())).rejects.toMatchObject({ code: "REVIEWER_CAPACITY" });
+    expect(await db.aiCoachRun.count({ where: { clientId: client.id } })).toBe(0);
+    await db.aiPlanVersion.updateMany({ where: { clientId: client.id }, data: { status: "INVALIDATED" } });
+    expect(await requestAiRun(client.id, command())).toHaveProperty("runId");
+  });
   it("deduplicates concurrent business inputs despite different client request keys", async () => {
     const client = await fixture();
     const [a, b] = await Promise.all([requestAiRun(client.id, command()), requestAiRun(client.id, command())]);

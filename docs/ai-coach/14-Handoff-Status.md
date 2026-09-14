@@ -584,3 +584,18 @@ Type-check/build, 202 integration and 424 unit tests pass. Changed-file lint has
 only five pre-existing dashboard warnings; the additional error caught during
 implementation was fixed, restoring the established lint baseline. Native
 integration and operational controls remain in progress. No deployment.
+
+## A11c — enforce assigned review capacity (2026-09-14)
+
+Enrollment and new numerical runs now require an active, assigned reviewer whose
+scope covers all current fixture domains. Grant-row locks serialize reservations
+across clients. Queued/running work counts alongside pending proposals, and
+expired windows do not consume capacity indefinitely. Enrollment also checks the
+active assigned client count. Equivalent representation changes remain outside
+numerical-review capacity. Existing request receipts retain replay semantics.
+
+Test factories now explicitly provision synthetic reviewers only against the
+local disposable database. New cases reject incomplete reviewer scope and a full
+queue, then permit preparation when backlog is removed. Type-check/build, 203
+integration and 424 unit tests pass; lint remains 78 baseline problems. Real
+staffing, scope, consent and response obligations still require G04 artifacts.

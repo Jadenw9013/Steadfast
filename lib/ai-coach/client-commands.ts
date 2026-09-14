@@ -1,3 +1,4 @@
+import { requireReviewerCapacity } from "./reviewer-capacity";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { lockAiClient, AiCoachError, jsonValue } from "./access";
@@ -72,6 +73,7 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
       result = { saved: true, profileRevision: saved.profileRevision };
     }
     if (input.operation === "ENROLL") {
+      await requireReviewerCapacity(tx, clientId, true);
       if (!isAiCoachEnrollmentEnabled()) throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "Enrollment is paused.", 503);
       if ((context?.revision ?? 0) !== input.expectedContextRevision || context?.mode === "HUMAN") throw new AiCoachError("REVISION_CONFLICT", "Complete the current provider transition before enrolling.");
       if (!intakeAnswersSchema.safeParse(profile.confirmedIntake).success) throw new AiCoachError("VALIDATION_ERROR", "Confirm your intake before enrolling.", 422);

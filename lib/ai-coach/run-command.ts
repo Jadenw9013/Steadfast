@@ -1,3 +1,4 @@
+import { requireReviewerCapacity } from "./reviewer-capacity";
 import { collectEvidence, evidenceSnapshotSchema } from "./evidence-snapshot";
 import { z } from "zod";
 import { substitutionSchema } from "./representation";
@@ -70,6 +71,7 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     const businessKey = contentHash({ clientId, kind: input.kind, snapshot: jsonValue(snapshot), ...revisions });
     let run = await tx.aiCoachRun.findUnique({ where: { businessKey } });
     if (!run) {
+      if (input.kind !== "REPRESENTATION") await requireReviewerCapacity(tx, clientId);
       const recent = await tx.aiCoachRun.count({ where: { clientId, createdAt: { gte: new Date(Date.now() - 86400000) } } });
       if (recent >= 8) throw new AiCoachError("RATE_LIMITED", "The daily preparation limit has been reached. Try again later.", 429);
       run = await tx.aiCoachRun.create({ data: { clientId, kind: input.kind, businessKey, ...revisions, inputSnapshot: jsonValue(snapshot), snapshotCutoffAt: new Date(), activationStartsAt: window.activationStartsAt, activationEndsAt: window.activationEndsAt, lookbackStart: input.kind === "WEEKLY_REVIEW" ? start : window.lookbackStart, lookbackEnd: window.lookbackEnd } });

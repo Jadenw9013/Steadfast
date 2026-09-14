@@ -1,3 +1,4 @@
+import { assignFixtureReviewer } from "../helpers/ai-reviewer";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
@@ -17,6 +18,7 @@ suite("client intake, consent and HTTP boundaries", () => {
   afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() {
     const id = randomUUID(); const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } });
+    await assignFixtureReviewer(client.id);
     await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true } });
     await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
     mocks.clerkId = id; return client;
