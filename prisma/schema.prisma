@@ -462,7 +462,7 @@ model AiPlanAcceptanceReceipt {
   inputDigest                   String
   planVersionId                 String
   alreadyAccepted               Boolean
-  activeVersionIdAtReceiptTime  String
+  activeVersionIdAtReceiptTime  String? // null when replayed after the active pointer was cleared
   createdAt                     DateTime @default(now())
 
   client User @relation(fields: [clientId], references: [id])

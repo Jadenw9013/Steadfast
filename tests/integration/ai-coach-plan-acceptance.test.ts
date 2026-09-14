@@ -69,6 +69,54 @@ suite("A10 — atomic proposal lifecycle and acceptance with real PostgreSQL con
   }
 
   describe("acceptance gates", () => {
+    it.each(["safety", "context", "entitlement", "deactivation"] as const)("rechecks a %s change committed while acceptance is waiting", async (change) => {
+      const client = await makeEligibleClient();
+      const candidate = await makeCandidate(client.id);
+      let release!: () => void;
+      let ready!: (pid: number) => void;
+      const canCommit = new Promise<void>(resolve => { release = resolve; });
+      const writerReady = new Promise<number>(resolve => { ready = resolve; });
+      const writer = db.$transaction(async tx => {
+        if (change === "safety") await tx.aiCoachProfile.update({ where: { clientId: client.id }, data: { safetyRevision: { increment: 1 }, strengthPermission: "PAUSED" } });
+        if (change === "context") await tx.clientCoachingContext.update({ where: { clientId: client.id }, data: { mode: "HUMAN", revision: { increment: 1 } } });
+        if (change === "entitlement") await tx.aiCoachEntitlement.update({ where: { clientId: client.id }, data: { revokedAt: new Date() } });
+        if (change === "deactivation") await tx.user.update({ where: { id: client.id }, data: { isDeactivated: true } });
+        const [backend] = await tx.$queryRaw<{ pid: number }[]>`SELECT pg_backend_pid() AS pid`;
+        ready(backend.pid);
+        await canCommit;
+      });
+      const pid = await writerReady;
+      const acceptance = acceptPlanVersionAtomic(client.id, candidate.id, acceptInputFor(candidate));
+      try {
+        // Wait for an actual PostgreSQL lock dependency, not a guessed delay.
+        await vi.waitFor(async () => {
+          const [blocked] = await db.$queryRaw<{ waiting: boolean }[]>`SELECT EXISTS (SELECT 1 FROM pg_stat_activity WHERE ${pid} = ANY(pg_blocking_pids(pid))) AS waiting`;
+          expect(blocked.waiting).toBe(true);
+        }, { timeout: 2000, interval: 10 });
+      } finally {
+        release();
+        await writer;
+      }
+      expect(await acceptance).toMatchObject({ success: false, code: change === "safety" ? "REVISION_CONFLICT" : change === "deactivation" ? "FORBIDDEN" : "ENTITLEMENT_REQUIRED" });
+      expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: candidate.id } })).status).toBe("PROPOSED");
+      expect(await db.aiPlanAcceptanceOutbox.count({ where: { clientId: client.id } })).toBe(0);
+    });
+
+    it.each(["expectedContextRevision", "expectedProfileRevision", "expectedObservationRevision", "expectedSafetyRevision"] as const)("rejects stale caller %s without side effects", async (field) => {
+      const client = await makeEligibleClient();
+      const candidate = await makeCandidate(client.id);
+      const input = acceptInputFor(candidate);
+      input[field] += 1;
+      expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({ success: false, code: "REVISION_CONFLICT" });
+      expect(await db.aiPlanAcceptanceOutbox.count({ where: { clientId: client.id } })).toBe(0);
+    });
+
+    it("rejects an inactive client at the service boundary", async () => {
+      const client = await makeEligibleClient();
+      const candidate = await makeCandidate(client.id);
+      await db.user.update({ where: { id: client.id }, data: { isDeactivated: true } });
+      expect(await acceptPlanVersionAtomic(client.id, candidate.id, acceptInputFor(candidate))).toMatchObject({ success: false, code: "FORBIDDEN" });
+    });
     it("accepts a fully eligible candidate and enqueues exactly one deduplicated outbox event", async () => {
       const client = await makeEligibleClient();
       const candidate = await makeCandidate(client.id);
@@ -243,6 +291,50 @@ suite("A10 — atomic proposal lifecycle and acceptance with real PostgreSQL con
   });
 
   describe("V14 — idempotent replay never reactivates stale state", () => {
+    it("only one of two DIFFERENT candidates against the same base can activate", async () => {
+      const client = await makeEligibleClient();
+      const first = await makeCandidate(client.id);
+      const second = await makeCandidate(client.id);
+      const results = await Promise.all([first, second].map(candidate => acceptPlanVersionAtomic(client.id, candidate.id, acceptInputFor(candidate))));
+      expect(results.filter(result => result.success)).toHaveLength(1);
+      expect(results.find(result => !result.success)).toMatchObject({ code: "STALE_PROPOSAL" });
+      expect(await db.aiPlanVersion.count({ where: { clientId: client.id, status: "ACCEPTED" } })).toBe(1);
+      expect(await db.aiPlanAcceptanceOutbox.count({ where: { clientId: client.id } })).toBe(1);
+    });
+
+    it("replays a superseded acceptance under a new key without reactivating it", async () => {
+      const client = await makeEligibleClient();
+      const first = await makeCandidate(client.id);
+      await acceptPlanVersionAtomic(client.id, first.id, acceptInputFor(first));
+      const second = await makeCandidate(client.id);
+      await acceptPlanVersionAtomic(client.id, second.id, acceptInputFor(second));
+      expect(await acceptPlanVersionAtomic(client.id, first.id, acceptInputFor(first))).toMatchObject({ success: true, alreadyAccepted: true, activeVersionId: second.id });
+    });
+
+    it("reports no current active plan when replaying after its pointer was cleared", async () => {
+      const client = await makeEligibleClient();
+      const candidate = await makeCandidate(client.id);
+      const input = acceptInputFor(candidate);
+      await acceptPlanVersionAtomic(client.id, candidate.id, input);
+      await db.aiCoachProfile.update({ where: { clientId: client.id }, data: { activePlanVersionId: null } });
+      expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({ success: true, alreadyAccepted: true, activeVersionId: null });
+      const newInput = acceptInputFor(candidate);
+      expect(await acceptPlanVersionAtomic(client.id, candidate.id, newInput)).toMatchObject({ success: true, activeVersionId: null });
+      expect((await db.aiPlanAcceptanceReceipt.findUniqueOrThrow({ where: { clientId_requestKey: { clientId: client.id, requestKey: newInput.requestKey } } })).activeVersionIdAtReceiptTime).toBeNull();
+    });
+
+    it("concurrent different inputs under one receipt key conflict", async () => {
+      const client = await makeEligibleClient();
+      const candidate = await makeCandidate(client.id);
+      await acceptPlanVersionAtomic(client.id, candidate.id, acceptInputFor(candidate));
+      const input = acceptInputFor(candidate, "racing-key");
+      const results = await Promise.all([
+        acceptPlanVersionAtomic(client.id, candidate.id, input),
+        acceptPlanVersionAtomic(client.id, candidate.id, { ...input, expectedSafetyRevision: 99 }),
+      ]);
+      expect(results.filter(result => result.success)).toHaveLength(1);
+      expect(results.find(result => !result.success)).toMatchObject({ code: "REVISION_CONFLICT" });
+    });
     it("only one of two concurrent acceptances of the same candidate succeeds; the other replays the same outcome", async () => {
       const client = await makeEligibleClient();
       const candidate = await makeCandidate(client.id);

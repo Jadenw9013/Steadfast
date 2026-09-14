@@ -7,11 +7,66 @@ pick up the work without re-deriving context. If anything here conflicts
 with 00–13, the original pack's contracts win — this file is a status
 snapshot, not a spec.
 
-Everything below is on `main`, committed. Nothing has been pushed to a
-remote or deployed. No real clinical/nutrition/exercise content exists
+The original handoff below describes committed work on `main`. The Codex
+takeover correction described next is recorded in a local commit. Nothing
+has been pushed or deployed during the takeover. No real clinical/nutrition/exercise content exists
 anywhere in this codebase — every numeric threshold, food, exercise and
 policy version introduced so far is explicitly marked SYNTHETIC/FIXTURE in
 its source file and is not fit to show a real user.
+
+## Codex takeover correction — A10 acceptance boundary (2026-09-13)
+
+Before starting A06 UI, direct PostgreSQL regressions disproved the previous
+claim that conditional candidate status updates alone serialized acceptance.
+Nine newly added cases failed against the handoff implementation. A different
+candidate could activate against the same base, caller revision fields were
+ignored, inactive callers could invoke the service, and replay could either
+fail or return an old plan as current. Concurrent receipt-key reuse could also
+throw a unique-constraint error.
+
+The correction moves all checks, receipt handling and writes into one short
+transaction. It locks the persistent User, context, profile and owned candidate,
+then the relevant approval/entitlement/grant rows, before checking current
+permission. An explicit conditional active-pointer update adds a final guard.
+It checks all four caller revisions, uses permanent `acceptedAt` for historical
+replay, and returns `activeVersionId: null` when no active pointer exists.
+The REST boundary maps the service's active-account rejection to HTTP 403.
+
+**Scope: acceptance concurrency and replay, not completion of the entire AI
+Coach product.** A06 remains next. The broader plan payload/source-reference
+validation, real review-window/cumulative policy implementation and qualified
+review operations remain dependent on A06/A08/A09/A11. Other authority and
+safety writers still need review against doc 05's common serialization order;
+this correction does not claim to repair all their internal races. Flags remain
+unchanged and default OFF. No real recommendations or live policies added.
+
+Changed files: `lib/ai-coach/plan-acceptance.ts`, the accept REST route,
+`tests/integration/ai-coach-plan-acceptance.test.ts`, `prisma/schema.prisma`,
+`prisma/migrations/20260914000100_nullable_acceptance_current_pointer/migration.sql`,
+and this handoff. No native iOS code changed; it shares this backend boundary.
+
+The additive migration drops NOT NULL from the receipt's audit-only current
+pointer, so replay after pointer removal can record its actual absence. It was
+executed **only against local `127.0.0.1:5432/steadfast_security_test`** using
+`prisma db execute --file`; no Neon/dev/production database was migrated.
+Apply the tracked migration through the normal deployment workflow before
+shipping the changed backend. Existing receipts remain intact. Rollback is
+application-only; keep the compatible nullable column and all receipts/slots.
+
+Verification after the correction:
+
+- Type-check: passed.
+- Full isolated integration suite: **149/149 passed**, including **38 A10 tests**.
+  Four new concurrency cases wait for an actual PostgreSQL blocking dependency
+  before committing safety/context/entitlement/deactivation changes.
+- `pnpm test`: **392 passed, 153 skipped** (opt-in integration/smoke cases).
+  Integration tests were separately executed above; live smoke was not run.
+- `pnpm lint`: established **78 problems (14 errors, 64 warnings)**; no increase.
+- `pnpm run build`: passed.
+- Prisma generate and schema validate: passed.
+- Browser/Playwright/native build: not run; no UI/native changes in this slice.
+- Required graphify rebuild attempted; unavailable (`ModuleNotFoundError: graphify`).
+  Existing graph output was not regenerated.
 
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
@@ -94,7 +149,7 @@ tests/integration/ai-coach-runs-plans.test.ts        A02  (16 tests)
 tests/integration/ai-coach-intake-safety.test.ts     A03  (13 tests)
 tests/unit/ai-coach-catalog.test.ts                  A04  (18 tests, no DB needed)
 tests/integration/ai-coach-executor.test.ts          A05  (12 tests)
-tests/integration/ai-coach-plan-acceptance.test.ts   A10  (25 tests)
+tests/integration/ai-coach-plan-acceptance.test.ts   A10  (38 tests after takeover correction)
 tests/integration/account-deletion.test.ts           purge coverage extended at every slice
 ```
 
@@ -147,10 +202,12 @@ clean.
    load-bearing for A05's executor (provider call happens strictly between
    two non-transactional conditional updates).
 
-6. **Concurrency pattern**: this codebase uses optimistic concurrency
-   (conditional `updateMany` guarded by current status/id inside one
-   transaction), not explicit `SELECT ... FOR UPDATE` row locks. Keep using
-   it — A10's acceptance service is the fullest example.
+6. **Concurrency correction**: candidate-status guards alone do not serialize
+   two different candidates or concurrent authority changes. A10 now uses
+   explicit User-first row locks and all checks inside the transaction, plus
+   a conditional active-pointer update. Follow doc 05's common lock order for
+   related writers. Do not restore the previous check-outside-transaction
+   pattern; the takeover regressions demonstrate its failures.
 
 7. **Test DB contamination is real**: `AiCoachRun`/`AiPlanVersion` etc. rows
    from earlier test runs persist in the local test DB (no truncation

@@ -27,7 +27,7 @@ export async function POST(
       result.code === "NOT_FOUND" ? 404
       : result.code === "VALIDATION_ERROR" ? 422
       : result.code === "TEMPORARILY_UNAVAILABLE" ? 503
-      : result.code === "ENTITLEMENT_REQUIRED" ? 403
+      : result.code === "ENTITLEMENT_REQUIRED" || result.code === "FORBIDDEN" ? 403
       : 409; // STALE_PROPOSAL, REVISION_CONFLICT, WINDOW_CLOSED, ADJUSTMENT_LIMIT_REACHED, SAFETY_RESTRICTED, POLICY_UNAVAILABLE, REVIEWER_APPROVAL_REQUIRED
     return NextResponse.json({ error: { code: result.code, message: result.error } }, { status });
   }
