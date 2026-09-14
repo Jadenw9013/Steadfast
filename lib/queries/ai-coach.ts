@@ -1,3 +1,4 @@
+import { evidenceIsCurrent } from "@/lib/ai-coach/evidence-snapshot";
 import { Prisma } from "@/app/generated/prisma/client";
 import { intakeAnswersSchema } from "@/lib/ai-coach/intake";
 import { isTargetPreserving } from "@/lib/ai-coach/representation";
@@ -33,8 +34,8 @@ export async function getAiWorkspace(clientId: string) {
         strength: profile.strengthPermission === "PAUSED" ? [] : activePayload.strength,
         cardio: profile.cardioPermission === "PAUSED" ? [] : activePayload.cardio,
       } } : null,
-      proposals: proposals.map(candidate => {
-        const fresh = allowed && candidate.contextRevision === context?.revision && candidate.profileRevision === profile.profileRevision && candidate.observationRevision === profile.observationRevision && candidate.safetyRevision === profile.safetyRevision && candidate.baseVersionId === profile.activePlanVersionId && (!candidate.activationEndsAt || candidate.activationEndsAt > new Date()) && [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].every(p => p === "ALLOW");
+      proposals: await Promise.all(proposals.map(async candidate => {
+        const fresh = await evidenceIsCurrent(tx, clientId, candidate.sourceRefs) && allowed && candidate.contextRevision === context?.revision && candidate.profileRevision === profile.profileRevision && candidate.observationRevision === profile.observationRevision && candidate.safetyRevision === profile.safetyRevision && candidate.baseVersionId === profile.activePlanVersionId && (!candidate.activationEndsAt || candidate.activationEndsAt > new Date()) && [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].every(p => p === "ALLOW");
         const approved = candidate.reviewerStatus === "APPROVED" && candidate.approval?.approved && candidate.approval.approvedHash === candidate.payloadHash && !candidate.approval.reviewerGrant.user.isDeactivated && grantCoversPlan(candidate.approval.reviewerGrant, clientId, candidate.payload) && candidate.approval.stateHash === approvalStateHash(candidate);
         const checked = validatedManagedPayload(candidate);
         const intake = intakeAnswersSchema.safeParse(profile.confirmedIntake);
@@ -42,7 +43,7 @@ export async function getAiWorkspace(clientId: string) {
         const payload = fresh && (approved || equivalent) && checkPolicyVersionUsable(candidate.policyVersion).usable ? checked : null;
         return { id: candidate.id, status: !fresh ? "STALE" : payload ? "READY" : "PENDING_REVIEW", payload,
           expectedBaseVersionId: candidate.baseVersionId, expectedContextRevision: candidate.contextRevision, expectedProfileRevision: candidate.profileRevision, expectedObservationRevision: candidate.observationRevision, expectedSafetyRevision: candidate.safetyRevision };
-      }),
+      })),
       runs: runs.map(run => {
         const decision = decisionSchema.safeParse(run.resultDecision);
         return { id: run.id, kind: run.kind, status: run.status, createdAt: run.createdAt.toISOString(), resultPlanVersionId: run.resultPlanVersionId, decision: decision.success ? decision.data : null, failureMessage: run.status === "FAILED" ? "Preparation could not finish. Your current plan has not been replaced." : null };

@@ -1,3 +1,4 @@
+import { evidenceIsCurrent } from "./evidence-snapshot";
 import { z } from "zod";
 import { intakeAnswersSchema } from "./intake";
 import { isTargetPreserving } from "./representation";
@@ -171,6 +172,7 @@ export async function acceptPlanVersionAtomic(
         try { requireFixtureRuntime(); } catch {
           return { success: false, code: "TEMPORARILY_UNAVAILABLE", error: "This plan is only available in the synthetic test environment." };
         }
+        if (!await evidenceIsCurrent(tx, clientId, candidate.sourceRefs)) return { success: false, code: "REVISION_CONFLICT", error: "Source evidence changed. Prepare a new review." };
         if (!profile.isSynthetic || !validatedManagedPayload(candidate)) {
           return { success: false, code: "VALIDATION_ERROR", error: "This proposal did not pass content validation." };
         }

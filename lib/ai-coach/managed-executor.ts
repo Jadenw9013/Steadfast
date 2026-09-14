@@ -1,3 +1,4 @@
+import { evidenceIsCurrent } from "./evidence-snapshot";
 import { representFixturePlan } from "./representation";
 import { db } from "@/lib/db";
 import type { ClaimResult } from "./runs";
@@ -36,7 +37,7 @@ export async function processManagedRun(claim: Extract<ClaimResult, { claimed: t
       const { context, profile } = await lockAiClient(tx, claim.run.clientId);
       const run = await tx.aiCoachRun.findUnique({ where: { id: claim.run.id } });
       if (!run || run.status !== "RUNNING" || run.fencingToken !== claim.fencingToken || !run.leaseExpiresAt || run.leaseExpiresAt <= new Date()) return false;
-      if (!isAiCoachGenerationEnabled() || context!.revision !== run.contextRevision || profile.profileRevision !== run.profileRevision || profile.observationRevision !== run.observationRevision || profile.safetyRevision !== run.safetyRevision || profile.activePlanVersionId !== snapshot.baseVersionId || [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].some(p => p !== "ALLOW") || (run.activationEndsAt && run.activationEndsAt <= new Date())) {
+      if (!await evidenceIsCurrent(tx, claim.run.clientId, snapshot.sourceRefs) || !isAiCoachGenerationEnabled() || context!.revision !== run.contextRevision || profile.profileRevision !== run.profileRevision || profile.observationRevision !== run.observationRevision || profile.safetyRevision !== run.safetyRevision || profile.activePlanVersionId !== snapshot.baseVersionId || [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].some(p => p !== "ALLOW") || (run.activationEndsAt && run.activationEndsAt <= new Date())) {
         await tx.aiCoachRun.update({ where: { id: run.id }, data: { status: "CANCELED", leaseExpiresAt: null } });
         return false;
       }

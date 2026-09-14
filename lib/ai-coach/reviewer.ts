@@ -1,3 +1,4 @@
+import { evidenceIsCurrent } from "./evidence-snapshot";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { AiCoachError, lockAiClient, requireFixtureRuntime } from "./access";
@@ -41,6 +42,7 @@ export async function reviewAiPlan(reviewerId: string, planId: string, raw: unkn
       if (receipt.inputDigest !== inputDigest) throw new AiCoachError("REVISION_CONFLICT", "This request key was already used.");
       return receipt.result;
     }
+    if (!await evidenceIsCurrent(tx, owner.clientId, candidate.sourceRefs)) throw new AiCoachError("STALE_PROPOSAL", "Source evidence changed. A new review is required.");
     if (!validatedManagedPayload(candidate) || !checkPolicyVersionUsable(candidate.policyVersion).usable || approvalStateHash(candidate) !== input.expectedStateHash) throw new AiCoachError("STALE_PROPOSAL", "The proposal content or policy changed. Refresh before reviewing.");
     if (candidate.status !== "PROPOSED" || candidate.reviewerStatus !== "PENDING" || candidate.contextRevision !== context!.revision || candidate.profileRevision !== profile.profileRevision || candidate.observationRevision !== profile.observationRevision || candidate.safetyRevision !== profile.safetyRevision || candidate.baseVersionId !== profile.activePlanVersionId || (candidate.activationEndsAt && candidate.activationEndsAt <= new Date())) throw new AiCoachError("STALE_PROPOSAL", "The proposal is no longer awaiting review in this state.");
     await tx.aiPlanReviewerApproval.create({ data: { planVersionId: planId, reviewerGrantId: grant.id, approvedHash: candidate.payloadHash, stateHash: input.expectedStateHash, approved: input.approved, rationale: input.rationale } });

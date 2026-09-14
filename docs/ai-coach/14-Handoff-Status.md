@@ -499,3 +499,18 @@ local test database; existing legacy rows remain compatible. Type-check, build,
 Prisma validation, 189 integration and 411 unit tests pass. Lint remains the
 established 14-error/64-warning baseline. Activity UI and weekly source snapshots
 are subsequent slices; this is not a live coaching release.
+
+## A09a — immutable review inputs and source freshness (2026-09-14)
+
+Weekly requests freeze eight weeks of submitted private observations and typed
+sessions, plus retained accepted plan history. Bounded snapshots preserve dates,
+units, missingness, source revisions and canonical content digests. Oversized
+inputs fail explicitly rather than silently truncating evidence. Worker commit,
+proposal visibility, qualified review and atomic acceptance recheck owned source
+rows, including their content and deletion state; a stale epoch counter cannot
+conceal an edited source. Relevant late evidence invalidates the full frozen
+lookback. No numerical weekly controller is claimed by this slice.
+
+Type-check, production build, 194 integration tests and 411 unit tests pass.
+Full lint remains 78 baseline problems; changed files have no lint findings.
+No migration or live environment change in this slice.

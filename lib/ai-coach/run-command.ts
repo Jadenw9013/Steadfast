@@ -1,3 +1,4 @@
+import { collectEvidence, evidenceSnapshotSchema } from "./evidence-snapshot";
 import { z } from "zod";
 import { substitutionSchema } from "./representation";
 import { db } from "@/lib/db";
@@ -24,7 +25,9 @@ export const runSnapshotSchema = z.object({
   modelConfiguration: z.literal("synthetic-template-v1"), baseVersionId: z.string().nullable(),
   basePayload: planPayloadSchema.nullable(), representation: z.enum(["MACROS", "MEALS"]),
   reviewWindowKey: z.string(), reviewTimezone: z.string(),
-  sourceRefs: z.array(sourceRefSchema).max(500),
+  sourceRefs: z.array(sourceRefSchema).max(2180),
+  evidence: evidenceSnapshotSchema.default({ observations: [], sessions: [] }),
+  history: z.array(z.object({ id: z.string(), acceptedAt: z.string().datetime(), changeClass: z.string().nullable(), reviewWindowKey: z.string().nullable(), payload: planPayloadSchema }).strict()).max(500).default([]),
   substitution: substitutionSchema.nullable().default(null),
 }).strict();
 export type RunSnapshot = z.infer<typeof runSnapshotSchema>;
@@ -53,11 +56,15 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     const historyExists = await tx.aiPlanVersion.count({ where: { clientId, acceptedAt: { not: null } } });
     if ((input.kind === "INITIAL" && historyExists > 0) || (input.kind !== "INITIAL" && !base)) throw new AiCoachError("REVISION_CONFLICT", "The requested operation does not match your plan history.");
     const window = reviewWindow(new Date(), profile.reviewTimezone);
+    const start = new Date(window.lookbackEnd.getTime() - 56 * 86400000);
+    const collected = input.kind === "WEEKLY_REVIEW" ? await collectEvidence(tx, clientId, start, window.lookbackEnd) : { evidence: { observations: [], sessions: [] }, sourceRefs: base?.sourceRefs ?? [] };
+    const history = await tx.aiPlanVersion.findMany({ where: { clientId, acceptedAt: { not: null } }, orderBy: { acceptedAt: "asc" }, take: 501, select: { id: true, acceptedAt: true, changeClass: true, reviewWindowKey: true, payload: true } });
+    if (history.length > 500) throw new AiCoachError("VALIDATION_ERROR", "Plan history requires a reviewed archival policy before another change.", 422);
     const snapshot = runSnapshotSchema.parse({
       schemaVersion: 1, synthetic: true, intake: intake.data, policyVersion: ACTIVE_POLICY_VERSION,
       catalogVersions: { food: FOOD_CATALOG_VERSION, exercise: EXERCISE_CATALOG_VERSION }, modelConfiguration: "synthetic-template-v1",
       baseVersionId: base?.id ?? null, basePayload: base?.payload ?? null, representation: input.representation,
-      reviewWindowKey: window.key, reviewTimezone: profile.reviewTimezone, sourceRefs: base?.sourceRefs ?? [], substitution: input.substitution ?? null,
+      reviewWindowKey: window.key, reviewTimezone: profile.reviewTimezone, sourceRefs: collected.sourceRefs, evidence: collected.evidence, history: history.map(p => ({ ...p, acceptedAt: p.acceptedAt!.toISOString() })), substitution: input.substitution ?? null,
     });
     const revisions = { contextRevision: context!.revision, profileRevision: profile.profileRevision, observationRevision: profile.observationRevision, safetyRevision: profile.safetyRevision };
     const businessKey = contentHash({ clientId, kind: input.kind, snapshot: jsonValue(snapshot), ...revisions });
@@ -65,7 +72,7 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     if (!run) {
       const recent = await tx.aiCoachRun.count({ where: { clientId, createdAt: { gte: new Date(Date.now() - 86400000) } } });
       if (recent >= 8) throw new AiCoachError("RATE_LIMITED", "The daily preparation limit has been reached. Try again later.", 429);
-      run = await tx.aiCoachRun.create({ data: { clientId, kind: input.kind, businessKey, ...revisions, inputSnapshot: jsonValue(snapshot), snapshotCutoffAt: new Date(), activationStartsAt: window.activationStartsAt, activationEndsAt: window.activationEndsAt, lookbackStart: window.lookbackStart, lookbackEnd: window.lookbackEnd } });
+      run = await tx.aiCoachRun.create({ data: { clientId, kind: input.kind, businessKey, ...revisions, inputSnapshot: jsonValue(snapshot), snapshotCutoffAt: new Date(), activationStartsAt: window.activationStartsAt, activationEndsAt: window.activationEndsAt, lookbackStart: input.kind === "WEEKLY_REVIEW" ? start : window.lookbackStart, lookbackEnd: window.lookbackEnd } });
     }
     const result = { runId: run.id };
     await tx.aiOperationReceipt.create({ data: { clientId, operation: "RUN", requestKey: input.requestKey, inputDigest: digest, result } });
