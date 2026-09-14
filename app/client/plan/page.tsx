@@ -15,13 +15,14 @@ export default async function ClientPlanPage() {
   const provider = await getClientProvider(user.id);
   if (provider.resolutionRequired) return <ProviderResolution />;
   if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={["plan"]} />;
+  if (provider.origin === "NONE") return <div className="sf-surface-card p-6"><h1 className="text-xl font-semibold">No current plan</h1><p className="mt-2 text-zinc-400">Connect with a coach to receive a new plan.</p></div>;
   const tz = user.timezone || "America/New_York";
   const todayDate = getLocalDate(new Date(), tz);
   const weekOf = normalizeToMonday(new Date());
 
   const [mealPlan, trainingProgram, todayAdherence, currentResults, previousResults] = await Promise.all([
-    getCurrentPublishedMealPlan(user.id),
-    getPublishedTrainingProgram(user.id),
+    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
+    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
     getTodayAdherence(user.id, todayDate),
     getExerciseResultsForWeek(user.id, weekOf),
     getPreviousExerciseResults(user.id, weekOf),

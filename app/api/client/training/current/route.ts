@@ -1,3 +1,4 @@
+import { getClientProvider, isClientProviderCurrent } from "@/lib/queries/client-provider";
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -16,9 +17,12 @@ export async function GET() {
   }
 
   try {
+    const provider = await getClientProvider(user.id);
+    if (provider.resolutionRequired || provider.origin === "AI") return NextResponse.json({ error: provider.resolutionRequired ? "Your coaching provider needs resolution." : "Update Steadfast to use the AI Coach workspace." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
+    if (provider.origin === "NONE") return NextResponse.json({ trainingProgram: null }, { headers: { "Cache-Control": "private, no-store" } });
     // ── Most recent published program — explicit select (no select *) ─────
     const program = await db.trainingProgram.findFirst({
-      where: { clientId: user.id, status: "PUBLISHED" },
+      where: { clientId: user.id, status: "PUBLISHED", publishedAt: { gte: provider.relationshipStartedAt! } },
       orderBy: { publishedAt: "desc" },
       select: {
         id: true,
@@ -60,6 +64,8 @@ export async function GET() {
         },
       },
     });
+
+    if (!await isClientProviderCurrent(user.id, provider)) return NextResponse.json({ error: "Your provider changed. Refresh to continue." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
 
     if (!program) {
       return NextResponse.json({ trainingProgram: null });
@@ -104,7 +110,7 @@ export async function GET() {
           };
         }),
       },
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     console.error("[GET /api/client/training/current]", err);
     return NextResponse.json(

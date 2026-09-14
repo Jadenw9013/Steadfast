@@ -144,10 +144,10 @@ export default async function ClientDashboard() {
 
   const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake, adherenceEnabled, todayAdherence, planMeals, pendingInvites] = await Promise.all([
     getClientCheckInsLight(user.id),
-    getCurrentPublishedMealPlan(user.id),
+    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
     getLatestCoachMessage(user.id),
     getWeightHistory(user.id),
-    getPublishedTrainingProgram(user.id),
+    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
     getMyIntake(user.id),
     getAdherenceEnabled(user.id),
     getTodayAdherence(user.id, todayDate),

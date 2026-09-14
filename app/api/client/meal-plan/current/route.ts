@@ -1,3 +1,4 @@
+import { getClientProvider, isClientProviderCurrent } from "@/lib/queries/client-provider";
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -18,9 +19,12 @@ export async function GET() {
   }
 
   try {
+    const provider = await getClientProvider(user.id);
+    if (provider.resolutionRequired || provider.origin === "AI") return NextResponse.json({ error: provider.resolutionRequired ? "Your coaching provider needs resolution." : "Update Steadfast to use the AI Coach workspace." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
+    if (provider.origin === "NONE") return NextResponse.json({ mealPlan: null }, { headers: { "Cache-Control": "private, no-store" } });
     // ── Most recent published plan — explicit select (no select *) ────────
     const plan = await db.mealPlan.findFirst({
-      where: { clientId: user.id, status: "PUBLISHED" },
+      where: { clientId: user.id, status: "PUBLISHED", publishedAt: { gte: provider.relationshipStartedAt! } },
       orderBy: { publishedAt: "desc" },
       select: {
         id: true,
@@ -51,6 +55,8 @@ export async function GET() {
         },
       },
     });
+
+    if (!await isClientProviderCurrent(user.id, provider)) return NextResponse.json({ error: "Your provider changed. Refresh to continue." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
 
     if (!plan) {
       return NextResponse.json({ mealPlan: null });
@@ -112,7 +118,7 @@ export async function GET() {
             }
           : null,
       },
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     console.error("[GET /api/client/meal-plan/current]", err);
     return NextResponse.json(

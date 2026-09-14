@@ -633,3 +633,16 @@ Intensification waits for sufficient evidence after that clearance, preventing
 both a perpetual resolved-concern loop and immediate escalation from old reports.
 Type-check/build, 211 integration and 425 unit tests pass; changed-file lint is
 clean and the full baseline remains 14 errors/64 warnings. No deployment.
+
+### A12d — legacy current-plan provider boundaries (2026-09-14)
+
+Main human Home/Plan and legacy iOS home/meal/training endpoints now resolve the
+active provider and exclude publications predating the current relationship.
+Unassigned current-plan reads return null; AI clients on legacy endpoints receive
+a clear upgrade response. API reads recheck provider revisions/relationship after
+dependent reads and successful payloads are private/no-store. The shared human
+tables lack author-coach IDs, so relationship start remains the conservative
+boundary; it is not a reconstructed historical authorship claim. Two new real-DB
+route regressions cover AI/NONE and former/current publications. Type-check,
+213 integration tests, 425 unit tests and build pass; lint unchanged at 14 errors
+and 64 warnings. Logs: `/private/tmp/steadfast-a12d-*`.

@@ -33,9 +33,9 @@ export async function getTrainingProgramForReview(clientId: string, weekOf: Date
   return { source: "empty" as const, program: null };
 }
 
-export async function getPublishedTrainingProgram(clientId: string) {
+export async function getPublishedTrainingProgram(clientId: string, publishedAfter?: Date) {
   return db.trainingProgram.findFirst({
-    where: { clientId, status: "PUBLISHED" },
+    where: { clientId, status: "PUBLISHED", ...(publishedAfter ? { publishedAt: { gte: publishedAfter } } : {}) },
     orderBy: { publishedAt: "desc" },
     include: programInclude,
   });

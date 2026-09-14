@@ -20,3 +20,10 @@ export async function getClientProvider(clientId: string) {
     return { origin, revision: context?.revision ?? 0, resolutionRequired, activeCoachClientId: origin === "HUMAN" && !resolutionRequired ? relationship?.id ?? null : null, coachId: origin === "HUMAN" && !resolutionRequired ? relationship?.coachId ?? null : null, relationshipStartedAt: origin === "HUMAN" && !resolutionRequired ? relationship?.createdAt ?? null : null, aiPreviewAvailable };
   });
 }
+
+/** Recheck after dependent reads so a provider transition cannot return stale
+ * instructions as a successful current-plan response. */
+export async function isClientProviderCurrent(clientId: string, expected: Awaited<ReturnType<typeof getClientProvider>>) {
+  const current = await getClientProvider(clientId);
+  return !current.resolutionRequired && current.origin === expected.origin && current.revision === expected.revision && current.activeCoachClientId === expected.activeCoachClientId;
+}

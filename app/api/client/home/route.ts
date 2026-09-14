@@ -1,3 +1,4 @@
+import { getClientProvider, isClientProviderCurrent } from "@/lib/queries/client-provider";
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -53,9 +54,11 @@ export async function GET() {
   }
 
   try {
+    const provider = await getClientProvider(user.id);
+    if (provider.resolutionRequired || provider.origin === "AI") return NextResponse.json({ error: provider.resolutionRequired ? "Your coaching provider needs resolution." : "Update Steadfast to use the AI Coach workspace." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
     // ── Coach assignment (explicit select — P2022 safety) ─────────────────
     const coachAssignment = await db.coachClient.findFirst({
-      where: { clientId: user.id },
+      where: { clientId: user.id, id: provider.activeCoachClientId ?? "unassigned" },
       select: {
         id: true,
         cadenceConfig: true,
@@ -92,8 +95,8 @@ export async function GET() {
       legacyOnboarding,
     ] = await Promise.all([
       getClientCheckInsLight(user.id),
-      getCurrentPublishedMealPlan(user.id),
-      getPublishedTrainingProgram(user.id),
+      provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
+      provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
       getMyIntake(user.id),
       getAdherenceEnabled(user.id),
       getTodayAdherence(user.id, todayDate),
@@ -108,6 +111,8 @@ export async function GET() {
         select: { id: true },
       }),
     ]);
+
+    if (!await isClientProviderCurrent(user.id, provider)) return NextResponse.json({ error: "Your provider changed. Refresh to continue." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
 
     // ── Cadence status (mirrors app/client/page.tsx exactly) ─────────────
     const coachCadence = coachAssignment
@@ -267,7 +272,7 @@ export async function GET() {
           : null,
         mealNames: mealNames.map((m) => m.mealName),
       },
-    });
+    }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (err) {
     console.error("[GET /api/client/home]", err);
     return NextResponse.json(

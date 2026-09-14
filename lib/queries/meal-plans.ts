@@ -1,9 +1,9 @@
 import { db } from "@/lib/db";
 import { parsePlanExtras, type PlanExtras } from "@/types/meal-plan-extras";
 
-export async function getCurrentPublishedMealPlan(clientId: string) {
+export async function getCurrentPublishedMealPlan(clientId: string, publishedAfter?: Date) {
   return db.mealPlan.findFirst({
-    where: { clientId, status: "PUBLISHED" },
+    where: { clientId, status: "PUBLISHED", ...(publishedAfter ? { publishedAt: { gte: publishedAfter } } : {}) },
     orderBy: { publishedAt: "desc" },
     include: {
       items: { orderBy: { sortOrder: "asc" } },
