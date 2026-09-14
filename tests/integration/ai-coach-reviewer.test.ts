@@ -1,4 +1,8 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { NextRequest } from "next/server";
+const authFixture = vi.hoisted(() => ({ clerkId: "" }));
+vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: authFixture.clerkId }), currentUser: vi.fn() }));
+import { GET as queueRoute } from "@/app/api/ops/ai-coach/route";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { getReviewerQueue, reviewAiPlan } from "@/lib/ai-coach/reviewer";
@@ -24,6 +28,14 @@ suite("reviewer capability and exact-state decisions", () => {
     return { client, reviewer, plan, grant };
   }
   const input = (state: string) => ({ requestKey: randomUUID(), expectedStateHash: state, approved: true, rationale: "Synthetic fixture checked." });
+  it("HTTP access supports qualified non-client reviewers but denies ordinary coaches", async () => {
+    const { reviewer } = await fixture();
+    await db.user.update({ where: { id: reviewer.id }, data: { isClient: false } });
+    authFixture.clerkId = reviewer.clerkId;
+    expect((await queueRoute(new NextRequest("https://example.test/api/ops/ai-coach"))).status).toBe(200);
+    const ordinary = await user(); authFixture.clerkId = ordinary.clerkId;
+    expect((await queueRoute(new NextRequest("https://example.test/api/ops/ai-coach"))).status).toBe(403);
+  });
   it("ordinary coaches cannot see the queue or approve plans", async () => {
     const { plan } = await fixture(); const ordinary = await user();
     await expect(getReviewerQueue(ordinary.id)).rejects.toMatchObject({ code: "FORBIDDEN" });

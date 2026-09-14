@@ -16,14 +16,14 @@ export function requireSameOriginMutation(req: NextRequest) {
     throw new AiCoachError("FORBIDDEN", "A same-origin request or native bearer authentication is required.", 403);
   }
 }
-export async function aiHttp(req: NextRequest, mutation: boolean, action: (clientId: string, body: unknown) => Promise<unknown>) {
+export async function aiHttp(req: NextRequest, mutation: boolean, action: (clientId: string, body: unknown) => Promise<unknown>, role: "client" | "reviewer" = "client") {
   const requestId = randomUUID();
   const headers = { "Cache-Control": "private, no-store" };
   try {
     if (mutation) requireSameOriginMutation(req);
     let user;
     try { user = await getCurrentDbUser(); } catch { throw new AiCoachError("UNAUTHENTICATED", "Sign in to continue.", 401); }
-    if (!user.isClient) throw new AiCoachError("FORBIDDEN", "A client account is required.", 403);
+    if (role === "client" && !user.isClient) throw new AiCoachError("FORBIDDEN", "A client account is required.", 403);
     if (!await consumeQuota(mutation ? "ai-mutation" : "ai-read", user.id, mutation ? 30 : 120, 60)) throw new AiCoachError("RATE_LIMITED", "Too many requests. Please try again shortly.", 429);
     let body: unknown = null;
     if (mutation) {

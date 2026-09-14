@@ -158,6 +158,16 @@ new PostgreSQL cases pass; full totals 177 integration and 405 unit tests;
 type-check/build/schema validation pass, lint remains 78 problems. No real
 reviewer grants or qualification records were created. Reviewer UI/API next.
 
+## A11b — reviewer API and workspace
+
+Added `/ops/ai-coach` and its protected API for bounded assigned queues,
+backlog/oldest-pending display, exact-state approve/reject and retained rationale
+on transient failure. Non-client reviewers are supported without weakening
+capability checks; one additional HTTP case verifies this and ordinary-coach
+denial. Plan renderers now have unique accessible heading IDs. Verification:
+178 integration + 405 unit tests, type-check/build pass; lint unchanged.
+No actual staffing or reviewer qualification is asserted by this tooling.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):

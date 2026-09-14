@@ -1,7 +1,9 @@
+import { useId } from "react";
 import type { PlanPayload } from "@/lib/ai-coach/plan-contract";
 import { getExerciseItem, getFoodItem } from "@/lib/ai-coach/catalog/loader";
 
 export function PlanDisplay({ plan }: { plan: PlanPayload }) {
+  const nutritionHeading = useId();
   const totals = new Map<string, { grams: number; state: string; name: string }>();
   for (const day of plan.meals?.days ?? []) for (const meal of day.meals) for (const ingredient of meal.ingredients) {
     const food = getFoodItem(ingredient.foodId, ingredient.catalogVersion);
@@ -9,8 +11,8 @@ export function PlanDisplay({ plan }: { plan: PlanPayload }) {
     totals.set(ingredient.foodId, { grams: (prior?.grams ?? 0) + ingredient.grams, state: ingredient.state, name: food.success ? food.item.name : ingredient.foodId });
   }
   return <div className="space-y-6">
-    <section className="sf-glass-card rounded-2xl border border-white/10 p-5" aria-labelledby="nutrition-heading">
-      <h2 id="nutrition-heading" className="text-xl font-semibold text-zinc-100">Nutrition</h2>
+    <section className="sf-glass-card rounded-2xl border border-white/10 p-5" aria-labelledby={nutritionHeading}>
+      <h2 id={nutritionHeading} className="text-xl font-semibold text-zinc-100">Nutrition</h2>
       {plan.nutrition ? <>
         <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {Object.entries(plan.nutrition.targets).map(([key, value]) => <div key={key}><dt className="text-sm text-zinc-400">{{ energyKcal: "Energy", proteinG: "Protein", carbsG: "Carbohydrates", fatG: "Fat" }[key]}</dt><dd className="mt-1 text-xl text-zinc-100">{value} <span className="text-sm text-zinc-400">{key === "energyKcal" ? "kcal/day" : "g/day"}</span></dd></div>)}
