@@ -1252,3 +1252,24 @@ model RequestQuota {
 
   @@index([expiresAt])
 }
+
+// CB09: a durable record of storage objects that need deleting, written
+// BEFORE the owning database row is unlinked/replaced (e.g. a check-in
+// photo overwrite, or account-deletion purge). Without this, an unlinked
+// object had no reference anywhere once its row was gone, so replacing a
+// photo silently orphaned the old file forever — including surviving a
+// later full account deletion, since purge only ever enumerated
+// currently-linked rows.
+model StorageCleanupOutbox {
+  id          String    @id @default(cuid())
+  bucket      String
+  storagePath String
+  reason      String
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  attempts    Int       @default(0)
+  lastError   String?   @db.Text
+
+  @@unique([bucket, storagePath])
+  @@index([processedAt])
+}

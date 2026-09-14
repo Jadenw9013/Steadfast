@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { createServiceClient } from "@/lib/supabase/server";
+import { enqueueStorageCleanup } from "@/lib/storage/cleanup-outbox";
 import { stopAccountBilling } from "./billing";
 
 /** External cleanup is retryable; all database deletes commit together. */
@@ -242,6 +243,16 @@ async function cleanupStorage(userId: string, profilePhotoPath: string | null) {
     select: { uploadedSignedFilePath: true },
   });
   for (const doc of signedDocs) add("coach-documents", doc.uploadedSignedFilePath);
+  // CB09: enqueue every path durably before attempting deletion. If the
+  // immediate attempt below fails partway, the outbox sweep can finish the
+  // job later instead of the reference existing nowhere but this
+  // in-memory Map.
+  await enqueueStorageCleanup(
+    [...objects.entries()].flatMap(([bucket, paths]) =>
+      [...paths].map((storagePath) => ({ bucket, storagePath, reason: "account-deletion-purge" }))
+    )
+  );
+
   for (const [bucket, paths] of objects) {
     const all = [...paths];
     for (let i = 0; i < all.length; i += 100) {

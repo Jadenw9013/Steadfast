@@ -2,6 +2,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { isOwnedUploadPath } from "@/lib/validations/storage-path";
 import { normalizeToMonday, getLocalDate } from "@/lib/utils/date";
+import { enqueueStorageCleanupOps } from "@/lib/storage/cleanup-outbox";
 import type { Prisma } from "@/app/generated/prisma/client";
 
 /** Serialize Zod-validated data to Prisma-compatible JSON. */
@@ -125,6 +126,17 @@ export async function submitCheckIn(
     // Only touch photos on an explicit replacement. Omitting photoPaths
     // entirely leaves whatever photos this check-in already had.
     if (photoPaths !== undefined) {
+      // CB09: once this row is deleted, nothing else references these
+      // paths — enqueue their storage objects for deletion in the same
+      // transaction as unlinking them, or they're orphaned forever (and
+      // survive even a later full account-deletion purge, which only
+      // enumerates currently-linked rows).
+      const replacedPhotos = await db.checkInPhoto.findMany({ where: { checkInId: existingToday.id }, select: { storagePath: true } });
+      ops.push(
+        ...enqueueStorageCleanupOps(
+          replacedPhotos.map((p) => ({ bucket: "check-in-photos", storagePath: p.storagePath, reason: "check-in-photo-replaced" }))
+        )
+      );
       ops.push(db.checkInPhoto.deleteMany({ where: { checkInId: existingToday.id } }));
     }
     ops.push(

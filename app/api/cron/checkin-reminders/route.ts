@@ -34,7 +34,14 @@ export async function GET(req: NextRequest) {
   let sentClientReminders = 0;
   let sentEmailReminders = 0;
   let sentCoachAlerts = 0;
+  let reminderError: string | undefined;
 
+  // F08: account-deletion purge (and storage cleanup) must run regardless
+  // of whether reminder-sending succeeds. Previously both lived at the end
+  // of one big try block, so any exception while sending reminders (a bad
+  // cadence config, a transient DB error, mid-loop) skipped the purge
+  // sweep entirely for that invocation — silently deferring deletions with
+  // no failure signal of its own.
   try {
     const serverTime = new Date();
 
@@ -260,22 +267,38 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ── Purge expired account deletions (piggybacked on this cron) ──────────
-    let purgeResult = { processed: 0, errors: 0 };
-    try {
-      const { sweepAccountDeletions } = await import("@/lib/account-deletion/sweep");
-      purgeResult = await sweepAccountDeletions();
-    } catch (err) {
-      console.error("[cron] purge sweep error:", err);
-    }
-
-    return NextResponse.json({ sentClientReminders, sentEmailReminders, sentCoachAlerts, purge: purgeResult });
-
   } catch (err) {
-    console.error("Cron checkin-reminders failed", err);
-    return NextResponse.json(
-      { error: "Internal error" },
-      { status: 500 }
-    );
+    // Reminder-sending failed — record it, but fall through to the
+    // independent sweeps below rather than returning early.
+    reminderError = err instanceof Error ? err.message : String(err);
+    console.error("Cron checkin-reminders: reminder phase failed", err);
   }
+
+  // ── Purge expired account deletions (piggybacked on this cron) ──────────
+  // Independent of the reminder phase above — must run even if it threw.
+  let purgeResult = { processed: 0, errors: 0 };
+  try {
+    const { sweepAccountDeletions } = await import("@/lib/account-deletion/sweep");
+    purgeResult = await sweepAccountDeletions();
+  } catch (err) {
+    console.error("[cron] purge sweep error:", err);
+  }
+
+  // ── Storage cleanup outbox (CB09) — also independent of the above ───────
+  let storageCleanupResult = { processed: 0, failed: 0, abandoned: 0 };
+  try {
+    const { processStorageCleanupOutbox } = await import("@/lib/storage/cleanup-outbox");
+    storageCleanupResult = await processStorageCleanupOutbox();
+  } catch (err) {
+    console.error("[cron] storage cleanup sweep error:", err);
+  }
+
+  return NextResponse.json({
+    sentClientReminders,
+    sentEmailReminders,
+    sentCoachAlerts,
+    reminderError,
+    purge: purgeResult,
+    storageCleanup: storageCleanupResult,
+  });
 }

@@ -180,11 +180,11 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
   const photoSignPromises = assignments.map(async (a) => {
     if (a.client.profilePhotoPath) {
       try {
-        const url = await getProfilePhotoUrl(a.client.profilePhotoPath);
-        console.log("[clients] signed photo for %s path=%s", a.client.email, a.client.profilePhotoPath);
-        return url;
+        return await getProfilePhotoUrl(a.client.profilePhotoPath);
       } catch (err) {
-        console.warn("[clients] photo sign FAILED for %s path=%s err=%s", a.client.email, a.client.profilePhotoPath, (err as Error).message);
+        // CB12: no email or storage path in routine logs — this fires on
+        // every dashboard load, not just genuine incidents.
+        console.warn("[clients] photo sign failed for clientId=%s err=%s", a.client.id, (err as Error).message);
         return null;
       }
     }
