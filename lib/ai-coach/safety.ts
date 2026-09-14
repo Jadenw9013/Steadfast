@@ -164,33 +164,14 @@ export async function submitSafetyDisclosure(clientId: string, rawAnswers: unkno
 
 export type ClearSafetyRestrictionResult = { success: true } | { success: false; error: string };
 
-/**
- * The reviewed-resolution pathway (docs/ai-coach/07): "Removing an answer
- * does not clear a restriction; clearing follows the reviewed resolution
- * pathway." This is a placeholder for that pathway's actual authorization
- * (A11's reviewer queue) — it exists so the "restrictions can only be
- * cleared here, never by resubmitting a disclosure" invariant has exactly
- * one implementation to enforce it against, not zero.
- */
+/** Retired unscoped placeholder. Call resolveAiSafety with the reviewed case,
+ * expected revision, domain scope and audit reference. No legacy caller may
+ * clear restrictions merely by possessing a grant. */
 export async function clearSafetyRestriction(
-  clientId: string,
-  resolverUserId: string,
-  next: { disposition: AiSafetyDisposition; nutrition: AiDomainPermission; strength: AiDomainPermission; cardio: AiDomainPermission }
+  _clientId: string,
+  _resolverUserId: string,
+  _next: { disposition: AiSafetyDisposition; nutrition: AiDomainPermission; strength: AiDomainPermission; cardio: AiDomainPermission }
 ): Promise<ClearSafetyRestrictionResult> {
-  const grant = await db.aiCoachReviewerGrant.findUnique({ where: { userId: resolverUserId } });
-  if (!grant || grant.revokedAt) {
-    return { success: false, error: "Not authorized to resolve a safety restriction." };
-  }
-
-  await db.aiCoachProfile.update({
-    where: { clientId },
-    data: {
-      safetyDisposition: next.disposition,
-      nutritionPermission: next.nutrition,
-      strengthPermission: next.strength,
-      cardioPermission: next.cardio,
-      safetyRevision: { increment: 1 },
-    },
-  });
-  return { success: true };
+  void [_clientId, _resolverUserId, _next];
+  return { success: false, error: "Use the scoped, revisioned safety-resolution workflow." };
 }

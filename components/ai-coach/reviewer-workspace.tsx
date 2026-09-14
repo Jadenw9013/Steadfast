@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import type { getReviewerQueue } from "@/lib/ai-coach/reviewer";
+import { SafetyReview } from "./safety-review";
 import { PlanDisplay } from "./plan-display";
 type Queue = Awaited<ReturnType<typeof getReviewerQueue>>;
 export function ReviewerWorkspace({ initial }: { initial: Queue }) {
@@ -28,6 +29,7 @@ export function ReviewerWorkspace({ initial }: { initial: Queue }) {
     } catch (err) { setError(err instanceof Error ? err.message : "Connection interrupted. Retry with the same decision."); } finally { setBusy(false); }
   }
   return <div className="mx-auto max-w-4xl space-y-6 px-4 py-8 text-zinc-100"><header><p className="text-blue-400">Steadfast AI Coach · Synthetic reviewer workspace</p><h1 className="mt-2 text-3xl font-semibold">Proposal review queue</h1><p className="mt-3 text-zinc-400">{queue.backlog} pending proposals · queue capacity {queue.capacity}. This tool does not establish real staffing or clinical approval.</p>{queue.oldestPendingAt && <p className="mt-2 text-sm text-zinc-400">Oldest pending: {new Date(queue.oldestPendingAt).toLocaleString()}</p>}</header>
+    <SafetyReview />
     {queue.capacityReached && <p role="status" className="rounded-xl border border-amber-500/40 p-4 text-amber-200">Queue capacity reached. Review capacity must be restored before expanding enrollment.</p>}
     {error && <p role="alert" className="rounded-xl border border-red-500/40 p-4 text-red-300">{error}</p>}{message && <p role="status" className="text-emerald-300">{message}</p>}
     {queue.candidates.length ? <label className="block">Assigned proposal<select className="mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-zinc-900 p-3 text-base" value={selected} disabled={busy} onChange={e => { setSelected(e.target.value); setRationale(""); }} >{queue.candidates.map(c => <option key={c.id} value={c.id}>{c.clientId} · {c.changeClass} · {new Date(c.createdAt).toLocaleDateString()}</option>)}</select></label> : <p className="rounded-2xl border border-white/10 p-6 text-zinc-400">No eligible proposals are assigned to your current capabilities.</p>}

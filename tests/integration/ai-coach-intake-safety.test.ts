@@ -182,7 +182,7 @@ suite("A03 — safety disclosure processing with real PostgreSQL constraints", (
     expect(second.safetyRevision).toBe(2);
   });
 
-  it("clearSafetyRestriction requires a valid, non-revoked reviewer grant", async () => {
+  it("legacy clearance cannot bypass the scoped resolution workflow", async () => {
     const client = await makeClient();
     await submitSafetyDisclosure(client.id, { ...allClear, heartCondition: "YES" });
 
@@ -198,11 +198,11 @@ suite("A03 — safety disclosure processing with real PostgreSQL constraints", (
     const authorizedResult = await clearSafetyRestriction(client.id, reviewer.id, {
       disposition: "CLEAR", nutrition: "ALLOW", strength: "ALLOW", cardio: "ALLOW",
     });
-    expect(authorizedResult.success).toBe(true);
+    expect(authorizedResult.success).toBe(false);
 
     const profile = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } });
-    expect(profile.safetyDisposition).toBe("CLEAR");
-    expect(profile.strengthPermission).toBe("ALLOW");
+    expect(profile.safetyDisposition).not.toBe("CLEAR");
+    expect(profile.strengthPermission).toBe("PAUSED");
   });
 
   it("clearSafetyRestriction rejects a revoked reviewer grant", async () => {

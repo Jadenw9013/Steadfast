@@ -599,3 +599,22 @@ local disposable database. New cases reject incomplete reviewer scope and a full
 queue, then permit preparation when backlog is removed. Type-check/build, 203
 integration and 424 unit tests pass; lint remains 78 baseline problems. Real
 staffing, scope, consent and response obligations still require G04 artifacts.
+
+## A11d — reviewed safety resolution (2026-09-14)
+
+Added an assigned safety-case queue and reviewed domain-resolution command with
+current revision, explicit confirmation, supporting reference and rationale.
+Grant/account locks recheck active assignment and domain scope. Cross-domain
+case disclosures require full scope. Partial resolution preserves unresolved
+restrictions and urgent/referral disposition; all changes append an audit event,
+increment safety revision and invalidate old proposals. Exact concurrent retries
+produce one resolution. The old unscoped clearance helper now always rejects.
+Web intake also permits saving a selected concern before other safety answers
+are complete, matching the independent evidence-concern route.
+
+Type-check/build, 206 integration and 424 unit tests pass. Changed-file lint is
+clean after removing three introduced unused-argument warnings; the global
+baseline remains 14 errors/64 warnings. Native contract work is committed in the
+companion repo (21 unit tests pass); native screen verification is ongoing.
+All clearance references here remain synthetic; no real clinical authorization
+or monitored response service is claimed or enabled.
