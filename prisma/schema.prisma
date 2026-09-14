@@ -551,6 +551,15 @@ model AiPlanReviewerApproval {
 // (mirrors F07's ExerciseResult.sessionDate fix, generalized with an
 // explicit client event id instead of a derived date).
 model AiWorkoutSession {
+  modality String @default("STRENGTH")
+  sessionInstanceId String?
+  prescriptionSessionId String?
+  durationMinutes Float?
+  resultStatus String @default("REPORTED_PARTIAL")
+  painReported Boolean @default(false)
+  effortRating Int?
+  inputDigest String?
+  deletedAt DateTime?
   id            String     @id @default(cuid())
   clientId      String
   clientEventId String
@@ -562,7 +571,7 @@ model AiWorkoutSession {
   reps          Int?
   loadValue     Float?
   loadUnit      String?
-  loadKind      AiLoadKind
+  loadKind      AiLoadKind?
   painNote      String?    @db.Text
   effortNote    String?    @db.Text
   revision      Int        @default(0)

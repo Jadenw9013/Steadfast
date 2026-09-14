@@ -482,3 +482,20 @@ points, not just implementation.
 Start with `git log --oneline` and `git status` to confirm you're seeing
 the same state this file describes before trusting anything above it —
 this is a snapshot, and the repo may have moved on.
+
+## A08b — typed activity evidence (2026-09-14)
+
+Added owner-scoped strength-set and cardio observations against accepted typed
+plan prescriptions. Repeated workouts have explicit instance IDs. Request/event
+identity, immutable workout identity, and set uniqueness prevent retries from
+overwriting another session. Corrections use revisions and invalidate referenced
+review evidence. Missing, partial, skipped and completed activity remain distinct;
+bodyweight zero and assisted/external units are retained, and cardio has no fake
+strength load. A pain concern independently pauses advice even if other fields
+are invalid. Reads expose only the client's typed records.
+
+Migration `20260914000500_typed_ai_sessions` was applied only to the disposable
+local test database; existing legacy rows remain compatible. Type-check, build,
+Prisma validation, 189 integration and 411 unit tests pass. Lint remains the
+established 14-error/64-warning baseline. Activity UI and weekly source snapshots
+are subsequent slices; this is not a live coaching release.
