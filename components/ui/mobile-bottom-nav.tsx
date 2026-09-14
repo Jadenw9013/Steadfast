@@ -120,16 +120,19 @@ const clientItemsNoCoach: NavItem[] = [
 export function MobileBottomNav({
     role,
     hasCoach,
+    aiCoaching,
     checkInOverdue,
 }: {
     role: "coach" | "client";
     hasCoach?: boolean;
+    aiCoaching?: boolean;
     checkInOverdue?: boolean;
 }) {
     const pathname = usePathname();
     const items =
         role === "coach"
             ? coachItems
+            : aiCoaching ? clientItemsWithCoach.map(item => item.href === "/client/messages" ? { ...item, href: "/client/ai-coach/reviews", label: "Reviews", icon: <CheckInIcon /> } : item)
             : hasCoach
             ? clientItemsWithCoach
             : clientItemsNoCoach;

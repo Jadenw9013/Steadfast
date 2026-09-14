@@ -1,3 +1,4 @@
+import { getClientProvider } from "@/lib/queries/client-provider";
 import { redirect } from "next/navigation";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -18,11 +19,14 @@ export default async function ClientLayout({
     redirect("/account-deletion-pending");
   }
 
+  const provider = await getClientProvider(user.id);
+  const aiCoaching = provider.origin === "AI" || provider.aiPreviewAvailable;
+
   // Enforce Onboarding Questionnaire completion before allowing dashboard access
   // NOTE: explicit select avoids selecting Int[]/Json columns that can trip up
   // the @prisma/adapter-pg driver in certain Next.js dev configurations.
   const coachClient = await db.coachClient.findFirst({
-    where: { clientId: user.id },
+    where: { clientId: user.id, id: provider.activeCoachClientId ?? "unassigned" },
     select: { id: true, coachId: true },
   });
 
@@ -49,10 +53,10 @@ export default async function ClientLayout({
       <NavBar
         role="client"
         canSwitchRole={user.isCoach && user.isClient}
-        hasCoach={!!coachClient}
+        hasCoach={!!coachClient} aiCoaching={aiCoaching}
       />
       <main id="main-content" className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-8 sm:pb-8 sm:pt-8">{children}</main>
-      <MobileBottomNav role="client" hasCoach={!!coachClient} />
+      <MobileBottomNav role="client" hasCoach={!!coachClient} aiCoaching={aiCoaching} />
     </div>
   );
 }

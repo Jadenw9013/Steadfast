@@ -568,3 +568,19 @@ have no author-coach column) and rechecks provider state after reading.
 Type-check/build, 202 integration and 424 unit tests pass; lint remains the
 established 78-problem baseline. Main web screens and native consumers are the
 next integration slices. No live flag, migration or deployment was changed.
+
+## A12b — main web workflow integration (2026-09-14)
+
+Home, Plan and Check-in now select their current provider explicitly. AI clients
+use the same guarded workspace and evidence screens, with five primary mobile
+destinations: Home, Plan, Check-in, Reviews and Profile. An unavailable AI provider
+is shown as unavailable rather than replaced by historical human instructions.
+Human onboarding uses the resolved active relationship rather than an arbitrary
+CoachClient row. Ambiguous accounts receive an explicit resolution state.
+Portion-preference meal views suppress daily macros while macro mode still shows
+targets; accepted/review dates use the fixed review timezone.
+
+Type-check/build, 202 integration and 424 unit tests pass. Changed-file lint has
+only five pre-existing dashboard warnings; the additional error caught during
+implementation was fixed, restoring the established lint baseline. Native
+integration and operational controls remain in progress. No deployment.

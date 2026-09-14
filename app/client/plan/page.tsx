@@ -1,3 +1,5 @@
+import { getClientProvider } from "@/lib/queries/client-provider";
+import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
@@ -10,6 +12,9 @@ import { PlanTab } from "@/components/client/plan-tab";
 
 export default async function ClientPlanPage() {
   const user = await getCurrentDbUser();
+  const provider = await getClientProvider(user.id);
+  if (provider.resolutionRequired) return <ProviderResolution />;
+  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={["plan"]} />;
   const tz = user.timezone || "America/New_York";
   const todayDate = getLocalDate(new Date(), tz);
   const weekOf = normalizeToMonday(new Date());

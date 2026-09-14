@@ -1,3 +1,5 @@
+import { getClientProvider } from "@/lib/queries/client-provider";
+import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getClientCheckInsLight, getLatestCoachMessage } from "@/lib/queries/check-ins";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
@@ -36,9 +38,12 @@ dayjs.extend(timezonePlugin);
 
 export default async function ClientDashboard() {
   const user = await getCurrentDbUser();
+  const provider = await getClientProvider(user.id);
+  if (provider.resolutionRequired) return <ProviderResolution />;
+  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={[]} />;
 
   const coachAssignment = await db.coachClient.findFirst({
-    where: { clientId: user.id },
+    where: { clientId: user.id, id: provider.activeCoachClientId ?? "unassigned" },
     select: {
       id: true,
       cadenceConfig: true,
