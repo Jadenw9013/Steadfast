@@ -1,6 +1,9 @@
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email/sendEmail";
-import type { ClientInvite } from "@/app/generated/prisma/client";
+import type { ClientInvite, Prisma } from "@/app/generated/prisma/client";
+import { isAiCoachEnrollmentEnabled } from "@/lib/flags/ai-coach";
+
+type DbClient = typeof db | Prisma.TransactionClient;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -173,19 +176,24 @@ export async function acceptClientInviteForUser(
         where: { coachId_clientId: { coachId: invite.coachId, clientId: user.id } },
     });
     const wasAlreadyConnected = !!existingConn;
-    if (!existingConn) {
-        await db.coachClient.create({
-            data: { coachId: invite.coachId, clientId: user.id, coachNotes: "Joined via invite." },
-        });
-    }
-
-    await db.clientInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
-    if (invite.requestId) {
-        await db.coachingRequest.update({
-            where: { id: invite.requestId },
-            data: { prospectId: user.id, status: "ACCEPTED" },
-        }).catch(() => {});
-    }
+    // The relationship write and the ClientCoachingContext reconciliation
+    // (A01/CB06) commit atomically — a crash between them must never leave
+    // context pointing at a relationship that doesn't exist, or vice versa.
+    await db.$transaction(async (tx) => {
+        if (!existingConn) {
+            await tx.coachClient.create({
+                data: { coachId: invite.coachId, clientId: user.id, coachNotes: "Joined via invite." },
+            });
+        }
+        await reconcileCoachingContextForClient(tx, user.id);
+        await tx.clientInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
+        if (invite.requestId) {
+            await tx.coachingRequest.update({
+                where: { id: invite.requestId },
+                data: { prospectId: user.id, status: "ACCEPTED" },
+            }).catch(() => {});
+        }
+    });
 
     const coachName = [coach.firstName, coach.lastName].filter(Boolean).join(" ") || null;
     if (!wasAlreadyConnected) {
@@ -197,6 +205,103 @@ export async function acceptClientInviteForUser(
     }
 
     return { success: true, alreadyConnected: wasAlreadyConnected, coachId: invite.coachId, coachName };
+}
+
+// ── ClientCoachingContext — the sole current-provider authority (A01/CB06) ────
+
+/**
+ * Recomputes ClientCoachingContext from the client's actual current
+ * CoachClient rows. Call this inside the SAME transaction as any write
+ * that creates or deletes a CoachClient row — it is the only place that
+ * decides mode/activeCoachClientId, so every relationship writer stays
+ * consistent by construction instead of by convention.
+ *
+ * Never silently overwrites an already-ambiguous account
+ * (resolutionRequired) or an AI-enrolled one — those transitions have
+ * their own explicit, consent-bound paths and must not be clobbered by a
+ * legacy human-relationship change happening elsewhere (e.g. an old,
+ * no-longer-relevant CoachClient row being cleaned up after AI
+ * enrollment).
+ */
+export async function reconcileCoachingContextForClient(tx: DbClient, clientId: string): Promise<void> {
+    const existing = await tx.clientCoachingContext.findUnique({ where: { clientId } });
+    if (existing?.resolutionRequired || existing?.mode === "AI") return;
+
+    const relationships = await tx.coachClient.findMany({
+        where: { clientId },
+        select: { id: true },
+        orderBy: { createdAt: "asc" },
+    });
+
+    if (relationships.length <= 1) {
+        const mode = relationships.length === 1 ? "HUMAN" : "NONE";
+        const activeCoachClientId = relationships[0]?.id ?? null;
+        await tx.clientCoachingContext.upsert({
+            where: { clientId },
+            create: { clientId, mode, activeCoachClientId, revision: 1 },
+            update: { mode, activeCoachClientId, revision: { increment: 1 }, resolutionRequired: false },
+        });
+    } else {
+        // More than one CoachClient row for this client — not possible under
+        // normal application flow (verified zero occurrences at the A01
+        // migration), but never guess which one is "active" if it happens.
+        await tx.clientCoachingContext.upsert({
+            where: { clientId },
+            create: { clientId, mode: "HUMAN", activeCoachClientId: null, revision: 1, resolutionRequired: true },
+            update: { resolutionRequired: true },
+        });
+    }
+}
+
+export type EnrollInAiCoachingResult =
+    | { success: true }
+    | { success: false; error: string };
+
+/**
+ * The AI-enrollment transition (A01). Shares the same lock-order and
+ * single-authority discipline as the human acceptance path: verified
+ * entitlement, the enrollment flag checked server-side (never trusted from
+ * the client), and a clean starting context (NONE, not ambiguous) — a
+ * human-coached client must explicitly leave that relationship first
+ * (docs/ai-coach/05 — "A human-coached applicant must explicitly complete
+ * the provider transition before AI activation"), this function does not
+ * itself sever one.
+ */
+export async function enrollInAiCoaching(clientId: string): Promise<EnrollInAiCoachingResult> {
+    if (!isAiCoachEnrollmentEnabled()) {
+        return { success: false, error: "AI coaching is not available yet." };
+    }
+
+    const entitlement = await db.aiCoachEntitlement.findUnique({ where: { clientId } });
+    if (!entitlement || entitlement.revokedAt || (entitlement.expiresAt && entitlement.expiresAt < new Date())) {
+        return { success: false, error: "This account is not invited to AI coaching." };
+    }
+
+    const context = await db.clientCoachingContext.findUnique({ where: { clientId } });
+    if (context?.resolutionRequired) {
+        return { success: false, error: "This account needs manual review before enrollment." };
+    }
+    if (context?.mode === "AI") {
+        return { success: true }; // already enrolled — idempotent
+    }
+    if (context?.mode === "HUMAN") {
+        return { success: false, error: "Transition away from your current coach before enrolling in AI coaching." };
+    }
+
+    await db.$transaction(async (tx) => {
+        await tx.aiCoachProfile.upsert({
+            where: { clientId },
+            create: { clientId },
+            update: {},
+        });
+        await tx.clientCoachingContext.upsert({
+            where: { clientId },
+            create: { clientId, mode: "AI", activeCoachClientId: null, revision: 1 },
+            update: { mode: "AI", activeCoachClientId: null, revision: { increment: 1 } },
+        });
+    });
+
+    return { success: true };
 }
 
 // ── Guard helpers (testable, pure functions) ─────────────────────────────────

@@ -137,6 +137,71 @@ model User {
   reportsAgainst MessageReport[] @relation("ReportsAgainst")
 
   coachSubscription CoachSubscription?
+
+  coachingContext    ClientCoachingContext?
+  aiCoachProfile     AiCoachProfile?
+  aiCoachEntitlement AiCoachEntitlement?
+}
+
+enum CoachingMode {
+  NONE
+  HUMAN
+  AI
+}
+
+// docs/ai-coach/05-API-and-State-Contracts.md — the single current-provider
+// authority (A01/CB06). Every writer that creates or deletes a CoachClient
+// row must reconcile this in the same transaction (see
+// lib/activation.ts's reconcileCoachingContextForClient). Ambiguous legacy
+// state (more than one CoachClient row for a client — not possible today,
+// verified zero occurrences before this migration, but not enforced by a
+// DB constraint) sets resolutionRequired instead of guessing an active one.
+model ClientCoachingContext {
+  id                  String       @id @default(cuid())
+  clientId            String       @unique
+  mode                CoachingMode @default(NONE)
+  activeCoachClientId String?      @unique
+  revision            Int          @default(0)
+  resolutionRequired  Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  client            User        @relation(fields: [clientId], references: [id])
+  activeCoachClient CoachClient? @relation(fields: [activeCoachClientId], references: [id])
+}
+
+// Persistent AI-coaching identity for a client (A01). Retained across
+// pause/re-enrollment; the confirmed intake payload and clinical policy
+// content are added by later A-series slices. `activePlanVersionId` has no
+// FK yet — AiPlanVersion doesn't exist until A02.
+model AiCoachProfile {
+  id                   String    @id @default(cuid())
+  clientId             String    @unique
+  profileRevision      Int       @default(0)
+  observationRevision  Int       @default(0)
+  safetyRevision       Int       @default(0)
+  reviewTimezone       String?
+  activePlanVersionId  String?
+  consentedAt          DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  client User @relation(fields: [clientId], references: [id])
+}
+
+// Invited-pilot entitlement (A01) — separate from coach billing
+// (CoachSubscription) and from provider authority (ClientCoachingContext).
+// Grants cannot be self-asserted by a client or by the model; enrollment
+// must check this server-side alongside the enrollment feature flag.
+model AiCoachEntitlement {
+  id         String    @id @default(cuid())
+  clientId   String    @unique
+  grantedAt  DateTime  @default(now())
+  grantedBy  String? // internal id of whoever granted it; null for a seeded/manual grant
+  expiresAt  DateTime?
+  revokedAt  DateTime?
+
+  client User @relation(fields: [clientId], references: [id])
 }
 
 model IntakeFormTemplate {
@@ -162,6 +227,8 @@ model CoachClient {
 
   coach  User @relation("Coach", fields: [coachId], references: [id])
   client User @relation("Client", fields: [clientId], references: [id])
+
+  activeForContext ClientCoachingContext?
 
   @@unique([coachId, clientId])
   @@index([coachId])

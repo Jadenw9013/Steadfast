@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { reconcileCoachingContextForClient } from "@/lib/activation";
 import { revalidatePath } from "next/cache";
 
 const removeClientSchema = z.object({
@@ -24,8 +25,11 @@ export async function removeClient(input: unknown) {
 
   if (!assignment) throw new Error("Client not found in your roster");
 
-  await db.coachClient.delete({
-    where: { id: assignment.id },
+  // The relationship delete and the ClientCoachingContext reconciliation
+  // (A01/CB06) commit atomically.
+  await db.$transaction(async (tx) => {
+    await tx.coachClient.delete({ where: { id: assignment.id } });
+    await reconcileCoachingContextForClient(tx, parsed.data.clientId);
   });
 
   // Auto-decline any linked leads
@@ -65,8 +69,11 @@ export async function leaveCoach(input: unknown) {
     throw new Error("Coach relationship not found");
   }
 
-  await db.coachClient.delete({
-    where: { id: assignment.id },
+  // The relationship delete and the ClientCoachingContext reconciliation
+  // (A01/CB06) commit atomically.
+  await db.$transaction(async (tx) => {
+    await tx.coachClient.delete({ where: { id: assignment.id } });
+    await reconcileCoachingContextForClient(tx, user.id);
   });
 
   // Auto-decline any linked leads

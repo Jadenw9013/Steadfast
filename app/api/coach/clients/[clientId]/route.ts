@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { getClientProfile } from "@/lib/queries/client-profile";
+import { reconcileCoachingContextForClient } from "@/lib/activation";
 
 // ── GET — full client snapshot ────────────────────────────────────────────────
 
@@ -118,9 +119,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Client not found on roster" }, { status: 404 });
     }
 
-    // Delete the coach-client link (preserves the client's account + data)
-    await db.coachClient.delete({
-      where: { id: assignment.id },
+    // Delete the coach-client link (preserves the client's account + data).
+    // The delete and the ClientCoachingContext reconciliation (A01/CB06)
+    // commit atomically.
+    await db.$transaction(async (tx) => {
+      await tx.coachClient.delete({ where: { id: assignment.id } });
+      await reconcileCoachingContextForClient(tx, clientId);
     });
 
     // Best-effort: set any associated lead back to CONTACTED so coach can re-add later
