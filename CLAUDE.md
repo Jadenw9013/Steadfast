@@ -17,6 +17,8 @@ Never deviate from it without explicit instruction. Page overrides must describe
 
 The 14-document AI Coach company review and implementation pack lives at `docs/ai-coach/` (`00-Start-Here.md` reading order). It is the authoritative feature brief for the AI coaching product — read it before touching `lib/ai-coach/`, `lib/coaching/`, or any `/client/ai-coach/*` route. It supersedes any older `Steadfast-AI-Coach-*.md` plans. `design-system/steadfast/pages/ai-coach.md` holds the AI Coach route/page design overrides; the existing "hide macros" rule in the human coaching view does not apply to AI macro mode, which must show its targets.
 
+**Before doing any AI Coach work, read `docs/ai-coach/14-Handoff-Status.md` first.** It's a living status snapshot (not part of the original 00-13 pack) recording exactly what's built/verified/committed (F00-F08, CB11, A01-A05, A10 as of last update) versus what's left (A06-A09, A11, A12) and the standing conventions/gotchas to keep following. Update it whenever a slice lands or the plan changes.
+
 ## Skills Available
 - **steadfast-patterns** — READ THIS for every Steadfast task (imports, auth, CoachClient, server actions, styling rules)
 - **ui-ux-pro-max** — design intelligence, auto-activates for UI work
