@@ -182,6 +182,14 @@ Five unit cases plus a PostgreSQL activation trajectory pass. Full verification:
 migration. Representation/swap controls in the UI are next; this remains
 synthetic content, not reviewed meal adequacy or real cooking guidance.
 
+## A07b — meal presentation and substitution controls
+
+Accepted plans now offer presentation-change requests and curated ingredient
+swap proposals; proposal/reviewer views remain read-only. Prepared weekly
+quantities stay separate from unverified purchase weights. One rendering case
+verifies actionable-only swap controls. Verification: 179 integration + 411 unit
+tests, type-check/build pass, lint unchanged. No schema change.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):
