@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { acceptClientInviteForUser } from "@/lib/activation";
 import { db } from "@/lib/db";
 
 // ── POST — connect client to coach via invite code ───────────────────────────
@@ -42,17 +43,7 @@ export async function POST(req: NextRequest) {
     const { coachCode } = parsed.data;
 
     // ── Look up invite by token ───────────────────────────────────────────
-    const invite = await db.clientInvite.findUnique({
-      where: { inviteToken: coachCode },
-      select: {
-        id: true,
-        coachId: true,
-        email: true,
-        status: true,
-        expiresAt: true,
-        coach: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
+    const invite = await db.clientInvite.findUnique({ where: { inviteToken: coachCode } });
 
     if (!invite) {
       return NextResponse.json(
@@ -61,70 +52,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Check invite status ───────────────────────────────────────────────
-    if (invite.status !== "PENDING") {
+    // ── Accept via the single shared acceptance service ────────────────────
+    const result = await acceptClientInviteForUser(invite, user);
+    if (!result.success) {
+      const status = result.error.includes("expired") ? 410 : 403;
       return NextResponse.json(
-        { success: false, error: "invalid_code" },
-        { status: 410 }
+        { success: false, error: result.error.includes("expired") ? "expired" : "invalid_code" },
+        { status }
       );
     }
 
-    // ── Check expiry (7-day TTL) ──────────────────────────────────────────
-    if (invite.expiresAt < new Date()) {
-      await db.clientInvite.update({
-        where: { id: invite.id },
-        data: { status: "EXPIRED" },
-      });
-      return NextResponse.json(
-        { success: false, error: "expired" },
-        { status: 410 }
-      );
-    }
-
-    // ── Verify email match ────────────────────────────────────────────────
-    if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
-      return NextResponse.json(
-        { success: false, error: "invalid_code" },
-        { status: 403 }
-      );
-    }
-
-    // ── Check for existing assignment ─────────────────────────────────────
-    const existingAssignment = await db.coachClient.findUnique({
-      where: {
-        coachId_clientId: {
-          coachId: invite.coachId,
-          clientId: user.id,
-        },
-      },
-      select: { id: true },
-    });
-
-    if (existingAssignment) {
-      // Mark invite as accepted anyway (idempotent)
-      await db.clientInvite.update({
-        where: { id: invite.id },
-        data: { status: "ACCEPTED" },
-      });
+    if (result.alreadyConnected) {
       return NextResponse.json(
         { success: false, error: "already_connected" },
         { status: 409 }
       );
     }
-
-    // ── Create CoachClient + accept invite ────────────────────────────────
-    await db.coachClient.create({
-      data: {
-        coachId: invite.coachId,
-        clientId: user.id,
-        coachNotes: "Joined via invite code.",
-      },
-    });
-
-    await db.clientInvite.update({
-      where: { id: invite.id },
-      data: { status: "ACCEPTED" },
-    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

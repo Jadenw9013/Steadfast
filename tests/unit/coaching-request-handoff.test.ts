@@ -154,23 +154,17 @@ describe("acceptClient state rules", () => {
     });
 });
 
-describe("JIT conversion status matching", () => {
-    // Mirrors the JIT query in lib/auth/roles.ts
-    const JIT_ELIGIBLE_STATUSES = ["APPROVED", "ACCEPTED"];
-
-    it("matches APPROVED requests", () => {
-        expect(JIT_ELIGIBLE_STATUSES.includes("APPROVED")).toBe(true);
-    });
-
-    it("matches ACCEPTED requests", () => {
-        expect(JIT_ELIGIBLE_STATUSES.includes("ACCEPTED")).toBe(true);
-    });
-
-    it("does not match PENDING requests", () => {
-        expect(JIT_ELIGIBLE_STATUSES.includes("PENDING")).toBe(false);
-    });
-
-    it("does not match DECLINED requests", () => {
-        expect(JIT_ELIGIBLE_STATUSES.includes("DECLINED")).toBe(false);
+describe("CB01 — JIT signup no longer auto-links a coach relationship", () => {
+    // lib/auth/roles.ts's getCurrentDbUser() previously auto-created a
+    // CoachClient for any APPROVED/ACCEPTED CoachingRequest matching the new
+    // user's verified email (JIT_ELIGIBLE_STATUSES below documents what it
+    // used to match). That silently granted account access from a
+    // coach-entered email alone. It was removed: verified email ownership at
+    // signup is not the same as an explicit accept action. This is a
+    // static-source guard that fails loudly if the pattern is reintroduced.
+    it("lib/auth/roles.ts contains no coachClient.create in the JIT path", async () => {
+        const fs = await import("node:fs/promises");
+        const source = await fs.readFile(new URL("../../lib/auth/roles.ts", import.meta.url), "utf8");
+        expect(source).not.toMatch(/coachClient\.create/);
     });
 });

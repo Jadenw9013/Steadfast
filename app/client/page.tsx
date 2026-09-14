@@ -14,6 +14,8 @@ import Link from "next/link";
 import { ConnectCoachBanner } from "@/components/client/connect-coach-banner";
 import { MyRequestsCard } from "@/components/client/my-requests-card";
 import { getMyCoachingRequests } from "@/lib/queries/my-requests";
+import { CoachInviteBanner } from "@/components/client/coach-invite-banner";
+import { getMyPendingCoachInvites } from "@/lib/queries/client-invites";
 import { TestimonialPrompt } from "@/components/client/testimonial-prompt";
 import { getTestimonialEligibility } from "@/lib/queries/testimonial-eligibility";
 import { BecomeCoachForm } from "@/components/client/become-coach-form";
@@ -60,9 +62,10 @@ export default async function ClientDashboard() {
 
   // ── No-coach state: early return with focused layout ──────────────────────
   if (!coachAssignment) {
-    const [myRequests, checkIns] = await Promise.all([
+    const [myRequests, checkIns, pendingInvites] = await Promise.all([
       getMyCoachingRequests(),
       getClientCheckInsLight(user.id),
+      getMyPendingCoachInvites(user.email),
     ]);
     return (
       <div className="space-y-6">
@@ -72,6 +75,8 @@ export default async function ClientDashboard() {
             <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-500">{todayLabel}</p>
           </div>
         </section>
+
+        {pendingInvites.length > 0 && <CoachInviteBanner invites={pendingInvites} />}
 
         {myRequests.length > 0 && <MyRequestsCard requests={myRequests} />}
 
@@ -132,7 +137,7 @@ export default async function ClientDashboard() {
     );
   }
 
-  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake, adherenceEnabled, todayAdherence, planMeals] = await Promise.all([
+  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake, adherenceEnabled, todayAdherence, planMeals, pendingInvites] = await Promise.all([
     getClientCheckInsLight(user.id),
     getCurrentPublishedMealPlan(user.id),
     getLatestCoachMessage(user.id),
@@ -142,6 +147,7 @@ export default async function ClientDashboard() {
     getAdherenceEnabled(user.id),
     getTodayAdherence(user.id, todayDate),
     getTodayMealNames(user.id),
+    getMyPendingCoachInvites(user.email),
   ]);
 
   // ── Cadence-aware status derivation ──────────────────────────────────────
@@ -268,6 +274,11 @@ export default async function ClientDashboard() {
         </div>
       </section>
 
+      {pendingInvites.length > 0 && (
+        <div className="animate-fade-in" style={{ animationDelay: "20ms" }}>
+          <CoachInviteBanner invites={pendingInvites} />
+        </div>
+      )}
 
       {/* Intake questionnaire banner */}
       {pendingIntake && (pendingIntake.status === "PENDING" || pendingIntake.status === "IN_PROGRESS") && (

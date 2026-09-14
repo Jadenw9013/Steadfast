@@ -246,61 +246,24 @@ export async function approveCoachingRequest(requestId: string) {
         timestamp: new Date().toISOString(),
     }));
 
-    // Send approval email to prospect
+    // Send approval email to prospect (generic sign-up nudge; the tokenized
+    // invite email below is what actually links the account on acceptance)
     const coachName = user.firstName || "Your coach";
-    let emailSent = false;
     try {
         const approvalEmail = requestApprovedEmail(request.prospectName, coachName);
-        const result = await sendEmail({ to: request.prospectEmail, ...approvalEmail });
-        emailSent = result.success;
+        await sendEmail({ to: request.prospectEmail, ...approvalEmail });
     } catch { /* email failure must not break approval */ }
 
-    // Try to convert immediately if they already have an account
-    const email = request.prospectEmailAddr ?? null;
-    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
-    let existingUser = email
-        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
-        : null;
-    if (!existingUser && phone.length >= 7) {
-        existingUser = await db.user.findFirst({
-            where: { phoneNumber: { contains: phone.slice(-10) } },
-        });
-    }
+    // Issue a consent-required invite (never an immediate link — CB01: coach
+    // approval alone must not grant access to an existing account).
+    const linkResult = await linkOrInviteProspect(
+        request,
+        { coachId: user.id, coachFirstName: user.firstName, coachLastName: user.lastName },
+        requestId,
+        "Converted from marketplace request.",
+    );
 
-    let immediateLink = false;
-
-    if (existingUser) {
-        const existingConnection = await db.coachClient.findUnique({
-            where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
-        });
-        if (!existingConnection) {
-            await db.coachClient.create({
-                data: {
-                    coachId: user.id,
-                    clientId: existingUser.id,
-                    coachNotes: `Converted from marketplace request.`,
-                },
-            });
-        }
-
-        // Mark the request logic complete
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { prospectId: existingUser.id },
-        });
-
-        immediateLink = true;
-
-        // Background email: notify existing user they're connected
-        try {
-            const { coachConnectedEmail } = await import("@/lib/email/templates");
-            if (existingUser.email) {
-                const email = coachConnectedEmail(request.prospectName, coachName);
-                sendEmail({ to: existingUser.email, ...email }).catch(console.error);
-            }
-        } catch { /* email failure must not break approval */ }
-    } else if (emailSent) {
-        // Track invite metadata for non-existing users only
+    if (!linkResult.linked) {
         await db.coachingRequest.update({
             where: { id: requestId },
             data: {
@@ -312,7 +275,7 @@ export async function approveCoachingRequest(requestId: string) {
 
     revalidatePath("/coach/leads");
     revalidatePath("/coach/dashboard");
-    return { ...updated, immediateLink };
+    return { ...updated, immediateLink: linkResult.linked && linkResult.alreadyConnected };
 }
 
 export async function rejectCoachingRequest(requestId: string) {
@@ -427,53 +390,22 @@ export async function resendInvite(requestId: string) {
         return { success: false, message: "This person has already signed up and is connected." };
     }
 
-    const email = request.prospectEmailAddr ?? null;
-    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
-    let existingUser = email
-        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
-        : null;
-    if (!existingUser && phone.length >= 7) {
-        existingUser = await db.user.findFirst({
-            where: { phoneNumber: { contains: phone.slice(-10) } },
-        });
-    }
+    // Issue (or re-send) a consent-required invite. Even if the prospect has
+    // since created an account, this never auto-links them (CB01) — it only
+    // (re)sends the invite they must accept themselves.
+    const linkResult = await linkOrInviteProspect(
+        request,
+        { coachId: user.id, coachFirstName: user.firstName, coachLastName: user.lastName },
+        requestId,
+        "Converted from marketplace request.",
+    );
 
-    if (existingUser) {
-        // Prospect signed up since last page load — auto-link and inform coach
-        const existingConnection = await db.coachClient.findUnique({
-            where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
-        });
-        if (!existingConnection) {
-            await db.coachClient.create({
-                data: {
-                    coachId: user.id,
-                    clientId: existingUser.id,
-                    coachNotes: `Converted from marketplace request.`,
-                },
-            });
-        }
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { prospectId: existingUser.id },
-        });
-
+    if (linkResult.linked) {
         revalidatePath("/coach/leads");
-        return { success: true, message: "Good news — they already signed up! They've been linked to your roster." };
+        return { success: true, message: "Good news — they're already connected to your roster." };
     }
-
-    // Send the invite email
-    const coachName = user.firstName || "Your coach";
-    const approvalEmail = requestApprovedEmail(request.prospectName, coachName);
-    const emailResult = await sendEmail({ to: (email ?? request.prospectEmail), ...approvalEmail });
-
-    if (!emailResult.success) {
-        console.error(JSON.stringify({
-            event: "marketplace.invite.resend_failed",
-            requestId,
-            error: emailResult.error,
-            timestamp: new Date().toISOString(),
-        }));
-        return { success: false, message: "Unable to send the invite email right now. Please try again shortly." };
+    if ("noEmailOnFile" in linkResult) {
+        return { success: false, message: "This lead has no email on file to invite." };
     }
 
     // Update invite tracking metadata
@@ -489,7 +421,6 @@ export async function resendInvite(requestId: string) {
         event: "marketplace.invite.resent",
         requestId,
         coachProfileId: request.coachProfileId,
-        sendCount: 1,
         timestamp: new Date().toISOString(),
     }));
 
@@ -589,43 +520,21 @@ export async function acceptClient(requestId: string) {
         throw new Error("Client already accepted.");
     }
 
-    // Create CoachClient if prospect has an account
-    const email = request.prospectEmailAddr ?? null;
-    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
-    let existingUser = email
-        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
-        : null;
-    if (!existingUser && phone.length >= 7) {
-        existingUser = await db.user.findFirst({
-            where: { phoneNumber: { contains: phone.slice(-10) } },
-        });
-    }
+    // Issue a consent-required invite — accepting a lead never itself grants
+    // account access (CB01); the intended client must accept the invite.
+    const linkResult = await linkOrInviteProspect(
+        request,
+        { coachId: user.id, coachFirstName: user.firstName, coachLastName: user.lastName },
+        requestId,
+        "Accepted from lead.",
+    );
 
-    if (existingUser) {
-        const existingConn = await db.coachClient.findUnique({
-            where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
-        });
-        if (!existingConn) {
-            await db.coachClient.create({
-                data: { coachId: user.id, clientId: existingUser.id, coachNotes: "Accepted from lead." },
-            });
-        }
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { status: "ACCEPTED", prospectId: existingUser.id },
-        });
-    } else {
-        // No account yet — send sign-up invite email
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { status: "ACCEPTED", inviteLastSentAt: new Date(), inviteSendCount: { increment: 1 } },
-        });
-        const coachName = user.firstName || "Your coach";
-        try {
-            const email = requestApprovedEmail(request.prospectName, coachName);
-            await sendEmail({ to: request.prospectEmail, ...email });
-        } catch { /* email failure must not block */ }
-    }
+    await db.coachingRequest.update({
+        where: { id: requestId },
+        data: linkResult.linked
+            ? { status: "ACCEPTED", prospectId: linkResult.clientId }
+            : { status: "ACCEPTED", inviteLastSentAt: new Date(), inviteSendCount: { increment: 1 } },
+    });
 
     revalidatePath("/coach/leads");
     revalidatePath("/coach/dashboard");

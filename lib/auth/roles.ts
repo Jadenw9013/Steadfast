@@ -77,42 +77,14 @@ export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}
     } catch { /* email failure must not break auth flow */ }
   }
 
-  // Process any approved marketplace requests pending for this email
-  if (newUser.isClient) {
-    const unhandledRequests = await db.coachingRequest.findMany({
-      where: {
-        prospectEmail: email.toLowerCase(),
-        status: { in: ["APPROVED", "ACCEPTED"] },
-        prospectId: null,
-      },
-      include: {
-        coachProfile: true,
-      },
-    });
-
-    for (const req of unhandledRequests) {
-      const existingConnection = await db.coachClient.findUnique({
-        where: {
-          coachId_clientId: { coachId: req.coachProfile.userId, clientId: newUser.id },
-        },
-      });
-
-      if (!existingConnection) {
-        await db.coachClient.create({
-          data: {
-            coachId: req.coachProfile.userId,
-            clientId: newUser.id,
-            coachNotes: `Converted from marketplace request.`,
-          },
-        });
-      }
-
-      await db.coachingRequest.update({
-        where: { id: req.id },
-        data: { prospectId: newUser.id },
-      });
-    }
-  }
+  // NOTE: this used to auto-create a CoachClient here for any pending
+  // marketplace request matching this email (CB01 — a coach-supplied email
+  // match was treated as consent). Verified email ownership at signup is not
+  // the same as an explicit "yes, connect me to this coach" action, so this
+  // no longer creates any relationship. Any pending ClientInvite for this
+  // email (created when a coach activates a lead — see lib/activation.ts)
+  // is instead surfaced to the client as an explicit accept/decline choice
+  // on their dashboard (getMyPendingCoachInvites + acceptClientInviteForUser).
 
   return newUser;
 }

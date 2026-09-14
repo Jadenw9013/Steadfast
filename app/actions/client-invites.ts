@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { acceptClientInviteForUser } from "@/lib/activation";
 import { sendEmail } from "@/lib/email/sendEmail";
 
 const sendInviteSchema = z.object({
@@ -60,37 +61,12 @@ export async function sendClientInvite(input: unknown) {
 export async function redeemInvite(token: string) {
     const user = await getCurrentDbUser();
 
-    const invite = await db.clientInvite.findUnique({
-        where: { inviteToken: token },
-        include: { coach: { select: { id: true, firstName: true } } },
-    });
-
+    const invite = await db.clientInvite.findUnique({ where: { inviteToken: token } });
     if (!invite) return { error: "Invite not found." };
-    if (invite.status !== "PENDING") return { error: "This invite has already been used." };
-    if (invite.expiresAt < new Date()) {
-        await db.clientInvite.update({ where: { id: invite.id }, data: { status: "EXPIRED" } });
-        return { error: "This invite link has expired. Ask your coach to send a new one." };
-    }
 
-    // Verify the invited email matches the signed-in user
-    if (invite.email !== user.email.toLowerCase()) {
-        return { error: "This invite was sent to a different email address." };
-    }
-
-    // Check for existing coach relationship
-    const existingConn = await db.coachClient.findUnique({
-        where: { coachId_clientId: { coachId: invite.coachId, clientId: user.id } },
-    });
-
-    if (!existingConn) {
-        await db.coachClient.create({
-            data: { coachId: invite.coachId, clientId: user.id, coachNotes: "Joined via direct invite." },
-        });
-    }
-
-    await db.clientInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
-
-    return { success: true, coachName: invite.coach.firstName };
+    const result = await acceptClientInviteForUser(invite, user);
+    if (!result.success) return { error: result.error };
+    return { success: true, coachName: result.coachName };
 }
 
 export async function getInviteDetails(token: string) {

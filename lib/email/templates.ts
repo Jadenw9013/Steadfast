@@ -239,15 +239,17 @@ ${dashboardUrl}${FOOTER}`;
 }
 
 export function clientActivatedInviteEmail(name: string, coachName: string, inviteUrl: string) {
-    const subject = `You're all set — here's how to access your coaching on Steadfast`;
+    const subject = `${coachName} added you on Steadfast — confirm to connect`;
     const text = `Hi ${name},
 
-Welcome! ${coachName} has set up your coaching profile on Steadfast.
+${coachName} has set up your coaching profile on Steadfast and would like to connect.
 
-To access your plans and check in with your coach, you'll need to create your Steadfast account. This only takes a minute — your intake information is already saved.
+To access your plans and check in with your coach, open the link below. If you already have a Steadfast account, sign in with the email this was sent to; otherwise it only takes a minute to create one.
 
-Create your account:
-${inviteUrl}${FOOTER}`;
+Continue:
+${inviteUrl}
+
+If you weren't expecting this, you can safely ignore it — nothing is shared with ${coachName} until you confirm.${FOOTER}`;
 
     return { subject, text };
 }

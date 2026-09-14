@@ -16,24 +16,39 @@ import { getActivationMessage, validateActivationPreconditions } from "@/lib/act
  */
 
 describe("getActivationMessage", () => {
-    it("returns roster message when prospect was linked", () => {
+    it("returns an already-connected message when prospect was already linked", () => {
         const msg = getActivationMessage("Alex", {
             linked: true,
             clientId: "user_123",
             email: "alex@test.com",
+            alreadyConnected: true,
         });
         expect(msg).toContain("Alex");
-        expect(msg).toContain("roster");
+        expect(msg).toContain("already connected");
     });
 
-    it("returns pending message when prospect has no account", () => {
+    it("returns a pending-acceptance message when an invite was sent — never claims immediate access", () => {
         const msg = getActivationMessage("Sam", {
             linked: false,
             inviteToken: "tok_abc",
             email: "sam@test.com",
         });
         expect(msg).toContain("Sam");
-        expect(msg).toContain("create their account");
+        expect(msg).toContain("accept");
+        // CB01 regression guard: activation must never claim the client is
+        // already on the roster before they have consented.
+        expect(msg).not.toContain("has been activated and added to your roster");
+    });
+
+    it("returns a no-email message without claiming anything was sent", () => {
+        const msg = getActivationMessage("Jordan", {
+            linked: false,
+            inviteToken: null,
+            email: null,
+            noEmailOnFile: true,
+        });
+        expect(msg).toContain("Jordan");
+        expect(msg).toContain("email");
     });
 });
 
@@ -131,17 +146,38 @@ describe("activation helper contract", () => {
         expect(typeof mod.validateActivationPreconditions).toBe("function");
     });
 
-    it("LinkResult discriminated union covers both branches", () => {
-        // Type-level test: ensure both paths produce valid messages
-        const linkedResult = { linked: true as const, clientId: "x", email: "x@x.com" };
+    it("exports acceptClientInviteForUser", async () => {
+        const mod = await import("@/lib/activation");
+        expect(typeof mod.acceptClientInviteForUser).toBe("function");
+    });
+
+    it("LinkResult discriminated union covers all three branches", () => {
+        // Type-level test: ensure every path produces valid, distinct messages
+        const linkedResult = { linked: true as const, clientId: "x", email: "x@x.com", alreadyConnected: true as const };
         const inviteResult = { linked: false as const, inviteToken: "tok", email: "y@y.com" };
+        const noEmailResult = { linked: false as const, inviteToken: null, email: null, noEmailOnFile: true as const };
 
-        // Both must produce non-empty strings
-        expect(getActivationMessage("Test", linkedResult).length).toBeGreaterThan(0);
-        expect(getActivationMessage("Test", inviteResult).length).toBeGreaterThan(0);
+        const messages = [linkedResult, inviteResult, noEmailResult].map((r) => getActivationMessage("Test", r));
+        for (const m of messages) expect(m.length).toBeGreaterThan(0);
 
-        // Messages must be different
-        expect(getActivationMessage("Test", linkedResult))
-            .not.toBe(getActivationMessage("Test", inviteResult));
+        // Messages must all be distinct
+        expect(new Set(messages).size).toBe(messages.length);
+    });
+});
+
+/**
+ * CB01 regression guard: linkOrInviteProspect must never resolve a match by
+ * phone number alone. This is a static-source check (not a DB-dependent
+ * behavioral test) that fails loudly if phone-based User lookup is
+ * reintroduced into lib/activation.ts.
+ */
+describe("CB01 — no phone-match authorization", () => {
+    it("lib/activation.ts never queries User by phoneNumber", async () => {
+        const fs = await import("node:fs/promises");
+        const source = await fs.readFile(new URL("../../lib/activation.ts", import.meta.url), "utf8");
+        // The ProspectInfo type may still carry a prospectPhone field (other
+        // callers construct it), but activation.ts itself must never use it
+        // to resolve which User account to act on.
+        expect(source).not.toMatch(/phoneNumber/);
     });
 });

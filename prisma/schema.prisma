@@ -839,6 +839,7 @@ model CoachingRequest {
   formSubmission      ClientFormSubmission?
   signature           ClientFormSignature?
   intakePacket        IntakePacket?
+  clientInvite        ClientInvite?
 
   @@index([coachProfileId])
   @@index([status])
@@ -879,6 +880,12 @@ model ClientInvite {
   status      InviteStatus @default(PENDING)
   createdAt   DateTime     @default(now())
   expiresAt   DateTime
+
+  // Set when this invite was issued to activate a pipeline lead, so acceptance
+  // can update the originating request's prospectId/status. Null for invites
+  // sent directly via sendClientInvite (no pipeline request involved).
+  requestId String?           @unique
+  request   CoachingRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
 
   coach User @relation("CoachInvites", fields: [coachId], references: [id])
 
