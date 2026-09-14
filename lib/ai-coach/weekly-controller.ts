@@ -45,10 +45,11 @@ export function weeklyChangeWithinBounds(snapshot: RunSnapshot, candidate: PlanP
 export function buildWeeklyFixtureReview(snapshot: RunSnapshot): { payload: PlanPayload | null; decision: ReviewDecision } {
   const base = snapshot.basePayload;
   if (!base || !snapshot.history.length) return none("CLARIFY", "MISSING_INPUT", "An accepted baseline and retained history are required.");
-  const baselineAt = snapshot.history.filter(p => p.changeClass !== "TARGET_PRESERVING").at(-1)?.acceptedAt;
+  const materialAt = snapshot.history.filter(p => p.changeClass !== "TARGET_PRESERVING").at(-1)?.acceptedAt;
+  const baselineAt = materialAt && snapshot.lastSafetyResolutionAt && snapshot.lastSafetyResolutionAt > materialAt ? snapshot.lastSafetyResolutionAt : materialAt;
   if (!baselineAt) return none("CLARIFY", "MISSING_INPUT", "The current prescription has no retained activation date.");
   const observations = snapshot.evidence.observations.filter(r => r.occurredAt >= baselineAt);
-  const sessions = snapshot.evidence.sessions;
+  const sessions = snapshot.evidence.sessions.filter(r => r.occurredAt >= baselineAt);
   if (observations.some(r => r.payload.safetyChanged !== "NO") || sessions.some(s => s.painReported)) return none("PAUSE_REFER", "SAFETY_CONCERN", "A reported concern needs authorized review before another plan change.");
   const priorWeek = new Date(`${snapshot.reviewWindowKey}T00:00:00Z`); priorWeek.setUTCDate(priorWeek.getUTCDate() - 7);
   const recent = observations.filter(r => reviewWindow(new Date(r.occurredAt), snapshot.reviewTimezone).key === priorWeek.toISOString().slice(0, 10));

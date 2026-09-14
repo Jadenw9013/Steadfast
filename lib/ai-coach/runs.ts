@@ -163,6 +163,7 @@ export async function createRetryRun(
 ): Promise<{ success: true; runId: string } | { success: false; error: string }> {
   const original = await db.aiCoachRun.findUnique({ where: { id: originalRunId } });
   if (!original) return { success: false, error: "Original run not found." };
+  if (original.inputSnapshot !== null) return { success: false, error: "Use the owner-scoped managed retry command." };
   if (original.status !== "FAILED") return { success: false, error: "Can only retry a terminally failed run." };
 
   const created = await db.aiCoachRun.create({

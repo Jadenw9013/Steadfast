@@ -26,6 +26,7 @@ export const runSnapshotSchema = z.object({
   modelConfiguration: z.literal("synthetic-template-v1"), baseVersionId: z.string().nullable(),
   basePayload: planPayloadSchema.nullable(), representation: z.enum(["MACROS", "MEALS"]),
   reviewWindowKey: z.string(), reviewTimezone: z.string(),
+  lastSafetyResolutionAt: z.string().datetime().nullable().optional(),
   sourceRefs: z.array(sourceRefSchema).max(2180),
   evidence: evidenceSnapshotSchema.default({ observations: [], sessions: [] }),
   history: z.array(z.object({ id: z.string(), acceptedAt: z.string().datetime(), changeClass: z.string().nullable(), reviewWindowKey: z.string().nullable(), payload: planPayloadSchema }).strict()).max(500).default([]),
@@ -61,11 +62,12 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     const collected = input.kind === "WEEKLY_REVIEW" ? await collectEvidence(tx, clientId, start, window.lookbackEnd) : { evidence: { observations: [], sessions: [] }, sourceRefs: base?.sourceRefs ?? [] };
     const history = await tx.aiPlanVersion.findMany({ where: { clientId, acceptedAt: { not: null } }, orderBy: { acceptedAt: "asc" }, take: 501, select: { id: true, acceptedAt: true, changeClass: true, reviewWindowKey: true, payload: true } });
     if (history.length > 500) throw new AiCoachError("VALIDATION_ERROR", "Plan history requires a reviewed archival policy before another change.", 422);
+    const resolution = await tx.aiSafetyDisclosureEvent.findFirst({ where: { clientId, structuredAnswers: { path: ["source"], equals: "REVIEWED_RESOLUTION" }, dispositionAfter: "CLEAR" }, orderBy: { reportedAt: "desc" }, select: { reportedAt: true } });
     const snapshot = runSnapshotSchema.parse({
       schemaVersion: 1, synthetic: true, intake: intake.data, policyVersion: ACTIVE_POLICY_VERSION,
       catalogVersions: { food: FOOD_CATALOG_VERSION, exercise: EXERCISE_CATALOG_VERSION }, modelConfiguration: "synthetic-template-v1",
       baseVersionId: base?.id ?? null, basePayload: base?.payload ?? null, representation: input.representation,
-      reviewWindowKey: window.key, reviewTimezone: profile.reviewTimezone, sourceRefs: collected.sourceRefs, evidence: collected.evidence, history: history.map(p => ({ ...p, acceptedAt: p.acceptedAt!.toISOString() })), substitution: input.substitution ?? null,
+      reviewWindowKey: window.key, reviewTimezone: profile.reviewTimezone, lastSafetyResolutionAt: resolution?.reportedAt.toISOString() ?? null, sourceRefs: collected.sourceRefs, evidence: collected.evidence, history: history.map(p => ({ ...p, acceptedAt: p.acceptedAt!.toISOString() })), substitution: input.substitution ?? null,
     });
     const revisions = { contextRevision: context!.revision, profileRevision: profile.profileRevision, observationRevision: profile.observationRevision, safetyRevision: profile.safetyRevision };
     const businessKey = contentHash({ clientId, kind: input.kind, snapshot: jsonValue(snapshot), ...revisions });

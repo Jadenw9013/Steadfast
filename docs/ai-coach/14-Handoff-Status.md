@@ -618,3 +618,18 @@ baseline remains 14 errors/64 warnings. Native contract work is committed in the
 companion repo (21 unit tests pass); native screen verification is ongoing.
 All clearance references here remain synthetic; no real clinical authorization
 or monitored response service is claimed or enabled.
+
+## A12c — durable manual retry and post-clearance evidence (2026-09-14)
+
+Failed managed runs can be retried through an owner-scoped command and client
+control. Concurrent requests collapse to one linked run, retain the original
+snapshot/cutoff/window/history and recheck current safety, authority, evidence,
+daily quota and reviewer capacity. Two manual retry generations are the cap;
+terminal rows and adjustment slots never reopen. The legacy unscoped retry helper
+rejects managed runs. Safe run-status responses are explicitly no-store.
+
+Weekly snapshots also retain the latest full reviewed clearance timestamp.
+Intensification waits for sufficient evidence after that clearance, preventing
+both a perpetual resolved-concern loop and immediate escalation from old reports.
+Type-check/build, 211 integration and 425 unit tests pass; changed-file lint is
+clean and the full baseline remains 14 errors/64 warnings. No deployment.

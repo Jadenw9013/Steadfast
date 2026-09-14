@@ -22,5 +22,5 @@ export async function GET(
     return NextResponse.json({ error: result.error }, { status });
   }
 
-  return NextResponse.json(result.run);
+  return NextResponse.json(result.run, { headers: { "Cache-Control": "private, no-store" } });
 }
