@@ -54,7 +54,7 @@ export function CheckInForm({
   const [conflictModal, setConflictModal] = useState<{
     submittedAt: string;
     pendingValues: FormValues;
-    pendingPhotoPaths: string[];
+    pendingPhotoPaths: string[] | undefined;
   } | null>(null);
   const [incompleteConfirm, setIncompleteConfirm] = useState<{ values: FormValues } | null>(null);
   const [, setToast] = useState<string | null>(null);
@@ -168,7 +168,7 @@ export function CheckInForm({
     return Object.keys(newErrors).length === 0;
   }
 
-  async function submitCheckIn(values: FormValues, photoPaths: string[], overwriteToday?: boolean) {
+  async function submitCheckIn(values: FormValues, photoPaths: string[] | undefined, overwriteToday?: boolean) {
     setUploadState("submitting");
     const responsesPayload = Object.fromEntries(
       Object.entries(customResponses).filter(([, v]) => v !== "")
@@ -178,7 +178,10 @@ export function CheckInForm({
       dietCompliance: values.dietCompliance ? parseInt(values.dietCompliance) : undefined,
       energyLevel: values.energyLevel ? parseInt(values.energyLevel) : undefined,
       notes: values.notes,
-      photoPaths,
+      // Omitting photoPaths entirely (vs. an empty array) tells the server
+      // to leave this check-in's existing photos untouched on an overwrite —
+      // only send it when the user actually picked files this session.
+      ...(photoPaths !== undefined && { photoPaths }),
       overwriteToday,
       templateId,
       customResponses: Object.keys(responsesPayload).length > 0 ? responsesPayload : undefined,
@@ -206,7 +209,11 @@ export function CheckInForm({
     setUploadState("getting-urls");
     try {
       const photoPaths = await uploadPhotos();
-      await submitCheckIn(values, photoPaths, undefined);
+      // Only the user actively picking files this session counts as an
+      // explicit photo decision. On a brand-new (non-overwrite) check-in
+      // this still correctly means "no photos"; on an overwrite it means
+      // "leave whatever photos this check-in already has."
+      await submitCheckIn(values, files.length > 0 ? photoPaths : undefined, undefined);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {

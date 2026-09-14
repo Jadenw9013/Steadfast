@@ -1,23 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { normalizeToMonday, getLocalDate } from "@/lib/utils/date";
-import type { Prisma } from "@/app/generated/prisma/client";
-
-function toJsonValue(value: unknown): Prisma.InputJsonValue {
-  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
-}
-
-const createCheckInApiSchema = z.object({
-  weight: z.number().positive().optional(),
-  bodyFatPct: z.number().min(0).max(100).optional(),
-  dietCompliance: z.number().int().min(1).max(10).optional(),
-  energyLevel: z.number().int().min(1).max(10).optional(),
-  notes: z.string().max(5000).optional(),
-  customResponses: z.record(z.string(), z.unknown()).optional(),
-  overwriteToday: z.boolean().optional(),
-});
+import { submitCheckIn } from "@/lib/check-ins/submit";
 
 export async function POST(req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -34,120 +18,31 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const parsed = createCheckInApiSchema.safeParse(body);
-    if (!parsed.success) {
+
+    const result = await submitCheckIn(user, body);
+
+    if ("error" in result) {
       return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
+        { error: "Validation failed", details: result.error },
         { status: 422 }
       );
     }
-
-    const { weight, bodyFatPct, dietCompliance, energyLevel, notes, customResponses, overwriteToday } = parsed.data;
-
-    // Require an assigned coach (mirrors server action behaviour)
-    const coachAssignment = await db.coachClient.findFirst({
-      where: { clientId: user.id },
-      select: { id: true, coachId: true },
-    });
-    if (!coachAssignment) {
-      return NextResponse.json(
-        { error: "Connect to a coach before submitting check-ins" },
-        { status: 422 }
-      );
+    if ("conflict" in result) {
+      return NextResponse.json({ conflict: result.conflict }, { status: 409 });
     }
 
-    const now = new Date();
-    const weekDate = normalizeToMonday(now);
-    const tz = user.timezone || "America/Los_Angeles";
-    const localDate = getLocalDate(now, tz);
-
-    const checkInFields = {
-      weight: weight ?? null,
-      bodyFatPct: bodyFatPct ?? null,
-      dietCompliance: dietCompliance ?? null,
-      energyLevel: energyLevel ?? null,
-      notes: notes || null,
-      ...(customResponses && {
-        customResponses: toJsonValue(customResponses),
-      }),
-    };
-
-    // Check for existing check-in today
-    const existingToday = await db.checkIn.findFirst({
-      where: { clientId: user.id, localDate, deletedAt: null },
-      orderBy: { submittedAt: "desc" },
-      select: { id: true, submittedAt: true },
-    });
-
-    // Conflict: existing today, caller hasn't specified overwrite preference
-    if (existingToday && overwriteToday === undefined) {
-      return NextResponse.json(
-        {
-          conflict: {
-            code: "CHECKIN_EXISTS_TODAY",
-            existing: {
-              id: existingToday.id,
-              submittedAt: existingToday.submittedAt.toISOString(),
-            },
-          },
-        },
-        { status: 409 }
-      );
-    }
-
-    let checkIn;
-
-    if (existingToday && overwriteToday === true) {
-      // Overwrite: update the existing check-in for today
-      const [, updated] = await db.$transaction([
-        db.checkInPhoto.deleteMany({ where: { checkInId: existingToday.id } }),
-        db.checkIn.update({
-          where: { id: existingToday.id },
-          data: {
-            ...checkInFields,
-            weekOf: weekDate,
-            submittedAt: now,
-            localDate,
-            timezone: tz,
-            status: "SUBMITTED",
-          },
-        }),
-      ]);
-      checkIn = updated;
-
-      // Auto-post check-in message in DM thread
-      try {
-        const checkinDate = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-        const msgBody = `[CHECKIN:${updated.id}:${checkinDate}]${notes || "Check-in submitted"}`;
-        await db.message.create({
-          data: { clientId: user.id, weekOf: weekDate, senderId: user.id, body: msgBody },
-        });
-      } catch { /* message creation must not break check-in */ }
-    } else {
-      // New check-in
-      checkIn = await db.checkIn.create({
-        data: {
-          clientId: user.id,
-          weekOf: weekDate,
-          isPrimary: true,
-          submittedAt: now,
-          localDate,
-          timezone: tz,
-          ...checkInFields,
-        },
-      });
-
-      // Notify coach (fire-and-forget, mirrors server action)
-      if (coachAssignment.coachId) {
+    // Notify coach on a brand-new check-in (not an overwrite) — mirrors the
+    // server action's notification side effects.
+    if (!result.overwritten) {
+      const coachAssignment = await db.coachClient.findFirst({ where: { clientId: user.id }, select: { coachId: true } });
+      if (coachAssignment?.coachId) {
         const coachId = coachAssignment.coachId;
         const clientName = user.firstName || "Your client";
-
         Promise.resolve().then(async () => {
           try {
             const { notifyClientCheckInSubmitted } = await import("@/lib/sms/notify");
             notifyClientCheckInSubmitted(coachId, clientName).catch(console.error);
           } catch { /* ignore */ }
-
           try {
             const coach = await db.user.findUnique({
               where: { id: coachId },
@@ -164,18 +59,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Auto-post check-in message in DM thread (for new check-ins)
-    if (!existingToday || overwriteToday !== true) {
-      try {
-        const checkinDate = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-        const msgBody = `[CHECKIN:${checkIn.id}:${checkinDate}]${notes || "Check-in submitted"}`;
-        await db.message.create({
-          data: { clientId: user.id, weekOf: weekDate, senderId: user.id, body: msgBody },
-        });
-      } catch { /* message creation must not break check-in */ }
-    }
-
-    return NextResponse.json({ checkIn: { id: checkIn.id } }, { status: 201 });
+    return NextResponse.json({ checkIn: { id: result.checkInId } }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/client/checkin]", err);
     return NextResponse.json(

@@ -1,19 +1,11 @@
 "use server";
 
-import { isOwnedUploadPath } from "@/lib/validations/storage-path";
 import { z } from "zod";
-import { createCheckInSchema } from "@/lib/validations/check-in";
+import { submitCheckIn } from "@/lib/check-ins/submit";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { normalizeToMonday, getLocalDate } from "@/lib/utils/date";
 import { verifyCoachAccessToCheckIn } from "@/lib/queries/check-ins";
 import { revalidatePath } from "next/cache";
-import type { Prisma } from "@/app/generated/prisma/client";
-
-/** Serialize Zod-validated data to Prisma-compatible JSON. */
-function toJsonValue(value: unknown): Prisma.InputJsonValue {
-  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
-}
 
 export async function createCheckIn(input: unknown) {
   const user = await getCurrentDbUser();
@@ -22,177 +14,40 @@ export async function createCheckIn(input: unknown) {
     throw new Error("Only clients can submit check-ins");
   }
 
-  // Require an assigned coach
-  const coachAssignment = await db.coachClient.findFirst({
-    where: { clientId: user.id },
-  });
-  if (!coachAssignment) {
-    return {
-      error: {
-        weekOf: [
-          "You need to connect to a coach before submitting check-ins. Go to your dashboard to enter a coach code.",
-        ],
-      },
-    };
+  const result = await submitCheckIn(user, input);
+
+  if ("error" in result || "conflict" in result) {
+    return result;
   }
-
-  const parsed = createCheckInSchema.safeParse(input);
-  if (!parsed.success) {
-    return { error: parsed.error.flatten().fieldErrors };
-  }
-
-  const { weight, dietCompliance, energyLevel, notes, photoPaths, overwriteToday, templateId, customResponses } = parsed.data;
-
-  if (photoPaths.some(path => !isOwnedUploadPath(path, user.clerkId))) {
-    return { error: { photoPaths: ["One or more photos do not belong to your account. Please upload them again."] } };
-  }
-
-  const now = new Date();
-  const weekDate = normalizeToMonday(now);
-  const tz = user.timezone || "America/Los_Angeles";
-  const localDate = getLocalDate(now, tz);
-
-  // Resolve template snapshot if a templateId is provided
-  let templateSnapshot: unknown = undefined;
-  if (templateId) {
-    const template = await db.checkInTemplate.findUnique({
-      where: { id: templateId },
-      select: { questions: true, version: true, name: true },
-    });
-    if (template) {
-      templateSnapshot = {
-        version: template.version,
-        name: template.name,
-        questions: template.questions,
-      };
-    }
-  }
-
-  const checkInFields = {
-    weight,
-    dietCompliance: typeof dietCompliance === "number" ? dietCompliance : null,
-    energyLevel: typeof energyLevel === "number" ? energyLevel : null,
-    notes: notes || null,
-    ...(templateId && { templateId }),
-    ...(templateSnapshot !== undefined && {
-      templateSnapshot: toJsonValue(templateSnapshot),
-    }),
-    ...(customResponses && {
-      customResponses: toJsonValue(customResponses),
-    }),
-  };
-
-  // Check for existing check-in today (same localDate)
-  const existingToday = await db.checkIn.findFirst({
-    where: { clientId: user.id, localDate, deletedAt: null },
-    orderBy: { submittedAt: "desc" },
-    select: { id: true, submittedAt: true },
-  });
-
-  // If a check-in already exists today and caller hasn't chosen what to do
-  if (existingToday && overwriteToday === undefined) {
-    return {
-      conflict: {
-        code: "CHECKIN_EXISTS_TODAY" as const,
-        existing: {
-          id: existingToday.id,
-          submittedAt: existingToday.submittedAt.toISOString(),
-        },
-      },
-    };
-  }
-
-  // Overwrite: update the latest check-in for today
-  if (existingToday && overwriteToday === true) {
-    const [, updated] = await db.$transaction([
-      db.checkInPhoto.deleteMany({ where: { checkInId: existingToday.id } }),
-      db.checkIn.update({
-        where: { id: existingToday.id },
-        data: {
-          ...checkInFields,
-          weekOf: weekDate,
-          submittedAt: now,
-          localDate,
-          timezone: tz,
-          status: "SUBMITTED",
-          photos: {
-            create: photoPaths.map((path, i) => ({
-              storagePath: path,
-              sortOrder: i,
-            })),
-          },
-        },
-      }),
-    ]);
-
-    // Auto-post check-in message in DM thread
-    try {
-      const checkinDate = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const msgBody = `[CHECKIN:${updated.id}:${checkinDate}]${notes || "Check-in submitted"}`;
-      await db.message.create({
-        data: { clientId: user.id, weekOf: weekDate, senderId: user.id, body: msgBody },
-      });
-    } catch { /* message creation must not break check-in */ }
-
-    revalidatePath("/client", "layout");
-    revalidatePath("/coach", "layout");
-    return { checkInId: updated.id, overwritten: true };
-  }
-
-  // Add as new (overwriteToday === false) or no existing today
-  const checkIn = await db.checkIn.create({
-    data: {
-      clientId: user.id,
-      weekOf: weekDate,
-      isPrimary: true,
-      submittedAt: now,
-      localDate,
-      timezone: tz,
-      ...checkInFields,
-      photos: {
-        create: photoPaths.map((path, i) => ({
-          storagePath: path,
-          sortOrder: i,
-        })),
-      },
-    },
-  });
-
-  // Auto-post check-in message in DM thread
-  try {
-    const checkinDate = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const msgBody = `[CHECKIN:${checkIn.id}:${checkinDate}]${notes || "Check-in submitted"}`;
-    await db.message.create({
-      data: { clientId: user.id, weekOf: weekDate, senderId: user.id, body: msgBody },
-    });
-  } catch { /* message creation must not break check-in */ }
 
   revalidatePath("/client", "layout");
   revalidatePath("/coach", "layout");
 
-  // Send SMS to assigned coach if it's not an overwrite
-  if (coachAssignment?.coachId) {
-    const { notifyClientCheckInSubmitted } = await import("@/lib/sms/notify");
-    // Background execution
-    notifyClientCheckInSubmitted(coachAssignment.coachId, user.firstName || "Your client").catch(console.error);
+  // Send SMS to assigned coach on a brand-new check-in (not an overwrite)
+  if (!result.overwritten) {
+    const coachAssignment = await db.coachClient.findFirst({ where: { clientId: user.id }, select: { coachId: true } });
+    if (coachAssignment?.coachId) {
+      const { notifyClientCheckInSubmitted } = await import("@/lib/sms/notify");
+      notifyClientCheckInSubmitted(coachAssignment.coachId, user.firstName || "Your client").catch(console.error);
 
-    // Background email + push to coach (preference-gated)
-    try {
-      const coach = await db.user.findUnique({ where: { id: coachAssignment.coachId }, select: { email: true, firstName: true, emailClientCheckIns: true, pushClientCheckIns: true } });
-      if (coach?.email && coach.emailClientCheckIns) {
-        const { sendEmail } = await import("@/lib/email/sendEmail");
-        const { clientCheckinSubmittedEmail } = await import("@/lib/email/templates");
-        const email = clientCheckinSubmittedEmail(coach.firstName || "Coach", user.firstName || "Your client");
-        sendEmail({ to: coach.email, ...email }).catch(console.error);
-      }
-      if (coach?.pushClientCheckIns) {
-        const { pushClientCheckinSubmitted } = await import("@/lib/notifications/push");
-        pushClientCheckinSubmitted(coachAssignment.coachId, user.firstName || "Your client").catch(console.error);
-      }
-    } catch { /* notification failure must not break check-in */ }
+      // Background email + push to coach (preference-gated)
+      try {
+        const coach = await db.user.findUnique({ where: { id: coachAssignment.coachId }, select: { email: true, firstName: true, emailClientCheckIns: true, pushClientCheckIns: true } });
+        if (coach?.email && coach.emailClientCheckIns) {
+          const { sendEmail } = await import("@/lib/email/sendEmail");
+          const { clientCheckinSubmittedEmail } = await import("@/lib/email/templates");
+          const email = clientCheckinSubmittedEmail(coach.firstName || "Coach", user.firstName || "Your client");
+          sendEmail({ to: coach.email, ...email }).catch(console.error);
+        }
+        if (coach?.pushClientCheckIns) {
+          const { pushClientCheckinSubmitted } = await import("@/lib/notifications/push");
+          pushClientCheckinSubmitted(coachAssignment.coachId, user.firstName || "Your client").catch(console.error);
+        }
+      } catch { /* notification failure must not break check-in */ }
+    }
   }
 
-  return { checkInId: checkIn.id };
+  return { checkInId: result.checkInId, ...(result.overwritten && { overwritten: true as const }) };
 }
 
 const deleteCheckInSchema = z.object({
