@@ -48,10 +48,10 @@ A feature is **not done** until ALL gates pass:
 
 ### Automated Gates (required)
 ```bash
-npm run build            # Zero TypeScript errors
-npm run lint             # Zero ESLint errors
-npm run test             # All vitest unit tests pass
-npm run release-check    # release.sh: build + lint + secret scan + localhost scan + console.log scan
+pnpm run build            # Zero TypeScript errors
+pnpm run lint             # Zero ESLint errors
+pnpm run test             # All vitest unit tests pass
+pnpm run release-check    # release.sh: build + lint + secret scan + localhost scan + console.log scan
 ```
 
 ### Schema Changes (if applicable)

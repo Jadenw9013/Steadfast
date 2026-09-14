@@ -61,10 +61,10 @@ Every server action must:
 - Read queries: ALL in `lib/queries/`
 
 ## Database Rules
-- NEVER use `prisma db push` — always `prisma migrate dev`
-- NEVER use `prisma migrate dev` on Neon in CI — use `db execute`
-- After schema changes: `npx prisma generate` + restart dev server
-- `weekOf` fields: ALWAYS Monday UTC midnight (use `normalizeToMonday`)
+- NEVER use `prisma db push` in this repo — migration files under `prisma/migrations/` are the source of truth
+- `prisma migrate dev` needs a working shadow database and is unreliable against this project's Neon setup — prefer `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script`, review the SQL, hand-write the migration file, then `prisma migrate deploy`. See `CLAUDE.md` § Schema change workflow for the full sequence.
+- After schema changes: `pnpm exec prisma generate` + restart dev server
+- `weekOf` fields: ALWAYS Monday UTC midnight (use `normalizeToMonday`) — this is a separate, legacy key from the AI Coach `reviewWindowKey`; do not conflate them (see `docs/ai-coach/05-API-and-State-Contracts.md`)
 
 ## Zod v4 + Prisma JSON Gotchas
 - `z.record(z.unknown())` is INVALID in Zod v4 — use `z.record(z.string(), z.unknown())`
@@ -89,5 +89,8 @@ Every server action must:
 ```bash
 pnpm run build
 pnpm run lint
-npx prisma validate  # if schema changed
+pnpm run type-check
+pnpm exec prisma validate   # if schema changed
+pnpm test                   # tests/unit + tests/smoke
 ```
+A skipped suite (e.g. Playwright, or the opt-in `SECURITY_INTEGRATION=1` tests) must be reported as skipped, not passed. See `docs/ai-coach/09-Validation-Release-Operations.md` for the full gate list when working on AI Coach slices.

@@ -9,9 +9,13 @@ Before ANY UI changes:
 2. Fall back to `design-system/steadfast/MASTER.md`
 Page overrides take priority over MASTER.
 
-The design system is the source of truth for colors, spacing,
+`design-system/steadfast/MASTER.md` is the single source of truth (an earlier duplicate at `docs/design-system/MASTER.md` was removed — nothing referenced it and it had drifted). The design system is the source of truth for colors, spacing,
 typography, component patterns, and page-specific layout rules.
-Never deviate from it without explicit instruction.
+Never deviate from it without explicit instruction. Page overrides must describe this app's actual pages — `intake.md` and `client-dashboard.md` previously contained unrelated auto-generated marketing/lead-gen page content and have been corrected.
+
+## AI Coach
+
+The 14-document AI Coach company review and implementation pack lives at `docs/ai-coach/` (`00-Start-Here.md` reading order). It is the authoritative feature brief for the AI coaching product — read it before touching `lib/ai-coach/`, `lib/coaching/`, or any `/client/ai-coach/*` route. It supersedes any older `Steadfast-AI-Coach-*.md` plans. `design-system/steadfast/pages/ai-coach.md` holds the AI Coach route/page design overrides; the existing "hide macros" rule in the human coaching view does not apply to AI macro mode, which must show its targets.
 
 ## Skills Available
 - **steadfast-patterns** — READ THIS for every Steadfast task (imports, auth, CoachClient, server actions, styling rules)
@@ -68,30 +72,36 @@ Cross-platform web + PWA coaching platform (MVP). Clients submit weekly check-in
 ## Commands
 
 ```bash
-npm run dev              # Start dev server (http://localhost:3000)
-npm run build            # Production build (Turbopack)
-npm run lint             # Run ESLint
-npx prisma migrate dev   # Run DB migrations (reads .env.local via prisma.config.ts)
-npx prisma generate      # Regenerate Prisma client (after schema changes)
-npx prisma studio        # Visual DB browser
-npx prisma db seed       # Seed coach-client relationships
+pnpm dev                 # Start dev server (http://localhost:3000)
+pnpm build               # Production build (Turbopack)
+pnpm lint                # Run ESLint
+pnpm exec prisma studio  # Visual DB browser
+pnpm exec prisma db seed # Seed coach-client relationships
+pnpm test                # Vitest unit + smoke tests (tests/unit/, tests/smoke/)
+pnpm exec playwright test # Playwright end-to-end tests (tests/e2e/)
 ```
 
-No test runner is configured yet.
+pnpm is the only supported package manager (`package.json` pins it via `packageManager`). Never run `npm install`, `npm run *`, or `yarn *` in this repo — a stray `npm install` previously committed a `package-lock.json` alongside `pnpm-lock.yaml`; that file is now gitignored and must not return.
+
+Vitest (25+ unit-test files under `tests/unit/`, a smoke suite under `tests/smoke/`) and two Postgres-backed integration tests under `tests/integration/` (opt-in via `SECURITY_INTEGRATION=1`, require an isolated local database) are already configured — do not claim no test runner exists. Playwright is configured for `tests/e2e/` but currently has minimal coverage (unauthenticated smoke checks only); it is not a substitute for the missing unit/integration coverage on a change.
 
 ### Schema change workflow
 
+Migration files under `prisma/migrations/` plus the migration ledger (`_prisma_migrations` table) are the release source of truth. Do not use `prisma db push` or hand-run ad-hoc SQL against a real environment as the normal workflow.
+
+`prisma migrate dev` needs a working shadow database and has known issues against this project's Neon setup — prefer the diff workflow below for schema changes made against this codebase:
+
 ```bash
 # 1. Edit prisma/schema.prisma
-# 2. Generate migration SQL from live DB diff (avoids shadow DB issues):
-npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
-# 3. Create migration dir + SQL file manually under prisma/migrations/
-# 4. Apply:
-npx prisma migrate deploy
-npx prisma generate
+# 2. Generate migration SQL from a live DB diff (avoids the Neon shadow-DB issue):
+pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
+# 3. Review the generated SQL, then create prisma/migrations/<timestamp>_<name>/migration.sql with it
+# 4. Apply against an isolated dev/test datasource first, then the target environment:
+pnpm exec prisma migrate deploy
+pnpm exec prisma generate
 ```
 
-`prisma migrate dev` may fail due to shadow database issues with Neon. Use the diff approach above instead.
+`prisma migrate dev` remains fine for a fresh local database with no Neon shadow-DB constraint (e.g. a disposable local Postgres used only for `SECURITY_INTEGRATION=1` tests). Never run migration commands against a real/production datasource outside the recorded deployment workflow, and never guess or backfill ambiguous data as part of a migration — see `docs/ai-coach/04-Architecture-and-Data.md` §7 for the backfill/consent constraints that apply to the AI Coach work specifically.
 
 ## Architecture
 

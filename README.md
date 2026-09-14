@@ -98,10 +98,10 @@ git clone https://github.com/YOUR_USERNAME/coach-platform.git
 cd coach-platform
 ```
 
-Install dependencies:
+Install dependencies (pnpm only — see `package.json` `packageManager`; do not use `npm install` or `yarn`):
 
 ```bash
-npm install
+pnpm install
 ```
 
 Create a `.env.local` file with:
@@ -120,7 +120,7 @@ OPENAI_API_KEY=
 Run development server:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ---
@@ -130,12 +130,14 @@ npm run dev
 Before deploying, always run:
 
 ```bash
-npm run build
-npm run lint
-./release.sh
+pnpm build
+pnpm lint
+pnpm type-check
+pnpm test
+./release.sh   # build + lint + secret/localhost/console.log scans; does not run tests
 ```
 
-See `prod-verification.md` for the full release checklist.
+`release.sh` reports actual pass/fail for each check it runs — it does not run the test suite, so a clean `release.sh` is not sufficient on its own. See `docs/ai-coach/09-Validation-Release-Operations.md` for the full gate list on AI Coach work.
 
 This prevents:
 - Dev keys in prod

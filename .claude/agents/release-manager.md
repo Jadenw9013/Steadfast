@@ -11,15 +11,15 @@ Cron job: `/api/cron/checkin-reminders` runs Sundays 2pm UTC (configured in `ver
 
 ```bash
 # Full release check (build + lint + secret scan + localhost check + console.log audit)
-npm run release-check
+pnpm run release-check
 
 # Unit + smoke tests
-npm run test
+pnpm run test
 ```
 
 The `release.sh` script checks:
-- [x] `npm run build` — zero TypeScript errors
-- [x] `npm run lint` — zero ESLint errors
+- [x] `pnpm run build` — zero TypeScript errors
+- [x] `pnpm run lint` — zero ESLint errors
 - [x] No `localhost` in runtime code (excludes comments)
 - [x] No browser-only PDF libs used server-side (`pdfjs-dist`, `DOMMatrix`)
 - [x] No Clerk test keys (`pk_test_`, `sk_test_`) in source
@@ -80,7 +80,7 @@ Public routes that must NOT be gated by auth:
 
 All other routes must be protected by `proxy.ts` middleware.
 
-Critical routes to verify manually in production build (`npm run build && npm start`):
+Critical routes to verify manually in production build (`pnpm run build && pnpm start`):
 - [ ] `/coach/dashboard` — loads for coach role
 - [ ] `/client` — loads for client role
 - [ ] `/coach/clients/[clientId]/review/[weekStartDate]` — loads review workspace
@@ -143,7 +143,7 @@ If a migration was applied:
 ## Do NOT
 
 - Do not deploy with failing build, lint, or tests
-- Do not skip `npm run release-check` — it catches Windows→Linux issues
+- Do not skip `pnpm run release-check` — it catches Windows→Linux issues
 - Do not use `prisma migrate dev` on Neon (shadow DB fails)
 - Do not force-push to main
 - Do not remove env vars from Vercel without confirming they're unused

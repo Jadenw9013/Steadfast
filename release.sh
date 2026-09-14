@@ -26,13 +26,24 @@ RUNTIME=(
   --exclude=.env*
 )
 
+STATUS_TYPECHECK="SKIPPED"
+STATUS_UNIT="SKIPPED"
+
 echo ""
 echo "1. Running build..."
-npm run build || { echo "Build failed"; exit 1; }
+pnpm run build || { echo "Build failed"; exit 1; }
 
 echo ""
 echo "2. Running lint..."
-npm run lint || { echo "Lint failed"; exit 1; }
+pnpm run lint || { echo "Lint failed"; exit 1; }
+
+echo ""
+echo "2b. Running type-check..."
+pnpm run type-check && STATUS_TYPECHECK="PASSED" || { echo "Type-check failed"; exit 1; }
+
+echo ""
+echo "2c. Running unit/smoke tests..."
+pnpm test && STATUS_UNIT="PASSED" || { echo "Unit tests failed"; exit 1; }
 
 echo ""
 echo "3. Checking for localhost in runtime code..."
@@ -110,5 +121,11 @@ fi
 echo ""
 echo "=============================="
 echo "Release checks complete."
-echo "If no FAIL errors above, safe to deploy."
+echo "Result: build=PASSED lint=PASSED type-check=${STATUS_TYPECHECK} unit-tests=${STATUS_UNIT}"
+echo "NOT run by this script: Playwright e2e (tests/e2e/), opt-in SECURITY_INTEGRATION=1"
+echo "integration tests (tests/integration/), authorization-race/concurrency tests,"
+echo "clinical/policy review, and real accessibility/user testing."
+echo "A clean run above means these specific automated checks passed on this commit —"
+echo "it is not a general 'safe to deploy' certification. See"
+echo "docs/ai-coach/09-Validation-Release-Operations.md for the full gate list on AI Coach work."
 echo "=============================="

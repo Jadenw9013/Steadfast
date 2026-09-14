@@ -34,12 +34,12 @@
 ## Build & Dev
 
 ```bash
-npm run dev              # Start dev server (localhost:3000)
-npm run build            # Production build
-npm run lint             # ESLint
-npm run test             # Vitest (unit)
-npm run test:smoke       # Smoke tests (SMOKE=1)
-npm run release-check    # Full pre-deploy gate (release.sh)
+pnpm dev                 # Start dev server (localhost:3000)
+pnpm build               # Production build
+pnpm lint                # ESLint
+pnpm test                # Vitest (unit + smoke)
+pnpm run test:smoke      # Smoke tests (SMOKE=1)
+pnpm run release-check   # build + lint + secret/localhost/console.log scans (release.sh) — does not run tests
 ```
 
 ### Schema Change Workflow
@@ -731,7 +731,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | E2E | Playwright | `tests/e2e/` |
 
 ```bash
-npm run test              # Unit tests
-npm run test:smoke        # Smoke tests
-npx playwright test       # E2E tests
+pnpm test                  # Unit tests
+pnpm run test:smoke        # Smoke tests
+pnpm exec playwright test  # E2E tests
 ```

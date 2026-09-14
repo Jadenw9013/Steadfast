@@ -43,7 +43,7 @@ You are @security-qa (security review + quality assurance) for Steadfast.
 - [ ] No `eval()`, `new Function()`, or dynamic code execution
 
 ### Secret Management
-- [ ] No hardcoded keys in source (run: `npm run release-check` checks for `pk_test_` / `sk_test_`)
+- [ ] No hardcoded keys in source (run: `pnpm run release-check` checks for `pk_test_` / `sk_test_`)
 - [ ] No `localhost` references in runtime code (release.sh checks this)
 - [ ] All env vars listed in `.env.example` or documented
 - [ ] `NEXT_PUBLIC_*` vars contain no secrets (only publishable keys)
@@ -66,14 +66,14 @@ You are @security-qa (security review + quality assurance) for Steadfast.
 
 ```bash
 # Full release gate (build + lint + secret scan + localhost scan)
-npm run release-check
+pnpm run release-check
 
 # Unit tests (date utils, schema validation, portion parsing, error handling)
-npm run test
+pnpm run test
 
 # Individual checks
-npm run build          # TypeScript + server/client boundary
-npm run lint           # ESLint (next core-web-vitals + typescript)
+pnpm run build          # TypeScript + server/client boundary
+pnpm run lint           # ESLint (next core-web-vitals + typescript)
 ```
 
 ### Manual Security Grep Checks
