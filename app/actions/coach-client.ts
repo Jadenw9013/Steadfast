@@ -28,6 +28,7 @@ export async function removeClient(input: unknown) {
   // The relationship delete and the ClientCoachingContext reconciliation
   // (A01/CB06) commit atomically.
   await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${assignment.clientId} FOR UPDATE`;
     await tx.coachClient.delete({ where: { id: assignment.id } });
     await reconcileCoachingContextForClient(tx, parsed.data.clientId);
   });
@@ -72,6 +73,7 @@ export async function leaveCoach(input: unknown) {
   // The relationship delete and the ClientCoachingContext reconciliation
   // (A01/CB06) commit atomically.
   await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${assignment.clientId} FOR UPDATE`;
     await tx.coachClient.delete({ where: { id: assignment.id } });
     await reconcileCoachingContextForClient(tx, user.id);
   });

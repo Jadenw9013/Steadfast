@@ -73,6 +73,7 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
       result = { saved: true, profileRevision: saved.profileRevision };
     }
     if (input.operation === "ENROLL") {
+      if (await tx.coachClient.count({ where: { clientId } })) throw new AiCoachError("REVISION_CONFLICT", "Leave your current coaching relationship before enrolling.");
       await requireReviewerCapacity(tx, clientId, true);
       if (!isAiCoachEnrollmentEnabled()) throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "Enrollment is paused.", 503);
       if ((context?.revision ?? 0) !== input.expectedContextRevision || context?.mode === "HUMAN") throw new AiCoachError("REVISION_CONFLICT", "Complete the current provider transition before enrolling.");

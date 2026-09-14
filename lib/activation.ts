@@ -1,7 +1,6 @@
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email/sendEmail";
 import type { ClientInvite, Prisma } from "@/app/generated/prisma/client";
-import { isAiCoachEnrollmentEnabled } from "@/lib/flags/ai-coach";
 
 type DbClient = typeof db | Prisma.TransactionClient;
 
@@ -137,74 +136,40 @@ export async function acceptClientInviteForUser(
     invite: Pick<ClientInvite, "id" | "coachId" | "email" | "status" | "expiresAt" | "requestId">,
     user: { id: string; email: string },
 ): Promise<AcceptInviteResult> {
-    if (invite.status === "EXPIRED") {
-        return { success: false, error: "This invite link has expired. Ask your coach to send a new one." };
-    }
-    if (invite.expiresAt < new Date()) {
-        await db.clientInvite.update({ where: { id: invite.id }, data: { status: "EXPIRED" } }).catch(() => {});
-        return { success: false, error: "This invite link has expired. Ask your coach to send a new one." };
-    }
-
-    // The single consent check: the invite's target email must be the exact
-    // email of the account currently accepting it. Coach-supplied contact
-    // details never bypass this — they only ever produced the invite email
-    // address above, not the CoachClient row.
-    if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
-        return { success: false, error: "This invite was sent to a different email address." };
-    }
-
-    if (invite.status === "ACCEPTED") {
-        // Replay: report the current state without erroring, but don't
-        // reactivate anything that might have since been removed.
-        const stillConnected = await db.coachClient.findUnique({
-            where: { coachId_clientId: { coachId: invite.coachId, clientId: user.id } },
-            select: { id: true },
-        });
-        const coach = await db.user.findUnique({ where: { id: invite.coachId }, select: { firstName: true, lastName: true } });
-        return {
-            success: true,
-            alreadyConnected: !!stillConnected,
-            coachId: invite.coachId,
-            coachName: coach ? [coach.firstName, coach.lastName].filter(Boolean).join(" ") || null : null,
-        };
-    }
-
-    const coach = await db.user.findUnique({ where: { id: invite.coachId }, select: { firstName: true, lastName: true, email: true } });
-    if (!coach) return { success: false, error: "This coach's account no longer exists." };
-
-    const existingConn = await db.coachClient.findUnique({
-        where: { coachId_clientId: { coachId: invite.coachId, clientId: user.id } },
-    });
-    const wasAlreadyConnected = !!existingConn;
-    // The relationship write and the ClientCoachingContext reconciliation
-    // (A01/CB06) commit atomically — a crash between them must never leave
-    // context pointing at a relationship that doesn't exist, or vice versa.
-    await db.$transaction(async (tx) => {
-        if (!existingConn) {
-            await tx.coachClient.create({
-                data: { coachId: invite.coachId, clientId: user.id, coachNotes: "Joined via invite." },
-            });
-        }
+    const result: AcceptInviteResult = await db.$transaction(async tx => {
+        // Shared serialization point with managed AI commands and deactivation.
+        // Never authorize from the invite or user snapshots passed by a caller.
+        await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${user.id} FOR UPDATE`;
+        const owner = await tx.user.findUnique({ where: { id: user.id }, select: { email: true, isDeactivated: true, isClient: true } });
+        if (!owner || owner.isDeactivated || !owner.isClient) return { success: false, error: "This client account is unavailable." };
+        await tx.$queryRaw`SELECT "id" FROM "ClientInvite" WHERE "id" = ${invite.id} FOR UPDATE`;
+        const current = await tx.clientInvite.findUnique({ where: { id: invite.id } });
+        if (!current || current.email.toLowerCase() !== owner.email.toLowerCase()) return { success: false, error: "This invite was sent to a different email address." };
+        const coach = await tx.user.findUnique({ where: { id: current.coachId }, select: { firstName: true, lastName: true, isDeactivated: true, isCoach: true } });
+        if (!coach || coach.isDeactivated || !coach.isCoach || current.coachId === user.id) return { success: false, error: "This coach is unavailable." };
+        const coachName = [coach.firstName, coach.lastName].filter(Boolean).join(" ") || null;
+        const existing = await tx.coachClient.findUnique({ where: { coachId_clientId: { coachId: current.coachId, clientId: user.id } }, select: { id: true } });
+        if (current.status === "ACCEPTED") return { success: true, alreadyConnected: !!existing, coachId: current.coachId, coachName };
+        if (current.status === "PENDING" && current.expiresAt <= new Date()) await tx.clientInvite.update({ where: { id: current.id }, data: { status: "EXPIRED" } });
+        if (current.status !== "PENDING" || current.expiresAt <= new Date()) return { success: false, error: "This invite has expired or is no longer available. Ask your coach for a new one." };
+        const context = await tx.clientCoachingContext.findUnique({ where: { clientId: user.id } });
+        if (context?.mode === "AI" || context?.resolutionRequired) return { success: false, error: "Pause AI coaching or resolve your provider before accepting a human coach." };
+        const other = await tx.coachClient.findFirst({ where: { clientId: user.id, coachId: { not: current.coachId } }, select: { id: true } });
+        if (other) return { success: false, error: "Leave your current coaching relationship before accepting another coach." };
+        if (!existing) await tx.coachClient.create({ data: { coachId: current.coachId, clientId: user.id, coachNotes: "Joined via invite." } });
         await reconcileCoachingContextForClient(tx, user.id);
-        await tx.clientInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
-        if (invite.requestId) {
-            await tx.coachingRequest.update({
-                where: { id: invite.requestId },
-                data: { prospectId: user.id, status: "ACCEPTED" },
-            }).catch(() => {});
-        }
+        await tx.clientInvite.update({ where: { id: current.id }, data: { status: "ACCEPTED" } });
+        if (current.requestId) await tx.coachingRequest.updateMany({ where: { id: current.requestId }, data: { prospectId: user.id, status: "ACCEPTED" } });
+        return { success: true, alreadyConnected: !!existing, coachId: current.coachId, coachName };
     });
-
-    const coachName = [coach.firstName, coach.lastName].filter(Boolean).join(" ") || null;
-    if (!wasAlreadyConnected) {
+    if (result.success && !result.alreadyConnected) {
         try {
             const { coachConnectedEmail } = await import("@/lib/email/templates");
-            const content = coachConnectedEmail(user.email, coachName || "your coach");
+            const content = coachConnectedEmail(user.email, result.coachName || "your coach");
             await sendEmail({ to: user.email, ...content });
-        } catch { /* email failure must never block acceptance */ }
+        } catch { /* Email does not change committed authority. */ }
     }
-
-    return { success: true, alreadyConnected: wasAlreadyConnected, coachId: invite.coachId, coachName };
+    return result;
 }
 
 // ── ClientCoachingContext — the sole current-provider authority (A01/CB06) ────
@@ -257,51 +222,12 @@ export type EnrollInAiCoachingResult =
     | { success: true }
     | { success: false; error: string };
 
-/**
- * The AI-enrollment transition (A01). Shares the same lock-order and
- * single-authority discipline as the human acceptance path: verified
- * entitlement, the enrollment flag checked server-side (never trusted from
- * the client), and a clean starting context (NONE, not ambiguous) — a
- * human-coached client must explicitly leave that relationship first
- * (docs/ai-coach/05 — "A human-coached applicant must explicitly complete
- * the provider transition before AI activation"), this function does not
- * itself sever one.
- */
+/** @deprecated The pre-consent A01 helper is intentionally disabled. Public
+ * enrollment uses client-commands ENROLL, with consent, revisions, entitlement,
+ * safety, synthetic-runtime and reviewer capacity checked under one user lock. */
 export async function enrollInAiCoaching(clientId: string): Promise<EnrollInAiCoachingResult> {
-    if (!isAiCoachEnrollmentEnabled()) {
-        return { success: false, error: "AI coaching is not available yet." };
-    }
-
-    const entitlement = await db.aiCoachEntitlement.findUnique({ where: { clientId } });
-    if (!entitlement || entitlement.revokedAt || (entitlement.expiresAt && entitlement.expiresAt < new Date())) {
-        return { success: false, error: "This account is not invited to AI coaching." };
-    }
-
-    const context = await db.clientCoachingContext.findUnique({ where: { clientId } });
-    if (context?.resolutionRequired) {
-        return { success: false, error: "This account needs manual review before enrollment." };
-    }
-    if (context?.mode === "AI") {
-        return { success: true }; // already enrolled — idempotent
-    }
-    if (context?.mode === "HUMAN") {
-        return { success: false, error: "Transition away from your current coach before enrolling in AI coaching." };
-    }
-
-    await db.$transaction(async (tx) => {
-        await tx.aiCoachProfile.upsert({
-            where: { clientId },
-            create: { clientId },
-            update: {},
-        });
-        await tx.clientCoachingContext.upsert({
-            where: { clientId },
-            create: { clientId, mode: "AI", activeCoachClientId: null, revision: 1 },
-            update: { mode: "AI", activeCoachClientId: null, revision: { increment: 1 } },
-        });
-    });
-
-    return { success: true };
+    void clientId;
+    return { success: false, error: "Use the consent-bound AI Coach enrollment workflow." };
 }
 
 // ── Guard helpers (testable, pure functions) ─────────────────────────────────

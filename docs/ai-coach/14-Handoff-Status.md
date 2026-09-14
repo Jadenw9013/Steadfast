@@ -679,3 +679,18 @@ Xcode/web builds competed for resources. The unchanged tests passed with
 `--maxWorkers=4`; no timeouts were increased. Final logs:
 `/private/tmp/steadfast-authority-*`. Real alert owners/thresholds and deployed
 scheduler/delivery evidence remain external launch artifacts.
+
+### V08 follow-up — provider transition serialization (2026-09-14)
+
+The old A01 enrollment helper was still a consent-free writer despite its locking
+comment; it is now explicitly disabled. The managed consent-bound ENROLL command
+is the only supported AI enrollment path and also refuses existing human links
+when context backfill is absent. Human invite acceptance now holds the same
+client User lock, re-reads account/invitation/authority inside the transaction,
+rejects inactive accounts/coaches, stale/expired invites, AI authority and a second
+human provider, and preserves replay semantics. Relationship deletion paths
+also lock the client before deleting/reconciling. Expired invitations continue
+to persist EXPIRED, preserving existing behavior. Regression coverage races real
+managed enrollment against invite acceptance and tests deactivation/current
+invite state. Full shared gate evidence: 218 integration, 427 unit, type-check
+and build pass; lint baseline unchanged. No live enrollment flag was enabled.

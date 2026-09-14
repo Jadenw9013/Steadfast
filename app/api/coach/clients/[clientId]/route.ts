@@ -123,6 +123,7 @@ export async function DELETE(
     // The delete and the ClientCoachingContext reconciliation (A01/CB06)
     // commit atomically.
     await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${clientId} FOR UPDATE`;
       await tx.coachClient.delete({ where: { id: assignment.id } });
       await reconcileCoachingContextForClient(tx, clientId);
     });

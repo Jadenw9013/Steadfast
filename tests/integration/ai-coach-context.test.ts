@@ -23,7 +23,9 @@ vi.mock("@/lib/email/sendEmail", () => ({ sendEmail: vi.fn().mockResolvedValue({
 import { db } from "@/lib/db";
 import { redeemInvite } from "@/app/actions/client-invites";
 import { removeClient, leaveCoach } from "@/app/actions/coach-client";
-import { enrollInAiCoaching, reconcileCoachingContextForClient } from "@/lib/activation";
+import { applyAiClientCommand } from "@/lib/ai-coach/client-commands";
+import { assignFixtureReviewer } from "../helpers/ai-reviewer";
+import { acceptClientInviteForUser, enrollInAiCoaching, reconcileCoachingContextForClient } from "@/lib/activation";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) {
@@ -131,6 +133,35 @@ suite("A01 — ClientCoachingContext single-authority with real PostgreSQL const
     expect(context.activeCoachClientId).toBeNull();
   });
 
+  it("serializes AI enrollment against human acceptance with exactly one provider", async () => {
+    vi.stubEnv("AI_COACH_FIXTURE_MODE", "true"); vi.stubEnv("FEATURE_AI_COACH_ENROLLMENT", "true");
+    try {
+      const client = await makeClient(); const coach = await makeCoach();
+      const invite = await db.clientInvite.create({ data: { coachId: coach.id, email: client.email, name: "Fixture", expiresAt: new Date(Date.now() + 86400000) } });
+      await assignFixtureReviewer(client.id); await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+      await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true, confirmedIntake: { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC" } } });
+      const results = await Promise.allSettled([
+        acceptClientInviteForUser(invite, client),
+        applyAiClientCommand(client.id, { operation: "ENROLL", requestKey: randomUUID(), expectedProfileRevision: 0, consent: true, expectedContextRevision: 0, reviewTimezone: "UTC" }),
+      ]);
+      const context = await db.clientCoachingContext.findUniqueOrThrow({ where: { clientId: client.id } });
+      const count = await db.coachClient.count({ where: { clientId: client.id } });
+      if (context.mode === "AI") { expect(count).toBe(0); expect(results[0]).toMatchObject({ status: "fulfilled", value: { success: false } }); }
+      else { expect(context.mode).toBe("HUMAN"); expect(count).toBe(1); expect(results[1].status).toBe("rejected"); }
+      expect(context.resolutionRequired).toBe(false);
+    } finally { vi.unstubAllEnvs(); }
+  });
+  it("rechecks deactivation and current invitation data rather than caller snapshots", async () => {
+    const client = await makeClient(); const coach = await makeCoach();
+    const invite = await db.clientInvite.create({ data: { coachId: coach.id, email: client.email, name: "Fixture", expiresAt: new Date(Date.now() + 86400000) } });
+    await db.user.update({ where: { id: client.id }, data: { isDeactivated: true } });
+    expect(await acceptClientInviteForUser(invite, client)).toMatchObject({ success: false });
+    expect(await db.coachClient.count({ where: { clientId: client.id } })).toBe(0);
+    await db.user.update({ where: { id: client.id }, data: { isDeactivated: false } });
+    await db.clientInvite.update({ where: { id: invite.id }, data: { status: "EXPIRED" } });
+    expect(await acceptClientInviteForUser(invite, client)).toMatchObject({ success: false });
+  });
+
   describe("enrollInAiCoaching", () => {
     it("fails when the enrollment flag is disabled", async () => {
       process.env.FEATURE_AI_COACH_ENROLLMENT = "false";
@@ -173,31 +204,13 @@ suite("A01 — ClientCoachingContext single-authority with real PostgreSQL const
       expect(context.mode).toBe("HUMAN"); // unchanged
     });
 
-    it("succeeds for an entitled client with no current provider, creating a profile and setting mode=AI", async () => {
+    it("does not activate an entitled client through the retired consent-free helper", async () => {
       process.env.FEATURE_AI_COACH_ENROLLMENT = "true";
       const client = await makeClient();
       await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
-
-      const result = await enrollInAiCoaching(client.id);
-      expect(result.success).toBe(true);
-
-      const context = await db.clientCoachingContext.findUniqueOrThrow({ where: { clientId: client.id } });
-      expect(context.mode).toBe("AI");
-      const profile = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } });
-      expect(profile).toBeTruthy();
-    });
-
-    it("is idempotent when already enrolled", async () => {
-      process.env.FEATURE_AI_COACH_ENROLLMENT = "true";
-      const client = await makeClient();
-      await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
-      await enrollInAiCoaching(client.id);
-
-      const second = await enrollInAiCoaching(client.id);
-      expect(second.success).toBe(true);
-
-      const profileCount = await db.aiCoachProfile.count({ where: { clientId: client.id } });
-      expect(profileCount).toBe(1);
+      expect((await enrollInAiCoaching(client.id)).success).toBe(false);
+      expect(await db.aiCoachProfile.count({ where: { clientId: client.id } })).toBe(0);
+      expect(await db.clientCoachingContext.count({ where: { clientId: client.id } })).toBe(0);
     });
 
     it("fails for an account requiring manual resolution", async () => {
