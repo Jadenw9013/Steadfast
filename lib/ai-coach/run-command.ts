@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { substitutionSchema } from "./representation";
 import { db } from "@/lib/db";
 import { intakeAnswersSchema } from "./intake";
 import { planPayloadSchema, sourceRefSchema } from "./plan-contract";
@@ -11,6 +12,7 @@ import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
 
 export const runCommandSchema = z.object({
+  substitution: substitutionSchema.optional(),
   requestKey: z.string().uuid(), kind: z.enum(["INITIAL", "WEEKLY_REVIEW", "REPRESENTATION"]),
   representation: z.enum(["MACROS", "MEALS"]), expectedContextRevision: z.number().int().nonnegative(),
   expectedProfileRevision: z.number().int().nonnegative(),
@@ -23,6 +25,7 @@ export const runSnapshotSchema = z.object({
   basePayload: planPayloadSchema.nullable(), representation: z.enum(["MACROS", "MEALS"]),
   reviewWindowKey: z.string(), reviewTimezone: z.string(),
   sourceRefs: z.array(sourceRefSchema).max(500),
+  substitution: substitutionSchema.nullable().default(null),
 }).strict();
 export type RunSnapshot = z.infer<typeof runSnapshotSchema>;
 
@@ -31,6 +34,7 @@ export async function requestAiRun(clientId: string, raw: unknown) {
   const parsed = runCommandSchema.safeParse(raw);
   if (!parsed.success) throw new AiCoachError("VALIDATION_ERROR", "Invalid plan request.", 422);
   const input = parsed.data;
+  if (input.substitution && (input.kind !== "REPRESENTATION" || input.representation !== "MEALS")) throw new AiCoachError("VALIDATION_ERROR", "Substitutions require meal representation.", 422);
   return db.$transaction(async tx => {
     const { context, profile } = await lockAiClient(tx, clientId);
     const digest = contentHash(input);
@@ -53,7 +57,7 @@ export async function requestAiRun(clientId: string, raw: unknown) {
       schemaVersion: 1, synthetic: true, intake: intake.data, policyVersion: ACTIVE_POLICY_VERSION,
       catalogVersions: { food: FOOD_CATALOG_VERSION, exercise: EXERCISE_CATALOG_VERSION }, modelConfiguration: "synthetic-template-v1",
       baseVersionId: base?.id ?? null, basePayload: base?.payload ?? null, representation: input.representation,
-      reviewWindowKey: window.key, reviewTimezone: profile.reviewTimezone, sourceRefs: [],
+      reviewWindowKey: window.key, reviewTimezone: profile.reviewTimezone, sourceRefs: base?.sourceRefs ?? [], substitution: input.substitution ?? null,
     });
     const revisions = { contextRevision: context!.revision, profileRevision: profile.profileRevision, observationRevision: profile.observationRevision, safetyRevision: profile.safetyRevision };
     const businessKey = contentHash({ clientId, kind: input.kind, snapshot: jsonValue(snapshot), ...revisions });

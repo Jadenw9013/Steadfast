@@ -1,4 +1,6 @@
 import { Prisma } from "@/app/generated/prisma/client";
+import { intakeAnswersSchema } from "@/lib/ai-coach/intake";
+import { isTargetPreserving } from "@/lib/ai-coach/representation";
 import { db } from "@/lib/db";
 import { lockAiClient } from "@/lib/ai-coach/access";
 import { approvalStateHash, grantCoversPlan, validatedManagedPayload } from "@/lib/ai-coach/validated-plan";
@@ -34,7 +36,10 @@ export async function getAiWorkspace(clientId: string) {
       proposals: proposals.map(candidate => {
         const fresh = allowed && candidate.contextRevision === context?.revision && candidate.profileRevision === profile.profileRevision && candidate.observationRevision === profile.observationRevision && candidate.safetyRevision === profile.safetyRevision && candidate.baseVersionId === profile.activePlanVersionId && (!candidate.activationEndsAt || candidate.activationEndsAt > new Date()) && [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].every(p => p === "ALLOW");
         const approved = candidate.reviewerStatus === "APPROVED" && candidate.approval?.approved && candidate.approval.approvedHash === candidate.payloadHash && !candidate.approval.reviewerGrant.user.isDeactivated && grantCoversPlan(candidate.approval.reviewerGrant, clientId, candidate.payload) && candidate.approval.stateHash === approvalStateHash(candidate);
-        const payload = fresh && approved && checkPolicyVersionUsable(candidate.policyVersion).usable ? validatedManagedPayload(candidate) : null;
+        const checked = validatedManagedPayload(candidate);
+        const intake = intakeAnswersSchema.safeParse(profile.confirmedIntake);
+        const equivalent = candidate.changeClass === "TARGET_PRESERVING" && candidate.reviewerStatus === "NOT_REQUIRED" && activePayload && checked && intake.success && isTargetPreserving(activePayload, checked, intake.data);
+        const payload = fresh && (approved || equivalent) && checkPolicyVersionUsable(candidate.policyVersion).usable ? checked : null;
         return { id: candidate.id, status: !fresh ? "STALE" : payload ? "READY" : "PENDING_REVIEW", payload,
           expectedBaseVersionId: candidate.baseVersionId, expectedContextRevision: candidate.contextRevision, expectedProfileRevision: candidate.profileRevision, expectedObservationRevision: candidate.observationRevision, expectedSafetyRevision: candidate.safetyRevision };
       }),

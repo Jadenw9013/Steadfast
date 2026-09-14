@@ -45,6 +45,27 @@ suite("managed execution and permitted reads", () => {
     expect(await processClaimedRun(claim, provider)).toBe("failed");
     expect(await db.aiPlanVersion.count({ where: { clientId: client.id } })).toBe(0);
   });
+  it("changes macro to meal representation with one prescription and no routine slot", async () => {
+    const { client, claim } = await fixture();
+    await processClaimedRun(claim, new SyntheticFixtureProvider());
+    const initial = await db.aiPlanVersion.findFirstOrThrow({ where: { clientId: client.id } });
+    const reviewerId = randomUUID();
+    const reviewer = await db.user.create({ data: { clerkId: reviewerId, email: `${reviewerId}@example.test` } });
+    const grant = await db.aiCoachReviewerGrant.create({ data: { userId: reviewer.id, qualificationNote: "SYNTHETIC", clientIds: [client.id], domains: ["NUTRITION", "STRENGTH", "CARDIO"] } });
+    await db.aiPlanReviewerApproval.create({ data: { planVersionId: initial.id, reviewerGrantId: grant.id, approvedHash: initial.payloadHash, stateHash: approvalStateHash(initial), approved: true, rationale: "fixture" } });
+    await db.aiPlanVersion.update({ where: { id: initial.id }, data: { reviewerStatus: "APPROVED" } });
+    const acceptance = { requestKey: randomUUID(), expectedBaseVersionId: null, expectedContextRevision: 0, expectedProfileRevision: 0, expectedObservationRevision: 0, expectedSafetyRevision: 0 };
+    expect(await acceptPlanVersionAtomic(client.id, initial.id, acceptance)).toMatchObject({ success: true });
+    const { runId } = await requestAiRun(client.id, { requestKey: randomUUID(), kind: "REPRESENTATION", representation: "MEALS", expectedContextRevision: 0, expectedProfileRevision: 0 });
+    const next = await claimQueuedRun(runId); if (!next.claimed) throw new Error("Expected claim");
+    expect(await processClaimedRun(next, new SyntheticFixtureProvider())).toBe("completed");
+    const view = await getAiWorkspace(client.id); const proposal = view.proposals[0];
+    expect(proposal.status).toBe("READY"); expect(proposal.payload?.meals?.days).toHaveLength(7);
+    expect(proposal.payload?.nutrition).toEqual(view.activePlan?.payload.nutrition);
+    expect(await acceptPlanVersionAtomic(client.id, proposal.id, { ...acceptance, requestKey: randomUUID(), expectedBaseVersionId: initial.id })).toMatchObject({ success: true });
+    expect(await db.aiAdjustmentSlot.count({ where: { clientId: client.id } })).toBe(0);
+    expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: initial.id } })).status).toBe("SUPERSEDED");
+  });
   it("requires exact reviewed content for both proposal visibility and acceptance", async () => {
     const { client, claim } = await fixture(); await processClaimedRun(claim, new SyntheticFixtureProvider());
     const candidate = await db.aiPlanVersion.findFirstOrThrow({ where: { clientId: client.id } });

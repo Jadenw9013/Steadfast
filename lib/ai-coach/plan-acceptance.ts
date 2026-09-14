@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { intakeAnswersSchema } from "./intake";
+import { isTargetPreserving } from "./representation";
 import { approvalStateHash, grantCoversPlan, validatedManagedPayload } from "./validated-plan";
 import { requireFixtureRuntime } from "./access";
 import { createHash } from "crypto";
@@ -171,6 +173,14 @@ export async function acceptPlanVersionAtomic(
         }
         if (!profile.isSynthetic || !validatedManagedPayload(candidate)) {
           return { success: false, code: "VALIDATION_ERROR", error: "This proposal did not pass content validation." };
+        }
+        if (candidate.changeClass === "TARGET_PRESERVING") {
+          const base = candidate.baseVersionId ? await tx.aiPlanVersion.findFirst({ where: { id: candidate.baseVersionId, clientId } }) : null;
+          const basePayload = base && validatedManagedPayload(base);
+          const intake = intakeAnswersSchema.safeParse(profile.confirmedIntake);
+          if (!basePayload || !intake.success || !isTargetPreserving(basePayload, validatedManagedPayload(candidate)!, intake.data)) {
+            return { success: false, code: "VALIDATION_ERROR", error: "This presentation change does not preserve the current prescription." };
+          }
         }
         if (candidate.changeClass === "INITIAL" && candidate.reviewerStatus !== "APPROVED") {
           return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The initial proposal requires qualified review." };

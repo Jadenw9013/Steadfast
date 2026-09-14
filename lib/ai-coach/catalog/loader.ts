@@ -1,4 +1,4 @@
-import { FOOD_CATALOG, FOOD_CATALOG_VERSION } from "./food-catalog";
+import { FOOD_CATALOG, FOOD_CATALOG_VERSION, LEGACY_FOOD_CATALOG } from "./food-catalog";
 import { EXERCISE_CATALOG, EXERCISE_CATALOG_VERSION } from "./exercise-catalog";
 import type { FoodItem, ExerciseItem } from "./schema";
 
@@ -18,7 +18,7 @@ export type CatalogLookupError = "UNKNOWN_ID" | "CATALOG_VERSION_MISMATCH";
 export type CatalogLookupResult<T> = { success: true; item: T } | { success: false; error: CatalogLookupError };
 
 export function getFoodItem(id: string, catalogVersion: string): CatalogLookupResult<FoodItem> {
-  const item = FOOD_CATALOG.get(id);
+  const item = (catalogVersion === "food-fixture-v1" ? LEGACY_FOOD_CATALOG : FOOD_CATALOG).get(id);
   if (!item) return { success: false, error: "UNKNOWN_ID" };
   if (item.catalogVersion !== catalogVersion) return { success: false, error: "CATALOG_VERSION_MISMATCH" };
   return { success: true, item };

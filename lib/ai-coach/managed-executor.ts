@@ -1,3 +1,4 @@
+import { representFixturePlan } from "./representation";
 import { db } from "@/lib/db";
 import type { ClaimResult } from "./runs";
 import { failRunAttempt } from "./runs";
@@ -16,8 +17,12 @@ import { decisionSchema, planPayloadSchema } from "./plan-contract";
 export async function processManagedRun(claim: Extract<ClaimResult, { claimed: true }>, provider: ModelProvider): Promise<"completed" | "failed"> {
   try {
     const snapshot = runSnapshotSchema.parse(claim.run.inputSnapshot);
-    if (claim.run.kind !== "INITIAL") throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "This run type is not available yet.");
-    const generated = buildInitialFixturePlan(snapshot.intake, `rx-${claim.run.id}`, snapshot.representation);
+    const generated = claim.run.kind === "INITIAL"
+      ? buildInitialFixturePlan(snapshot.intake, `rx-${claim.run.id}`, snapshot.representation)
+      : claim.run.kind === "REPRESENTATION" && snapshot.basePayload
+        ? representFixturePlan(snapshot.basePayload, snapshot.intake, snapshot.representation, snapshot.substitution)
+        : null;
+    if (!generated) throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "This run type is not available yet.");
     await db.$transaction(async tx => { await lockAiClient(tx, claim.run.clientId); });
     if (!isAiCoachGenerationEnabled()) throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "Generation paused.");
     if (!await checkProviderRateLimit(claim.run.clientId, claim.run.kind)) throw new AiCoachError("RATE_LIMITED", "Provider budget reached.");
@@ -25,7 +30,7 @@ export async function processManagedRun(claim: Extract<ClaimResult, { claimed: t
     if (stage.outcome !== "success" || !stage.isFinal || !isWithinTokenCeiling(stage.tokensUsed)) throw new AiCoachError("VALIDATION_ERROR", "Provider stage did not validate.");
     // The synthetic provider's wording is deliberately not published. Use the
     // bounded explanation template tied to the deterministic decision.
-    const payload = planPayloadSchema.parse(generated.payload);
+    const payload = generated.payload ? planPayloadSchema.parse(generated.payload) : null;
     const decision = decisionSchema.parse(generated.decision);
     const completed = await db.$transaction(async tx => {
       const { context, profile } = await lockAiClient(tx, claim.run.clientId);
@@ -36,15 +41,15 @@ export async function processManagedRun(claim: Extract<ClaimResult, { claimed: t
         return false;
       }
       const latest = await tx.aiPlanVersion.findFirst({ where: { clientId: run.clientId }, orderBy: { version: "desc" }, select: { version: true } });
-      const plan = await tx.aiPlanVersion.create({ data: {
+      const plan = payload ? await tx.aiPlanVersion.create({ data: {
         clientId: run.clientId, version: (latest?.version ?? 0) + 1, baseVersionId: snapshot.baseVersionId,
         payload: jsonValue(payload), payloadHash: contentHash(payload), policyVersion: snapshot.policyVersion, catalogVersions: snapshot.catalogVersions,
         contextRevision: run.contextRevision, profileRevision: run.profileRevision, observationRevision: run.observationRevision, safetyRevision: run.safetyRevision,
         activationStartsAt: run.activationStartsAt, activationEndsAt: run.activationEndsAt, reviewWindowKey: snapshot.reviewWindowKey,
-        changeClass: "INITIAL", reviewerStatus: "PENDING", sourceRefs: jsonValue(snapshot.sourceRefs),
+        changeClass: decision.changeClass, reviewerStatus: decision.changeClass === "TARGET_PRESERVING" ? "NOT_REQUIRED" : "PENDING", sourceRefs: jsonValue(snapshot.sourceRefs),
         validationReport: { engine: "managed-v1", passed: true, inputHash: contentHash(snapshot) },
-      } });
-      const result = await tx.aiCoachRun.updateMany({ where: { id: run.id, status: "RUNNING", fencingToken: claim.fencingToken, leaseExpiresAt: { gt: new Date() } }, data: { status: "COMPLETED", leaseExpiresAt: null, resultPlanVersionId: plan.id, resultReviewAction: decision.action, resultDecision: jsonValue(decision) } });
+      } }) : null;
+      const result = await tx.aiCoachRun.updateMany({ where: { id: run.id, status: "RUNNING", fencingToken: claim.fencingToken, leaseExpiresAt: { gt: new Date() } }, data: { status: "COMPLETED", leaseExpiresAt: null, resultPlanVersionId: plan?.id ?? null, resultReviewAction: decision.action, resultDecision: jsonValue(decision) } });
       if (result.count !== 1) throw new AiCoachError("REVISION_CONFLICT", "Worker lease changed.");
       return true;
     });

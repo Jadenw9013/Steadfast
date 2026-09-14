@@ -4,9 +4,15 @@ import { foodItemSchema, type FoodItem } from "./schema";
  * A04 — SYNTHETIC FIXTURE food catalog. See schema.ts's module docstring:
  * this is engineering shape, not reviewed content (gate G02).
  */
-export const FOOD_CATALOG_VERSION = "food-fixture-v1";
+export const FOOD_CATALOG_VERSION = "food-fixture-v2";
 
 const RAW_FOOD_CATALOG: FoodItem[] = [
+  {
+    id: "fixture-grain-alternative", catalogVersion: FOOD_CATALOG_VERSION, name: "Synthetic cooked-grain alternative",
+    sourceId: "FIXTURE-EQUIVALENT-007", energyMethod: "SYNTHETIC_FIXTURE", servingGrams: 100,
+    energyKcalPerServing: 112, proteinGPerServing: 2.3, carbsGPerServing: 23.5, fatGPerServing: 0.8,
+    allergens: [], dietaryTags: ["VEGETARIAN", "VEGAN", "GLUTEN_FREE", "DAIRY_FREE"], hasCompleteMicronutrients: false,
+  },
   {
     id: "chicken-breast-raw", catalogVersion: FOOD_CATALOG_VERSION, name: "Chicken breast, raw",
     sourceId: "FIXTURE-001", energyMethod: "SYNTHETIC_FIXTURE", servingGrams: 100,
@@ -52,3 +58,12 @@ export const FOOD_CATALOG: ReadonlyMap<string, FoodItem> = new Map(
     return [item.id, item];
   })
 );
+
+/** Retained v1 records: the six unchanged original fixtures remain readable. */
+export const LEGACY_FOOD_CATALOG: ReadonlyMap<string, FoodItem> = new Map(
+  RAW_FOOD_CATALOG.filter(item => item.id !== "fixture-grain-alternative").map(item => [item.id, { ...item, catalogVersion: "food-fixture-v1" }])
+);
+export const FOOD_SUBSTITUTIONS: Readonly<Record<string, readonly string[]>> = {
+  "brown-rice-cooked": ["fixture-grain-alternative"],
+  "fixture-grain-alternative": ["brown-rice-cooked"],
+};

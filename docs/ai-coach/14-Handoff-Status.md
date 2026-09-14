@@ -168,6 +168,20 @@ denial. Plan renderers now have unique accessible heading IDs. Verification:
 178 integration + 405 unit tests, type-check/build pass; lint unchanged.
 No actual staffing or reviewer qualification is asserted by this tooling.
 
+## A07a — meal representation and checked substitution engine
+
+Macro/meal switching and allowlisted equivalent substitutions now produce new
+immutable TARGET_PRESERVING proposals through the durable executor. The same
+prescription, targets and training are retained; meal totals and current food
+constraints are rechecked at composition, read and acceptance. A no-op or
+infeasible composition produces a HOLD result without a candidate. Fixture food
+catalog v2 adds one explicitly synthetic equivalent; the six unchanged v1
+records remain readable and the new item is not available retroactively in v1.
+Five unit cases plus a PostgreSQL activation trajectory pass. Full verification:
+179 integration + 410 unit tests, type-check/build pass, lint unchanged. No
+migration. Representation/swap controls in the UI are next; this remains
+synthetic content, not reviewed meal adequacy or real cooking guidance.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):
