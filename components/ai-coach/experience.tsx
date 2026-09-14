@@ -1,0 +1,80 @@
+"use client";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { AiWorkspace } from "@/lib/queries/ai-coach";
+import { PlanDisplay } from "./plan-display";
+const button = "min-h-12 rounded-xl border border-white/15 px-4 py-3 text-zinc-100 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-blue-400 disabled:opacity-50";
+const primary = `${button} min-h-14 border-blue-500 bg-blue-600 hover:bg-blue-500`;
+const fieldClass = "mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 py-2 text-base text-zinc-100 focus:outline-2 focus:outline-blue-400";
+const safetyFields = { chestPainDuringExercise: "Chest pain during exercise?", dizzinessOrFainting: "Dizziness or fainting?", heartCondition: "A known heart condition?", pregnantOrPostpartum: "Pregnant or postpartum?", recentInjuryOrSurgery: "A recent injury or surgery?" };
+
+export function AiCoachExperience({ initial, path = [] }: { initial: AiWorkspace; path?: string[] }) {
+  const [view, setView] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [mode, setMode] = useState<"MACROS" | "MEALS">("MACROS");
+  const [consent, setConsent] = useState(false);
+  const [pauseConfirmed, setPauseConfirmed] = useState(false);
+  const [safety, setSafety] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<Record<string, string>>(() => {
+    const saved = (initial.draft ?? initial.confirmedIntake ?? {}) as Record<string, unknown>;
+    return Object.fromEntries(Object.entries(saved).map(([key, value]) => [key, Array.isArray(value) ? value.join(", ") : String(value)]));
+  });
+  const keys = useRef(new Map<string, string>());
+  const refresh = useCallback(async () => {
+    const res = await fetch("/api/client/ai-coach/workspace", { cache: "no-store" });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error?.message ?? "Could not refresh your coaching state.");
+    setView(body.data as AiWorkspace);
+  }, []);
+  useEffect(() => {
+    if (!view.runs.some(run => ["QUEUED", "RUNNING", "RETRY_WAIT"].includes(run.status))) return;
+    const timer = setInterval(() => { if (!document.hidden) refresh().catch(() => setError("Connection interrupted. Your saved run will continue; refresh to check its status.")); }, 3000);
+    return () => clearInterval(timer);
+  }, [view.runs, refresh]);
+  async function post(url: string, input: Record<string, unknown>) {
+    const fingerprint = JSON.stringify({ url, input });
+    const requestKey = keys.current.get(fingerprint) ?? crypto.randomUUID();
+    keys.current.set(fingerprint, requestKey);
+    const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...input, requestKey }) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error?.message ?? "This change was not confirmed. Please try again.");
+    keys.current.delete(fingerprint);
+    return result.data;
+  }
+  async function act(work: () => Promise<unknown>, success: string) {
+    if (busy) return; setBusy(true); setError(""); setMessage("");
+    try { await work(); setMessage(success); await refresh(); } catch (err) { setError(err instanceof Error ? err.message : "Connection interrupted. Your inputs are still here."); } finally { setBusy(false); }
+  }
+  const command = (input: Record<string, unknown>) => post("/api/client/ai-coach/commands", { expectedProfileRevision: view.profileRevision, ...input });
+  function answers() {
+    const data: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(form)) {
+      if (["allergies", "dietaryRestrictions", "equipmentAccess"].includes(key)) data[key] = value.split(",").map(s => s.trim()).filter(Boolean);
+      else if (["trainingDaysPerWeek", "heightCm", "weightKg"].includes(key)) { if (value !== "") data[key] = Number(value); }
+      else if (value !== "") data[key] = value;
+    }
+    return data;
+  }
+  const screen = path[0] ?? "home";
+  const proposal = view.proposals.find(p => p.id === path[1]);
+  const review = view.runs.find(r => r.id === path[1]);
+  const selectField = (key: string, label: string, values: [string, string][]) => <label key={key} className="block text-sm text-zinc-300">{label}<select className={fieldClass} style={{ fontSize: "max(1rem, 16px)" }} value={form[key] ?? ""} onChange={e => setForm({ ...form, [key]: e.target.value })}><option value="">Choose an answer</option>{values.map(([value, text]) => <option key={value} value={value}>{text}</option>)}</select></label>;
+  const textField = (key: string, label: string, type = "text") => <label key={key} className="block text-sm text-zinc-300">{label}<input type={type} inputMode={type === "number" ? "decimal" : undefined} className={fieldClass} style={{ fontSize: "max(1rem, 16px)" }} value={form[key] ?? ""} onChange={e => setForm({ ...form, [key]: e.target.value })} /></label>;
+  return <div className="mx-auto max-w-3xl space-y-6">
+    <header><p className="text-sm font-medium text-blue-400">Steadfast AI Coach · Synthetic preview</p><h1 className="mt-2 text-3xl font-semibold text-zinc-100">{{ home: "Your coaching plan", start: "A clear next step", intake: "Build your starting point", progress: "Plan preparation", proposals: "Review your proposal", reviews: "Your weekly reviews", settings: "Coaching settings" }[screen] ?? "Your coaching plan"}</h1><p className="mt-3 text-zinc-400">This test experience uses synthetic policies and content. It is not a real health or exercise recommendation, and it is not monitored continuously.</p></header>
+    <nav aria-label="AI coaching" className="flex flex-wrap gap-2">{[["", "Overview"], ["intake", "Intake"], ["progress", "Progress"], ["reviews", "Reviews"], ["settings", "Settings"]].map(([href, label]) => <Link key={href} className={button} href={`/client/ai-coach/${href}`}>{label}</Link>)}</nav>
+    {error && <p role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">{error}</p>}{message && <p role="status" className="rounded-xl border border-emerald-500/30 p-4 text-emerald-300">{message}</p>}
+    {view.safetyDisposition !== "CLEAR" && <section className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5"><h2 className="font-semibold text-amber-200">A concern needs attention</h2><p className="mt-2 text-zinc-300">Current status: {view.safetyDisposition.toLowerCase()}. Affected recommendations remain restricted until an authorized reviewer resolves the concern. This preview cannot provide emergency support.</p></section>}
+    {(screen === "start" || screen === "home") && <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5"><h2 className="text-xl font-semibold text-zinc-100">{view.confirmedIntake ? "Your next step" : "Begin with your preferences"}</h2>{!view.confirmedIntake ? <Link className={`${primary} inline-flex items-center`} href="/client/ai-coach/intake">Complete your intake</Link> : view.origin !== "AI" ? <><label className="flex min-h-12 items-start gap-3 text-zinc-300"><input type="checkbox" className="mt-1 h-5 w-5" checked={consent} onChange={e => setConsent(e.target.checked)} />I consent to this synthetic AI coaching preview and understand it changes my current coaching provider.</label><button className={primary} disabled={busy || !consent} onClick={() => act(() => command({ operation: "ENROLL", consent: true, expectedContextRevision: view.contextRevision, reviewTimezone: view.reviewTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone }), "Enrollment confirmed.")}>Confirm enrollment</button></> : <><label className="block text-zinc-300">Nutrition presentation<select className={fieldClass} value={mode} onChange={e => setMode(e.target.value as "MACROS" | "MEALS")}><option value="MACROS">Macro targets</option><option value="MEALS">Meal portions</option></select></label><button className={primary} disabled={busy} onClick={() => act(() => post("/api/client/ai-coach/runs", { kind: view.activePlan ? "WEEKLY_REVIEW" : "INITIAL", representation: mode, expectedContextRevision: view.contextRevision, expectedProfileRevision: view.profileRevision }), "Preparation request saved. You may leave and return.")}>{view.activePlan ? "Request this week’s review" : "Prepare initial proposal"}</button></>}</section>}
+    {screen === "intake" && <div className="space-y-6"><section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5"><h2 className="text-xl font-semibold text-zinc-100">1. Safety questions</h2><p className="text-sm text-zinc-400">Choose Yes, No, or Unsure for every question. A new concern is saved independently of the rest of your intake.</p>{Object.entries(safetyFields).map(([key, label]) => <label key={key} className="block text-sm text-zinc-300">{label}<select className={fieldClass} value={safety[key] ?? ""} onChange={e => setSafety({ ...safety, [key]: e.target.value })}><option value="">Choose an answer</option><option value="YES">Yes</option><option value="NO">No</option><option value="UNSURE">Unsure</option></select></label>)}<button className={primary} disabled={busy || Object.keys(safetyFields).some(k => !safety[k])} onClick={() => act(() => command({ operation: "SAFETY", answers: safety }), "Safety answers saved.")}>Save safety answers</button></section>
+    <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5"><h2 className="text-xl font-semibold text-zinc-100">2. Preferences and baseline</h2>{selectField("goal", "Goal", [["GENERAL_FITNESS", "General fitness"], ["STRENGTH", "Strength"], ["ENDURANCE", "Endurance"], ["BODY_COMPOSITION", "Body composition"]])}{selectField("experienceLevel", "Training experience", [["NEW", "New"], ["RETURNING", "Returning"], ["EXPERIENCED", "Experienced"]])}{textField("trainingDaysPerWeek", "Available training days each week (1–7)", "number")}{selectField("equipmentAccess", "Available equipment", [["NONE", "No equipment"], ["HOME_BASIC", "Basic home equipment"], ["FULL_GYM", "Full gym"]])}{textField("allergies", "Food allergies (comma-separated; leave blank if none)")}{textField("dietaryRestrictions", "Dietary requirements (comma-separated; leave blank if none)")}{selectField("foodBudgetLevel", "Food budget", [["LOW", "Low"], ["MODERATE", "Moderate"], ["FLEXIBLE", "Flexible"]])}{selectField("trackingPreference", "Preferred nutrition display", [["NUMBERS_VISIBLE", "Show numbers"], ["PORTIONS_ONLY", "Prefer portions"]])}{selectField("unitsPreference", "Preferred units", [["METRIC", "Metric"], ["IMPERIAL", "Imperial"]])}{textField("heightCm", "Height in centimetres (optional; nutrition stays pending without it)", "number")}{textField("weightKg", "Weight in kilograms (optional; nutrition stays pending without it)", "number")}
+    <div className="flex flex-wrap gap-3"><button className={button} disabled={busy} onClick={() => act(async () => { const data = answers(); await command({ operation: "ALLERGIES", allergies: data.allergies ?? [] }); delete data.allergies; await command({ operation: "SAVE_INTAKE", answers: data }); }, "Draft saved. You can return to it later.")}>Save draft</button><button className={primary} disabled={busy} onClick={() => act(async () => { const data = answers(); data.allergies ??= []; data.dietaryRestrictions ??= []; await command({ operation: "ALLERGIES", allergies: data.allergies }); await command({ operation: "CONFIRM_INTAKE", answers: data }); }, "Intake confirmed. Return to Overview to continue.")}>Confirm intake</button></div></section></div>}
+    {(screen === "home" || screen === "progress") && <section className="space-y-3"><h2 className="text-xl font-semibold text-zinc-100">Preparation and proposals</h2>{view.runs.length === 0 && <p className="text-zinc-400">No preparation request has been saved yet.</p>}{view.runs.slice(0, 3).map(run => <div key={run.id} className="rounded-xl border border-white/10 p-4"><p className="text-zinc-100">{run.kind.replaceAll("_", " ")} · {run.status.replaceAll("_", " ")}</p>{run.failureMessage && <p className="mt-2 text-zinc-400">{run.failureMessage}</p>}</div>)}{view.proposals.map(p => <Link key={p.id} className={`${button} flex items-center justify-between`} href={`/client/ai-coach/proposals/${p.id}`}><span>Plan proposal</span><span>{p.status === "READY" ? "Ready to review" : p.status === "STALE" ? "Needs a fresh review" : "Awaiting reviewer"}</span></Link>)}</section>}
+    {screen === "proposals" && (proposal ? <section className="space-y-4">{proposal.payload ? <><p className="text-zinc-300">This is a proposed plan. Your current plan stays active until you accept.</p><PlanDisplay plan={proposal.payload} /><div className="flex gap-3"><button className={primary} disabled={busy} onClick={() => act(() => post(`/api/client/ai-coach/plans/${proposal.id}/accept`, { expectedBaseVersionId: proposal.expectedBaseVersionId, expectedContextRevision: proposal.expectedContextRevision, expectedProfileRevision: proposal.expectedProfileRevision, expectedObservationRevision: proposal.expectedObservationRevision, expectedSafetyRevision: proposal.expectedSafetyRevision }), "Plan accepted. Your current plan has been updated.")}>Accept proposal</button><button className={button} disabled={busy} onClick={() => act(() => post(`/api/client/ai-coach/plans/${proposal.id}/decline`, {}), "Proposal declined. Your current plan stays unchanged.")}>Decline</button></div></> : <p className="rounded-xl border border-white/10 p-5 text-zinc-300">{proposal.status === "STALE" ? "Your coaching state changed. Request a fresh proposal from Overview." : "This proposal is awaiting qualified review. Numerical instructions will appear only after approval."}</p>}</section> : <p className="text-zinc-400">This proposal is no longer pending. Return to Overview for your current plan.</p>)}
+    {screen === "reviews" && <section className="space-y-4">{path[1] ? review ? <><p className="text-zinc-100">{review.decision?.action ?? review.status}</p><p className="text-zinc-300">{review.decision?.explanation}</p>{review.decision?.limitations.map(text => <p key={text} className="text-sm text-zinc-400">{text}</p>)}<p className="text-zinc-100">{review.decision?.nextAction}</p></> : <p className="text-zinc-400">Review not found.</p> : view.runs.length ? view.runs.map(run => <Link className={`${button} block`} key={run.id} href={`/client/ai-coach/reviews/${run.id}`}>{new Date(run.createdAt).toLocaleDateString()} · {run.decision?.action ?? run.status}</Link>) : <p className="text-zinc-400">Your reviews will appear here after a saved run.</p>}</section>}
+    {screen === "settings" && <section className="space-y-4 rounded-2xl border border-white/10 p-5"><p className="text-zinc-300">Review timezone: {view.reviewTimezone ?? "Set at enrollment"}. Travel does not reset review windows.</p><label className="flex min-h-12 items-center gap-3 text-zinc-300"><input type="checkbox" checked={pauseConfirmed} onChange={e => setPauseConfirmed(e.target.checked)} />I want to pause AI coaching and its current recommendations.</label><button className={button} disabled={busy || !pauseConfirmed || view.origin !== "AI"} onClick={() => act(() => command({ operation: "PAUSE", confirmed: true, expectedContextRevision: view.contextRevision }), "AI coaching paused. Your history has been retained.")}>Confirm pause</button><Link href="/client/profile" className={`${button} block`}>Account and privacy settings</Link></section>}
+    {screen === "home" && view.activePlan && <section className="space-y-3"><h2 className="text-xl font-semibold text-zinc-100">Current accepted plan</h2><p className="text-sm text-zinc-400">Accepted {new Date(view.activePlan.acceptedAt).toLocaleDateString()} · Nutrition {view.permissions.nutrition}, strength {view.permissions.strength}, cardio {view.permissions.cardio}</p><PlanDisplay plan={view.activePlan.payload} /></section>}
+  </div>;
+}

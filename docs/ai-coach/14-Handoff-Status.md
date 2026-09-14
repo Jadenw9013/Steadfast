@@ -128,6 +128,22 @@ intake, consent, key conflicts, urgent/allergy handling and HTTP boundaries.
 Verification: 170 integration + 402 unit tests pass, type-check/build pass,
 lint unchanged. No schema change. Client UI is next.
 
+## A06e — initial client screens
+
+Added the authenticated AI route family and shared client experience/plan
+renderer: intake, explicit enrollment, actual run progress, pending/ready/stale
+proposals, accepted nutrition/strength/cardio, review history and pause settings.
+Mutation failures retain in-memory inputs and reuse operation keys for uncertain
+retries; no health form data goes into browser local storage. Accept/decline now
+use the same protected HTTP envelope and origin/body/quota controls. Three
+rendering tests verify provider labeling, unanswered safety fields and hidden
+unapproved instructions. A standalone synthetic UI fixture was inspected in
+Chromium at 390px: no horizontal overflow and all measured inputs/selects were
+18px with 54px height. This is UI-fixture verification, not an authenticated
+end-to-end run of the deployed app. Verification: 170 integration + 405 unit
+checks, type-check/build pass, lint baseline unchanged. Reviewer operations,
+non-initial generation, logging and provider-aware main navigation remain next.
+
 ## What's built and verified (Phase F + Phase A: F00–F08, CB11, A01–A05, A10)
 
 Commits, oldest to newest (`git log --oneline` on `main`):

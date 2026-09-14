@@ -428,11 +428,11 @@ suite("A10 — atomic proposal lifecycle and acceptance with real PostgreSQL con
       const candidate = await makeCandidate(client.id);
 
       mocks.authUserId = coachClerkId;
-      const forbidden = await acceptRoute(new NextRequest(`https://example.test/api/client/ai-coach/plans/${candidate.id}/accept`, { method: "POST", body: JSON.stringify(acceptInputFor(candidate)) }), { params: Promise.resolve({ id: candidate.id }) });
+      const forbidden = await acceptRoute(new NextRequest(`https://example.test/api/client/ai-coach/plans/${candidate.id}/accept`, { method: "POST", headers: { origin: "https://example.test", "content-type": "application/json" }, body: JSON.stringify(acceptInputFor(candidate)) }), { params: Promise.resolve({ id: candidate.id }) });
       expect(forbidden.status).toBe(403);
 
       mocks.authUserId = client.clerkId;
-      const ok = await acceptRoute(new NextRequest(`https://example.test/api/client/ai-coach/plans/${candidate.id}/accept`, { method: "POST", body: JSON.stringify(acceptInputFor(candidate)) }), { params: Promise.resolve({ id: candidate.id }) });
+      const ok = await acceptRoute(new NextRequest(`https://example.test/api/client/ai-coach/plans/${candidate.id}/accept`, { method: "POST", headers: { origin: "https://example.test", "content-type": "application/json" }, body: JSON.stringify(acceptInputFor(candidate)) }), { params: Promise.resolve({ id: candidate.id }) });
       expect(ok.status).toBe(200);
     });
 
@@ -441,7 +441,7 @@ suite("A10 — atomic proposal lifecycle and acceptance with real PostgreSQL con
       const candidate = await makeCandidate(client.id);
       mocks.authUserId = client.clerkId;
 
-      const response = await declineRoute(new NextRequest(`https://example.test/api/client/ai-coach/plans/${candidate.id}/decline`, { method: "POST", body: JSON.stringify({ reason: "changing goals" }) }), { params: Promise.resolve({ id: candidate.id }) });
+      const response = await declineRoute(new NextRequest(`https://example.test/api/client/ai-coach/plans/${candidate.id}/decline`, { method: "POST", headers: { origin: "https://example.test", "content-type": "application/json" }, body: JSON.stringify({ reason: "changing goals" }) }), { params: Promise.resolve({ id: candidate.id }) });
       expect(response.status).toBe(200);
       expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: candidate.id } })).status).toBe("DECLINED");
     });

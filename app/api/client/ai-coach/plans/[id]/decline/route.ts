@@ -1,28 +1,16 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getCurrentDbUser } from "@/lib/auth/roles";
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { aiHttp } from "@/lib/ai-coach/http";
+import { AiCoachError } from "@/lib/ai-coach/access";
 import { declinePlanVersion } from "@/lib/ai-coach/plan-acceptance";
-
-/** A10 — POST /api/client/ai-coach/plans/[id]/decline. Idempotent. */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
-  try {
-    user = await getCurrentDbUser();
-  } catch {
-    return NextResponse.json({ error: { code: "UNAUTHENTICATED", message: "Unauthorized" } }, { status: 401 });
-  }
-  if (!user.isClient) {
-    return NextResponse.json({ error: { code: "FORBIDDEN", message: "Forbidden" } }, { status: 403 });
-  }
-
+const inputSchema = z.object({ requestKey: z.string().uuid().optional(), reason: z.string().max(500).optional() }).strict();
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const body = await req.json().catch(() => ({}));
-  const result = await declinePlanVersion(user.id, id, body?.reason);
-
-  if (!result.success) {
-    return NextResponse.json({ error: { code: "VALIDATION_ERROR", message: result.error } }, { status: 422 });
-  }
-  return NextResponse.json({ data: { declined: true } });
+  return aiHttp(req, true, async (clientId, body) => {
+    const input = inputSchema.safeParse(body);
+    if (!input.success) throw new AiCoachError("VALIDATION_ERROR", "Invalid decline request.", 422);
+    const result = await declinePlanVersion(clientId, id, input.data.reason);
+    if (!result.success) throw new AiCoachError("VALIDATION_ERROR", result.error, 422);
+    return { declined: true };
+  });
 }
