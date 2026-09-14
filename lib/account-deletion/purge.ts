@@ -204,6 +204,29 @@ export async function purgeUserAccount(userId: string): Promise<void> {
   await tx.$executeRaw`DELETE FROM "CoachSettings" WHERE "coachId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "IntakeFormTemplate" WHERE "coachId" = ${userId}`;
 
+  // AI Coach (A02) — synthetic-fixture data today, but purged for both
+  // roles: this user may be a client with a profile/plans, and/or (A11,
+  // not yet built) hold a reviewer grant that approved plans belonging to
+  // other clients. Approvals must go before the rows they reference.
+  await tx.$executeRaw`
+    DELETE FROM "AiPlanReviewerApproval" WHERE "reviewerGrantId" IN (
+      SELECT "id" FROM "AiCoachReviewerGrant" WHERE "userId" = ${userId}
+    )
+  `;
+  await tx.$executeRaw`
+    DELETE FROM "AiPlanReviewerApproval" WHERE "planVersionId" IN (
+      SELECT "id" FROM "AiPlanVersion" WHERE "clientId" = ${userId}
+    )
+  `;
+  await tx.$executeRaw`DELETE FROM "AiWorkoutSession" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "AiAdjustmentSlot" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "AiCoachRun" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "AiPlanVersion" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "AiCoachProfile" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "AiCoachEntitlement" WHERE "clientId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "AiCoachReviewerGrant" WHERE "userId" = ${userId}`;
+  await tx.$executeRaw`DELETE FROM "ClientCoachingContext" WHERE "clientId" = ${userId}`;
+
   // Team: just unlink, don't delete the team
   await tx.$executeRaw`UPDATE "User" SET "team_id" = NULL, "team_role" = NULL WHERE "id" = ${userId}`;
 

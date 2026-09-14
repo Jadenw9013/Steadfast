@@ -141,6 +141,11 @@ model User {
   coachingContext    ClientCoachingContext?
   aiCoachProfile     AiCoachProfile?
   aiCoachEntitlement AiCoachEntitlement?
+  aiCoachRuns          AiCoachRun[]
+  aiPlanVersions       AiPlanVersion[]
+  aiAdjustmentSlots    AiAdjustmentSlot[]
+  aiWorkoutSessions    AiWorkoutSession[]
+  aiCoachReviewerGrant AiCoachReviewerGrant?
 }
 
 enum CoachingMode {
@@ -202,6 +207,246 @@ model AiCoachEntitlement {
   revokedAt  DateTime?
 
   client User @relation(fields: [clientId], references: [id])
+}
+
+// ── AI Coach: runs, plans, sessions, reviewer grants (A02) ────────────────────
+// docs/ai-coach/05-API-and-State-Contracts.md is authoritative for these
+// states and transitions. Synthetic-fixture engineering only — no real
+// clinical policy, catalog, or live model calls exist yet (A03/A04/A05).
+
+enum AiRunKind {
+  INITIAL
+  WEEKLY_REVIEW
+  REPRESENTATION
+}
+
+enum AiRunStatus {
+  QUEUED
+  RUNNING
+  RETRY_WAIT
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+enum AiChangeClass {
+  INITIAL
+  ROUTINE
+  TARGET_PRESERVING
+  PROTECTIVE
+}
+
+enum AiPlanStatus {
+  PROPOSED
+  ACCEPTED
+  DECLINED
+  SUPERSEDED
+  INVALIDATED
+}
+
+enum AiReviewerStatus {
+  NOT_REQUIRED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AiLoadKind {
+  EXTERNAL
+  BODYWEIGHT
+  ASSISTED
+}
+
+// A durable job record. Duplicate requests must resolve to the same
+// business operation (see businessKey); inputs and a completed result are
+// immutable once set, only execution metadata (status/lease/attempts)
+// changes. Run creation/business-key computation, and the deterministic
+// controller itself, are later A-series slices (A03/A04/A09) — this model
+// establishes the lifecycle shape and transition invariants only.
+model AiCoachRun {
+  id       String      @id @default(cuid())
+  clientId String
+  kind     AiRunKind
+  status   AiRunStatus @default(QUEUED)
+
+  // Deduplicates a logical run: derived from client + all relevant
+  // revisions + policy/catalog/model-config versions + run kind + active
+  // base + activation window + requested representation + retry
+  // generation. Computed by the caller (A03/A09); this model only enforces
+  // that duplicates collapse to one row.
+  businessKey String @unique
+
+  // Frozen inputs, snapshotted at creation and never mutated.
+  contextRevision     Int
+  profileRevision     Int
+  observationRevision Int
+  safetyRevision      Int
+  lookbackStart       DateTime?
+  lookbackEnd         DateTime?
+  snapshotCutoffAt    DateTime?
+  activationStartsAt  DateTime?
+  activationEndsAt    DateTime?
+
+  // Execution/lease metadata — mutable.
+  leaseExpiresAt  DateTime?
+  fencingToken    Int       @default(0)
+  attempts        Int       @default(0)
+  retryGeneration Int       @default(0)
+  // Explicit lineage for a server-authorized manual retry after terminal
+  // failure — a new row, never a reopened terminal one (docs/ai-coach/05).
+  retryOfRunId    String?
+  lastError       String?   @db.Text
+
+  // Result — set once, on the terminal COMPLETED transition.
+  resultPlanVersionId String?
+  resultReviewAction  AiReviewAction?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client  User          @relation(fields: [clientId], references: [id])
+  retryOf AiCoachRun?   @relation("RunRetryChain", fields: [retryOfRunId], references: [id])
+  retries AiCoachRun[]  @relation("RunRetryChain")
+
+  @@index([clientId])
+  @@index([status, leaseExpiresAt])
+}
+
+enum AiReviewAction {
+  HOLD
+  SIMPLIFY
+  ADJUST
+  CLARIFY
+  PAUSE_REFER
+}
+
+// An immutable canonical AI plan payload. Content never changes once
+// created — a correction creates a new version with `baseVersionId`
+// pointing at the prior one. `acceptedAt` never resets. AI plans never
+// write the legacy MealPlan/TrainingProgram tables (D04).
+model AiPlanVersion {
+  id            String        @id @default(cuid())
+  clientId      String
+  version       Int
+  baseVersionId String?
+  status        AiPlanStatus  @default(PROPOSED)
+  changeClass   AiChangeClass?
+
+  // Immutable payload — PlanPayloadV1-shaped (nutrition/meals/strength/
+  // cardio). Stored as Json pending A04's reviewed catalog/policy schema;
+  // payloadHash lets a reviewer approval bind to the exact content without
+  // this model needing to know its internal shape yet.
+  payload     Json
+  payloadHash String
+
+  // Revisions this version was computed against — an acceptance must
+  // recheck these are still current (docs/ai-coach/05 "Atomic acceptance").
+  contextRevision     Int
+  profileRevision     Int
+  observationRevision Int
+  safetyRevision      Int
+
+  policyVersion   String
+  catalogVersions Json
+
+  activationStartsAt DateTime?
+  activationEndsAt   DateTime?
+
+  reviewerStatus       AiReviewerStatus @default(NOT_REQUIRED)
+  reviewerApprovalHash String?
+
+  acceptedAt DateTime? // permanent once set — never cleared or reused
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client       User                    @relation(fields: [clientId], references: [id])
+  baseVersion  AiPlanVersion?          @relation("PlanVersionHistory", fields: [baseVersionId], references: [id])
+  corrections  AiPlanVersion[]         @relation("PlanVersionHistory")
+  approval     AiPlanReviewerApproval?
+  adjustmentSlot AiAdjustmentSlot?
+  workoutSessions AiWorkoutSession[]
+
+  @@unique([clientId, version])
+  @@index([clientId, status])
+}
+
+// One accepted ROUTINE change per client per canonical review window,
+// permanently. Superseding, declining a later proposal, pausing, or
+// re-enrolling cannot erase this row (D08).
+model AiAdjustmentSlot {
+  id                  String   @id @default(cuid())
+  clientId            String
+  reviewWindowKey     String
+  acceptedPlanVersionId String @unique
+  acceptedAt          DateTime @default(now())
+
+  client            User          @relation(fields: [clientId], references: [id])
+  acceptedPlanVersion AiPlanVersion @relation(fields: [acceptedPlanVersionId], references: [id])
+
+  @@unique([clientId, reviewWindowKey])
+}
+
+// A qualified reviewer's authorization to approve AI plan versions. An
+// ordinary isCoach flag is never sufficient authority (docs/ai-coach/05,
+// docs/ai-coach/06 §2) — this is an explicit, revocable capability grant.
+model AiCoachReviewerGrant {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  qualificationNote String    @db.Text
+  grantedAt         DateTime  @default(now())
+  grantedBy         String?
+  revokedAt         DateTime?
+
+  user      User                     @relation(fields: [userId], references: [id])
+  approvals AiPlanReviewerApproval[]
+}
+
+// A reviewer decision binds to the exact payload hash and revisions at
+// decision time — a modified candidate needs a new decision (docs/ai-coach/05).
+model AiPlanReviewerApproval {
+  id              String   @id @default(cuid())
+  planVersionId   String   @unique
+  reviewerGrantId String
+  approvedHash    String
+  approved        Boolean
+  rationale       String   @db.Text
+  decidedAt       DateTime @default(now())
+
+  planVersion   AiPlanVersion        @relation(fields: [planVersionId], references: [id])
+  reviewerGrant AiCoachReviewerGrant @relation(fields: [reviewerGrantId], references: [id])
+}
+
+// A single logged strength-training session event. Uniqueness is on the
+// caller-supplied idempotency key, not on (exercise, day, week) — repeated
+// sessions of the same exercise in one week must remain independent
+// (mirrors F07's ExerciseResult.sessionDate fix, generalized with an
+// explicit client event id instead of a derived date).
+model AiWorkoutSession {
+  id            String     @id @default(cuid())
+  clientId      String
+  clientEventId String
+  planVersionId String
+  exerciseId    String
+  occurredAt    DateTime
+  timezone      String
+  setIndex      Int
+  reps          Int?
+  loadValue     Float?
+  loadUnit      String?
+  loadKind      AiLoadKind
+  painNote      String?    @db.Text
+  effortNote    String?    @db.Text
+  revision      Int        @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client      User          @relation(fields: [clientId], references: [id])
+  planVersion AiPlanVersion @relation(fields: [planVersionId], references: [id])
+
+  @@unique([clientId, clientEventId])
+  @@index([clientId, occurredAt])
 }
 
 model IntakeFormTemplate {

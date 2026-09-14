@@ -91,6 +91,37 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(await db.accountDeletionRequest.findUnique({ where: { id: receipt.id } })).toMatchObject({ status: "COMPLETED", userId: null });
     expect(mocks.remove).toHaveBeenCalledWith("check-in-photos", expect.arrayContaining([`${user.clerkId}/web-batch/photo.jpg`, "ios-checkin/photo.jpg"]));
   });
+  it("purges AI Coach records (A02) on account deletion", async () => {
+    const { user } = await fixture();
+    await db.clientCoachingContext.create({ data: { clientId: user.id, mode: "AI", revision: 1 } });
+    await db.aiCoachEntitlement.create({ data: { clientId: user.id } });
+    const profile = await db.aiCoachProfile.create({ data: { clientId: user.id } });
+    const plan = await db.aiPlanVersion.create({
+      data: {
+        clientId: user.id, version: 1, status: "ACCEPTED", acceptedAt: new Date(),
+        payload: {}, payloadHash: "hash", contextRevision: 1, profileRevision: 1,
+        observationRevision: 1, safetyRevision: 1, policyVersion: "p1", catalogVersions: {},
+      },
+    });
+    await db.aiCoachProfile.update({ where: { id: profile.id }, data: { activePlanVersionId: plan.id } });
+    await db.aiAdjustmentSlot.create({ data: { clientId: user.id, reviewWindowKey: "2026-W01", acceptedPlanVersionId: plan.id } });
+    await db.aiWorkoutSession.create({
+      data: { clientId: user.id, clientEventId: "evt-1", planVersionId: plan.id, exerciseId: "ex-1", occurredAt: new Date(), timezone: "UTC", setIndex: 0, loadKind: "BODYWEIGHT" },
+    });
+    const run = await db.aiCoachRun.create({
+      data: { clientId: user.id, kind: "WEEKLY_REVIEW", businessKey: randomUUID(), contextRevision: 1, profileRevision: 1, observationRevision: 1, safetyRevision: 1 },
+    });
+
+    await purgeUserAccount(user.id);
+
+    expect(await db.clientCoachingContext.findUnique({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiCoachEntitlement.findUnique({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiCoachProfile.findUnique({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiPlanVersion.findUnique({ where: { id: plan.id } })).toBeNull();
+    expect(await db.aiAdjustmentSlot.findFirst({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiWorkoutSession.findFirst({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiCoachRun.findUnique({ where: { id: run.id } })).toBeNull();
+  });
   it("keeps all DB records and identity when storage cleanup fails", async () => {
     const { user, receipt, checkIn } = await fixture();
     mocks.remove.mockResolvedValue({ error: { message: "storage unavailable" } });
