@@ -15,6 +15,7 @@ import {
   resolveDefaultPlanMode,
 } from "@/lib/meal-plans/macro-targets";
 import { createMealPlanWithNextVersion } from "@/lib/meal-plans/version";
+import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
 
 const mealPlanItemSchema = z.object({
   mealName: z.string().min(1).max(100),
@@ -221,34 +222,16 @@ export async function publishMealPlan(input: unknown) {
   const parsed = publishSchema.safeParse(input);
   if (!parsed.success) throw new Error("Invalid input");
 
-  const plan = await db.mealPlan.findUnique({
-    where: { id: parsed.data.mealPlanId },
-    select: { clientId: true, status: true, weekOf: true },
-  });
-  if (!plan) throw new Error("Meal plan not found");
-  if (plan.status !== "DRAFT") throw new Error("Can only publish drafts");
+  const target = await getMealPlanPublishTarget(parsed.data.mealPlanId);
+  if (!target) throw new Error("Meal plan not found");
 
-  await verifyCoachAccessToClient(plan.clientId);
+  await verifyCoachAccessToClient(target.clientId);
 
-  // Atomic: demote any other currently-PUBLISHED plan for this client/week
-  // (CB04 — at most one PUBLISHED plan may exist, enforced by a partial
-  // unique index) before publishing this one, and only actually flip this
-  // plan's status if it's still DRAFT (guards a concurrent double-publish —
-  // updateMany's count tells us whether we won the race).
-  const publishedAt = new Date();
-  const result = await db.$transaction(async (tx) => {
-    // Exclude the target itself: a losing racer in a concurrent double-publish
-    // must never demote the row the winner just published.
-    await tx.mealPlan.updateMany({
-      where: { clientId: plan.clientId, weekOf: plan.weekOf, status: "PUBLISHED", id: { not: parsed.data.mealPlanId } },
-      data: { status: "SUPERSEDED" },
-    });
-    return tx.mealPlan.updateMany({
-      where: { id: parsed.data.mealPlanId, status: "DRAFT" },
-      data: { status: "PUBLISHED", publishedAt },
-    });
-  });
-  if (result.count === 0) {
+  // CB04 — publishing lives entirely in lib/meal-plans/publish.ts so this
+  // action and the iOS-facing REST route can't diverge again.
+  const result = await publishMealPlanTarget(target);
+  if (!result.ok) {
+    if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
     throw new Error("This plan was already published or changed by someone else — refresh and try again.");
   }
 
@@ -258,10 +241,10 @@ export async function publishMealPlan(input: unknown) {
   if (parsed.data.notifyClient) {
     try {
       const user = await getCurrentDbUser();
-      await notifyMealPlanUpdated(plan.clientId, user.firstName);
+      await notifyMealPlanUpdated(target.clientId, user.firstName);
 
       // Background email to client
-      const client = await db.user.findUnique({ where: { id: plan.clientId }, select: { email: true, firstName: true, emailMealPlanUpdates: true } });
+      const client = await db.user.findUnique({ where: { id: target.clientId }, select: { email: true, firstName: true, emailMealPlanUpdates: true } });
       if (client?.email && client.emailMealPlanUpdates) {
         const { sendEmail } = await import("@/lib/email/sendEmail");
         const { mealPlanUpdatedEmail } = await import("@/lib/email/templates");
