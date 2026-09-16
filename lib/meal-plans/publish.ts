@@ -22,6 +22,17 @@ import type { MealPlanStatus, PlanMode } from "@/app/generated/prisma/client";
  * `clientId` alone would wipe every other week's published plan. Do not
  * "harmonize" the two.
  *
+ * The transaction is atomic with respect to its OWN outcome: when the target
+ * row is no longer a DRAFT (or has been deleted) by the time the flip runs, the
+ * callback throws the private `RaceLost` sentinel so the supersede half rolls
+ * back with it. Returning `RACE_LOST` after a committed transaction instead
+ * would demote the week's live PUBLISHED plan while publishing nothing, leaving
+ * the client with ZERO published plans for that week — reachable whenever the
+ * publish target stops being a DRAFT between the T-102b content read below and
+ * the transaction (a concurrent draft delete through
+ * `DELETE /api/coach/clients/[clientId]/meal-plan`). Do not move the zero-count
+ * check back outside the callback.
+ *
  * P2002 → RACE_LOST: the transaction alone does not eliminate unique-index
  * violations under concurrency. Two transactions publishing two *different*
  * drafts of the same week each run their supersede `updateMany` against a
@@ -164,6 +175,18 @@ export function isDuplicatePublishedPlanError(err: unknown): boolean {
 }
 
 /**
+ * Thrown inside the publish transaction when the flip matches zero rows, so the
+ * supersede rolls back with it. Private on purpose: it never escapes
+ * `publishMealPlanTarget`, which maps it to `RACE_LOST`.
+ */
+class RaceLost extends Error {
+  constructor() {
+    super("meal plan publish race lost");
+    this.name = "RaceLost";
+  }
+}
+
+/**
  * CB04 — the only place `MealPlan.status` becomes `"PUBLISHED"`. Callers MUST
  * have authorized coach access to target.clientId first.
  */
@@ -190,9 +213,9 @@ export async function publishMealPlanTarget(
 
   const publishedAt = opts?.now ?? new Date();
 
-  let counts: { superseded: number; flipped: number };
+  let supersededCount: number;
   try {
-    counts = await db.$transaction(async (tx) => {
+    supersededCount = await db.$transaction(async (tx) => {
       // Exclude the target itself: a losing racer in a concurrent
       // double-publish must never demote the row the winner just published.
       // The `weekOf` filter and the `id: { not }` exclusion are both
@@ -207,21 +230,22 @@ export async function publishMealPlanTarget(
         data: { status: "SUPERSEDED" },
       });
       // Only flip if it's still DRAFT — the count tells us whether we won the
-      // concurrent double-publish race.
+      // concurrent double-publish race. Losing it must undo the supersede
+      // above, so throw rather than returning the count (see the file header).
       const flipped = await tx.mealPlan.updateMany({
         where: { id: target.id, status: "DRAFT" },
         data: { status: "PUBLISHED", publishedAt },
       });
-      return { superseded: superseded.count, flipped: flipped.count };
+      if (flipped.count === 0) throw new RaceLost();
+      return superseded.count;
     });
   } catch (err) {
+    if (err instanceof RaceLost) return { ok: false, code: "RACE_LOST" };
     if (isDuplicatePublishedPlanError(err)) return { ok: false, code: "RACE_LOST" };
     // Any other failure — including a P2002 from a different constraint — must
     // still surface as a 500 so it stays visible, never silently swallowed.
     throw err;
   }
-
-  if (counts.flipped === 0) return { ok: false, code: "RACE_LOST" };
 
   return {
     ok: true,
@@ -229,6 +253,6 @@ export async function publishMealPlanTarget(
     clientId: target.clientId,
     weekOf: target.weekOf,
     publishedAt,
-    supersededCount: counts.superseded,
+    supersededCount,
   };
 }

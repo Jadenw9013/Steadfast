@@ -77,7 +77,10 @@ const target: MealPlanPublishTarget = {
 
 describe("publishMealPlanTarget — transaction failure mapping", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // resetAllMocks, not clearAllMocks: the zero-row-flip case below installs a
+    // callback-invoking `$transaction` implementation, and clearAllMocks would
+    // leave it in place for whatever case is appended next.
+    vi.resetAllMocks();
     // T-102b — a non-empty MEAL_PLAN plan, so the empty-plan guard passes and
     // every case below still reaches the transaction. This suite is about the
     // catch branch; the guard itself is covered by
@@ -120,5 +123,47 @@ describe("publishMealPlanTarget — transaction failure mapping", () => {
     mocks.transaction.mockRejectedValue(err);
 
     await expect(publishMealPlanTarget(target)).rejects.toBe(err);
+  });
+
+  /**
+   * T-745 — the DB-free half of the lost-race rollback. The three cases above
+   * mock `$transaction` as *rejecting*, so the callback is never invoked and
+   * none of them can see how the zero-row flip is reported. This one runs the
+   * real callback against a `tx` stub: the supersede matches a row, the flip
+   * matches none, and the callback MUST abort rather than return a count, so
+   * PostgreSQL rolls the supersede back with it. Returning `RACE_LOST` after a
+   * committed transaction would leave the client with zero published plans for
+   * the week. The end-to-end proof is
+   * tests/integration/meal-plan-publish-parity.test.ts; this is the fast loop.
+   */
+  it("the zero-row flip throws out of the transaction callback so the supersede rolls back", async () => {
+    let callbackThrew = false;
+    const updateMany = vi
+      .fn()
+      // 1. supersede — the week's previous PUBLISHED plan is demoted
+      .mockResolvedValueOnce({ count: 1 })
+      // 2. flip — the target is no longer DRAFT, so we lost the race
+      .mockResolvedValueOnce({ count: 0 });
+    const tx = { mealPlan: { updateMany } };
+
+    mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+      try {
+        return await callback(tx);
+      } catch (err) {
+        callbackThrew = true;
+        // The real client rolls the transaction back and rethrows the
+        // callback's error unwrapped, which is what the service's catch relies
+        // on to recognise its own sentinel.
+        throw err;
+      }
+    });
+
+    const result = await publishMealPlanTarget(target);
+
+    expect(result).toEqual({ ok: false, code: "RACE_LOST" });
+    // The load-bearing assertion: a callback that returned normally here would
+    // have committed the supersede (this is exactly the pre-T-745 bug).
+    expect(callbackThrew).toBe(true);
+    expect(updateMany).toHaveBeenCalledTimes(2);
   });
 });
