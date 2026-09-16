@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { parsePlanExtras, type PlanExtras } from "@/types/meal-plan-extras";
+import { resolveDefaultPlanMode, resolveEditorPlanMode } from "@/lib/meal-plans/plan-mode";
 
 export async function getCurrentPublishedMealPlan(clientId: string, publishedAfter?: Date) {
   return db.mealPlan.findFirst({
@@ -50,7 +51,12 @@ export type EffectiveMealPlan = {
   source: "draft" | "published" | "empty";
   draftId: string | null;
   publishedId: string | null;
-  planMode: "MEAL_PLAN" | "MACROS";
+  /** The client's persistent default (`CoachClient.planMode`). */
+  clientPlanMode: "MEAL_PLAN" | "MACROS";
+  /** The one mode the coach's editor renders: `draft?.planMode ?? clientPlanMode`.
+   *  There is deliberately no `planMode` field on this type — the plan row's own
+   *  mode is a client-facing snapshot and must never drive the editor (T-102a). */
+  editorMode: "MEAL_PLAN" | "MACROS";
   planExtras: PlanExtras | null;
   supportContent: string | null;
   items: {
@@ -113,35 +119,49 @@ function mapMacroTargets(targets: {
   }));
 }
 
-export async function getEffectiveMealPlanForReview(
-  clientId: string,
-  weekOf: Date
-): Promise<EffectiveMealPlan> {
+/**
+ * Object argument, not positionals: `coachId` and `clientId` are both `string`,
+ * so a silent swap would compile (T-102a).
+ */
+export async function getEffectiveMealPlanForReview(args: {
+  coachId: string;
+  clientId: string;
+  weekOf: Date;
+}): Promise<EffectiveMealPlan> {
+  const { coachId, clientId, weekOf } = args;
   const include = {
     items: { orderBy: { sortOrder: "asc" as const } },
     macroTargets: { orderBy: { sortOrder: "asc" as const } },
   };
 
-  // 1. Check for existing draft for this week
-  const draft = await db.mealPlan.findFirst({
-    where: { clientId, weekOf, status: "DRAFT" },
-    orderBy: { createdAt: "desc" },
-    include,
-  });
+  // All three reads in parallel — the CoachClient.planMode read adds no latency.
+  const [draft, published, clientPlanMode] = await Promise.all([
+    // 1. Check for existing draft for this week
+    db.mealPlan.findFirst({
+      where: { clientId, weekOf, status: "DRAFT" },
+      orderBy: { createdAt: "desc" },
+      include,
+    }),
+    // Also find latest published plan (used for export + fallback).
+    // Deliberately unscoped by week — that defect is T-733, not this ticket.
+    db.mealPlan.findFirst({
+      where: { clientId, status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      include,
+    }),
+    resolveDefaultPlanMode(coachId, clientId),
+  ]);
 
-  // Also find latest published plan (used for export + fallback)
-  const published = await db.mealPlan.findFirst({
-    where: { clientId, status: "PUBLISHED" },
-    orderBy: { publishedAt: "desc" },
-    include,
-  });
+  // Computed from the DRAFT only — never from `published`. See lib/meal-plans/plan-mode.ts.
+  const editorMode = resolveEditorPlanMode(draft?.planMode ?? null, clientPlanMode);
 
   if (draft) {
     return {
       source: "draft",
       draftId: draft.id,
       publishedId: published?.id ?? null,
-      planMode: draft.planMode,
+      clientPlanMode,
+      editorMode,
       planExtras: parsePlanExtras(draft.planExtras),
       supportContent: draft.supportContent,
       items: mapItems(draft.items),
@@ -154,7 +174,8 @@ export async function getEffectiveMealPlanForReview(
       source: "published",
       draftId: null,
       publishedId: published.id,
-      planMode: published.planMode,
+      clientPlanMode,
+      editorMode,
       planExtras: parsePlanExtras(published.planExtras),
       supportContent: published.supportContent,
       items: mapItems(published.items),
@@ -167,7 +188,8 @@ export async function getEffectiveMealPlanForReview(
     source: "empty",
     draftId: null,
     publishedId: null,
-    planMode: "MEAL_PLAN",
+    clientPlanMode,
+    editorMode,
     planExtras: null,
     supportContent: null,
     items: [],

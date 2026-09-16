@@ -152,9 +152,21 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     expect(publishResponse.status).toBe(200);
 
     // Read back through the web query module — must match what iOS wrote
-    const web = await getEffectiveMealPlanForReview(client.id, new Date("2026-09-14T00:00:00Z"));
-    expect(web.planMode).toBe("MACROS");
+    const web = await getEffectiveMealPlanForReview({ coachId: coach.id, clientId: client.id, weekOf: new Date("2026-09-14T00:00:00Z") });
+    expect(web.source).toBe("published");
     expect(web.macroTargets).toEqual([{ mealName: "Dinner", calories: 650, protein: 48, carbs: 62, fats: 19 }]);
+    // T-102a deleted `EffectiveMealPlan.planMode`. The original assertion here
+    // was about the PUBLISHED ROW's own mode — the snapshot iOS wrote — so it
+    // moves to that row's source of truth, not to `editorMode`.
+    expect((await getCurrentPublishedMealPlan(client.id))?.planMode).toBe("MACROS");
+    // `editorMode` is NOT "MACROS" here, and that is the frozen rule working:
+    // publishing consumed the draft, and this coach set `planMode` per-draft
+    // without ever toggling `CoachClient.planMode`, so the editor falls back to
+    // the client default. Accepted cost, same family as spec risk 4 / T-738.
+    // Re-adding the published row's mode to the precedence chain to make this
+    // read "MACROS" would break the published-only toggle case.
+    expect(web.editorMode).toBe("MEAL_PLAN");
+    expect(web.clientPlanMode).toBe("MEAL_PLAN");
   });
 
   it("toggling plan mode updates the CoachClient default and the current draft, but never a published plan", async () => {
