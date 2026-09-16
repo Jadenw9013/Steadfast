@@ -857,7 +857,19 @@ model Message {
   // only ever read
   // messages where this matches their own id; the client's own view is never
   // filtered by it (CB03 — conversations are participant-scoped, but the
-  // client keeps their full archive).
+  // client keeps their full archive). Since T-672 coach surfaces read through
+  // getCoachThread(clientId, coachId) (lib/queries/messages.ts), which cannot
+  // be called without a coach id; getAllMessages/getMessages take an optional
+  // asCoachId and are unfiltered only when it is omitted, for the client's own
+  // archive. That last clause corrects the parentheticals in the applied
+  // migrations 20260913200000_message_coach_scope and
+  // 20260915000000_message_coach_backfill_single_coach, which say those
+  // functions are "never coach-filtered". For getAllMessages that was true
+  // when written and false since T-672. For getMessages it was already
+  // inaccurate on arrival: asCoachId was added to it by c64074f (F03), the
+  // same commit that added the first of those migrations, so getMessages has
+  // never been unscoped for a coach and this ticket does not touch it.
+  // Applied migration SQL is checksummed and is never edited.
   coachId String?
 
   client User  @relation("ClientMessages", fields: [clientId], references: [id])
