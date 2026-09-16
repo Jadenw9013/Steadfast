@@ -598,7 +598,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET | `/api/coach/clients` | Client roster |
 | GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove |
 | GET/POST/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. Auth + zod wrapper only — `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork, shared with the `createDraftMealPlan` / `saveDraftMealPlan` Server Actions and with `/api/mealplans/import-plan`. GET also returns `clientPlanMode` (the `CoachClient.planMode` default) and `editorMode` (which editor the coach must render), both resolved by `lib/meal-plans/plan-mode.ts` — the single source of truth for coach editor-mode resolution, shared with the web query `getEffectiveMealPlanForReview`. Neither is `mealPlan.planMode`, which stays the published/draft row's own snapshot that clients read. |
-| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Auth + zod wrapper only — `lib/meal-plans/publish.ts` is the single source of truth for the DRAFT→PUBLISHED transition, shared with the `publishMealPlan` Server Action and with `/api/mealplans/import-plan`. |
+| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Auth + zod wrapper only — `lib/meal-plans/publish.ts` is the single source of truth for the DRAFT→PUBLISHED transition, shared with the `publishMealPlan` Server Action and with `/api/mealplans/import-plan`. Rejections are `409` with `code` `PLAN_NOT_DRAFT`, `PUBLISH_RACE_LOST`, or `PLAN_EMPTY` (the plan has no content for its own `planMode`); `error` carries the user-facing sentence the Server Action throws verbatim. |
 | GET/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD |
 | POST | `/api/coach/clients/[clientId]/training/publish` | Publish training program |
 | GET | `/api/coach/clients/[clientId]/intake` | Client intake data |
@@ -641,7 +641,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | POST | `/api/mealplans/upload-url` | Generate signed upload URL |
 | POST | `/api/mealplans/parse` | OCR → text extraction |
 | POST | `/api/mealplans/parse-text` | Text → AI structured JSON |
-| POST | `/api/mealplans/import-plan` | Finalize import into meal plan. Routes through `lib/meal-plans/drafts.ts` + `lib/meal-plans/publish.ts`; a lost publish race returns `409 {code: "PUBLISH_RACE_LOST"}`, same body as the coach publish route. |
+| POST | `/api/mealplans/import-plan` | Finalize import into meal plan. Routes through `lib/meal-plans/drafts.ts` + `lib/meal-plans/publish.ts`; a rejected publish returns the same 409 bodies as the coach publish route — `PLAN_NOT_DRAFT`, `PUBLISH_RACE_LOST`, or `PLAN_EMPTY` (an import that parsed no meals). The draft row it just created is deliberately left in place on rejection. |
 | POST | `/api/mealplans/modify-plan` | AI plan modification |
 | GET | `/api/mealplans/draft` | Get meal plan draft |
 | GET | `/api/mealplans/[id]/export` | Export meal plan as PDF |

@@ -3,7 +3,11 @@ import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
-import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
+import {
+  emptyPlanMessage,
+  getMealPlanPublishTarget,
+  publishMealPlanTarget,
+} from "@/lib/meal-plans/publish";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -64,6 +68,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       if (result.code === "NOT_DRAFT") {
         return NextResponse.json(
           { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
+          { status: 409 }
+        );
+      }
+      // T-102b — `error` stays the first key and the only one iOS reads.
+      if (result.code === "EMPTY_PLAN") {
+        return NextResponse.json(
+          { error: emptyPlanMessage(result.planMode), code: "PLAN_EMPTY" },
           { status: 409 }
         );
       }

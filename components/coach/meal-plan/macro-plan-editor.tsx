@@ -153,6 +153,11 @@ export function MacroPlanEditor({
   const [meals, setMeals] = useState<EditableMacroMeal[]>(() => macroTargetsToEditable(effectivePlan.macroTargets));
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  // T-102b — publishMealPlan throws on rejection (e.g. the server-side
+  // empty-plan guard); without this the rejection was silent and the button
+  // just reverted to "Publish". Mirrors the autofillError state below.
+  // Holds a fixed sentence, never the thrown message — see handlePublish.
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [notifyClient, setNotifyClient] = useState(coachDefaultNotify ?? true);
   const [autofilling, setAutofilling] = useState(false);
   const [autofillError, setAutofillError] = useState<string | null>(null);
@@ -222,9 +227,13 @@ export function MacroPlanEditor({
 
   async function handlePublish() {
     setPublishing(true);
+    setPublishError(null);
     try {
       let id = draftId ?? (await ensureDraft());
-      if (!id) return;
+      if (!id) {
+        setPublishError("Publish failed. Please try again.");
+        return;
+      }
       const saveResult = await saveDraftMealPlan({ mealPlanId: id, macroTargets: flattenMacroMeals(meals) });
       if ("forkedNewDraftId" in saveResult && saveResult.forkedNewDraftId) {
         id = saveResult.forkedNewDraftId;
@@ -232,6 +241,17 @@ export function MacroPlanEditor({
       await publishMealPlan({ mealPlanId: id, notifyClient });
       setDraftId(null);
       router.refresh();
+    } catch {
+      // Deliberately ignores the thrown error's message. In a production build
+      // Next.js redacts Server Action error messages, and React's flight client
+      // replaces them with a real Error whose message is
+      // "Minified React error #441; visit https://react.dev/errors/441 ..." —
+      // so `err.message` would render minified React text and a react.dev URL
+      // to the coach. Fixed sentence, mirroring
+      // components/coach/training/training-program-editor.tsx's publish catch.
+      // T-742 restores the mode-specific server wording by making
+      // publishMealPlan return a result instead of throwing.
+      setPublishError("Publish failed. Please try again.");
     } finally {
       setPublishing(false);
     }
@@ -399,6 +419,24 @@ export function MacroPlanEditor({
       <p className="text-center text-[11px] text-zinc-600">
         Day overrides aren&rsquo;t supported in macro mode yet.
       </p>
+
+      {/* T-102b — publish rejection feedback, rendered next to the button that caused it. */}
+      {publishError && (
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-400"
+        >
+          <span className="min-w-0 py-2.5">{publishError}</span>
+          <button
+            type="button"
+            onClick={() => setPublishError(null)}
+            aria-label="Dismiss"
+            className="-mr-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
+      )}
 
       <MealPlanActions
         saving={saving}

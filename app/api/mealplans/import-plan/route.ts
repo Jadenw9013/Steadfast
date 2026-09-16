@@ -6,7 +6,7 @@ import {
   extractPlanExtras,
 } from "@/lib/validations/meal-plan-import";
 import { createMealPlanDraft, supportContentInputSchema } from "@/lib/meal-plans/drafts";
-import { publishMealPlanTarget } from "@/lib/meal-plans/publish";
+import { emptyPlanMessage, publishMealPlanTarget } from "@/lib/meal-plans/publish";
 import { parsePlanExtras } from "@/types/meal-plan-extras";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { NextRequest, NextResponse } from "next/server";
@@ -125,6 +125,16 @@ export async function POST(req: NextRequest) {
         // Return BEFORE the bookkeeping writes. Marking the upload IMPORTED on a
         // failed publish would trip the "Already imported" 400 on the coach's
         // retry and strand the import.
+        //
+        // T-102b — a document that parsed to zero items produces an empty
+        // MEAL_PLAN plan. Without this branch the shared guard's EMPTY_PLAN
+        // would be misreported as PLAN_NOT_DRAFT.
+        if (result.code === "EMPTY_PLAN") {
+          return NextResponse.json(
+            { error: emptyPlanMessage(result.planMode), code: "PLAN_EMPTY" },
+            { status: 409 }
+          );
+        }
         return NextResponse.json(
           result.code === "RACE_LOST"
             ? { error: "This plan was already published or changed by someone else", code: "PUBLISH_RACE_LOST" }

@@ -583,6 +583,13 @@ suite("meal-plan draft lifecycle (shared service, action vs REST)", () => {
       planMode: "MACROS",
     });
     expect((await planWithContent(macrosWithItems.mealPlanId)).planMode).toBe("MACROS");
+
+    // T-102b — the assertion above is the point of this case and it already ran
+    // against the items-only payload. Publishing is only how this row becomes
+    // the carry-forward source for the rest of the test, and the shared service
+    // now rejects a MACROS plan with zero targets, so give it targets here
+    // rather than in the create payload.
+    await saveDraftMealPlan({ mealPlanId: macrosWithItems.mealPlanId, macroTargets: MACROS });
     await publishMealPlan({ mealPlanId: macrosWithItems.mealPlanId });
 
     // The carry-forward source above is MACROS; make the CoachClient default

@@ -36,6 +36,22 @@ suite("CB04/CB05 — published plans are immutable, with real PostgreSQL constra
   beforeEach(() => vi.clearAllMocks());
   afterAll(async () => { await db.$disconnect(); });
 
+  /** T-102b — fixture content only. `publishMealPlanTarget` now rejects a
+   *  MEAL_PLAN plan with zero items, so every draft this file publishes needs
+   *  one. Nothing here asserts on plan content except the fork test, which
+   *  supplies its own items, so this food is not meaningful test data. */
+  const FIXTURE_ITEM = {
+    mealName: "Meal 1",
+    sortOrder: 0,
+    foodName: "Fixture food",
+    quantity: "1",
+    unit: "serving",
+    calories: 100,
+    protein: 10,
+    carbs: 10,
+    fats: 1,
+  };
+
   async function makeCoachClient() {
     const coachClerkId = randomUUID();
     const coach = await db.user.create({ data: { clerkId: coachClerkId, email: `coach-${coachClerkId}@example.test`, isCoach: true, isClient: false } });
@@ -85,11 +101,11 @@ suite("CB04/CB05 — published plans are immutable, with real PostgreSQL constra
     const { coach, client } = await makeCoachClient();
     mocks.authUserId = coach.clerkId;
 
-    const draft1 = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-01-12", items: [] });
+    const draft1 = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-01-12", items: [FIXTURE_ITEM] });
     if (!("mealPlanId" in draft1)) throw new Error("expected draft");
     await publishMealPlan({ mealPlanId: draft1.mealPlanId });
 
-    const draft2 = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-01-12", items: [] });
+    const draft2 = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-01-12", items: [FIXTURE_ITEM] });
     if (!("mealPlanId" in draft2)) throw new Error("expected draft");
     await publishMealPlan({ mealPlanId: draft2.mealPlanId });
 
@@ -105,7 +121,7 @@ suite("CB04/CB05 — published plans are immutable, with real PostgreSQL constra
   it("a concurrent double-publish of the same draft only succeeds once", async () => {
     const { coach, client } = await makeCoachClient();
     mocks.authUserId = coach.clerkId;
-    const draft = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-01-19", items: [] });
+    const draft = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-01-19", items: [FIXTURE_ITEM] });
     if (!("mealPlanId" in draft)) throw new Error("expected draft");
 
     const results = await Promise.allSettled([

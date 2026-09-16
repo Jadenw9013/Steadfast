@@ -173,7 +173,14 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const { mealPlanId } = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-09-14", items: [] });
+    // T-102b — fixture content only: publishing a MEAL_PLAN plan with zero
+    // items is now rejected by the shared service. The assertions below are
+    // about planMode propagation, so the food itself is not meaningful.
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Fixture food", quantity: "1", unit: "serving", calories: 100, protein: 10, carbs: 10, fats: 1 }],
+    });
     await publishMealPlan({ mealPlanId });
     // A second draft for a later week — should pick up the toggle immediately since it's still a draft
     const { mealPlanId: nextDraftId } = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-09-21", items: [] });

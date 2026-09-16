@@ -269,19 +269,30 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
       ]);
     });
 
-    it("returns an empty list for a MACROS plan with no targets set", async () => {
+    it("returns an empty list for a pre-T-102b PUBLISHED MACROS plan with no targets set", async () => {
       const { client } = await fixture();
       const foods = await createDraftMealPlan({ clientId: client.id, weekStartDate: WEEK_A, items: FOOD_ITEMS });
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
-      // Mode toggled with no targets entered yet: still carries the foods.
-      const macros = await createDraftMealPlan({
-        clientId: client.id,
-        weekStartDate: WEEK_B,
-        planMode: "MACROS",
-        macroTargets: [],
+      // T-102b: this state can no longer be REACHED through the publish path —
+      // `publishMealPlanTarget` rejects a MACROS plan with zero macro targets.
+      // The row is therefore constructed directly, bypassing the guard, because
+      // rows exactly like it exist in production from before the guard shipped
+      // and `getTodayMealNames` must stay defensive about them. Do not delete
+      // this case and do not "fix" it by giving the plan targets — that would be
+      // a different test.
+      await db.mealPlan.create({
+        data: {
+          clientId: client.id,
+          weekOf: new Date(`${WEEK_B}T00:00:00Z`),
+          version: 1,
+          status: "PUBLISHED",
+          publishedAt: new Date(),
+          planMode: "MACROS",
+          // Mode toggled with no targets entered yet: still carries the foods.
+          items: { create: FOOD_ITEMS },
+        },
       });
-      await publishMealPlan({ mealPlanId: macros.mealPlanId, notifyClient: false });
 
       expect(await getTodayMealNames(client.id)).toEqual([]);
     });

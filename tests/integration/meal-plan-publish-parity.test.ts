@@ -7,6 +7,12 @@ import { randomUUID } from "crypto";
  * most one PUBLISHED row per (clientId, weekOf), and return a 409 (never a
  * 500) to whoever loses a concurrent publish race.
  *
+ * T-102b adds the empty-plan guard to the same contract (the section marked
+ * below): a plan with no content for its OWN `planMode` is rejected by the
+ * shared service, so all three transports — action, REST route and the OCR
+ * import route — reject identically. Every fixture in this file therefore
+ * carries one item; see `FIXTURE_ITEM`.
+ *
  * These assertions are only meaningful with the partial unique index
  * `MealPlan_one_published_per_client_week` present. Reproducibility note, since
  * getting that index onto a fresh machine is a real gap:
@@ -44,6 +50,8 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { createDraftMealPlan, publishMealPlan } from "@/app/actions/meal-plans";
 import { POST as publishRest } from "@/app/api/coach/clients/[clientId]/meal-plan/publish/route";
+// T-102b — the third publish transport, which inherits the same guard.
+import { POST as importPlanRoute } from "@/app/api/mealplans/import-plan/route";
 import {
   PUBLISHED_MEAL_PLAN_INDEX,
   isDuplicatePublishedPlanError,
@@ -98,8 +106,24 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
 
   const publishViaRest = (clientId: string, body: unknown) => publishRest(publishRequest(clientId, body), params(clientId));
 
+  /** T-102b — fixture content only. Every plan this file publishes needs at
+   *  least one item now that `publishMealPlanTarget` rejects a MEAL_PLAN plan
+   *  with zero items; this file's assertions are about supersede, races and the
+   *  auth ladder, never about plan content, so the food itself means nothing. */
+  const FIXTURE_ITEM = {
+    mealName: "Meal 1",
+    sortOrder: 0,
+    foodName: "Fixture food",
+    quantity: "1",
+    unit: "serving",
+    calories: 100,
+    protein: 10,
+    carbs: 10,
+    fats: 1,
+  };
+
   async function draft(clientId: string, weekStartDate: string) {
-    const created = await createDraftMealPlan({ clientId, weekStartDate, items: [] });
+    const created = await createDraftMealPlan({ clientId, weekStartDate, items: [FIXTURE_ITEM] });
     return created.mealPlanId;
   }
 
@@ -335,6 +359,225 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
 
     expect(await statusOf(weekA)).toBe("PUBLISHED");
     expect(await statusOf(weekB)).toBe("PUBLISHED");
+  });
+
+  // ── T-102b — a plan with no content for its own planMode cannot be published ─
+
+  const MEAL_PLAN_EMPTY_MESSAGE = "Add at least one food before publishing.";
+  const MACROS_EMPTY_MESSAGE = "Add at least one meal with macro targets before publishing.";
+
+  const MACRO_TARGET = { mealName: "Meal 1", sortOrder: 0, calories: 500, protein: 40, carbs: 50, fats: 15 };
+
+  /** A MEAL_PLAN draft with zero items. `items: []` is explicit so carry-forward
+   *  cannot resurrect a previous week's foods. */
+  async function emptyFoodsDraft(clientId: string, weekStartDate: string) {
+    const created = await createDraftMealPlan({ clientId, weekStartDate, items: [] });
+    return created.mealPlanId;
+  }
+
+  it("the action rejects an empty MEAL_PLAN plan and leaves the row DRAFT", async () => {
+    const { client } = await fixture();
+    const planId = await emptyFoodsDraft(client.id, "2026-06-01");
+
+    await expect(publishMealPlan({ mealPlanId: planId })).rejects.toThrow(MEAL_PLAN_EMPTY_MESSAGE);
+
+    const plan = await db.mealPlan.findUniqueOrThrow({ where: { id: planId } });
+    expect(plan.status).toBe("DRAFT");
+    expect(plan.publishedAt).toBeNull();
+    // No other row of this client's moved either.
+    expect(await db.mealPlan.count({ where: { clientId: client.id, status: { not: "DRAFT" } } })).toBe(0);
+  });
+
+  it("the REST route rejects an empty MEAL_PLAN plan with 409 PLAN_EMPTY", async () => {
+    const { client } = await fixture();
+    const planId = await emptyFoodsDraft(client.id, "2026-06-08");
+
+    const response = await publishViaRest(client.id, { mealPlanId: planId });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: MEAL_PLAN_EMPTY_MESSAGE, code: "PLAN_EMPTY" });
+
+    expect(await statusOf(planId)).toBe("DRAFT");
+  });
+
+  it("rejects a MACROS plan with zero targets even when it carries foods forward", async () => {
+    // The exact state the parent ticket found publishable: after T-101 a MACROS
+    // draft carries the previous published week's `items`, so "some array is
+    // non-empty" would let this through.
+    const { client } = await fixture();
+    const foodsWeek = await draft(client.id, "2026-06-15");
+    expect((await publishViaRest(client.id, { mealPlanId: foodsWeek })).status).toBe(200);
+
+    const macrosWeek = (
+      await createDraftMealPlan({
+        clientId: client.id,
+        weekStartDate: "2026-06-22",
+        planMode: "MACROS",
+      })
+    ).mealPlanId;
+
+    // Precondition: the carry-forward really did populate `items`.
+    const carried = await db.mealPlan.findUniqueOrThrow({
+      where: { id: macrosWeek },
+      select: { planMode: true, _count: { select: { items: true, macroTargets: true } } },
+    });
+    expect(carried.planMode).toBe("MACROS");
+    expect(carried._count.items).toBeGreaterThan(0);
+    expect(carried._count.macroTargets).toBe(0);
+
+    await expect(publishMealPlan({ mealPlanId: macrosWeek })).rejects.toThrow(MACROS_EMPTY_MESSAGE);
+
+    const response = await publishViaRest(client.id, { mealPlanId: macrosWeek });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: MACROS_EMPTY_MESSAGE, code: "PLAN_EMPTY" });
+
+    expect(await statusOf(macrosWeek)).toBe("DRAFT");
+    // The previous week stays exactly as it was.
+    expect(await statusOf(foodsWeek)).toBe("PUBLISHED");
+  });
+
+  it("accepts a MACROS plan with targets on both surfaces", async () => {
+    const { client } = await fixture();
+
+    const viaAction = (
+      await createDraftMealPlan({
+        clientId: client.id,
+        weekStartDate: "2026-06-29",
+        planMode: "MACROS",
+        macroTargets: [MACRO_TARGET],
+      })
+    ).mealPlanId;
+    expect(await publishMealPlan({ mealPlanId: viaAction })).toEqual({ success: true });
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: viaAction } })).publishedAt).not.toBeNull();
+    expect(await statusOf(viaAction)).toBe("PUBLISHED");
+
+    const viaRest = (
+      await createDraftMealPlan({
+        clientId: client.id,
+        weekStartDate: "2026-07-06",
+        planMode: "MACROS",
+        macroTargets: [MACRO_TARGET],
+      })
+    ).mealPlanId;
+    const response = await publishViaRest(client.id, { mealPlanId: viaRest });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(await statusOf(viaRest)).toBe("PUBLISHED");
+  });
+
+  it("accepts a MEAL_PLAN plan with items on both surfaces", async () => {
+    const { client } = await fixture();
+
+    const viaAction = await draft(client.id, "2026-07-13");
+    expect(await publishMealPlan({ mealPlanId: viaAction })).toEqual({ success: true });
+    expect(await statusOf(viaAction)).toBe("PUBLISHED");
+
+    const viaRest = await draft(client.id, "2026-07-20");
+    const response = await publishViaRest(client.id, { mealPlanId: viaRest });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    const plan = await db.mealPlan.findUniqueOrThrow({ where: { id: viaRest } });
+    expect(plan.status).toBe("PUBLISHED");
+    expect(plan.publishedAt).not.toBeNull();
+  });
+
+  it("NOT_DRAFT wins over EMPTY_PLAN — re-publishing still reports PLAN_NOT_DRAFT", async () => {
+    // Check order is load-bearing: NOT_DRAFT is decided off the passed target
+    // before the content read runs.
+    const { client } = await fixture();
+    const planId = await draft(client.id, "2026-07-27");
+    expect((await publishViaRest(client.id, { mealPlanId: planId })).status).toBe(200);
+
+    // Empty the published row's content so the only thing keeping this from
+    // being an EMPTY_PLAN is the check order.
+    await db.mealPlanItem.deleteMany({ where: { mealPlanId: planId } });
+
+    const response = await publishViaRest(client.id, { mealPlanId: planId });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" });
+
+    await expect(publishMealPlan({ mealPlanId: planId })).rejects.toThrow("Can only publish drafts");
+  });
+
+  it("the action and the REST route reject the same input identically and write nothing", async () => {
+    const { client } = await fixture();
+    const planId = await emptyFoodsDraft(client.id, "2026-08-03");
+
+    const before = await db.mealPlan.findUniqueOrThrow({
+      where: { id: planId },
+      select: { status: true, publishedAt: true, updatedAt: true, version: true },
+    });
+
+    let actionMessage = "";
+    try {
+      await publishMealPlan({ mealPlanId: planId });
+    } catch (err) {
+      actionMessage = (err as Error).message;
+    }
+
+    const response = await publishViaRest(client.id, { mealPlanId: planId });
+    const body = await response.json();
+
+    expect(response.status).toBe(409);
+    expect(actionMessage).toBe(MEAL_PLAN_EMPTY_MESSAGE);
+    expect(body.error).toBe(actionMessage);
+    expect(body.code).toBe("PLAN_EMPTY");
+
+    expect(
+      await db.mealPlan.findUniqueOrThrow({
+        where: { id: planId },
+        select: { status: true, publishedAt: true, updatedAt: true, version: true },
+      })
+    ).toEqual(before);
+    expect(await db.mealPlan.count({ where: { clientId: client.id } })).toBe(1);
+  });
+
+  it("the import route maps EMPTY_PLAN and leaves the upload retryable (T-730)", async () => {
+    const { coach, client } = await fixture();
+
+    // A parsed document with no meals: the import builds a MEAL_PLAN draft with
+    // zero items, which the shared guard now rejects.
+    const upload = await db.mealPlanUpload.create({
+      data: {
+        coachId: coach.id,
+        clientId: client.id,
+        storagePath: `meal-plan-uploads/${randomUUID()}.pdf`,
+        status: "NEEDS_REVIEW",
+      },
+    });
+    const importDraft = await db.mealPlanDraft.create({
+      data: {
+        uploadId: upload.id,
+        parsedJson: { title: "Guidance only", meals: [], supportContent: "Hydration: 3L/day" },
+      },
+    });
+
+    const response = await importPlanRoute(
+      new NextRequest("https://example.test/api/mealplans/import-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId: importDraft.id, publish: true }),
+      })
+    );
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: MEAL_PLAN_EMPTY_MESSAGE, code: "PLAN_EMPTY" });
+
+    // "Return BEFORE the bookkeeping writes" — a rejected publish must not
+    // strand the import behind the "Already imported" 400.
+    expect((await db.mealPlanUpload.findUniqueOrThrow({ where: { id: upload.id } })).status).toBe(
+      "NEEDS_REVIEW"
+    );
+    expect(await db.mealPlan.count({ where: { clientId: client.id, status: "PUBLISHED" } })).toBe(0);
+
+    // By design the just-created DRAFT stays (deleting it would add a
+    // compensating write with its own failure mode) — the same accepted T-730
+    // behavior asserted in meal-plan-import-race-mapping.test.ts. T-102b only
+    // makes this path reachable deterministically (any zero-meal OCR result)
+    // instead of only through a genuine publish race. Nothing is published.
+    const plans = await db.mealPlan.findMany({ where: { clientId: client.id } });
+    expect(plans).toHaveLength(1);
+    expect(plans[0].status).toBe("DRAFT");
+    expect(plans[0].publishedAt).toBeNull();
   });
 
   // ── Auth ladder / error ladder regression (REST) ──────────────────────────
