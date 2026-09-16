@@ -120,12 +120,17 @@ suite("CB03 — messages are scoped to a specific coach conversation with real P
 
   it("a pre-migration client-authored message with no recoverable recipient is never surfaced to any coach", async () => {
     const coach = await makeCoach("AmbigCoach");
+    const otherCoach = await makeCoach("AmbigOtherCoach");
     const client = await makeClient("AmbigClient");
     await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+    await db.coachClient.create({ data: { coachId: otherCoach.id, clientId: client.id } });
 
-    // Simulate a legacy row from before this migration's backfill: client-
-    // authored, coachId left NULL because the original recipient could not
-    // be reconstructed.
+    // Simulate a legacy row with no recoverable recipient: client-authored,
+    // coachId left NULL. The client has two CoachClient rows, so no single
+    // coach can be attributed — not even by the T-661 single-coach backfill
+    // (20260915000000_message_coach_backfill_single_coach), which only writes
+    // rows for clients with exactly one relationship. The requester is one of
+    // the two coaches, so the read is authorized and this stays a filter test.
     await db.message.create({
       data: { clientId: client.id, senderId: client.id, weekOf: new Date("2025-01-06T00:00:00Z"), body: "legacy ambiguous reply", coachId: null },
     });

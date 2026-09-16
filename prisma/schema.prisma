@@ -834,11 +834,28 @@ model Message {
   // the conversation, from the client's perspective). Set at creation time
   // from the resolved current coach, independent of whether the CoachClient
   // relationship still exists later (CoachClient rows are hard-deleted on
-  // disconnect). Null means "no single coach can be attributed" — either a
-  // pre-migration client-authored message (recipient was never recorded and
-  // cannot be reconstructed once a past relationship is deleted) or a
-  // message sent while unassigned. A coach can only ever read messages
-  // where this matches their own id; the client's own view is never
+  // disconnect). Pre-migration rows were attributed in two steps:
+  // 20260913200000_message_coach_scope claimed coach-authored rows by their
+  // sender, then 20260915000000_message_coach_backfill_single_coach (T-661)
+  // attributed the remainder only where all three held: exactly one
+  // CoachClient row exists, ClientCoachingContext names that row as the
+  // active HUMAN relationship (or no context row exists at all, the legacy
+  // fallback), and either no other coach's message appears anywhere in the
+  // client's history or the surviving relationship provably began after the
+  // last of them. That is a strict subset of what getClientProvider would
+  // name, never a superset. It is bounded to the period the relationship
+  // demonstrably existed and clamped to start strictly after any other
+  // coach's last message, so a successor never inherits a predecessor's
+  // thread. Where the surviving relationship row PREDATES another coach's
+  // activity, no lower bound can be evidenced at all and nothing is
+  // attributed for that client.
+  // Null means "no single coach can be attributed": the client has 0 or 2+
+  // CoachClient rows, their coaching context is resolutionRequired or AI, the
+  // message was sent while unassigned, it predates the attribution window, it
+  // falls inside another coach's conversation, or the client's history
+  // interleaves a second coach in an order no evidence can split. A coach can
+  // only ever read
+  // messages where this matches their own id; the client's own view is never
   // filtered by it (CB03 — conversations are participant-scoped, but the
   // client keeps their full archive).
   coachId String?
