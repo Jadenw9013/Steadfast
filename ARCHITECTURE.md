@@ -363,6 +363,8 @@ Steadfast/
 ├── public/brand/                      # Brand assets (logo, icons)
 ├── scripts/                           # Utility scripts
 ├── docs/                              # Additional documentation
+│   └── migrations/                    # READ-ONLY preview SQL sizing a data migration before a human
+│                                      # applies it on a Neon branch — never part of a deploy
 │
 ├── CLAUDE.md                          # AI assistant context & constraints
 ├── STYLING_GUIDE.md                   # CSS/design conventions
