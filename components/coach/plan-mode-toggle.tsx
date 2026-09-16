@@ -28,6 +28,22 @@ export function PlanModeToggle({
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<PlanMode>(initialMode);
+  // The editor rendered below is server-resolved (`effectivePlan.editorMode`,
+  // T-102a) but this pill was not, so any refresh that changed the mode from
+  // somewhere else — iOS, a second tab, another save's router.refresh() — left
+  // the pill pointing at the old mode while the other editor rendered. Because
+  // `handleSelect` early-returns on `next === current`, the coach could not even
+  // click their way out: the pill said "Macros Only" and clicking it did
+  // nothing. Resetting on a prop change costs the optimistic update nothing —
+  // during the transition `initialMode` has not changed yet, and when the
+  // refresh lands it equals the value already showing. (React's documented
+  // adjust-state-during-render pattern; a `useEffect` would fight the optimistic
+  // update mid-transition and make the pill flicker back.)
+  const [seededMode, setSeededMode] = useState<PlanMode>(initialMode);
+  if (seededMode !== initialMode) {
+    setSeededMode(initialMode);
+    setMode(initialMode);
+  }
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const activeIndex = OPTIONS.findIndex((o) => o.value === mode);

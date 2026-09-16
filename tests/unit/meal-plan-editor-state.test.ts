@@ -13,6 +13,13 @@ import { describe, it, expect, vi } from "vitest";
  *     `buildFoodsDraftInput` / `buildMacroDraftInput`, so deleting it fails
  *     here instead of silently publishing a foods plan labelled MACROS.
  *
+ * T-103 extends the same module with the rest of the coach-editor rules:
+ * publish-time meal-name validation, the advisory calories-vs-macros check and
+ * the macro autofill request/response mapping — plus plan notes, which the
+ * macros editor can now author and which therefore had to join
+ * `macroEditorSignature` (a required second argument) or the toggle would
+ * destroy them.
+ *
  * These helpers are pure and DOM-free by construction (this repo has no jsdom /
  * React testing dependency and adding one needs its own ticket), which is why
  * they live in `lib/` rather than inline in the components.
@@ -20,11 +27,19 @@ import { describe, it, expect, vi } from "vitest";
 
 import {
   PLAN_MODE_SWITCH_WARNING,
+  MACRO_CALORIE_TOLERANCE,
   shouldProceedWithModeSwitch,
   foodsEditorSignature,
   macroEditorSignature,
   buildFoodsDraftInput,
   buildMacroDraftInput,
+  findMealNameProblem,
+  mealNameProblemMessage,
+  derivedCalories,
+  macroCalorieMismatch,
+  buildAutofillRequest,
+  applyMacroEstimates,
+  type AutofillSourceItem,
 } from "@/lib/meal-plans/editor-state";
 import {
   groupItemsToMeals,
@@ -217,22 +232,38 @@ describe("macroEditorSignature (what the macros editor would lose)", () => {
     // (as macro-plan-editor.tsx does) must not leak the id.
     const rowA: EditableMacroMeal = { ...target, id: "a" };
     const rowB: EditableMacroMeal = { ...target, id: "b" };
-    expect(macroEditorSignature([rowA])).toBe(macroEditorSignature([rowB]));
+    expect(macroEditorSignature([rowA], "")).toBe(macroEditorSignature([rowB], ""));
   });
 
   it("does not flag untouched seeded targets", () => {
-    expect(macroEditorSignature([target])).toBe(macroEditorSignature([target]));
+    expect(macroEditorSignature([target], "")).toBe(macroEditorSignature([target], ""));
   });
 
   it("flags an edited macro number", () => {
-    expect(macroEditorSignature([{ ...target, protein: 45 }])).not.toBe(
-      macroEditorSignature([target])
+    expect(macroEditorSignature([{ ...target, protein: 45 }], "")).not.toBe(
+      macroEditorSignature([target], "")
     );
   });
 
   it("flags an added meal row", () => {
-    expect(macroEditorSignature([target, { ...target, mealName: "Lunch" }])).not.toBe(
-      macroEditorSignature([target])
+    expect(macroEditorSignature([target, { ...target, mealName: "Lunch" }], "")).not.toBe(
+      macroEditorSignature([target], "")
+    );
+  });
+
+  it("flags typed plan notes (T-103)", () => {
+    // THE reason the second parameter is required rather than defaulted: the
+    // macros editor can now author notes, and without them in the signature the
+    // plan-mode toggle would destroy typed notes with no confirmation — the
+    // exact data-loss bug T-102a closed for the foods editor.
+    expect(macroEditorSignature([target], "Hydrate")).not.toBe(
+      macroEditorSignature([target], "")
+    );
+  });
+
+  it("treats a whitespace-only notes box as empty — matches the write path", () => {
+    expect(macroEditorSignature([target], "   \n ")).toBe(
+      macroEditorSignature([target], "")
     );
   });
 });
@@ -291,6 +322,7 @@ describe("buildMacroDraftInput (the macros editor's createDraftMealPlan payload)
     meals: [
       { id: "row-1", mealName: "Breakfast", calories: 500, protein: 40, carbs: 50, fats: 15 },
     ],
+    supportContent: "",
   };
 
   it("always stamps planMode: MACROS", () => {
@@ -318,5 +350,290 @@ describe("buildMacroDraftInput (the macros editor's createDraftMealPlan payload)
       planExtras: null,
       supportContent: "",
     })).not.toHaveProperty("macroTargets");
+  });
+
+  it("sends an explicit null for an empty notes box, never undefined (T-101/T-103)", () => {
+    // `undefined` is what makes T-101's carry-forward resurrect the previous
+    // published plan's notes, so the key must exist and must not be undefined.
+    const empty = buildMacroDraftInput({ ...args, supportContent: "" });
+    expect(Object.hasOwn(empty, "supportContent")).toBe(true);
+    expect(empty.supportContent).not.toBeUndefined();
+    expect(empty.supportContent).toBeNull();
+    expect(buildMacroDraftInput({ ...args, supportContent: "  " }).supportContent).toBeNull();
+    expect(buildMacroDraftInput({ ...args, supportContent: "Hydrate" }).supportContent).toBe(
+      "Hydrate"
+    );
+  });
+});
+
+// ── T-103: publish-time meal-name validation ──────────────────────────────────
+
+describe("findMealNameProblem", () => {
+  it("passes a plan with distinct, named meals", () => {
+    expect(findMealNameProblem(["Breakfast", "Lunch"])).toBeNull();
+  });
+
+  it("passes an empty plan — emptiness is a separate rule", () => {
+    expect(findMealNameProblem([])).toBeNull();
+  });
+
+  it("rejects a whitespace-only name — the reachable blank case", () => {
+    // A truly empty string is unreachable through either editor
+    // (`tempName || "Untitled Meal"`), but a single space is, and
+    // `z.string().min(1)` accepts it straight through to the DB.
+    expect(findMealNameProblem(["Breakfast", " ", "Dinner"])).toEqual({
+      code: "BLANK_NAME",
+      index: 1,
+    });
+    expect(findMealNameProblem(["  "])).toEqual({ code: "BLANK_NAME", index: 0 });
+  });
+
+  it("rejects two rows left on the editors' Untitled Meal fallback", () => {
+    // The reachable duplicate path: both editors fall back to this name.
+    expect(findMealNameProblem(["Untitled Meal", "Untitled Meal"])).toEqual({
+      code: "DUPLICATE_NAME",
+      index: 1,
+      name: "Untitled Meal",
+    });
+  });
+
+  it("compares case-insensitively and after trimming — stricter than the DB index", () => {
+    // DailyMealCheckoff's unique index is exact-match, so "Lunch"/"lunch" would
+    // not literally collide, but it reads as one meal to the client. Frozen
+    // decision; T-743 must use the same comparison server-side.
+    expect(findMealNameProblem(["Lunch", "lunch"])).toMatchObject({
+      code: "DUPLICATE_NAME",
+      index: 1,
+    });
+    expect(findMealNameProblem(["Lunch", "Lunch "])).toMatchObject({
+      code: "DUPLICATE_NAME",
+      index: 1,
+    });
+  });
+
+  it("reports blanks before duplicates", () => {
+    // A coach who left a row blank is told to name it, not told it collides.
+    expect(findMealNameProblem(["Breakfast", "Breakfast", " "])).toEqual({
+      code: "BLANK_NAME",
+      index: 2,
+    });
+  });
+
+  it("reports the SECOND occurrence of a three-way duplicate, not the third", () => {
+    expect(findMealNameProblem(["Meal", "Meal", "Meal"])).toEqual({
+      code: "DUPLICATE_NAME",
+      index: 1,
+      name: "Meal",
+    });
+  });
+});
+
+describe("mealNameProblemMessage", () => {
+  it("names the offending meal by its 1-based position for a blank name", () => {
+    const message = mealNameProblemMessage({ code: "BLANK_NAME", index: 1 });
+    expect(message).not.toBe("");
+    expect(message).toMatch(/Meal 2/);
+  });
+
+  it("names the offending meal and explains the check-off consequence", () => {
+    const message = mealNameProblemMessage({
+      code: "DUPLICATE_NAME",
+      index: 1,
+      name: "Untitled Meal",
+    });
+    expect(message).not.toBe("");
+    expect(message).toMatch(/Untitled Meal/);
+    expect(message).toMatch(/check-off|checkoff/i);
+  });
+
+  it("says something different for each problem", () => {
+    expect(mealNameProblemMessage({ code: "BLANK_NAME", index: 0 })).not.toBe(
+      mealNameProblemMessage({ code: "DUPLICATE_NAME", index: 1, name: "Lunch" })
+    );
+  });
+});
+
+// ── T-103: calories vs. macros ────────────────────────────────────────────────
+
+describe("derivedCalories", () => {
+  it("uses 4/4/9", () => {
+    expect(derivedCalories({ protein: 40, carbs: 50, fats: 15 })).toBe(495);
+    expect(derivedCalories({ protein: 0, carbs: 0, fats: 0 })).toBe(0);
+  });
+});
+
+describe("macroCalorieMismatch", () => {
+  const consistent = { calories: 495, protein: 40, carbs: 50, fats: 15 };
+
+  it("stays silent on an exactly consistent row", () => {
+    expect(macroCalorieMismatch(consistent)).toBeNull();
+  });
+
+  it("stays silent inside the tolerance", () => {
+    // 520 vs 495 → 5.05% off.
+    expect(macroCalorieMismatch({ ...consistent, calories: 520 })).toBeNull();
+  });
+
+  it("warns outside the tolerance and reports the calculated number", () => {
+    // 560 vs 495 → 13.1% off.
+    expect(macroCalorieMismatch({ ...consistent, calories: 560 })).toEqual({ derived: 495 });
+  });
+
+  it("treats the boundary as inclusive — exactly 10% off is not a mismatch", () => {
+    // derived = 40*4 + 40*4 + 20*9 = 500; 550 is exactly MACRO_CALORIE_TOLERANCE off.
+    expect(MACRO_CALORIE_TOLERANCE).toBe(0.1);
+    expect(derivedCalories({ protein: 40, carbs: 40, fats: 20 })).toBe(500);
+    expect(
+      macroCalorieMismatch({ calories: 550, protein: 40, carbs: 40, fats: 20 })
+    ).toBeNull();
+  });
+
+  it("warns on the half-filled row the fix button exists for", () => {
+    // Macros typed, calories never filled in — ratio 1.
+    expect(macroCalorieMismatch({ ...consistent, calories: 0 })).toEqual({ derived: 495 });
+  });
+
+  it("does NOT warn on a calories-only prescription", () => {
+    // All three macros zero is a legitimate target, and a warning the coach
+    // cannot clear would train them to ignore the one that matters.
+    expect(
+      macroCalorieMismatch({ calories: 2000, protein: 0, carbs: 0, fats: 0 })
+    ).toBeNull();
+  });
+
+  it("does not warn on a brand-new all-zero row", () => {
+    expect(macroCalorieMismatch({ calories: 0, protein: 0, carbs: 0, fats: 0 })).toBeNull();
+  });
+});
+
+// ── T-103: autofill request/response mapping ──────────────────────────────────
+
+describe("buildAutofillRequest", () => {
+  const item = (mealName: string, foodName: string, extra: Partial<AutofillSourceItem> = {}) => ({
+    mealName,
+    foodName,
+    quantity: "80",
+    unit: "g",
+    servingDescription: "80 g",
+    ...extra,
+  });
+
+  it("sends only the rows that have foods and records the rest as skipped", () => {
+    // THE headline case: row 1 has no foods under its name, so it is not sent
+    // and keeps whatever the coach typed.
+    const request = buildAutofillRequest(
+      [{ mealName: "Breakfast" }, { mealName: "Post-workout" }],
+      [item("Breakfast", "Oats")]
+    );
+    expect(request.sourceMeals).toHaveLength(1);
+    expect(request.sourceMeals[0].name).toBe("Breakfast");
+    expect(request.targetIndices).toEqual([0]);
+    expect(request.skippedIndices).toEqual([1]);
+    expect(request.seeding).toBe(false);
+  });
+
+  it("never sends a meal with an empty item list — the silent-zeroing regression", () => {
+    // The estimator's prompt rule 5 tells the model to return zeros for a meal
+    // with no foods, so sending a renamed row would wipe hand-typed targets.
+    const request = buildAutofillRequest(
+      [{ mealName: "Renamed breakfast" }],
+      [item("Breakfast", "Oats")]
+    );
+    expect(request.sourceMeals).toEqual([]);
+    expect(request.skippedIndices).toEqual([0]);
+  });
+
+  it("builds the portion string byte-identically to the expression it replaced", () => {
+    const withDescription = buildAutofillRequest(
+      [{ mealName: "Breakfast" }],
+      [item("Breakfast", "Oats", { servingDescription: "1 cup" })]
+    );
+    expect(withDescription.sourceMeals[0].items).toEqual([{ food: "Oats", portion: "1 cup" }]);
+
+    const withoutDescription = buildAutofillRequest(
+      [{ mealName: "Breakfast" }],
+      [item("Breakfast", "Oats", { servingDescription: null })]
+    );
+    expect(withoutDescription.sourceMeals[0].items).toEqual([
+      { food: "Oats", portion: "80 g" },
+    ]);
+  });
+
+  it("keeps plan order for multiple foods in one meal", () => {
+    const request = buildAutofillRequest(
+      [{ mealName: "Breakfast" }],
+      [item("Breakfast", "Oats"), item("Breakfast", "Whey"), item("Breakfast", "Banana")]
+    );
+    expect(request.sourceMeals[0].items.map((i) => i.food)).toEqual([
+      "Oats",
+      "Whey",
+      "Banana",
+    ]);
+  });
+
+  it("seeds one row per distinct food meal when there are no macro rows yet", () => {
+    const request = buildAutofillRequest(
+      [],
+      [item("Breakfast", "Oats"), item("Lunch", "Chicken"), item("Breakfast", "Whey")]
+    );
+    expect(request.seeding).toBe(true);
+    expect(request.sourceMeals.map((m) => m.name)).toEqual(["Breakfast", "Lunch"]);
+    expect(request.targetIndices).toEqual([]);
+  });
+
+  it("produces nothing to send when there are no rows and no foods", () => {
+    const request = buildAutofillRequest([], []);
+    expect(request.sourceMeals).toEqual([]);
+  });
+});
+
+describe("applyMacroEstimates", () => {
+  const rows: EditableMacroMeal[] = [
+    { id: "a", mealName: "Breakfast", calories: 0, protein: 0, carbs: 0, fats: 0 },
+    { id: "b", mealName: "Snack", calories: 210, protein: 20, carbs: 22, fats: 4 },
+    { id: "c", mealName: "Dinner", calories: 0, protein: 0, carbs: 0, fats: 0 },
+  ];
+  const estimates = [
+    { calories: 500, protein: 40, carbs: 50, fats: 15 },
+    { calories: 700, protein: 55, carbs: 70, fats: 20 },
+  ];
+
+  it("fills by index and leaves untargeted rows byte-identical", () => {
+    const next = applyMacroEstimates(rows, [0, 2], estimates)!;
+    expect(next[0]).toEqual({ id: "a", mealName: "Breakfast", ...estimates[0] });
+    expect(next[2]).toEqual({ id: "c", mealName: "Dinner", ...estimates[1] });
+    // The hand-typed row keeps its id and every number.
+    expect(next[1]).toEqual(rows[1]);
+  });
+
+  it("still lands the estimate on a row renamed during the round-trip", () => {
+    // The direct regression for `estimates.find(e => e.name === m.mealName)`,
+    // which silently left a renamed row with its old numbers.
+    const renamed = rows.map((r) => ({ ...r, mealName: `${r.mealName} (renamed)` }));
+    const next = applyMacroEstimates(renamed, [0, 2], estimates)!;
+    expect(next[0]).toMatchObject({ mealName: "Breakfast (renamed)", calories: 500 });
+    expect(next[2]).toMatchObject({ mealName: "Dinner (renamed)", calories: 700 });
+  });
+
+  it("changes only the four numbers", () => {
+    const next = applyMacroEstimates(rows, [0], [estimates[0]])!;
+    expect(next[0].id).toBe("a");
+    expect(next[0].mealName).toBe("Breakfast");
+  });
+
+  it("applies nothing when the response length does not match", () => {
+    const before = JSON.stringify(rows);
+    expect(applyMacroEstimates(rows, [0, 2], [estimates[0]])).toBeNull();
+    expect(JSON.stringify(rows)).toBe(before);
+  });
+
+  it("applies nothing when an index is out of range", () => {
+    const before = JSON.stringify(rows);
+    expect(applyMacroEstimates(rows, [0, 9], estimates)).toBeNull();
+    expect(JSON.stringify(rows)).toBe(before);
+  });
+
+  it("is a no-op for an empty request", () => {
+    expect(applyMacroEstimates(rows, [], [])).toEqual(rows);
   });
 });
