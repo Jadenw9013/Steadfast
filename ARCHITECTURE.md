@@ -597,8 +597,8 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 |---|---|---|
 | GET | `/api/coach/clients` | Client roster |
 | GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove |
-| GET/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD |
-| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan |
+| GET/POST/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. Auth + zod wrapper only — `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork, shared with the `createDraftMealPlan` / `saveDraftMealPlan` Server Actions. |
+| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Auth + zod wrapper only — `lib/meal-plans/publish.ts` is the single source of truth for the DRAFT→PUBLISHED transition, shared with the `publishMealPlan` Server Action. |
 | GET/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD |
 | POST | `/api/coach/clients/[clientId]/training/publish` | Publish training program |
 | GET | `/api/coach/clients/[clientId]/intake` | Client intake data |

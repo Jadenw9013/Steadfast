@@ -185,7 +185,14 @@ function MealPlanEditorV2Body({
       weekStartDate,
       items: flattenMeals(meals),
       planExtras: planExtras ?? undefined,
-      supportContent: supportContent || undefined,
+      // Explicit `null`, not `undefined`, when the textarea is empty. On the
+      // create path `undefined` means "not touched" and the service carries the
+      // previous published plan's notes forward (T-101), which would silently
+      // resurrect notes the coach just cleared as soon as router.refresh()
+      // re-seeded this field. The textarea is pre-populated from the effective
+      // plan, so an empty box always means "no notes for this week".
+      // (Clearing notes on the SAVE path is still T-732.)
+      supportContent: supportContent.trim() === "" ? null : supportContent,
     });
     if ("mealPlanId" in result) {
       setDraftId(result.mealPlanId);

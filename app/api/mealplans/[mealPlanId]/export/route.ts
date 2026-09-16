@@ -27,6 +27,9 @@ export async function GET(
     where: { id: mealPlanId },
     include: {
       items: { orderBy: { sortOrder: "asc" } },
+      // T-101: `items` and `macroTargets` coexist on every version, so this
+      // route must pick by `planMode` — see resolveMealPlanPdfContent.
+      macroTargets: { orderBy: { sortOrder: "asc" } },
       client: {
         select: { id: true, firstName: true, lastName: true },
       },
@@ -95,11 +98,20 @@ export async function GET(
     })
     : undefined;
 
+  // The PDF is client-facing and downloadable, so it must render the right
+  // representation for this plan's mode. Since T-101 a MACROS plan routinely
+  // carries the previous foods plan's `items` (and that plan's food-level
+  // `planExtras`) forward so mode switching stays reversible; handing those to
+  // the PDF would publish last week's foods as the client's current plan.
+  // This route stays a dumb passthrough of every column: the ONE mode decision
+  // lives in `resolveMealPlanPdfContent`, so there is no second copy here to
+  // drift from it.
   const pdfData: MealPlanPdfData = {
     clientName,
     coachName,
     coachHeadline,
     weekLabel,
+    planMode: mealPlan.planMode,
     items: mealPlan.items.map((item) => ({
       mealName: item.mealName,
       foodName: item.foodName,
@@ -107,7 +119,15 @@ export async function GET(
       unit: item.unit,
       servingDescription: item.servingDescription,
     })),
+    macroTargets: mealPlan.macroTargets.map((target) => ({
+      mealName: target.mealName,
+      calories: target.calories,
+      protein: target.protein,
+      carbs: target.carbs,
+      fats: target.fats,
+    })),
     planExtras: parsePlanExtras(mealPlan.planExtras),
+    supportContent: mealPlan.supportContent,
   };
 
   const buffer = await renderMealPlanPdf(pdfData);

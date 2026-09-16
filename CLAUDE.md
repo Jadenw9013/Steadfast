@@ -132,7 +132,7 @@ All data is scoped by `weekOf` (DateTime), canonicalized to Monday midnight UTC 
 
 **Coach review workspace** (`/coach/clients/[clientId]/review/[weekStartDate]`): Server Component fetches check-in, macros, draft/published meal plans, messages, and food library in parallel. Renders 2-column layout — left: check-in summary + macro editor + messages; right: meal plan editor.
 
-**Meal plan editor (V2):** `MealPlanEditorV2` owns state as `MealGroup[]` (grouped by meal name). On save, `flattenMeals()` converts back to flat items array for the existing `saveDraftMealPlan` action. Macros are coach-only (toggle hidden by default).
+**Meal plan editor (V2):** `MealPlanEditorV2` owns state as `MealGroup[]` (grouped by meal name). On save, `flattenMeals()` converts back to flat items array for the existing `saveDraftMealPlan` action. Macros are coach-only (toggle hidden by default). The action itself holds no lifecycle logic: `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork and `lib/meal-plans/publish.ts` for the DRAFT→PUBLISHED transition, both shared verbatim with the iOS-facing REST routes under `app/api/coach/clients/[clientId]/meal-plan/` — put changes there, never in one transport. Caveat: the OCR import path at `app/api/mealplans/import-plan/` is a known third `MealPlan` writer that bypasses both services (tracked as T-730), so grep for other writers before assuming a lifecycle change is complete.
 
 **Client view:** `SimpleMealPlan` shows food + portions only — no macros, no version numbers, no draft/published status.
 

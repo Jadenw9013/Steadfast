@@ -8,118 +8,57 @@ import { revalidatePath } from "next/cache";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
+import { mealMacroTargetSchema, planModeSchema } from "@/lib/meal-plans/macro-targets";
 import {
-  mealMacroTargetSchema,
-  planModeSchema,
-  macroTargetTransactionOps,
-  resolveDefaultPlanMode,
-} from "@/lib/meal-plans/macro-targets";
-import { createMealPlanWithNextVersion } from "@/lib/meal-plans/version";
+  mealPlanItemSchema,
+  supportContentInputSchema,
+  resolveStartBlank,
+  createMealPlanDraft,
+  getMealPlanSaveTarget,
+  saveMealPlanDraftContent,
+} from "@/lib/meal-plans/drafts";
 import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
-
-const mealPlanItemSchema = z.object({
-  mealName: z.string().min(1).max(100),
-  sortOrder: z.number().int().min(0),
-  foodName: z.string().min(1).max(200),
-  quantity: z.string().min(1).max(50),
-  unit: z.string().min(1).max(20),
-  servingDescription: z.string().max(200).optional(),
-  calories: z.coerce.number().int().min(0).default(0),
-  protein: z.coerce.number().int().min(0).default(0),
-  carbs: z.coerce.number().int().min(0).default(0),
-  fats: z.coerce.number().int().min(0).default(0),
-});
 
 const createDraftSchema = z.object({
   clientId: z.string().min(1),
   weekStartDate: z.string().min(1),
-  copyFromPublished: z.boolean().default(false),
+  /** Legacy. Only an explicit `false` is still meaningful (⇒ start blank);
+   *  `true` and omitted both mean copy-forward. Prefer `startBlank`. */
+  copyFromPublished: z.boolean().optional(),
+  startBlank: z.boolean().optional(),
   items: z.array(mealPlanItemSchema).max(50).optional(),
   macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
   planMode: planModeSchema.optional(),
   planExtras: planExtrasSchema.optional(),
-  supportContent: z.string().optional().nullable(),
+  supportContent: supportContentInputSchema,
 });
 
 export async function createDraftMealPlan(input: unknown) {
   const parsed = createDraftSchema.safeParse(input);
   if (!parsed.success) throw new Error("Invalid input");
 
-  const { clientId, weekStartDate, copyFromPublished } = parsed.data;
+  const { clientId, weekStartDate } = parsed.data;
   const coach = await verifyCoachAccessToClient(clientId);
 
   const weekOf = parseWeekStartDate(weekStartDate);
 
-  // Resolve items: explicit items > copy from published > empty
-  let itemsToCreate: z.infer<typeof mealPlanItemSchema>[] = [];
-  let macroTargetsToCreate: z.infer<typeof mealMacroTargetSchema>[] = parsed.data.macroTargets ?? [];
-  let extrasToStore: z.infer<typeof planExtrasSchema> | undefined =
-    parsed.data.planExtras;
-  let supportContent = parsed.data.supportContent;
-  let planMode = parsed.data.planMode;
-
-  if (parsed.data.items || parsed.data.macroTargets) {
-    itemsToCreate = parsed.data.items ?? [];
-  } else if (copyFromPublished) {
-    const published = await db.mealPlan.findFirst({
-      where: { clientId, status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-      include: {
-        items: { orderBy: { sortOrder: "asc" } },
-        macroTargets: { orderBy: { sortOrder: "asc" } },
-      },
-    });
-    if (published) {
-      itemsToCreate = published.items.map((item) => ({
-        mealName: item.mealName,
-        sortOrder: item.sortOrder,
-        foodName: item.foodName,
-        quantity: item.quantity,
-        unit: item.unit,
-        servingDescription: item.servingDescription ?? undefined,
-        calories: item.calories,
-        protein: item.protein,
-        carbs: item.carbs,
-        fats: item.fats,
-      }));
-      macroTargetsToCreate = published.macroTargets.map((t) => ({
-        mealName: t.mealName,
-        sortOrder: t.sortOrder,
-        calories: t.calories,
-        protein: t.protein,
-        carbs: t.carbs,
-        fats: t.fats,
-      }));
-      if (planMode === undefined) planMode = published.planMode;
-      // Also copy plan extras and support content from the published plan
-      if (!extrasToStore && published.planExtras) {
-        const validated = planExtrasSchema.safeParse(published.planExtras);
-        if (validated.success) extrasToStore = validated.data;
-      }
-      if (supportContent === undefined && published.supportContent) {
-        supportContent = published.supportContent;
-      }
-    }
-  }
-
-  if (planMode === undefined) {
-    planMode = await resolveDefaultPlanMode(coach.id, clientId);
-  }
-
-  const plan = await createMealPlanWithNextVersion(clientId, weekOf, (version) => ({
+  // All draft-creation logic (copy-forward, planMode resolution, versioning)
+  // lives in lib/meal-plans/drafts.ts so this action and the iOS-facing REST
+  // route can't diverge again — T-101.
+  const { mealPlanId } = await createMealPlanDraft({
     clientId,
+    coachId: coach.id,
     weekOf,
-    version,
-    status: "DRAFT",
-    planMode,
-    planExtras: extrasToStore ?? undefined,
-    supportContent: supportContent ?? undefined,
-    items: { create: itemsToCreate },
-    macroTargets: { create: macroTargetsToCreate },
-  }));
+    startBlank: resolveStartBlank(parsed.data),
+    planMode: parsed.data.planMode,
+    items: parsed.data.items,
+    macroTargets: parsed.data.macroTargets,
+    planExtras: parsed.data.planExtras,
+    supportContent: parsed.data.supportContent,
+  });
 
   revalidatePath("/coach", "layout");
-  return { mealPlanId: plan.id };
+  return { mealPlanId };
 }
 
 const saveDraftSchema = z.object({
@@ -127,7 +66,10 @@ const saveDraftSchema = z.object({
   items: z.array(mealPlanItemSchema).max(50).optional(),
   macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
   planExtras: planExtrasSchema.optional().nullable(),
-  supportContent: z.string().optional().nullable(),
+  supportContent: supportContentInputSchema,
+  /** Alias for `supportContent` — the name iOS sends. Declared here too so the
+   *  action and the REST route validate identically. */
+  planNotes: supportContentInputSchema,
 });
 
 export async function saveDraftMealPlan(input: unknown) {
@@ -136,81 +78,27 @@ export async function saveDraftMealPlan(input: unknown) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { mealPlanId, items, macroTargets, planExtras, supportContent } = parsed.data;
+  const { mealPlanId, items, macroTargets, planExtras } = parsed.data;
+  const supportContent =
+    parsed.data.supportContent !== undefined ? parsed.data.supportContent : parsed.data.planNotes;
 
-  const plan = await db.mealPlan.findUnique({
-    where: { id: mealPlanId },
-    select: { clientId: true, status: true, weekOf: true, planMode: true, planExtras: true, supportContent: true },
+  const target = await getMealPlanSaveTarget(mealPlanId);
+  if (!target) throw new Error("Meal plan not found");
+
+  await verifyCoachAccessToClient(target.clientId);
+
+  // CB04 fork-on-published lives entirely in lib/meal-plans/drafts.ts.
+  const result = await saveMealPlanDraftContent(target, {
+    items,
+    macroTargets,
+    planExtras,
+    supportContent,
   });
-  if (!plan) throw new Error("Meal plan not found");
-
-  await verifyCoachAccessToClient(plan.clientId);
-
-  // CB04: a PUBLISHED (or SUPERSEDED) plan is never mutated in place — the
-  // client may be relying on its exact current content. Editing one instead
-  // forks a brand-new draft carrying the submitted content, leaving the
-  // published plan untouched. This also makes a stale client (e.g. a second
-  // tab open after someone else already published) fail safe instead of
-  // silently corrupting live content.
-  if (plan.status !== "DRAFT") {
-    const forked = await createMealPlanWithNextVersion(plan.clientId, plan.weekOf, (version) => ({
-      clientId: plan.clientId,
-      weekOf: plan.weekOf,
-      version,
-      status: "DRAFT",
-      planMode: plan.planMode,
-      planExtras: (planExtras !== undefined ? planExtras : plan.planExtras) ?? undefined,
-      supportContent: (supportContent !== undefined ? supportContent : plan.supportContent) ?? undefined,
-      items: items !== undefined
-        ? { create: items.map((item, i) => ({ ...item, sortOrder: i, servingDescription: item.servingDescription || null })) }
-        : undefined,
-      macroTargets: macroTargets !== undefined ? { create: macroTargets } : undefined,
-    }));
-    revalidatePath("/coach", "layout");
-    return { success: true, forkedNewDraftId: forked.id };
-  }
-
-  // Replace all items/macroTargets (whichever was provided) + update extras
-  await db.$transaction([
-    ...(items !== undefined
-      ? [
-          db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
-          ...items.map((item, i) =>
-            db.mealPlanItem.create({
-              data: {
-                mealPlanId,
-                mealName: item.mealName,
-                sortOrder: i,
-                foodName: item.foodName,
-                quantity: item.quantity,
-                unit: item.unit,
-                servingDescription: item.servingDescription || null,
-                calories: item.calories,
-                protein: item.protein,
-                carbs: item.carbs,
-                fats: item.fats,
-              },
-            })
-          ),
-        ]
-      : []),
-    ...(macroTargets !== undefined ? macroTargetTransactionOps(mealPlanId, macroTargets) : []),
-    // Update planExtras/supportContent if provided
-    ...(planExtras !== undefined || supportContent !== undefined
-      ? [
-          db.mealPlan.update({
-            where: { id: mealPlanId },
-            data: {
-              ...(planExtras !== undefined && { planExtras: planExtras ?? undefined }),
-              ...(supportContent !== undefined && { supportContent: supportContent ?? undefined }),
-            },
-          }),
-        ]
-      : []),
-  ]);
 
   revalidatePath("/coach", "layout");
-  return { success: true };
+  return result.forkedNewDraftId
+    ? { success: true as const, forkedNewDraftId: result.forkedNewDraftId }
+    : { success: true as const };
 }
 
 const publishSchema = z.object({
