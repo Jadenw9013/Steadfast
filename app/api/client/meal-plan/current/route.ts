@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { getMacroTarget } from "@/lib/queries/macro-targets";
+import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
 import { parsePlanExtras } from "@/types/meal-plan-extras";
 
 export async function GET() {
@@ -22,39 +23,43 @@ export async function GET() {
     const provider = await getClientProvider(user.id);
     if (provider.resolutionRequired || provider.origin === "AI") return NextResponse.json({ error: provider.resolutionRequired ? "Your coaching provider needs resolution." : "Update Steadfast to use the AI Coach workspace." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
     if (provider.origin === "NONE") return NextResponse.json({ mealPlan: null }, { headers: { "Cache-Control": "private, no-store" } });
-    // ── Most recent published plan — explicit select (no select *) ────────
-    const plan = await db.mealPlan.findFirst({
-      where: { clientId: user.id, status: "PUBLISHED", publishedAt: { gte: provider.relationshipStartedAt! } },
-      orderBy: { publishedAt: "desc" },
-      select: {
-        id: true,
-        weekOf: true,
-        status: true,
-        planMode: true,
-        publishedAt: true,
-        planExtras: true,
-        supportContent: true,
-        items: {
-          orderBy: { sortOrder: "asc" },
+    // ── Active published plan — one shared rule (T-105), explicit select ──
+    // `!` is safe: AI / resolutionRequired returned above, and so did NONE, so
+    // `origin` is HUMAN here and `relationshipStartedAt` is non-null.
+    const planId = await resolveActiveMealPlanId(user.id, provider.relationshipStartedAt!);
+    const plan = planId
+      ? await db.mealPlan.findUnique({
+          where: { id: planId },
           select: {
             id: true,
-            mealName: true,
-            foodName: true,
-            quantity: true,
-            unit: true,
-            servingDescription: true,
-            calories: true,
-            protein: true,
-            carbs: true,
-            fats: true,
+            weekOf: true,
+            status: true,
+            planMode: true,
+            publishedAt: true,
+            planExtras: true,
+            supportContent: true,
+            items: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                id: true,
+                mealName: true,
+                foodName: true,
+                quantity: true,
+                unit: true,
+                servingDescription: true,
+                calories: true,
+                protein: true,
+                carbs: true,
+                fats: true,
+              },
+            },
+            macroTargets: {
+              orderBy: { sortOrder: "asc" },
+              select: { id: true, mealName: true, calories: true, protein: true, carbs: true, fats: true },
+            },
           },
-        },
-        macroTargets: {
-          orderBy: { sortOrder: "asc" },
-          select: { id: true, mealName: true, calories: true, protein: true, carbs: true, fats: true },
-        },
-      },
-    });
+        })
+      : null;
 
     if (!await isClientProviderCurrent(user.id, provider)) return NextResponse.json({ error: "Your provider changed. Refresh to continue." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
 

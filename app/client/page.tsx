@@ -9,7 +9,8 @@ import { getMyIntake } from "@/lib/queries/client-intake";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 import { parseCheckInMessage } from "@/lib/messages/check-in-message";
 
-import { getAdherenceEnabled, getTodayAdherence, getTodayMealNames } from "@/lib/queries/adherence";
+import { getAdherenceEnabled, getTodayAdherence } from "@/lib/queries/adherence";
+import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
 import { db } from "@/lib/db";
 import Link from "next/link";
 
@@ -151,7 +152,7 @@ export default async function ClientDashboard() {
     getMyIntake(user.id),
     getAdherenceEnabled(user.id),
     getTodayAdherence(user.id, todayDate),
-    getTodayMealNames(user.id),
+    getActiveMealNames(user.id, provider.relationshipStartedAt),
     getMyPendingCoachInvites(user.email),
   ]);
 
@@ -330,7 +331,7 @@ export default async function ClientDashboard() {
         // T-101: `items` and `macroTargets` coexist on every version, so this
         // card must not count raw `mealPlan.items` — a MACROS plan carries the
         // previous foods week's items forward and would show food meals the
-        // client is never offered. `planMeals` is `getTodayMealNames`, the same
+        // client is never offered. `planMeals` is `getActiveMealNames`, the same
         // mode-gated list the adherence checklist below and iOS's
         // `/api/client/home` already use, so all three agree on the count.
         const totalMealCount = planMeals.length;

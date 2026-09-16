@@ -580,8 +580,8 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | POST | `/api/me/push-token` | Register APNs token |
 | DELETE | `/api/me/push-token` | Unregister APNs token |
 | GET/PUT | `/api/me/notifications` | Notification preferences |
-| GET | `/api/client/home` | Client home dashboard data |
-| GET | `/api/client/meal-plan/current` | Active published meal plan |
+| GET | `/api/client/home` | Client home dashboard data. The active plan and `adherence.mealNames` are resolved by `lib/meal-plans/active-plan.ts` |
+| GET | `/api/client/meal-plan/current` | Active published meal plan, resolved by `lib/meal-plans/active-plan.ts` |
 | GET | `/api/client/training/current` | Active published training program |
 | GET/POST | `/api/client/checkin` | Check-in submission |
 | GET | `/api/client/checkins` | Check-in history |
@@ -589,6 +589,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET | `/api/client/coach-photo` | Coach profile photo URL |
 | GET/PUT | `/api/client/settings/notifications` | Client notification settings |
 | GET/POST | `/api/client/adherence/*` | Daily adherence (today, meal, workout) |
+| GET | `/api/client/adherence/today` | Today's checkoff record + `mealNames` for the active plan (`lib/meal-plans/active-plan.ts`, provider-gated) |
 | POST | `/api/client/training/results` | Exercise progress logging |
 
 ### Coach-facing (`/api/coach/`)

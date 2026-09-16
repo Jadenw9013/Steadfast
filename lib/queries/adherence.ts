@@ -123,39 +123,3 @@ export async function getCoachClientForAdherence(coachId: string, clientId: stri
     select: { id: true, adherenceEnabled: true },
   });
 }
-
-/**
- * Derive "today's meal names" from the currently published meal plan.
- *
- * Mode-gated (T-101). `items` and `macroTargets` now coexist on every version
- * — carry-forward keeps both representations so switching modes is reversible
- * — so "which array is non-empty" is not a usable signal. A MACROS plan
- * routinely carries the previous foods plan's items, and deriving the
- * checklist from those would write `mealNameSnapshot` rows for meals the
- * client is never shown: the macro-mode UI
- * (`components/client/macro-plan-view.tsx`) builds its own checklist from the
- * macro targets and calls `toggleMealCheckoff` with THOSE names, so the two
- * lists would persist two disjoint sets of checkoffs for the same day. Pick by
- * `planMode`, exactly as the client view does.
- */
-export async function getTodayMealNames(clientId: string): Promise<{ mealName: string; order: number }[]> {
-  const plan = await db.mealPlan.findFirst({
-    where: { clientId, status: "PUBLISHED" },
-    orderBy: { publishedAt: "desc" },
-    select: {
-      planMode: true,
-      items: { orderBy: { sortOrder: "asc" }, select: { mealName: true, sortOrder: true } },
-      macroTargets: { orderBy: { sortOrder: "asc" }, select: { mealName: true, sortOrder: true } },
-    },
-  });
-  if (!plan) return [];
-  const rows = plan.planMode === "MACROS" ? plan.macroTargets : plan.items;
-  // Deduplicate by mealName preserving first-seen sortOrder
-  const seen = new Map<string, number>();
-  for (const row of rows) {
-    if (!seen.has(row.mealName)) seen.set(row.mealName, row.sortOrder);
-  }
-  return Array.from(seen.entries())
-    .sort((a, b) => a[1] - b[1])
-    .map(([mealName, order]) => ({ mealName, order }));
-}
