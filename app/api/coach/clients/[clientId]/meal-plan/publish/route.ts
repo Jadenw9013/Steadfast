@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
+import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -48,27 +49,32 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { mealPlanId, notifyClient } = parsed.data;
 
-    const plan = await db.mealPlan.findUnique({
-      where: { id: mealPlanId },
-      select: { clientId: true, status: true },
-    });
-    if (!plan) {
+    const target = await getMealPlanPublishTarget(mealPlanId);
+    if (!target) {
       return NextResponse.json({ error: "Meal plan not found" }, { status: 404 });
     }
-    if (plan.clientId !== clientId) {
+    if (target.clientId !== clientId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (plan.status !== "DRAFT") {
+
+    // CB04 — publishing (supersede + race guard) lives entirely in
+    // lib/meal-plans/publish.ts, shared with the publishMealPlan server action.
+    const result = await publishMealPlanTarget(target);
+    if (!result.ok) {
+      if (result.code === "NOT_DRAFT") {
+        return NextResponse.json(
+          { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
+          { status: 409 }
+        );
+      }
       return NextResponse.json(
-        { error: "Can only publish drafts" },
+        {
+          error: "This plan was already published or changed by someone else",
+          code: "PUBLISH_RACE_LOST",
+        },
         { status: 409 }
       );
     }
-
-    await db.mealPlan.update({
-      where: { id: mealPlanId },
-      data: { status: "PUBLISHED", publishedAt: new Date() },
-    });
 
     // Fire-and-forget notifications
     if (notifyClient) {
