@@ -17,7 +17,11 @@ import {
   getMealPlanSaveTarget,
   saveMealPlanDraftContent,
 } from "@/lib/meal-plans/drafts";
-import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
+import {
+  emptyPlanMessage,
+  getMealPlanPublishTarget,
+  publishMealPlanTarget,
+} from "@/lib/meal-plans/publish";
 
 const createDraftSchema = z.object({
   clientId: z.string().min(1),
@@ -120,6 +124,9 @@ export async function publishMealPlan(input: unknown) {
   const result = await publishMealPlanTarget(target);
   if (!result.ok) {
     if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
+    // T-102b — the wording lives in lib/meal-plans/publish.ts so this action,
+    // the REST publish route and the import route all say the same thing.
+    if (result.code === "EMPTY_PLAN") throw new Error(emptyPlanMessage(result.planMode));
     throw new Error("This plan was already published or changed by someone else — refresh and try again.");
   }
 

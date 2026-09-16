@@ -429,7 +429,9 @@ suite("meal-plan import parity (import route vs the shared draft/publish service
     const { mealPlanId: otherWeek } = await createDraftMealPlan({
       clientId: client.id,
       weekStartDate: PREV_WEEK_START_DATE,
-      items: [],
+      // T-102b — fixture content only: a MEAL_PLAN plan with zero items can no
+      // longer be published. This case is about week scoping, not content.
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Other week food", quantity: "1", unit: "serving" }],
     });
     await publishMealPlan({ mealPlanId: otherWeek });
 

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { Prisma } from "@/app/generated/prisma/client";
-import type { MealPlanStatus } from "@/app/generated/prisma/client";
+import type { MealPlanStatus, PlanMode } from "@/app/generated/prisma/client";
 
 /**
  * Single source of truth for every meal-plan publish transport: the
@@ -36,6 +36,26 @@ import type { MealPlanStatus } from "@/app/generated/prisma/client";
  * Notifications deliberately stay in the two entry points; this module must not
  * import from `lib/sms`, `lib/email` or `lib/notifications`, and performs no
  * network I/O inside the transaction.
+ *
+ * EMPTY_PLAN (T-102b): a plan with no content for its OWN `planMode` — a MACROS
+ * plan with zero `MealMacroTarget` rows, or a MEAL_PLAN plan with zero
+ * `MealPlanItem` rows — is rejected here rather than in the entry points, so all
+ * three transports reject identically by construction. Two consequences of
+ * where the check sits:
+ *   - It does its own small content read instead of widening
+ *     `MealPlanPublishTarget`. The import route hand-constructs a target literal
+ *     (`{ id, clientId, weekOf, status: "DRAFT" }`) rather than reading one
+ *     through `getMealPlanPublishTarget`, so any field added to that type would
+ *     have to be invented there. The target type must stay as it is.
+ *   - The read is deliberately OUTSIDE the transaction. A coach emptying the
+ *     plan in another tab in the milliseconds between the read and the commit
+ *     slips through, which degrades to exactly the pre-T-102b behavior (an empty
+ *     publish) and is not a correctness regression: emptiness is a UX guard, not
+ *     a data invariant. The real invariants — one PUBLISHED row per week and the
+ *     DRAFT-only transition — stay inside the transaction.
+ * Order is load-bearing: NOT_DRAFT (no read) → EMPTY_PLAN (one read) →
+ * transaction. Re-publishing an already-PUBLISHED plan must keep returning
+ * NOT_DRAFT, never EMPTY_PLAN.
  */
 
 /** Name of the partial unique index created by 20260913220000_plan_supersede_backfill. */
@@ -58,7 +78,39 @@ export type PublishMealPlanResult =
       supersededCount: number;
     }
   | { ok: false; code: "NOT_DRAFT"; status: MealPlanStatus }
-  | { ok: false; code: "RACE_LOST" };
+  | { ok: false; code: "RACE_LOST" }
+  /** T-102b — the plan has no content for its own planMode. */
+  | { ok: false; code: "EMPTY_PLAN"; planMode: PlanMode };
+
+/**
+ * The single definition of "empty for this mode". Pure; exported for unit test.
+ *
+ * Keys off `planMode` ONLY. It must never become "some array is non-empty":
+ * T-101 made carry-forward the default and made it carry EVERY representation,
+ * so `items` and `macroTargets` routinely coexist on the same row. A MACROS plan
+ * carrying last week's foods has zero targets and is exactly the empty plan this
+ * guard exists to reject.
+ */
+export function isPlanEmptyForMode(
+  planMode: PlanMode,
+  counts: { items: number; macroTargets: number }
+): boolean {
+  return planMode === "MACROS" ? counts.macroTargets === 0 : counts.items === 0;
+}
+
+/**
+ * The single copy of the user-facing wording. All three transports call it;
+ * none writes its own string. Exported for unit test.
+ *
+ * Both strings are well under the 300-character cutoff in iOS's
+ * `userFacingErrorMessage` (APIService.swift), which returns the `error` key
+ * verbatim, so the coach sees this sentence on every surface.
+ */
+export function emptyPlanMessage(planMode: PlanMode): string {
+  return planMode === "MACROS"
+    ? "Add at least one meal with macro targets before publishing."
+    : "Add at least one food before publishing.";
+}
 
 /**
  * Reads the row both surfaces need before their own authorization check.
@@ -121,6 +173,19 @@ export async function publishMealPlanTarget(
 ): Promise<PublishMealPlanResult> {
   if (target.status !== "DRAFT") {
     return { ok: false, code: "NOT_DRAFT", status: target.status };
+  }
+
+  // T-102b — see the file header for why this read is here and not inside the
+  // transaction or inside getMealPlanPublishTarget.
+  const content = await db.mealPlan.findUnique({
+    where: { id: target.id },
+    select: { planMode: true, _count: { select: { items: true, macroTargets: true } } },
+  });
+  // Deleted between the caller's read and here — the same outcome the
+  // DRAFT-only updateMany would have produced.
+  if (!content) return { ok: false, code: "RACE_LOST" };
+  if (isPlanEmptyForMode(content.planMode, content._count)) {
+    return { ok: false, code: "EMPTY_PLAN", planMode: content.planMode };
   }
 
   const publishedAt = opts?.now ?? new Date();

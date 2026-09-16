@@ -18,15 +18,18 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   transaction: vi.fn(),
+  findUnique: vi.fn(),
 }));
 
 vi.hoisted(() => {
   process.env.DATABASE_URL = "postgresql://test:test@localhost/test";
 });
-// Only `$transaction` is needed: publishMealPlanTarget touches nothing else on
-// `db`, and `tx` is never reached because the mock rejects before invoking the
-// callback.
-vi.mock("@/lib/db", () => ({ db: { $transaction: mocks.transaction } }));
+// `$transaction` plus the T-102b content read that now runs just before it.
+// `tx` is never reached because the transaction mock rejects before invoking
+// the callback.
+vi.mock("@/lib/db", () => ({
+  db: { $transaction: mocks.transaction, mealPlan: { findUnique: mocks.findUnique } },
+}));
 
 import { Prisma } from "@/app/generated/prisma/client";
 import {
@@ -75,6 +78,14 @@ const target: MealPlanPublishTarget = {
 describe("publishMealPlanTarget — transaction failure mapping", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // T-102b — a non-empty MEAL_PLAN plan, so the empty-plan guard passes and
+    // every case below still reaches the transaction. This suite is about the
+    // catch branch; the guard itself is covered by
+    // tests/unit/meal-plan-publish-empty.test.ts and the integration suite.
+    mocks.findUnique.mockResolvedValue({
+      planMode: "MEAL_PLAN",
+      _count: { items: 2, macroTargets: 0 },
+    });
   });
 
   it("returns RACE_LOST (does not throw) when the transaction trips the published-plan index", async () => {
