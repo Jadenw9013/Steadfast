@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { MessageThread } from "@/components/messages/message-thread";
+import { getCoachThread } from "@/lib/queries/messages";
 import { normalizeToMonday } from "@/lib/utils/date";
 
 export default async function CoachClientMessagesPage({
@@ -28,20 +29,21 @@ export default async function CoachClientMessagesPage({
   const client = assignment.client;
   const clientName = [client.firstName, client.lastName].filter(Boolean).join(" ") || "Client";
 
-  // Fetch ALL messages for this client
-  const messages = await db.message.findMany({
-    where: { clientId },
-    orderBy: { createdAt: "asc" },
-    include: {
-      sender: {
-        select: { id: true, firstName: true, lastName: true, activeRole: true },
-      },
-    },
-  });
+  // CB03 (T-672): only this coach's own conversation, never a predecessor's.
+  // Matches GET /api/messages, which MessageThread polls every 4s.
+  const messages = await getCoachThread(clientId, user.id);
 
+  // senderId mirrors GET /api/messages (route.ts:97) so the two server
+  // serializers agree on shape, not just on the same set of rows. The route
+  // also returns content and isDraft, so the payloads are not field-for-field
+  // identical. MessageThread's poll normalizer does not copy senderId into
+  // client state, so render from sender.id, never m.senderId — a field present
+  // in SSR and absent after the first poll is the appear-then-vanish class
+  // T-672 removed.
   const serializedMessages = messages.map((m) => ({
     id: m.id,
     body: m.body,
+    senderId: m.senderId,
     createdAt: m.createdAt.toISOString(),
     sender: m.sender,
   }));
