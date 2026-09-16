@@ -435,6 +435,9 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
         clientId: client.id,
         weekStartDate: WEEK_A,
         meals: macroTargetsToEditable(MACRO_TARGETS),
+        // T-103 widened the builder: the macro editor now authors plan notes
+        // too. An empty box is what this case exercises.
+        supportContent: "",
       });
       expect(payload.planMode).toBe("MACROS");
 

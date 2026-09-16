@@ -213,6 +213,149 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     expect((await db.coachClient.findUniqueOrThrow({ where: { coachId_clientId: { coachId: coach.id, clientId: client.id } } })).planMode).toBe("MACROS");
   });
 
+  // ── T-103: the macro editor can now author plan notes ──────────────────────
+  // The macro editor's only server-visible change. Each case sends the exact
+  // payload `buildMacroDraftInput` / the save handlers produce, so the
+  // create-path `null` vs. save-path `undefined` asymmetry is exercised for
+  // real rather than asserted in a unit test alone.
+
+  const MACRO_TARGETS = [
+    { mealName: "Breakfast", sortOrder: 0, calories: 500, protein: 40, carbs: 50, fats: 15 },
+    { mealName: "Lunch", sortOrder: 1, calories: 700, protein: 55, carbs: 70, fats: 20 },
+  ];
+
+  it("macro notes typed by the coach reach the client's macro view", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    // Exactly what buildMacroDraftInput({ ..., supportContent: "SYNTHETIC coach notes" }) produces.
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC coach notes",
+    });
+    await publishMealPlan({ mealPlanId });
+
+    // This is the data components/client/simple-meal-plan.tsx hands to
+    // MacroPlanView — before T-103 there was no way to produce this row from
+    // the macro editor at all.
+    const published = await getCurrentPublishedMealPlan(client.id);
+    expect(published?.planMode).toBe("MACROS");
+    expect(published?.macroTargets.map((t) => t.mealName)).toEqual(["Breakfast", "Lunch"]);
+    expect(published?.supportContent).toBe("SYNTHETIC coach notes");
+  });
+
+  it("saving notes on an existing macro draft updates only the notes", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC v1",
+    });
+
+    // The macro editor's save payload.
+    await saveDraftMealPlan({
+      mealPlanId,
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC v2",
+    });
+
+    const plan = await db.mealPlan.findUniqueOrThrow({
+      where: { id: mealPlanId },
+      include: { macroTargets: { orderBy: { sortOrder: "asc" } }, items: true },
+    });
+    expect(plan.supportContent).toBe("SYNTHETIC v2");
+    expect(plan.macroTargets.map((t) => [t.mealName, t.calories])).toEqual([
+      ["Breakfast", 500],
+      ["Lunch", 700],
+    ]);
+    expect(plan.items).toEqual([]);
+  });
+
+  it("an emptied notes box does not clear saved notes (T-732 semantics preserved)", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC keep me",
+    });
+
+    // `supportContent: supportContent || undefined` with an empty textarea —
+    // byte-identical to what the foods editor has always sent.
+    await saveDraftMealPlan({ mealPlanId, macroTargets: MACRO_TARGETS, supportContent: undefined });
+
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } })).supportContent).toBe(
+      "SYNTHETIC keep me"
+    );
+  });
+
+  it("an empty notes box on CREATE does not resurrect the previous week's notes (T-101)", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    // A published foods week carrying notes — the carry-forward source.
+    const { mealPlanId: foodsWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Oats", quantity: "80", unit: "g", calories: 300, protein: 10, carbs: 54, fats: 5 }],
+      supportContent: "SYNTHETIC previous week notes",
+    });
+    await publishMealPlan({ mealPlanId: foodsWeekId });
+
+    // Next week, macro mode, empty notes box → explicit null, which must beat
+    // the carry-forward. `undefined` here would resurrect the notes above.
+    const { mealPlanId: macroWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-21",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: null,
+    });
+
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: macroWeekId } })).supportContent).toBeNull();
+    // The published week is untouched — carry-forward reads, it never writes.
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: foodsWeekId } })).supportContent).toBe(
+      "SYNTHETIC previous week notes"
+    );
+  });
+
+  it("items are still carried forward into the macro draft", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    const { mealPlanId: foodsWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Oats", quantity: "80", unit: "g", calories: 300, protein: 10, carbs: 54, fats: 5 }],
+    });
+    await publishMealPlan({ mealPlanId: foodsWeekId });
+
+    const { mealPlanId: macroWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-21",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: null,
+    });
+
+    // T-101 rule 3 — and what makes the autofill panel appear in macro mode.
+    const draft = await db.mealPlan.findUniqueOrThrow({
+      where: { id: macroWeekId },
+      include: { items: true },
+    });
+    expect(draft.items.map((i) => i.foodName)).toEqual(["Oats"]);
+  });
+
   it("purge removes MealMacroTarget rows along with the plan", async () => {
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;

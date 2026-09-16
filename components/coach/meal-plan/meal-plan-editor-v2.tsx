@@ -17,7 +17,9 @@ import {
 } from "@/app/actions/meal-plans";
 import {
   buildFoodsDraftInput,
+  findMealNameProblem,
   foodsEditorSignature,
+  mealNameProblemMessage,
 } from "@/lib/meal-plans/editor-state";
 import {
   groupItemsToMeals,
@@ -132,6 +134,9 @@ function MealPlanEditorV2Body({
   // empty-plan guard); without this the rejection was silent and the button
   // just reverted to "Publish". Mirrors macro-plan-editor.tsx's autofillError.
   // Holds a fixed sentence, never the thrown message — see handlePublish.
+  // T-103 — it now also carries a locally-computed meal-name validation
+  // sentence (`mealNameProblemMessage`), produced before any server call. The
+  // *thrown* message is still never used.
   const [publishError, setPublishError] = useState<string | null>(null);
   const [notifyClient, setNotifyClient] = useState(coachDefaultNotify ?? true);
   const [highlightedMeals, setHighlightedMeals] = useState<Set<string>>(new Set());
@@ -270,6 +275,24 @@ function MealPlanEditorV2Body({
   }
 
   async function handlePublish() {
+    // Before `setPublishing(true)` and before any server call — including
+    // `ensureDraft()` — so a rejected publish never creates a draft row (T-103).
+    // Only meals that will actually be sent: flattenMeals drops meals with no
+    // items, so an unnamed empty row can neither collide nor reach the DB.
+    // Keep each entry's index into the unfiltered `meals` array so the reported
+    // problem points at the same card MealCard numbers (mealIndex={i} below) —
+    // an index into the filtered list would name the wrong card whenever an
+    // earlier meal has no items yet.
+    const namedMeals = meals
+      .map((m, i) => ({ i, mealName: m.mealName }))
+      .filter(({ i }) => meals[i].items.length > 0);
+    const problem = findMealNameProblem(namedMeals.map((m) => m.mealName));
+    if (problem) {
+      setPublishError(
+        mealNameProblemMessage({ ...problem, index: namedMeals[problem.index].i })
+      );
+      return;
+    }
     setPublishing(true);
     setPublishError(null);
     try {
