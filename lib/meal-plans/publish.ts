@@ -3,14 +3,12 @@ import { Prisma } from "@/app/generated/prisma/client";
 import type { MealPlanStatus } from "@/app/generated/prisma/client";
 
 /**
- * Single source of truth for both meal-plan publish transports (the
- * `publishMealPlan` server action and the iOS-facing
- * `/api/coach/clients/[clientId]/meal-plan/publish` route — CB04). This is the
- * only place *coach-initiated publish* should set `MealPlan.status =
- * "PUBLISHED"`. It is not yet literally the only writer: as of this writing
- * `app/api/mealplans/import-plan/route.ts` still publishes directly and
- * bypasses this service — see T-730, which moves it onto this module.
- * Both transports MUST call it instead of re-implementing the supersede
+ * Single source of truth for every meal-plan publish transport: the
+ * `publishMealPlan` server action, the iOS-facing
+ * `/api/coach/clients/[clientId]/meal-plan/publish` route (CB04), and the OCR
+ * import path `app/api/mealplans/import-plan/route.ts`. This is the only place
+ * in the codebase that sets `MealPlan.status = "PUBLISHED"`.
+ * Every transport MUST call it instead of re-implementing the supersede
  * transaction: the route used to do a bare single-row `update`, which left two
  * PUBLISHED rows for one week (and, once the partial unique index shipped,
  * turned every iOS re-publish into a 500).
@@ -114,10 +112,8 @@ export function isDuplicatePublishedPlanError(err: unknown): boolean {
 }
 
 /**
- * CB04 — the only place coach-initiated publish sets `MealPlan.status =
- * "PUBLISHED"` (`app/api/mealplans/import-plan/route.ts` still bypasses this
- * service until T-730; see the file header). Callers MUST have authorized coach
- * access to target.clientId first.
+ * CB04 — the only place `MealPlan.status` becomes `"PUBLISHED"`. Callers MUST
+ * have authorized coach access to target.clientId first.
  */
 export async function publishMealPlanTarget(
   target: MealPlanPublishTarget,

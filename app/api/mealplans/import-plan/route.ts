@@ -5,11 +5,24 @@ import {
   splitPortion,
   extractPlanExtras,
 } from "@/lib/validations/meal-plan-import";
+import { createMealPlanDraft, supportContentInputSchema } from "@/lib/meal-plans/drafts";
+import { publishMealPlanTarget } from "@/lib/meal-plans/publish";
+import { parsePlanExtras } from "@/types/meal-plan-extras";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { NextRequest, NextResponse } from "next/server";
 
+/**
+ * OCR/LLM import of a coach-uploaded meal-plan document (T-730).
+ *
+ * This route holds ZERO meal-plan lifecycle logic. It is auth + validation +
+ * document→items mapping, then two calls into the shared services:
+ * `createMealPlanDraft` (lib/meal-plans/drafts.ts — version allocation,
+ * planMode, planExtras, supportContent) and, when the coach asked to publish,
+ * `publishMealPlanTarget` (lib/meal-plans/publish.ts — the CB04 supersede and
+ * the race guard). It used to hand-roll both, which made it a third MealPlan
+ * writer that could leave two PUBLISHED rows for one week.
+ */
 export async function POST(req: NextRequest) {
-  console.log("[import-plan] POST hit");
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -54,14 +67,7 @@ export async function POST(req: NextRequest) {
     const plan = validated.data;
     const clientId = draft.upload.clientId;
     const weekOf = getCurrentWeekMonday();
-
-    // Determine next version
-    const latestVersion = await db.mealPlan.findFirst({
-      where: { clientId, weekOf },
-      orderBy: { version: "desc" },
-      select: { version: true },
-    });
-    const nextVersion = (latestVersion?.version ?? 0) + 1;
+    const shouldPublish = !!publish;
 
     // Convert parsed meals → MealPlanItem format
     let sortOrder = 0;
@@ -83,22 +89,50 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // Extract plan extras (metadata, overrides, supplements, etc.)
-    const planExtras = extractPlanExtras(plan);
+    // Extract plan extras (metadata, day overrides, confidence)
+    const planExtras = parsePlanExtras(extractPlanExtras(plan)) ?? undefined;
+    // Plan notes. `MealPlanDraft.supportContent` is a dead column — the live
+    // source is the parsed JSON (or the coach's edited override). The shared
+    // schema normalizes "" / whitespace-only to undefined so an empty
+    // "Guidance & Support" section is not written as an empty string.
+    const supportContent = supportContentInputSchema.parse(plan.supportContent);
 
-    // Create meal plan — publish immediately if requested, otherwise save as draft
-    const planStatus = publish ? "PUBLISHED" : "DRAFT";
-    const mealPlan = await db.mealPlan.create({
-      data: {
-        clientId,
-        weekOf,
-        version: nextVersion,
-        status: planStatus,
-        ...(publish ? { publishedAt: new Date() } : {}),
-        planExtras: planExtras ? JSON.parse(JSON.stringify(planExtras)) : undefined,
-        ...(items.length > 0 ? { items: { create: items } } : {}),
-      },
+    // Always created as a DRAFT through the shared service, which owns version
+    // allocation (with its P2002 retry), planMode and content. `startBlank`
+    // because an import is a wholesale replacement — the uploaded document is
+    // the plan, so last week's published foods must never be merged into it.
+    // `planMode` is explicit: this document can only ever produce foods
+    // (parsedMealPlanSchema has no macro targets), so falling through to the
+    // client's CoachClient.planMode could publish an empty MACROS plan.
+    const { mealPlanId } = await createMealPlanDraft({
+      clientId,
+      coachId: coach.id,
+      weekOf,
+      startBlank: true,
+      planMode: "MEAL_PLAN",
+      items,
+      planExtras,
+      supportContent,
     });
+
+    if (shouldPublish) {
+      // `status: "DRAFT"` is constructed, not re-read: createMealPlanDraft never
+      // writes MealPlan.status, and the flip itself is gated in the database
+      // (`updateMany where status: "DRAFT"`), so any staleness degrades to
+      // RACE_LOST rather than a wrong publish.
+      const result = await publishMealPlanTarget({ id: mealPlanId, clientId, weekOf, status: "DRAFT" });
+      if (!result.ok) {
+        // Return BEFORE the bookkeeping writes. Marking the upload IMPORTED on a
+        // failed publish would trip the "Already imported" 400 on the coach's
+        // retry and strand the import.
+        return NextResponse.json(
+          result.code === "RACE_LOST"
+            ? { error: "This plan was already published or changed by someone else", code: "PUBLISH_RACE_LOST" }
+            : { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
+          { status: 409 }
+        );
+      }
+    }
 
     // Update draft with final edits if override was provided
     if (overrideJson) {
@@ -116,10 +150,10 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       status: "imported",
-      mealPlanId: mealPlan.id,
+      mealPlanId,
       clientId,
       weekStartDate: weekOf.toISOString().split("T")[0],
-      published: !!publish,
+      published: shouldPublish,
     });
   } catch (error) {
     const { message, status } = prismaErrorMessage(error);
