@@ -61,7 +61,7 @@ import { POST as planModeRest } from "@/app/api/coach/clients/[clientId]/plan-mo
 import { GET as clientCurrentMealPlan } from "@/app/api/client/meal-plan/current/route";
 import { GET as exportMealPlan } from "@/app/api/mealplans/[mealPlanId]/export/route";
 import { resolveMealPlanPdfContent } from "@/lib/pdf/meal-plan-pdf";
-import { getTodayMealNames } from "@/lib/queries/adherence";
+import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
 import {
   getEffectiveMealPlanForReview,
   getCurrentPublishedMealPlan,
@@ -118,9 +118,11 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
     const coach = await db.user.create({ data: { clerkId: coachClerkId, email: `coach-${coachClerkId}@example.test`, isCoach: true, activeRole: "COACH" } });
     const clientClerkId = randomUUID();
     const client = await db.user.create({ data: { clerkId: clientClerkId, email: `client-${clientClerkId}@example.test`, isClient: true, activeRole: "CLIENT" } });
-    await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+    const link = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
     mocks.authUserId = coach.clerkId;
-    return { coach, client };
+    // T-105: `link` is returned so tests can pass `link.createdAt` as the
+    // provider gate (`publishedAfter`), which `getActiveMealNames` requires.
+    return { coach, client, link };
   }
 
   const params = (clientId: string) => ({ params: Promise.resolve({ clientId }) });
@@ -481,7 +483,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       );
 
     it("keeps a published MEAL_PLAN week foods-gated after the coach toggles to MACROS", async () => {
-      const { coach, client } = await fixture();
+      const { coach, client, link } = await fixture();
       const { mealPlanId } = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -508,7 +510,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       expect(rendered.foodItems.map((i) => i.foodName)).toEqual(["Oats", "Chicken breast"]);
 
       // (b) adherence meal checklist — finding 2.
-      expect(await getTodayMealNames(client.id)).toEqual([
+      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
         { mealName: "Breakfast", order: 0 },
         { mealName: "Lunch", order: 1 },
       ]);
@@ -516,7 +518,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       // (c) client dashboard nutrition card — review r2 finding 1 (same source).
       const [dashPlan, dashMeals] = await Promise.all([
         getCurrentPublishedMealPlan(client.id),
-        getTodayMealNames(client.id),
+        getActiveMealNames(client.id, link.createdAt),
       ]);
       expect(dashPlan!.planMode).toBe("MEAL_PLAN");
       expect(dashMeals.length).toBe(2);
@@ -528,7 +530,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
     });
 
     it("keeps a published MACROS week macro-gated after the coach toggles to MEAL_PLAN (mirror)", async () => {
-      const { coach, client } = await fixture();
+      const { coach, client, link } = await fixture();
       const { mealPlanId } = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -550,14 +552,14 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       expect(rendered.foodItems).toEqual([]);
       expect(rendered.macroTargets.map((t) => t.mealName)).toEqual(["Meal 1", "Meal 2"]);
 
-      expect(await getTodayMealNames(client.id)).toEqual([
+      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
         { mealName: "Meal 1", order: 0 },
         { mealName: "Meal 2", order: 1 },
       ]);
 
       const [dashPlan, dashMeals] = await Promise.all([
         getCurrentPublishedMealPlan(client.id),
-        getTodayMealNames(client.id),
+        getActiveMealNames(client.id, link.createdAt),
       ]);
       expect(dashPlan!.planMode).toBe("MACROS");
       expect(dashMeals.map((m) => m.mealName)).toEqual(["Meal 1", "Meal 2"]);

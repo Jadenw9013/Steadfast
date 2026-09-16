@@ -11,8 +11,8 @@ import { getMyIntake } from "@/lib/queries/client-intake";
 import {
   getAdherenceEnabled,
   getTodayAdherence,
-  getTodayMealNames,
 } from "@/lib/queries/adherence";
+import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
 import {
   parseCadenceConfig,
   getEffectiveCadence,
@@ -100,7 +100,9 @@ export async function GET() {
       getMyIntake(user.id),
       getAdherenceEnabled(user.id),
       getTodayAdherence(user.id, todayDate),
-      getTodayMealNames(user.id),
+      // `relationshipStartedAt` is already null for every non-HUMAN provider,
+      // so no `origin === "HUMAN"` ternary is needed here (T-105).
+      getActiveMealNames(user.id, provider.relationshipStartedAt),
       db.message.findFirst({
         where: { clientId: user.id, weekOf },
         orderBy: { createdAt: "desc" },

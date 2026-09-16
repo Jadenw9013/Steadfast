@@ -15,7 +15,7 @@ import { randomUUID } from "crypto";
  *
  * Covered here, all against real rows produced by the real create/publish path:
  *  - `/api/mealplans/[mealPlanId]/export` (the client's PDF download button),
- *  - `getTodayMealNames` (the client's daily meal checkoff list, which persists
+ *  - `getActiveMealNames` (the client's daily meal checkoff list, which persists
  *    `mealNameSnapshot` rows — a wrong list corrupts data, not just pixels),
  *  - the client dashboard's nutrition card (`app/client/page.tsx`), added in
  *    review round 2 as the third reader of the same data.
@@ -56,7 +56,7 @@ import { db } from "@/lib/db";
 import { createDraftMealPlan, publishMealPlan } from "@/app/actions/meal-plans";
 import { GET as exportMealPlan } from "@/app/api/mealplans/[mealPlanId]/export/route";
 import { resolveMealPlanPdfContent } from "@/lib/pdf/meal-plan-pdf";
-import { getTodayMealNames } from "@/lib/queries/adherence";
+import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { PUBLISHED_MEAL_PLAN_INDEX } from "@/lib/meal-plans/publish";
 
@@ -105,9 +105,11 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
     const coach = await db.user.create({ data: { clerkId: coachClerkId, email: `coach-${coachClerkId}@example.test`, isCoach: true, activeRole: "COACH" } });
     const clientClerkId = randomUUID();
     const client = await db.user.create({ data: { clerkId: clientClerkId, email: `client-${clientClerkId}@example.test`, isClient: true } });
-    await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+    const link = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
     mocks.authUserId = coach.clerkId;
-    return { coach, client };
+    // T-105: `link` is returned so tests can pass `link.createdAt` as the
+    // provider gate (`publishedAfter`), which `getActiveMealNames` requires.
+    return { coach, client, link };
   }
 
   const exportPdf = (mealPlanId: string) =>
@@ -225,10 +227,10 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
 
   describe("adherence meal checklist (finding 2)", () => {
     it("returns the macro targets' meal names for a MACROS plan, not carried-forward food meals", async () => {
-      const { client } = await fixture();
+      const { client, link } = await fixture();
       await macroPlanCarryingFoodsForward(client.id);
 
-      const names = await getTodayMealNames(client.id);
+      const names = await getActiveMealNames(client.id, link.createdAt);
 
       // These are exactly the names macro-plan-view.tsx checks off, so both
       // surfaces write the same `mealNameSnapshot` rows for the same day.
@@ -241,18 +243,18 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
     });
 
     it("returns the items' meal names for a MEAL_PLAN plan (regression)", async () => {
-      const { client } = await fixture();
+      const { client, link } = await fixture();
       const foods = await createDraftMealPlan({ clientId: client.id, weekStartDate: WEEK_A, items: FOOD_ITEMS });
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
-      expect(await getTodayMealNames(client.id)).toEqual([
+      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
         { mealName: "Breakfast", order: 0 },
         { mealName: "Lunch", order: 1 },
       ]);
     });
 
     it("deduplicates repeated meal names, preserving first-seen order (regression)", async () => {
-      const { client } = await fixture();
+      const { client, link } = await fixture();
       const foods = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -263,14 +265,14 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
       });
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
-      expect(await getTodayMealNames(client.id)).toEqual([
+      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
         { mealName: "Breakfast", order: 0 },
         { mealName: "Lunch", order: 1 },
       ]);
     });
 
     it("returns an empty list for a pre-T-102b PUBLISHED MACROS plan with no targets set", async () => {
-      const { client } = await fixture();
+      const { client, link } = await fixture();
       const foods = await createDraftMealPlan({ clientId: client.id, weekStartDate: WEEK_A, items: FOOD_ITEMS });
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
@@ -278,7 +280,7 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
       // `publishMealPlanTarget` rejects a MACROS plan with zero macro targets.
       // The row is therefore constructed directly, bypassing the guard, because
       // rows exactly like it exist in production from before the guard shipped
-      // and `getTodayMealNames` must stay defensive about them. Do not delete
+      // and `getActiveMealNames` must stay defensive about them. Do not delete
       // this case and do not "fix" it by giving the plan targets — that would be
       // a different test.
       await db.mealPlan.create({
@@ -294,12 +296,12 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
         },
       });
 
-      expect(await getTodayMealNames(client.id)).toEqual([]);
+      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([]);
     });
 
     it("returns an empty list when the client has no published plan (regression)", async () => {
-      const { client } = await fixture();
-      expect(await getTodayMealNames(client.id)).toEqual([]);
+      const { client, link } = await fixture();
+      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([]);
     });
   });
 
@@ -311,20 +313,20 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
    * carried-forward foods week's meal count on the card while the adherence
    * rows right underneath (mode-gated since finding 2) showed the macro meals.
    * iOS never had this bug: `/api/client/home` builds `mealNames` from
-   * `getTodayMealNames`. The card now uses that same list.
+   * `getActiveMealNames`. The card now uses that same list.
    *
    * These assertions reproduce the page's own data fetch (both queries, same
    * arguments the page passes) and pin the count the card renders.
    */
   describe("client dashboard nutrition card (review r2 finding 1)", () => {
     it("counts meals from the mode-gated list, not the MACROS plan's carried-forward items", async () => {
-      const { client } = await fixture();
+      const { client, link } = await fixture();
       await macroPlanCarryingFoodsForward(client.id);
 
       // `app/client/page.tsx` fetches exactly these two in its Promise.all.
       const [mealPlan, planMeals] = await Promise.all([
         getCurrentPublishedMealPlan(client.id),
-        getTodayMealNames(client.id),
+        getActiveMealNames(client.id, link.createdAt),
       ]);
 
       // Precondition: the card renders at all (it is gated on `mealPlan`), and
@@ -340,11 +342,11 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
 
       // And it agrees with the adherence checklist rendered directly below it
       // and with the `mealNames` iOS reads from /api/client/home.
-      expect(planMeals).toEqual(await getTodayMealNames(client.id));
+      expect(planMeals).toEqual(await getActiveMealNames(client.id, link.createdAt));
     });
 
     it("still counts the food meals for a MEAL_PLAN client (regression)", async () => {
-      const { client } = await fixture();
+      const { client, link } = await fixture();
       const foods = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -358,7 +360,7 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
 
       const [mealPlan, planMeals] = await Promise.all([
         getCurrentPublishedMealPlan(client.id),
-        getTodayMealNames(client.id),
+        getActiveMealNames(client.id, link.createdAt),
       ]);
 
       expect(mealPlan!.planMode).toBe("MEAL_PLAN");
