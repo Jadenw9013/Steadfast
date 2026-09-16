@@ -55,6 +55,7 @@ import { POST as importPlanRoute } from "@/app/api/mealplans/import-plan/route";
 import {
   PUBLISHED_MEAL_PLAN_INDEX,
   isDuplicatePublishedPlanError,
+  publishMealPlanTarget,
 } from "@/lib/meal-plans/publish";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
@@ -331,6 +332,83 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
     const expectedFor = (won: boolean) => (won ? ["PUBLISHED", "SUPERSEDED"] : ["DRAFT"]);
     expect(expectedFor(actionResult.status === "fulfilled")).toContain(await statusOf(a));
     expect(expectedFor(restWon)).toContain(await statusOf(b));
+  });
+
+  // ── The lost-race rollback (T-745) ────────────────────────────────────────
+  //
+  // The supersede and the flip must share one fate. When the target stops being
+  // a live DRAFT between the T-102b content read and the transaction, a
+  // post-commit `flipped === 0` check reports RACE_LOST while the
+  // already-committed supersede has demoted the week's live plan — the client
+  // ends the request with ZERO published plans for that week and no surface
+  // reports a fault. Both cases below fail against the pre-T-745 service.
+
+  it("a publish target that vanishes after the empty-plan read rolls the supersede back instead of leaving zero PUBLISHED plans", async () => {
+    const { client } = await fixture();
+    const week = "2026-03-02";
+
+    const v1 = await draft(client.id, week);
+    expect((await publishViaRest(client.id, { mealPlanId: v1 })).status).toBe(200);
+    expect(await statusOf(v1)).toBe("PUBLISHED");
+
+    const vanishing = await draft(client.id, week);
+    const weekOf = await weekOfPlan(v1);
+
+    // The exact production interleaving: the service's own content read sees a
+    // live, non-empty DRAFT (so it does not short-circuit at the `!content`
+    // guard), and the row is deleted — children cascade — before the
+    // transaction opens. One-shot, so only that read is intercepted.
+    const realFindUnique = db.mealPlan.findUnique.bind(db.mealPlan);
+    const spy = vi.spyOn(db.mealPlan, "findUnique");
+    let result: Awaited<ReturnType<typeof publishMealPlanTarget>>;
+    try {
+      spy.mockImplementationOnce(((args: Parameters<typeof realFindUnique>[0]) =>
+        (async () => {
+          const content = await realFindUnique(args);
+          await db.mealPlan.delete({ where: { id: vanishing } });
+          return content;
+        })()) as unknown as typeof db.mealPlan.findUnique);
+
+      result = await publishMealPlanTarget({
+        id: vanishing,
+        clientId: client.id,
+        weekOf,
+        status: "DRAFT",
+      });
+    } finally {
+      spy.mockRestore();
+    }
+
+    expect(result).toEqual({ ok: false, code: "RACE_LOST" });
+    expect(await statusOf(v1)).toBe("PUBLISHED");
+    expect(await publishedCount(client.id, weekOf)).toBe(1);
+  });
+
+  it("a stale DRAFT target whose row is no longer DRAFT rolls the supersede back", async () => {
+    const { client } = await fixture();
+    const week = "2026-03-09";
+
+    const v1 = await draft(client.id, week);
+    expect((await publishViaRest(client.id, { mealPlanId: v1 })).status).toBe(200);
+
+    // Mock-free companion, and the guarantee the import route needs: it hands
+    // the service a hand-constructed `status: "DRAFT"` literal it never read
+    // back, so the service must be safe for ANY stale target.
+    const stale = await draft(client.id, week);
+    await db.mealPlan.update({ where: { id: stale }, data: { status: "SUPERSEDED" } });
+
+    const weekOf = await weekOfPlan(v1);
+    const result = await publishMealPlanTarget({
+      id: stale,
+      clientId: client.id,
+      weekOf,
+      status: "DRAFT",
+    });
+
+    expect(result).toEqual({ ok: false, code: "RACE_LOST" });
+    expect(await statusOf(v1)).toBe("PUBLISHED");
+    expect(await statusOf(stale)).toBe("SUPERSEDED");
+    expect(await publishedCount(client.id, weekOf)).toBe(1);
   });
 
   // ── Unchanged behavior ────────────────────────────────────────────────────
