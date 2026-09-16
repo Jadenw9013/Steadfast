@@ -47,6 +47,9 @@ export function MealPlanEditor({
       const result = await createDraftMealPlan({
         clientId,
         weekStartDate,
+        // Foods-only editor: never let the draft's mode fall through to
+        // `CoachClient.planMode` (T-102a).
+        planMode: "MEAL_PLAN",
         // Copy-forward is the default now; `startBlank` is the only opt-out.
         startBlank: !copyFromPublished,
       });

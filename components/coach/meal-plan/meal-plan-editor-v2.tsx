@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MealCard } from "./meal-card";
 import { MealPlanActions } from "./meal-plan-actions";
@@ -15,6 +15,10 @@ import {
   saveDraftMealPlan,
   publishMealPlan,
 } from "@/app/actions/meal-plans";
+import {
+  buildFoodsDraftInput,
+  foodsEditorSignature,
+} from "@/lib/meal-plans/editor-state";
 import {
   groupItemsToMeals,
   flattenMeals,
@@ -48,15 +52,27 @@ export function MealPlanEditorV2({
     notes: string;
   } | null;
 }) {
+  // Only one editor is mounted at a time, and the toggle above is its sibling —
+  // so the mounted editor reports its own "the coach has typed something" here
+  // and the toggle can warn before unmounting it (T-102a review, finding 1).
+  // No new editor state: each editor derives this by comparing its current
+  // content against the effective plan it was seeded with.
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   return (
     <div className="space-y-4">
-      <PlanModeToggle clientId={clientId} initialMode={effectivePlan.planMode} />
-      {effectivePlan.planMode === "MACROS" ? (
+      <PlanModeToggle
+        clientId={clientId}
+        initialMode={effectivePlan.editorMode}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
+      {effectivePlan.editorMode === "MACROS" ? (
         <MacroPlanEditor
           clientId={clientId}
           weekStartDate={weekStartDate}
           effectivePlan={effectivePlan}
           coachDefaultNotify={coachDefaultNotify}
+          onUnsavedChange={setHasUnsavedChanges}
         />
       ) : (
         <MealPlanEditorV2Body
@@ -67,6 +83,7 @@ export function MealPlanEditorV2({
           coachDefaultNotify={coachDefaultNotify}
           publishedMealPlanId={publishedMealPlanId}
           cardioPrescription={cardioPrescription}
+          onUnsavedChange={setHasUnsavedChanges}
         />
       )}
     </div>
@@ -81,6 +98,7 @@ function MealPlanEditorV2Body({
   coachDefaultNotify,
   publishedMealPlanId,
   cardioPrescription,
+  onUnsavedChange,
 }: {
   clientId: string;
   weekStartDate: string;
@@ -95,6 +113,7 @@ function MealPlanEditorV2Body({
     intensity: string;
     notes: string;
   } | null;
+  onUnsavedChange?: (hasUnsavedChanges: boolean) => void;
 }) {
   const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(effectivePlan.draftId);
@@ -114,6 +133,32 @@ function MealPlanEditorV2Body({
 
   const isUnsaved = draftId === null;
   const totalItems = meals.reduce((sum, m) => sum + m.items.length, 0);
+
+  // Everything below lives only in `useState` until an explicit Save, and the
+  // plan-mode toggle above unmounts this whole editor. "Unsaved" here means
+  // "differs from the effective plan this editor was seeded with", which is
+  // strictly what a mode switch would destroy: a published-only week rendered
+  // untouched has nothing to lose (the PUBLISHED row is still in the DB), while
+  // a single typed character in any field does. After a Save + router.refresh()
+  // the seed moves forward, so the flag clears itself.
+  const baselineSignature = useMemo(
+    () =>
+      foodsEditorSignature(
+        groupItemsToMeals(effectivePlan.items),
+        effectivePlan.planExtras,
+        effectivePlan.supportContent || ""
+      ),
+    [effectivePlan]
+  );
+  const hasUnsavedChanges =
+    foodsEditorSignature(meals, planExtras, supportContent) !== baselineSignature;
+
+  useEffect(() => {
+    onUnsavedChange?.(hasUnsavedChanges);
+    // On unmount the content is gone, so it can no longer be lost — clear the
+    // flag before the other editor mounts and reports its own.
+    return () => onUnsavedChange?.(false);
+  }, [hasUnsavedChanges, onUnsavedChange]);
 
   const dailyTotals = meals.reduce(
     (acc, meal) => {
@@ -180,20 +225,12 @@ function MealPlanEditorV2Body({
   /** Create a DB draft (with current items) and return its ID. */
   async function ensureDraft(): Promise<string | null> {
     if (draftId) return draftId;
-    const result = await createDraftMealPlan({
-      clientId,
-      weekStartDate,
-      items: flattenMeals(meals),
-      planExtras: planExtras ?? undefined,
-      // Explicit `null`, not `undefined`, when the textarea is empty. On the
-      // create path `undefined` means "not touched" and the service carries the
-      // previous published plan's notes forward (T-101), which would silently
-      // resurrect notes the coach just cleared as soon as router.refresh()
-      // re-seeded this field. The textarea is pre-populated from the effective
-      // plan, so an empty box always means "no notes for this week".
-      // (Clearing notes on the SAVE path is still T-732.)
-      supportContent: supportContent.trim() === "" ? null : supportContent,
-    });
+    // Payload shape (including the explicit `planMode: "MEAL_PLAN"`) lives in
+    // lib/meal-plans/editor-state.ts so it is covered by a unit test rather
+    // than only by a comment in a component — T-102a review, finding 2.
+    const result = await createDraftMealPlan(
+      buildFoodsDraftInput({ clientId, weekStartDate, meals, planExtras, supportContent })
+    );
     if ("mealPlanId" in result) {
       setDraftId(result.mealPlanId);
       return result.mealPlanId;

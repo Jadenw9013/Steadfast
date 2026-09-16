@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { parseWeekStartDate, getCurrentWeekMonday } from "@/lib/utils/date";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
 import { mealMacroTargetSchema, planModeSchema } from "@/lib/meal-plans/macro-targets";
+import { resolveDefaultPlanMode, resolveEditorPlanMode } from "@/lib/meal-plans/plan-mode";
 import {
   mealPlanItemSchema,
   supportContentInputSchema,
@@ -88,45 +89,56 @@ export async function GET(req: NextRequest, { params }: Params) {
       fats: true,
     } as const;
 
-    const draft = await db.mealPlan.findFirst({
-      where: { clientId, weekOf, status: "DRAFT" },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        weekOf: true,
-        version: true,
-        status: true,
-        planMode: true,
-        planExtras: true,
-        supportContent: true,
-        items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
-        macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
-      },
-    });
+    // All three reads in parallel — the CoachClient.planMode read adds no
+    // latency. Mirrors `getEffectiveMealPlanForReview` in lib/queries/meal-plans.ts
+    // so the two coach-facing readers compose lib/meal-plans/plan-mode.ts the
+    // same way. The published read is scoped to the requested week, matching the
+    // draft lookup. The previous unscoped lookup returned the globally-latest
+    // published plan while reporting `source: "published"` and a `weekOf` from a
+    // different week (T-101, audit note 2). The default-week branch above is
+    // unaffected: it derives `weekOf` from the latest published plan, so this
+    // returns that same row. Its own defect (preferring the latest published
+    // week over the current week) is T-731.
+    const [draft, published, clientPlanMode] = await Promise.all([
+      db.mealPlan.findFirst({
+        where: { clientId, weekOf, status: "DRAFT" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          weekOf: true,
+          version: true,
+          status: true,
+          planMode: true,
+          planExtras: true,
+          supportContent: true,
+          items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
+          macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
+        },
+      }),
+      db.mealPlan.findFirst({
+        where: { clientId, weekOf, status: "PUBLISHED" },
+        orderBy: { publishedAt: "desc" },
+        select: {
+          id: true,
+          weekOf: true,
+          version: true,
+          status: true,
+          planMode: true,
+          planExtras: true,
+          supportContent: true,
+          publishedAt: true,
+          items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
+          macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
+        },
+      }),
+      resolveDefaultPlanMode(user.id, clientId),
+    ]);
 
-    // Scoped to the requested week, matching the draft lookup above. The
-    // previous unscoped lookup returned the globally-latest published plan
-    // while reporting `source: "published"` and a `weekOf` from a different
-    // week (T-101, audit note 2). The default-week branch above is unaffected:
-    // it derives `weekOf` from the latest published plan, so this returns that
-    // same row. Its own defect (preferring the latest published week over the
-    // current week) is T-731.
-    const published = await db.mealPlan.findFirst({
-      where: { clientId, weekOf, status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-      select: {
-        id: true,
-        weekOf: true,
-        version: true,
-        status: true,
-        planMode: true,
-        planExtras: true,
-        supportContent: true,
-        publishedAt: true,
-        items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
-        macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
-      },
-    });
+    // Computed from the DRAFT for the requested week ONLY — never from
+    // `published`, and never from `active` below, or a toggle on a
+    // published-only week would silently do nothing again (T-102a).
+    // See lib/meal-plans/plan-mode.ts.
+    const editorMode = resolveEditorPlanMode(draft?.planMode ?? null, clientPlanMode);
 
     const active = draft ?? published;
 
@@ -155,6 +167,12 @@ export async function GET(req: NextRequest, { params }: Params) {
       // Server-computed "current week" — clients should prefer this over
       // any on-device date math when seeding a brand-new plan's weekOf.
       currentWeekOf: getCurrentWeekMonday().toISOString(),
+      // T-102a, additive. Always present and never null, including when
+      // `mealPlan` is null — that empty case is the whole point. `mealPlan
+      // .planMode` above is unchanged and still means "the planMode of the row
+      // in `mealPlan`"; `editorMode` is what the coach's editor must render.
+      clientPlanMode,
+      editorMode,
     });
   } catch (err) {
     console.error("[GET /api/coach/clients/[clientId]/meal-plan]", err);

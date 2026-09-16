@@ -597,7 +597,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 |---|---|---|
 | GET | `/api/coach/clients` | Client roster |
 | GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove |
-| GET/POST/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. Auth + zod wrapper only — `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork, shared with the `createDraftMealPlan` / `saveDraftMealPlan` Server Actions and with `/api/mealplans/import-plan`. |
+| GET/POST/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. Auth + zod wrapper only — `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork, shared with the `createDraftMealPlan` / `saveDraftMealPlan` Server Actions and with `/api/mealplans/import-plan`. GET also returns `clientPlanMode` (the `CoachClient.planMode` default) and `editorMode` (which editor the coach must render), both resolved by `lib/meal-plans/plan-mode.ts` — the single source of truth for coach editor-mode resolution, shared with the web query `getEffectiveMealPlanForReview`. Neither is `mealPlan.planMode`, which stays the published/draft row's own snapshot that clients read. |
 | POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Auth + zod wrapper only — `lib/meal-plans/publish.ts` is the single source of truth for the DRAFT→PUBLISHED transition, shared with the `publishMealPlan` Server Action and with `/api/mealplans/import-plan`. |
 | GET/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD |
 | POST | `/api/coach/clients/[clientId]/training/publish` | Publish training program |

@@ -3,6 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setClientPlanMode } from "@/app/actions/plan-mode";
+import {
+  PLAN_MODE_SWITCH_WARNING,
+  shouldProceedWithModeSwitch,
+} from "@/lib/meal-plans/editor-state";
 
 type PlanMode = "MEAL_PLAN" | "MACROS";
 
@@ -11,7 +15,17 @@ const OPTIONS: { value: PlanMode; label: string; sub: string }[] = [
   { value: "MACROS", label: "Macros Only", sub: "Targets, no foods" },
 ];
 
-export function PlanModeToggle({ clientId, initialMode }: { clientId: string; initialMode: PlanMode }) {
+export function PlanModeToggle({
+  clientId,
+  initialMode,
+  hasUnsavedChanges = false,
+}: {
+  clientId: string;
+  initialMode: PlanMode;
+  /** Reported by the editor mounted below — switching mode unmounts it and
+   *  throws away everything it holds in `useState` (T-102a review, finding 1). */
+  hasUnsavedChanges?: boolean;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<PlanMode>(initialMode);
   const [pending, startTransition] = useTransition();
@@ -19,7 +33,18 @@ export function PlanModeToggle({ clientId, initialMode }: { clientId: string; in
   const activeIndex = OPTIONS.findIndex((o) => o.value === mode);
 
   function handleSelect(next: PlanMode) {
-    if (next === mode || pending) return;
+    // The mode switch swaps the editor below, and editor content lives only in
+    // `useState` until an explicit Save — so confirm first when there is
+    // something to lose. Cancelling must leave `mode` untouched: the editor
+    // stays mounted and keeps its content.
+    const proceed = shouldProceedWithModeSwitch({
+      current: mode,
+      next,
+      pending,
+      hasUnsavedChanges,
+      confirmDiscard: () => window.confirm(PLAN_MODE_SWITCH_WARNING),
+    });
+    if (!proceed) return;
     const previous = mode;
     setMode(next);
     setError(null);

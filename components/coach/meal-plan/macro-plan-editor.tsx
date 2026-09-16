@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createDraftMealPlan, saveDraftMealPlan, publishMealPlan } from "@/app/actions/meal-plans";
+import { buildMacroDraftInput, macroEditorSignature } from "@/lib/meal-plans/editor-state";
 import { MealPlanActions } from "./meal-plan-actions";
 import {
   macroTargetsToEditable,
@@ -139,11 +140,13 @@ export function MacroPlanEditor({
   weekStartDate,
   effectivePlan,
   coachDefaultNotify,
+  onUnsavedChange,
 }: {
   clientId: string;
   weekStartDate: string;
   effectivePlan: EffectiveMealPlan;
   coachDefaultNotify?: boolean;
+  onUnsavedChange?: (hasUnsavedChanges: boolean) => void;
 }) {
   const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(effectivePlan.draftId);
@@ -159,6 +162,20 @@ export function MacroPlanEditor({
   // Foods from a prior MEAL_PLAN-mode edit of this same plan (if any) — the source autofill estimates from.
   const hasExistingItems = effectivePlan.items.length > 0;
 
+  // Mirror of the foods editor: the plan-mode toggle above unmounts this editor
+  // and everything typed into it, so report whether the current targets differ
+  // from the ones this editor was seeded with (T-102a review, finding 1).
+  const baselineSignature = useMemo(
+    () => macroEditorSignature(effectivePlan.macroTargets),
+    [effectivePlan]
+  );
+  const hasUnsavedChanges = macroEditorSignature(meals) !== baselineSignature;
+
+  useEffect(() => {
+    onUnsavedChange?.(hasUnsavedChanges);
+    return () => onUnsavedChange?.(false);
+  }, [hasUnsavedChanges, onUnsavedChange]);
+
   const dailyTotals = meals.reduce(
     (acc, m) => ({
       calories: acc.calories + m.calories,
@@ -171,12 +188,11 @@ export function MacroPlanEditor({
 
   async function ensureDraft(): Promise<string | null> {
     if (draftId) return draftId;
-    const result = await createDraftMealPlan({
-      clientId,
-      weekStartDate,
-      planMode: "MACROS",
-      macroTargets: flattenMacroMeals(meals),
-    });
+    // Payload shape (including the explicit `planMode: "MACROS"`) lives in
+    // lib/meal-plans/editor-state.ts, under unit test — T-102a review, finding 2.
+    const result = await createDraftMealPlan(
+      buildMacroDraftInput({ clientId, weekStartDate, meals })
+    );
     if ("mealPlanId" in result) {
       setDraftId(result.mealPlanId);
       return result.mealPlanId;

@@ -4,10 +4,10 @@ import type { MealPlanStatus, PlanMode, Prisma } from "@/app/generated/prisma/cl
 import { planExtrasSchema, type PlanExtras } from "@/types/meal-plan-extras";
 import {
   macroTargetTransactionOps,
-  resolveDefaultPlanMode,
   type MealMacroTargetInput,
   type PlanModeInput,
 } from "@/lib/meal-plans/macro-targets";
+import { resolveDefaultPlanMode } from "@/lib/meal-plans/plan-mode";
 import { createMealPlanWithNextVersion } from "@/lib/meal-plans/version";
 
 /**
