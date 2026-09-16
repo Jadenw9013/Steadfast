@@ -47,7 +47,8 @@ export function MealPlanEditor({
       const result = await createDraftMealPlan({
         clientId,
         weekStartDate,
-        copyFromPublished,
+        // Copy-forward is the default now; `startBlank` is the only opt-out.
+        startBlank: !copyFromPublished,
       });
       if ("mealPlanId" in result) {
         router.refresh();

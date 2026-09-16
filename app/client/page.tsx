@@ -327,11 +327,17 @@ export default async function ClientDashboard() {
       {/* TODAY'S PLAN — full-width detailed cards */}
       {(mealPlan || (trainingProgram && trainingProgram.days.length > 0)) && (() => {
         // ── Nutrition data ──
-        const uniqueMeals = mealPlan
-          ? [...new Set(mealPlan.items.map((i) => i.mealName))]
-          : [];
-        const totalMealCount = uniqueMeals.length;
-        const mealsLogged = todayAdherence?.meals?.filter((m) => m.completed).length ?? 0;
+        // T-101: `items` and `macroTargets` coexist on every version, so this
+        // card must not count raw `mealPlan.items` — a MACROS plan carries the
+        // previous foods week's items forward and would show food meals the
+        // client is never offered. `planMeals` is `getTodayMealNames`, the same
+        // mode-gated list the adherence checklist below and iOS's
+        // `/api/client/home` already use, so all three agree on the count.
+        const totalMealCount = planMeals.length;
+        const mealsLogged =
+          todayAdherence?.meals?.filter(
+            (m) => m.completed && planMeals.some((p) => p.mealName === m.mealNameSnapshot)
+          ).length ?? 0;
         const mealsRemaining = Math.max(0, totalMealCount - mealsLogged);
         const mealProgress = totalMealCount > 0 ? (mealsLogged / totalMealCount) * 100 : 0;
 
