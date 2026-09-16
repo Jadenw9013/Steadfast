@@ -4,6 +4,10 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { parseWeekStartDate } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
+import {
+  getTrainingProgramPublishTarget,
+  publishTrainingProgramTarget,
+} from "@/lib/training-programs/publish";
 import { revalidatePath } from "next/cache";
 
 const BLOCK_TYPES = ["EXERCISE", "ACTIVATION", "INSTRUCTION", "SUPERSET", "CARDIO", "OPTIONAL"] as const;
@@ -120,34 +124,19 @@ export async function publishTrainingProgram(input: unknown) {
   const parsed = publishSchema.safeParse(input);
   if (!parsed.success) throw new Error("Invalid input");
 
-  const program = await db.trainingProgram.findUnique({
-    where: { id: parsed.data.programId },
-    select: { clientId: true, status: true },
-  });
-  if (!program) throw new Error("Training program not found");
-  if (program.status !== "DRAFT") throw new Error("Can only publish drafts");
+  const target = await getTrainingProgramPublishTarget(parsed.data.programId);
+  if (!target) throw new Error("Training program not found");
 
-  await verifyCoachAccessToClient(program.clientId);
+  await verifyCoachAccessToClient(target.clientId);
 
-  // Atomic: demote the client's other currently-PUBLISHED program to
-  // SUPERSEDED (CB05 — at most one PUBLISHED program per client, enforced
-  // by a partial unique index) before publishing this one, and only flip
-  // this program's status if it's still DRAFT (guards a concurrent
-  // double-publish via updateMany's affected-row count).
-  const publishedAt = new Date();
-  const result = await db.$transaction(async (tx) => {
-    await tx.trainingProgram.updateMany({
-      // Exclude the target itself — see app/actions/meal-plans.ts's identical
-      // guard against a losing racer clobbering the winner's just-published row.
-      where: { clientId: program.clientId, status: "PUBLISHED", id: { not: parsed.data.programId } },
-      data: { status: "SUPERSEDED" },
-    });
-    return tx.trainingProgram.updateMany({
-      where: { id: parsed.data.programId, status: "DRAFT" },
-      data: { status: "PUBLISHED", publishedAt },
-    });
-  });
-  if (result.count === 0) {
+  // CB05 supersede + race guard live in lib/training-programs/publish.ts, the
+  // only writer of TrainingProgram.status = "PUBLISHED" (T-739). The
+  // status !== "DRAFT" check now runs inside the service, i.e. AFTER the
+  // access check rather than before it — intentional, and identical to the
+  // ordering T-660 established for meal plans.
+  const result = await publishTrainingProgramTarget(target);
+  if (!result.ok) {
+    if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
     throw new Error("This program was already published or changed by someone else — refresh and try again.");
   }
 

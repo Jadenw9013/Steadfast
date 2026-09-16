@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
+import {
+  getTrainingProgramPublishTarget,
+  publishTrainingProgramTarget,
+} from "@/lib/training-programs/publish";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -46,46 +50,28 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { programId } = parsed.data;
 
-    const program = await db.trainingProgram.findUnique({
-      where: { id: programId },
-      select: { clientId: true, status: true },
-    });
-    if (!program) {
+    const target = await getTrainingProgramPublishTarget(programId);
+    if (!target) {
       return NextResponse.json(
         { error: "Training program not found" },
         { status: 404 }
       );
     }
-    if (program.clientId !== clientId) {
+    if (target.clientId !== clientId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (program.status !== "DRAFT") {
-      return NextResponse.json(
-        { error: "Can only publish drafts" },
-        { status: 409 }
-      );
-    }
 
-    // CB05: demote the client's other currently-PUBLISHED program to
-    // SUPERSEDED atomically with this publish (partial unique index enforces
-    // at most one PUBLISHED per client), and only flip this program's
-    // status if it's still DRAFT (guards a concurrent double-publish).
-    const publishedAt = new Date();
-    const result = await db.$transaction(async (tx) => {
-      await tx.trainingProgram.updateMany({
-        // Exclude the target itself — a losing racer must never clobber the
-        // row the winner just published.
-        where: { clientId, status: "PUBLISHED", id: { not: programId } },
-        data: { status: "SUPERSEDED" },
-      });
-      return tx.trainingProgram.updateMany({
-        where: { id: programId, status: "DRAFT" },
-        data: { status: "PUBLISHED", publishedAt },
-      });
-    });
-    if (result.count === 0) {
+    // CB05 supersede + race guard live in lib/training-programs/publish.ts,
+    // the only writer of TrainingProgram.status = "PUBLISHED" (T-739).
+    const result = await publishTrainingProgramTarget(target);
+    if (!result.ok) {
       return NextResponse.json(
-        { error: "This program was already published or changed by someone else" },
+        result.code === "RACE_LOST"
+          ? {
+              error: "This program was already published or changed by someone else",
+              code: "PUBLISH_RACE_LOST",
+            }
+          : { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
         { status: 409 }
       );
     }
