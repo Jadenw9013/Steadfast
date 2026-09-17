@@ -1,34 +1,33 @@
 "use server";
 
 import { z } from "zod";
-import { db } from "@/lib/db";
 import { parseWeekStartDate } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import {
   getTrainingProgramPublishTarget,
   publishTrainingProgramTarget,
 } from "@/lib/training-programs/publish";
+import {
+  clientNotesSchema,
+  createTrainingProgramDraft,
+  findTrainingDraftForWeek,
+  saveTrainingProgramContent,
+  trainingDaysSchema,
+  weeklyFrequencySchema,
+} from "@/lib/training-programs/drafts";
 import { revalidatePath } from "next/cache";
 
-const BLOCK_TYPES = ["EXERCISE", "ACTIVATION", "INSTRUCTION", "SUPERSET", "CARDIO", "OPTIONAL"] as const;
-
-const blockSchema = z.object({
-  type: z.enum(BLOCK_TYPES),
-  title: z.string().max(200).default(""),
-  content: z.string().max(5000).default(""),
-});
-
-const daySchema = z.object({
-  dayName: z.string().min(1).max(100),
-  blocks: z.array(blockSchema).max(50).default([]),
-});
-
+// The block/day schemas, the block-type enum, sortOrder normalization and the
+// CB05 fork rule all live in lib/training-programs/drafts.ts — the single
+// writer of training-program content, shared verbatim with the iOS-facing
+// PUT/POST /api/coach/clients/[clientId]/training. Do not redeclare them here
+// (T-622: the two copies had drifted to different block types and limits).
 const saveSchema = z.object({
   clientId: z.string().min(1),
   weekStartDate: z.string().min(1),
-  days: z.array(daySchema).max(14),
-  weeklyFrequency: z.coerce.number().int().min(1).max(7).optional(),
-  clientNotes: z.string().max(1000).optional(),
+  days: trainingDaysSchema,
+  weeklyFrequency: weeklyFrequencySchema.optional(),
+  clientNotes: clientNotesSchema.optional(),
   injuries: z.string().max(500).optional(),
   equipment: z.string().max(500).optional(),
   templateSourceId: z.string().optional(),
@@ -56,16 +55,6 @@ export async function saveTrainingProgram(input: unknown) {
 
   const weekOf = parseWeekStartDate(weekStartDate);
 
-  // CB05: only ever continue editing an existing DRAFT. A PUBLISHED or
-  // SUPERSEDED program for this client/week is never demoted or mutated —
-  // that previously let a save silently flip a client's live program back
-  // to DRAFT (and overwrite its content) mid-edit. Editing one instead
-  // creates a brand-new draft.
-  const existing = await db.trainingProgram.findFirst({
-    where: { clientId, weekOf, status: "DRAFT" },
-    select: { id: true },
-  });
-
   const metadata = {
     weeklyFrequency: weeklyFrequency ?? null,
     clientNotes: clientNotes ?? null,
@@ -73,44 +62,17 @@ export async function saveTrainingProgram(input: unknown) {
     equipment: equipment ?? null,
     templateSourceId: templateSourceId ?? null,
   };
-  const dayCreateOps = (programId: string) =>
-    days.map((day, i) =>
-      db.trainingDay.create({
-        data: {
-          programId,
-          dayName: day.dayName,
-          sortOrder: i,
-          blocks: {
-            create: day.blocks.map((b, j) => ({
-              type: b.type,
-              title: b.title,
-              content: b.content,
-              sortOrder: j,
-            })),
-          },
-        },
-      })
-    );
 
-  let programId: string;
-  if (existing) {
-    programId = existing.id;
-    // Metadata and children commit together (CB05 — previously the
-    // metadata update and the days/blocks replacement were two separate,
-    // non-atomic operations).
-    await db.$transaction([
-      db.trainingProgram.update({ where: { id: programId }, data: metadata }),
-      db.trainingDay.deleteMany({ where: { programId } }),
-      ...dayCreateOps(programId),
-    ]);
-  } else {
-    const program = await db.trainingProgram.create({
-      data: { clientId, weekOf, status: "DRAFT", ...metadata },
-      select: { id: true },
-    });
-    programId = program.id;
-    await db.$transaction(dayCreateOps(programId));
-  }
+  // CB05: only ever continue editing an existing DRAFT. A PUBLISHED or
+  // SUPERSEDED program for this client/week is never demoted or mutated —
+  // that previously let a save silently flip a client's live program back
+  // to DRAFT (and overwrite its content) mid-edit. Editing one instead
+  // creates a brand-new draft.
+  const existing = await findTrainingDraftForWeek(clientId, weekOf);
+
+  const { programId } = existing
+    ? await saveTrainingProgramContent(existing, { days, metadata })
+    : await createTrainingProgramDraft({ clientId, weekOf, days, metadata });
 
   revalidatePath("/coach", "layout");
   return { programId };

@@ -3,6 +3,15 @@ import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { parseWeekStartDate, getCurrentWeekMonday } from "@/lib/utils/date";
+import {
+  clientNotesSchema,
+  createTrainingProgramDraft,
+  getTrainingSaveTarget,
+  saveTrainingProgramContent,
+  trainingDaysSchema,
+  weeklyFrequencySchema,
+  type TrainingDayInput,
+} from "@/lib/training-programs/drafts";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -133,11 +142,15 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 // ── POST — create a new draft training program ────────────────────────────────
 
+// `weeklyFrequency`/`clientNotes` are the shared schemas, identical to PUT's —
+// POST used to declare its own copies, so `{"weeklyFrequency": "3"}` 422ed here
+// while the same value succeeded on PUT (only the shared schema coerces, and the
+// web editor's `<select>` sends a string). One predicate, both methods (T-622).
 const createTrainingDraftSchema = z.object({
   weekOf: z.string().min(1),
   copyFromPublished: z.boolean().default(false),
-  weeklyFrequency: z.number().int().min(1).max(7).optional(),
-  clientNotes: z.string().max(2000).optional(),
+  weeklyFrequency: weeklyFrequencySchema.optional().nullable(),
+  clientNotes: clientNotesSchema.optional().nullable(),
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
@@ -176,10 +189,12 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
     }
 
-    // Seed days from published if requested
-    type BlockSeed = { type: string; title: string | null; content: string | null; sortOrder: number };
-    type DaySeed = { dayName: string | null; sortOrder: number; blocks: BlockSeed[] };
-    let daysToCreate: DaySeed[] = [];
+    // Seed days from published if requested. The rows come straight out of the
+    // DB, so they already satisfy TrainingDayInput (dayName/title/content are
+    // NOT NULL columns and type is a real BlockType) — no cast, and no
+    // `dayName || undefined`, which used to turn a published day named "" into
+    // a 500 on a required column.
+    let daysToCreate: TrainingDayInput[] = [];
 
     if (copyFromPublished) {
       const published = await db.trainingProgram.findFirst({
@@ -200,30 +215,24 @@ export async function POST(req: NextRequest, { params }: Params) {
         },
       });
       if (published) {
-        daysToCreate = published.days.map(d => ({ ...d, dayName: d.dayName ?? "" }));
+        daysToCreate = published.days;
       }
     }
 
-    const program = await db.trainingProgram.create({
-      data: {
-        clientId,
-        weekOf,
-        status: "DRAFT",
+    const { programId } = await createTrainingProgramDraft({
+      clientId,
+      weekOf,
+      days: daysToCreate,
+      metadata: {
         weeklyFrequency: weeklyFrequency ?? null,
         clientNotes: clientNotes ?? null,
-        days: {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          create: daysToCreate.map((d) => ({
-            dayName: d.dayName || undefined,
-            sortOrder: d.sortOrder,
-            blocks: { create: d.blocks },
-          })) as any,
-        },
       },
-      select: { id: true, weekOf: true, status: true },
     });
 
-    return NextResponse.json({ program }, { status: 201 });
+    return NextResponse.json(
+      { program: { id: programId, weekOf, status: "DRAFT" } },
+      { status: 201 }
+    );
   } catch (err) {
     console.error("[POST /api/coach/clients/[clientId]/training]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
@@ -232,24 +241,18 @@ export async function POST(req: NextRequest, { params }: Params) {
 
 // ── PUT — replace all days + blocks in a draft program ───────────────────────
 
-const blockSchema = z.object({
-  type: z.enum(["TEXT", "EXERCISE"]),
-  title: z.string().max(200).nullable().optional(),
-  content: z.string().max(2000).nullable().optional(),
-  sortOrder: z.number().int().min(0),
-});
-
-const daySchema = z.object({
-  dayName: z.string().max(100).nullable().optional(),
-  sortOrder: z.number().int().min(0),
-  blocks: z.array(blockSchema).max(30),
-});
-
+// The day/block schemas come from lib/training-programs/drafts.ts, the single
+// writer of training-program content, shared verbatim with the
+// `saveTrainingProgram` Server Action. This route used to declare its own copy
+// accepting only `["TEXT", "EXERCISE"]` — `"TEXT"` is not a member of
+// `enum BlockType` (it could only ever 500 at the DB) and the four legitimate
+// non-exercise types were rejected with 422 while the action accepted them
+// (T-622). Do not redeclare them here.
 const saveTrainingDraftSchema = z.object({
   programId: z.string().min(1),
-  days: z.array(daySchema).max(14),
-  weeklyFrequency: z.number().int().min(1).max(7).optional().nullable(),
-  clientNotes: z.string().max(2000).optional().nullable(),
+  days: trainingDaysSchema,
+  weeklyFrequency: weeklyFrequencySchema.optional().nullable(),
+  clientNotes: clientNotesSchema.optional().nullable(),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -282,91 +285,33 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const { programId, days, weeklyFrequency, clientNotes } = parsed.data;
 
-    const program = await db.trainingProgram.findUnique({
-      where: { id: programId },
-      select: { clientId: true, status: true, weekOf: true, templateSourceId: true, injuries: true, equipment: true },
-    });
-    if (!program) {
+    const target = await getTrainingSaveTarget(programId);
+    if (!target) {
       return NextResponse.json({ error: "Program not found" }, { status: 404 });
     }
-    if (program.clientId !== clientId) {
+    if (target.clientId !== clientId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // CB05: never demote or mutate a PUBLISHED/SUPERSEDED program in place —
-    // fork a new draft carrying the submitted content instead. Mirrors
-    // app/actions/training-programs.ts's saveTrainingProgram.
-    if (program.status !== "DRAFT") {
-      const forkedId = await db.$transaction(async (tx) => {
-        const fresh = await tx.trainingProgram.create({
-          data: {
-            clientId,
-            weekOf: program.weekOf,
-            status: "DRAFT",
-            weeklyFrequency: weeklyFrequency ?? null,
-            clientNotes: clientNotes ?? null,
-            injuries: program.injuries,
-            equipment: program.equipment,
-            templateSourceId: program.templateSourceId,
-          },
-          select: { id: true },
-        });
-        for (const day of days) {
-          await tx.trainingDay.create({
-            data: {
-              programId: fresh.id,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              dayName: (day.dayName || undefined) as any,
-              sortOrder: day.sortOrder,
-              blocks: {
-                create: day.blocks.map((b) => ({
-                  type: b.type,
-                  title: b.title ?? null,
-                  content: b.content ?? null,
-                  sortOrder: b.sortOrder,
-                })),
-              },
-            },
-          });
-        }
-        return fresh.id;
-      });
-      return NextResponse.json({ success: true, forkedNewProgramId: forkedId });
-    }
-
-    // Atomic replace: delete all days (cascades to blocks), recreate
-    await db.$transaction(async (tx) => {
-      await tx.trainingDay.deleteMany({ where: { programId } });
-
-      for (const day of days) {
-        await tx.trainingDay.create({
-          data: {
-            programId,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            dayName: (day.dayName || undefined) as any,
-            sortOrder: day.sortOrder,
-            blocks: {
-              create: day.blocks.map((b) => ({
-                type: b.type,
-                title: b.title ?? null,
-                content: b.content ?? null,
-                sortOrder: b.sortOrder,
-              })),
-            },
-          },
-        });
-      }
-
-      await tx.trainingProgram.update({
-        where: { id: programId },
-        data: {
-          weeklyFrequency: weeklyFrequency ?? null,
-          clientNotes: clientNotes ?? null,
-        },
-      });
+    // CB05 (never demote or mutate a PUBLISHED/SUPERSEDED program in place —
+    // fork a new draft carrying the submitted content instead) lives in the
+    // shared service, so this route and the Server Action can never disagree.
+    // `injuries`/`equipment`/`templateSourceId` are deliberately absent from
+    // the metadata: this surface does not carry them, so they must be left
+    // alone (and inherited by a fork) rather than cleared.
+    const { forkedNewProgramId } = await saveTrainingProgramContent(target, {
+      days,
+      metadata: {
+        weeklyFrequency: weeklyFrequency ?? null,
+        clientNotes: clientNotes ?? null,
+      },
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      programId,
+      ...(forkedNewProgramId && { forkedNewProgramId }),
+    });
   } catch (err) {
     console.error("[PUT /api/coach/clients/[clientId]/training]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
