@@ -23,19 +23,6 @@ export async function getCurrentPublishedMealPlan(clientId: string, publishedAft
   });
 }
 
-export async function getMealPlanHistory(clientId: string) {
-  return db.mealPlan.findMany({
-    where: { clientId, status: "PUBLISHED" },
-    orderBy: { publishedAt: "desc" },
-    select: {
-      id: true,
-      weekOf: true,
-      version: true,
-      publishedAt: true,
-    },
-  });
-}
-
 export async function getDraftMealPlan(clientId: string, weekOf: Date) {
   return db.mealPlan.findFirst({
     where: { clientId, weekOf, status: "DRAFT" },

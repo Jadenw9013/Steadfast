@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { parseWeekStartDate } from "@/lib/utils/date";
+import { parseWeekStartDate, formatDateUTC } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { revalidatePath } from "next/cache";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
@@ -22,6 +22,12 @@ import {
   getMealPlanPublishTarget,
   publishMealPlanTarget,
 } from "@/lib/meal-plans/publish";
+import {
+  createDraftFromMealPlanVersion,
+  draftExistsMessage,
+  getMealPlanVersionDetail,
+  sourceNotRestorableMessage,
+} from "@/lib/meal-plans/history";
 
 const createDraftSchema = z.object({
   clientId: z.string().min(1),
@@ -152,4 +158,57 @@ export async function publishMealPlan(input: unknown) {
   }
 
   return { success: true };
+}
+
+const restoreVersionSchema = z.object({
+  clientId: z.string().min(1),
+  sourceMealPlanId: z.string().min(1),
+  weekStartDate: z.string().min(1).optional(),
+  replaceExistingDraft: z.boolean().optional(),
+});
+
+/**
+ * T-801 — restores a past PUBLISHED/SUPERSEDED meal plan version into a new
+ * DRAFT for the coach to review and publish. Never mutates or un-publishes
+ * history — all restore logic lives in lib/meal-plans/history.ts, shared with
+ * the REST route `POST /api/coach/clients/[clientId]/meal-plan/restore`.
+ */
+export async function restoreMealPlanVersion(input: unknown): Promise<
+  | { success: true; draftMealPlanId: string; weekStartDate: string; replacedDraftIds: string[] }
+  | { error: string; code: "SOURCE_NOT_RESTORABLE" }
+  | { error: string; code: "DRAFT_EXISTS"; existingDraftId: string }
+> {
+  const parsed = restoreVersionSchema.safeParse(input);
+  if (!parsed.success) throw new Error("Invalid input");
+
+  const { clientId, sourceMealPlanId, weekStartDate, replaceExistingDraft } = parsed.data;
+  const coach = await verifyCoachAccessToClient(clientId);
+
+  const source = await getMealPlanVersionDetail(sourceMealPlanId);
+  if (!source) throw new Error("Meal plan not found");
+  // Never leaks another client's existence — same "not found" whether the id
+  // is unknown or simply belongs to someone else.
+  if (source.clientId !== clientId) throw new Error("Meal plan not found");
+
+  const result = await createDraftFromMealPlanVersion({
+    source,
+    coachId: coach.id,
+    weekOf: weekStartDate ? parseWeekStartDate(weekStartDate) : undefined,
+    replaceExistingDraft,
+  });
+
+  if (!result.ok) {
+    if (result.code === "SOURCE_NOT_RESTORABLE") {
+      return { error: sourceNotRestorableMessage(), code: "SOURCE_NOT_RESTORABLE" };
+    }
+    return { error: draftExistsMessage(), code: "DRAFT_EXISTS", existingDraftId: result.existingDraftId };
+  }
+
+  revalidatePath("/coach", "layout");
+  return {
+    success: true,
+    draftMealPlanId: result.draftMealPlanId,
+    weekStartDate: formatDateUTC(result.weekOf),
+    replacedDraftIds: result.replacedDraftIds,
+  };
 }
