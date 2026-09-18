@@ -3,7 +3,17 @@
 import { useState, useMemo, useTransition } from "react";
 import { parsePlanExtras, SUPPLEMENT_TIMING_ORDER, getOverrideColor, type PlanExtras, type DayOverride, type MealAdjustment, type MealChange } from "@/types/meal-plan-extras";
 import { toggleMealCheckoff } from "@/app/actions/adherence";
-import { MacroPlanView } from "./macro-plan-view";
+import { MacroMealList } from "./macro-plan-view";
+import { DailyTotalsCard, formatTotal } from "./daily-totals-card";
+import {
+  resolveClientPlanView,
+  isCheckoffEligible,
+  seedSelectedDay,
+  deriveCheckoffNames,
+  DEGRADED_NOTICE,
+  CHECKOFFS_PAUSED_HINT,
+  type ClientPlanDegradation,
+} from "@/lib/meal-plans/client-plan-view";
 import type { MacroMealTarget } from "@/types/meal-plan";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -68,6 +78,16 @@ function getCurrentWeekday(): Weekday {
   const jsDay = new Date().getDay();
   const mapped = jsDay === 0 ? 6 : jsDay - 1;
   return WEEKDAYS[mapped];
+}
+
+/** Guarded narrowing for `seedSelectedDay`'s plain-`string` return (T-802a
+ *  review r3, NIT 4). Both known call sites today only ever pass a valid
+ *  `en-US` long weekday, but this validates rather than trusting an
+ *  unchecked `as Weekday` cast, so a future caller passing something else
+ *  (e.g. `"monday"`) falls back to the browser clock instead of silently
+ *  highlighting no chip in `DaySelector`. */
+function isWeekday(value: string): value is Weekday {
+  return (WEEKDAYS as readonly string[]).includes(value);
 }
 
 // ── Quantity display (matches iOS quantityLabel) ─────────────────────────────
@@ -315,42 +335,6 @@ function MetadataSection({ extras }: { extras: PlanExtras }) {
   );
 }
 
-// ── Macro Summary ────────────────────────────────────────────────────────────
-
-function MacroSummary({ items }: { items: ResolvedItem[] }) {
-  const totals = useMemo(() => {
-    let cal = 0, pro = 0, carb = 0, fat = 0;
-    for (const item of items) {
-      cal += item.calories || 0;
-      pro += item.protein || 0;
-      carb += item.carbs || 0;
-      fat += item.fats || 0;
-    }
-    return { calories: cal, protein: pro, carbs: carb, fats: fat };
-  }, [items]);
-
-  // Don't show if no macro data at all
-  if (totals.calories === 0 && totals.protein === 0 && totals.carbs === 0 && totals.fats === 0) return null;
-
-  const macros = [
-    { label: "Cal", value: `${totals.calories}` },
-    { label: "P", value: `${totals.protein}g` },
-    { label: "C", value: `${totals.carbs}g` },
-    { label: "F", value: `${totals.fats}g` },
-  ];
-
-  return (
-    <div className="flex items-center gap-4 rounded-xl bg-white/[0.03] px-4 py-2.5 text-xs">
-      {macros.map(({ label, value }) => (
-        <span key={label} className="tabular-nums">
-          <span className="font-bold text-zinc-300">{value}</span>
-          <span className="ml-0.5 text-zinc-600">{label}</span>
-        </span>
-      ))}
-    </div>
-  );
-}
-
 // ── Per-meal macro subtotal ──────────────────────────────────────────────────
 
 function MealMacroBar({ items }: { items: ResolvedItem[] }) {
@@ -369,10 +353,10 @@ function MealMacroBar({ items }: { items: ResolvedItem[] }) {
 
   return (
     <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold text-zinc-500">
-      {totals.calories > 0 && <span>{totals.calories} cal</span>}
-      {totals.protein > 0 && <span className="text-emerald-500/70">{totals.protein}g P</span>}
-      {totals.carbs > 0 && <span className="text-amber-500/70">{totals.carbs}g C</span>}
-      {totals.fats > 0 && <span className="text-rose-500/70">{totals.fats}g F</span>}
+      {totals.calories > 0 && <span>{formatTotal(totals.calories)} cal</span>}
+      {totals.protein > 0 && <span className="text-emerald-500/70">{formatTotal(totals.protein)}g P</span>}
+      {totals.carbs > 0 && <span className="text-amber-500/70">{formatTotal(totals.carbs)}g C</span>}
+      {totals.fats > 0 && <span className="text-rose-500/70">{formatTotal(totals.fats)}g F</span>}
     </div>
   );
 }
@@ -400,7 +384,7 @@ function DaySelector({
             key={day}
             type="button"
             onClick={() => onSelect(day)}
-            className={`relative flex min-w-[40px] flex-1 flex-col items-center gap-1 rounded-lg px-1.5 py-2 text-xs font-bold tracking-wide transition-all cursor-pointer ${
+            className={`relative flex min-h-[48px] min-w-[40px] flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-xs font-bold tracking-wide transition-all cursor-pointer ${
               isSelected
                 ? "bg-white/[0.10] text-white"
                 : "text-zinc-600 hover:text-zinc-400"
@@ -415,6 +399,76 @@ function DaySelector({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// ── Day context row (T-802 §2.1) ─────────────────────────────────────────────
+
+/** The static day row. When `hintOnly`, renders only the muted "not today"
+ *  hint (used beneath the weekday strip, which already shows the selected
+ *  day itself) — otherwise renders the full "Today · Monday" / "Viewing
+ *  Tuesday" line plus the hint. Closes D7: today the only signal that the
+ *  check-off circles disappeared is that they disappeared. */
+function DayContextRow({
+  selectedDay,
+  isViewingToday,
+  hintOnly = false,
+}: {
+  selectedDay: Weekday;
+  isViewingToday: boolean;
+  hintOnly?: boolean;
+}) {
+  if (isViewingToday) {
+    if (hintOnly) return null;
+    return (
+      <p className="text-xs font-semibold text-zinc-400">
+        <span className="text-zinc-200">Today</span> · {selectedDay}
+      </p>
+    );
+  }
+  return (
+    <div>
+      {!hintOnly && <p className="text-xs font-semibold text-zinc-400">Viewing {selectedDay}</p>}
+      <p className="mt-0.5 text-xs text-zinc-600">Check-offs are available on the day</p>
+    </div>
+  );
+}
+
+// ── Degraded notice (T-802 §4.2) ─────────────────────────────────────────────
+
+/** `showCheckoffHint` renders the second frozen line (T-802a review r3,
+ *  MINOR 3 / lead decision, `board/tickets/T-802.md`) only when the day
+ *  context would otherwise offer check-offs — viewing today, adherence
+ *  available — since that is the only case where their absence needs
+ *  explaining. */
+function DegradedNotice({
+  degradation,
+  showCheckoffHint,
+}: {
+  degradation: Exclude<ClientPlanDegradation, "NONE">;
+  showCheckoffHint: boolean;
+}) {
+  return (
+    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 px-5 py-4 text-sm text-amber-300">
+      <p>{DEGRADED_NOTICE[degradation]}</p>
+      {showCheckoffHint && (
+        <p className="mt-1.5 text-xs text-amber-300/70">{CHECKOFFS_PAUSED_HINT}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Empty-plan card (S1, S3) ─────────────────────────────────────────────────
+
+function PlanEmptyCard({ title, body }: { title: string; body: string }) {
+  return (
+    <div
+      className="sf-surface-card flex flex-col items-center gap-4 px-5 py-14 text-center sm:px-8 sm:py-20"
+      style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.08)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}
+    >
+      <p className="text-sm font-semibold">{title}</p>
+      <p className="mt-1 text-sm text-zinc-400">{body}</p>
     </div>
   );
 }
@@ -447,10 +501,6 @@ function ActiveOverrideBanner({ overrides }: { overrides: DayOverride[] }) {
   );
 }
 
-// ── Plan Notes ────────────────────────────────────────────────────────────────
-
-
-
 // ── Support Content ──────────────────────────────────────────────────────────
 
 function SupportContentSection({ content }: { content?: string | null }) {
@@ -465,151 +515,25 @@ function SupportContentSection({ content }: { content?: string | null }) {
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── Foods meal list (region 6, foods body) ───────────────────────────────────
 
-/** Dispatches to the macro-only view or the full food-based body — kept hook-free
- *  so switching planMode across a re-render never violates the Rules of Hooks
- *  (each branch below is its own component instance, not a conditional hook call). */
-export function SimpleMealPlan({
-  mealPlan,
-  adherence,
+/** The card map, moved as-is from the pre-T-802a foods branch apart from the
+ *  check-off control, which grows a 48×48 hit area (T-802 §2.4). */
+function FoodsMealList({
+  meals,
+  isViewingToday,
+  completedMeals,
+  onToggle,
+  pending,
 }: {
-  mealPlan: MealPlan;
-  adherence?: MealAdherenceProps;
+  meals: [string, ResolvedItem[]][];
+  isViewingToday: boolean;
+  completedMeals: Set<string>;
+  onToggle: (mealName: string, index: number) => void;
+  pending: boolean;
 }) {
-  if (mealPlan.planMode === "MACROS") {
-    return (
-      <MacroPlanView
-        meals={mealPlan.macroTargets ?? []}
-        supportContent={mealPlan.supportContent}
-        adherence={adherence ? { date: adherence.date, completedMeals: adherence.completedMeals } : undefined}
-      />
-    );
-  }
-
-  return <MealPlanBody mealPlan={mealPlan} adherence={adherence} />;
-}
-
-function MealPlanBody({
-  mealPlan,
-  adherence,
-}: {
-  mealPlan: MealPlan;
-  adherence?: MealAdherenceProps;
-}) {
-  const [selectedDay, setSelectedDay] = useState<Weekday>(getCurrentWeekday);
-  const [completedMeals, setCompletedMeals] = useState<Set<string>>(
-    () => new Set(adherence?.completedMeals ?? [])
-  );
-  const [isPending, startTransition] = useTransition();
-  const extras = parsePlanExtras(mealPlan.planExtras);
-  const hasOverrides = (extras?.dayOverrides?.length ?? 0) > 0;
-
-  // Only show checkoff UI when viewing the tab that matches today
-  const isViewingToday = adherence ? selectedDay === adherence.todayWeekday : false;
-
-  const overridesByDay = useMemo(() => {
-    const map = new Map<string, DayOverride[]>();
-    if (!extras?.dayOverrides) return map;
-    for (const o of extras.dayOverrides) {
-      for (const wd of o.weekdays ?? []) {
-        const key = wd.toLowerCase();
-        if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push(o);
-      }
-    }
-    return map;
-  }, [extras]);
-
-  const { resolvedItems, activeOverrides } = useMemo(() => {
-    if (!extras?.dayOverrides?.length) {
-      return {
-        resolvedItems: mealPlan.items.map((item) => ({ ...item })) as ResolvedItem[],
-        activeOverrides: [] as DayOverride[],
-      };
-    }
-    return resolveForDay(mealPlan.items, extras.dayOverrides, selectedDay);
-  }, [mealPlan.items, extras, selectedDay]);
-
-  const meals = useMemo(() => {
-    const grouped = new Map<string, ResolvedItem[]>();
-    for (const item of resolvedItems) {
-      const key = item.mealName || "Untitled Meal";
-      if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key)!.push(item);
-    }
-    return Array.from(grouped);
-  }, [resolvedItems]);
-
-  function handleMealToggle(mealName: string, mealIndex: number) {
-    if (!adherence?.date) return;
-    const alreadyDone = completedMeals.has(mealName);
-    const next = !alreadyDone;
-    setCompletedMeals((prev) => {
-      const s = new Set(prev);
-      if (next) s.add(mealName); else s.delete(mealName);
-      return s;
-    });
-    startTransition(async () => {
-      const result = await toggleMealCheckoff({
-        date: adherence.date,
-        mealNameSnapshot: mealName,
-        displayOrder: mealIndex,
-        completed: next,
-      });
-      if (result?.error) {
-        setCompletedMeals((prev) => {
-          const s = new Set(prev);
-          if (alreadyDone) s.add(mealName); else s.delete(mealName);
-          return s;
-        });
-      }
-    });
-  }
-
-  // Progress bar values
-  const progressTotal = meals.length;
-  const progressDone = meals.filter(([name]) => completedMeals.has(name)).length;
-
   return (
     <div className="space-y-3">
-      {extras && <MetadataSection extras={extras} />}
-
-      {/* Meal progress bar — only visible when viewing today's tab */}
-      {adherence && isViewingToday && progressTotal > 0 && (
-        <div>
-          <div className="mb-1.5 flex items-center justify-between">
-            <span className="text-xs font-medium text-zinc-500">
-              Today&rsquo;s Meals
-            </span>
-            <span className="text-xs font-semibold tabular-nums text-zinc-400">
-              {progressDone} / {progressTotal}
-            </span>
-          </div>
-          <div className="h-1 overflow-hidden rounded-full bg-zinc-800/60">
-            <div
-              className="h-full rounded-full bg-emerald-500/70 transition-all duration-500 ease-out"
-              style={{ width: progressTotal > 0 ? `${Math.round((progressDone / progressTotal) * 100)}%` : "0%" }}
-              role="progressbar"
-              aria-valuenow={progressDone}
-              aria-valuemin={0}
-              aria-valuemax={progressTotal}
-              aria-label={`Meals completed: ${progressDone} of ${progressTotal}`}
-            />
-          </div>
-        </div>
-      )}
-
-      {hasOverrides && (
-        <DaySelector selectedDay={selectedDay} onSelect={setSelectedDay} overridesByDay={overridesByDay} />
-      )}
-
-      {activeOverrides.length > 0 && <ActiveOverrideBanner overrides={activeOverrides} />}
-
-      {/* Macro summary — compact bar below day selector */}
-      <MacroSummary items={resolvedItems} />
-
-      {/* Meal cards */}
       {meals.map(([mealName, items], mealIndex) => {
         const overriddenItems = items.filter((i) => i.overridden);
         const hasOverriddenItems = overriddenItems.length > 0;
@@ -620,17 +544,17 @@ function MealPlanBody({
           <div key={mealName} className={`sf-glass-card overflow-hidden transition-all ${isMealDone ? "border-emerald-900/30" : ""}`}>
             {/* Meal header — compact */}
             <div className="flex items-center gap-3 px-4 py-3 border-b border-zinc-800/40">
-              {/* Adherence checkbox — circle style */}
+              {/* Adherence checkbox — 48px hit area around a 20px circle */}
               {isViewingToday && (
                 <label
-                  className="relative flex shrink-0 cursor-pointer items-center justify-center"
+                  className="relative flex h-12 w-12 shrink-0 cursor-pointer items-center justify-center"
                   aria-label={`${mealName}: ${isMealDone ? "mark incomplete" : "mark complete"}`}
                 >
                   <input
                     type="checkbox"
                     checked={isMealDone}
-                    onChange={() => handleMealToggle(mealName, mealIndex)}
-                    disabled={isPending}
+                    onChange={() => onToggle(mealName, mealIndex)}
+                    disabled={pending}
                     className="peer sr-only"
                   />
                   <span className={`flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all ${
@@ -708,16 +632,313 @@ function MealPlanBody({
           </div>
         );
       })}
+    </div>
+  );
+}
 
-      {/* Plan notes & guidance */}
+// ── Main Component ───────────────────────────────────────────────────────────
+
+/**
+ * The client meal-plan shell (T-802a). Owns everything that is not a meal
+ * card — day context, degraded notice, daily totals, the progress bar, the
+ * meal list, plan notes and the day-override reference (T-802 §2's regions
+ * 2-8; region 1, the page's own header, lives one level up) — and owns all
+ * the state (`selectedDay`, `completedMeals`, the pending transition). The
+ * mode selects only which *list component* mounts inside it: `FoodsMealList`
+ * or `MacroMealList`.
+ *
+ * Every hook below is called unconditionally on every render once `mealPlan`
+ * is non-null; the previous version of this file kept itself deliberately
+ * hook-free "so switching planMode across a re-render never violates the
+ * Rules of Hooks" — that dispatcher is gone, and the safety it bought is
+ * preserved more strongly: `resolveClientPlanView`'s output only chooses
+ * which stateless child mounts, after every hook has already run. The one
+ * early return that happens BEFORE any hook is `mealPlan === null` — there is
+ * no plan, so there is no state to manage at all.
+ */
+export function SimpleMealPlan({
+  mealPlan,
+  adherence,
+}: {
+  mealPlan: MealPlan | null;
+  adherence?: MealAdherenceProps;
+}) {
+  if (mealPlan === null) {
+    return (
+      <PlanEmptyCard
+        title="No meal plan yet"
+        body="Your coach hasn't published a meal plan yet. Check back soon."
+      />
+    );
+  }
+
+  return <MealPlanShell mealPlan={mealPlan} adherence={adherence} />;
+}
+
+function MealPlanShell({
+  mealPlan,
+  adherence,
+}: {
+  mealPlan: MealPlan;
+  adherence?: MealAdherenceProps;
+}) {
+  // Seed from the server's todayWeekday (profile timezone) when adherence is
+  // present; fall back to the browser's local clock only when it isn't
+  // (T-802a review r2, MAJOR 2 — see seedSelectedDay's doc comment). Guarded
+  // narrowing (T-802a review r3, NIT 4) instead of an unchecked `as Weekday`.
+  const [selectedDay, setSelectedDay] = useState<Weekday>(() => {
+    const seeded = seedSelectedDay(adherence?.todayWeekday, getCurrentWeekday);
+    return isWeekday(seeded) ? seeded : getCurrentWeekday();
+  });
+  const [completedMeals, setCompletedMeals] = useState<Set<string>>(
+    () => new Set(adherence?.completedMeals ?? [])
+  );
+  const [isPending, startTransition] = useTransition();
+
+  const view = resolveClientPlanView({
+    planMode: mealPlan.planMode,
+    itemCount: mealPlan.items.length,
+    macroTargetCount: mealPlan.macroTargets?.length ?? 0,
+  });
+
+  const extras = parsePlanExtras(mealPlan.planExtras);
+  const hasOverrides = (extras?.dayOverrides?.length ?? 0) > 0;
+  const showWeekdayStrip = view.body === "FOODS" && hasOverrides;
+
+  // Only show checkoff UI when viewing the tab that matches today
+  const isViewingToday = adherence ? selectedDay === adherence.todayWeekday : false;
+
+  // T-802a review r2, MAJOR 1 — degraded rows are read-only (lead decision,
+  // board/tickets/T-802.md): no check-off circles, no progress bar. Feeds
+  // both `checkoffNames` below and the `showCheckoff`/`isViewingToday` props
+  // handed to the two meal lists.
+  const checkoffEligible = isCheckoffEligible(view);
+  const showCheckoffs = isViewingToday && checkoffEligible;
+
+  const overridesByDay = useMemo(() => {
+    const map = new Map<string, DayOverride[]>();
+    if (!extras?.dayOverrides) return map;
+    for (const o of extras.dayOverrides) {
+      for (const wd of o.weekdays ?? []) {
+        const key = wd.toLowerCase();
+        if (!map.has(key)) map.set(key, []);
+        map.get(key)!.push(o);
+      }
+    }
+    return map;
+  }, [extras]);
+
+  // Computed unconditionally (Rules of Hooks); only consumed by the foods body.
+  const { resolvedItems, activeOverrides } = useMemo(() => {
+    if (!extras?.dayOverrides?.length) {
+      return {
+        resolvedItems: mealPlan.items.map((item) => ({ ...item })) as ResolvedItem[],
+        activeOverrides: [] as DayOverride[],
+      };
+    }
+    return resolveForDay(mealPlan.items, extras.dayOverrides, selectedDay);
+  }, [mealPlan.items, extras, selectedDay]);
+
+  const foodsMeals = useMemo(() => {
+    const grouped = new Map<string, ResolvedItem[]>();
+    for (const item of resolvedItems) {
+      const key = item.mealName || "Untitled Meal";
+      if (!grouped.has(key)) grouped.set(key, []);
+      grouped.get(key)!.push(item);
+    }
+    return Array.from(grouped);
+  }, [resolvedItems]);
+
+  const macroMeals = useMemo(() => mealPlan.macroTargets ?? [], [mealPlan.macroTargets]);
+
+  // The ordered, exact-string de-duplicated list of meal names the RENDERED
+  // body offers for check-off (T-802 §2.3). Derivation lives in
+  // `deriveCheckoffNames` (lib/meal-plans/client-plan-view.ts) — the one copy
+  // of this business rule, unit-tested directly (T-802a review r3, MINOR 1).
+  // `checkoffEligible` being false also makes `progressTotal` (below) 0,
+  // which is what already hides the progress bar — no separate gate needed
+  // there.
+  const checkoffNames = useMemo(
+    () =>
+      deriveCheckoffNames(
+        view,
+        foodsMeals.map(([name]) => name),
+        macroMeals.map((t) => t.mealName)
+      ),
+    [view, foodsMeals, macroMeals]
+  );
+
+  function handleMealToggle(mealName: string, index: number) {
+    if (!adherence?.date) return;
+    const alreadyDone = completedMeals.has(mealName);
+    const next = !alreadyDone;
+    setCompletedMeals((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(mealName); else s.delete(mealName);
+      return s;
+    });
+    startTransition(async () => {
+      const result = await toggleMealCheckoff({
+        date: adherence.date,
+        mealNameSnapshot: mealName,
+        displayOrder: index,
+        completed: next,
+      });
+      if (result?.error) {
+        setCompletedMeals((prev) => {
+          const s = new Set(prev);
+          if (alreadyDone) s.add(mealName); else s.delete(mealName);
+          return s;
+        });
+      }
+    });
+  }
+
+  // Progress bar values — gate is T-802 §2.3's, a provable no-op for both of
+  // today's gates (`adherence && isViewingToday && progressTotal > 0` in the
+  // old foods branch; the macro branch had no bar at all until now).
+  const progressTotal = checkoffNames.length;
+  const progressDone = checkoffNames.filter((name) => completedMeals.has(name)).length;
+  const showProgressBar = Boolean(adherence) && isViewingToday && progressTotal > 0;
+
+  // Region 4 — daily totals. Foods: sum of the day-RESOLVED items. Macros:
+  // sum of macroTargets. Hidden entirely when all four totals are 0
+  // (DailyTotalsCard's own rule).
+  const foodsTotals = useMemo(() => {
+    let cal = 0, pro = 0, carb = 0, fat = 0;
+    for (const item of resolvedItems) {
+      cal += item.calories || 0;
+      pro += item.protein || 0;
+      carb += item.carbs || 0;
+      fat += item.fats || 0;
+    }
+    return { calories: cal, protein: pro, carbs: carb, fats: fat };
+  }, [resolvedItems]);
+
+  const macroTotals = useMemo(() => {
+    let cal = 0, pro = 0, carb = 0, fat = 0;
+    for (const t of macroMeals) {
+      cal += t.calories || 0;
+      pro += t.protein || 0;
+      carb += t.carbs || 0;
+      fat += t.fats || 0;
+    }
+    return { calories: cal, protein: pro, carbs: carb, fats: fat };
+  }, [macroMeals]);
+
+  if (view.body === "EMPTY") {
+    return (
+      <div className="space-y-3">
+        <PlanEmptyCard
+          title="This week's plan isn't ready yet"
+          body="Your coach has published this week but hasn't added meals to it yet."
+        />
+        {/* An empty plan with notes must still show the notes (region 7). */}
+        {mealPlan.supportContent && <SupportContentSection content={mealPlan.supportContent} />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Region unnumbered (T-802a review r2, MINOR 3): renders for the FOODS
+          body and for row 5's degraded macro body (a plan DECLARED foods with
+          no items — the coach notes/phase/bodyweight metadata belong to that
+          declared plan and must not vanish just because the render fell back
+          to macros). Stays hidden for a non-degraded macro plan. */}
+      {(view.body === "FOODS" || view.degradation === "FOODS_WITHOUT_ITEMS") && extras && (
+        <MetadataSection extras={extras} />
+      )}
+
+      {/* Region 2 — day context */}
+      {showWeekdayStrip ? (
+        <div className="space-y-1.5">
+          <DaySelector selectedDay={selectedDay} onSelect={setSelectedDay} overridesByDay={overridesByDay} />
+          <DayContextRow selectedDay={selectedDay} isViewingToday={isViewingToday} hintOnly />
+        </div>
+      ) : (
+        <DayContextRow selectedDay={selectedDay} isViewingToday={isViewingToday} />
+      )}
+
+      {/* Region 3 — degraded notice */}
+      {view.degradation !== "NONE" && (
+        <DegradedNotice
+          degradation={view.degradation}
+          showCheckoffHint={isViewingToday && Boolean(adherence)}
+        />
+      )}
+
+      {view.body === "FOODS" && activeOverrides.length > 0 && <ActiveOverrideBanner overrides={activeOverrides} />}
+
+      {/* Region 4 — daily totals */}
+      {view.body === "FOODS" ? (
+        <DailyTotalsCard label="Today’s Totals" totals={foodsTotals} />
+      ) : (
+        <DailyTotalsCard label="Today’s Targets" totals={macroTotals} />
+      )}
+
+      {/* Region 5 — meal progress bar */}
+      {showProgressBar && (
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-xs font-medium text-zinc-500">
+              Today&rsquo;s Meals
+            </span>
+            <span className="text-xs font-semibold tabular-nums text-zinc-400">
+              {progressDone} / {progressTotal}
+            </span>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-zinc-800/60">
+            <div
+              className="h-full rounded-full bg-emerald-500/70 transition-all duration-500 ease-out"
+              style={{ width: progressTotal > 0 ? `${Math.round((progressDone / progressTotal) * 100)}%` : "0%" }}
+              role="progressbar"
+              aria-valuenow={progressDone}
+              aria-valuemin={0}
+              aria-valuemax={progressTotal}
+              aria-label={`Meals completed: ${progressDone} of ${progressTotal}`}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Region 6 — meal list. `showCheckoffs` (not the raw `isViewingToday`)
+          gates both lists so a degraded row never offers a check-off control
+          (T-802a review r2, MAJOR 1). */}
+      {view.body === "FOODS" ? (
+        <FoodsMealList
+          meals={foodsMeals}
+          isViewingToday={showCheckoffs}
+          completedMeals={completedMeals}
+          onToggle={handleMealToggle}
+          pending={isPending}
+        />
+      ) : (
+        <MacroMealList
+          meals={macroMeals}
+          showCheckoff={showCheckoffs}
+          completedMeals={completedMeals}
+          onToggle={handleMealToggle}
+          pending={isPending}
+        />
+      )}
+
+      {/* Region 7 — plan notes & guidance */}
       {mealPlan.supportContent && (
         <SupportContentSection content={mealPlan.supportContent} />
       )}
 
-      {/* Day overrides reference (collapsed) */}
-      {extras?.dayOverrides && extras.dayOverrides.length > 0 && (
+      {/* Region 8 — day overrides reference (collapsed). Same gate as region
+          unnumbered's MetadataSection (T-802a review r3, NIT 4): renders for
+          the FOODS body and for row 5's degraded macro body — the overrides
+          describe meals from the declared foods plan, so the reference stays
+          available even though those meals don't render. Stays hidden for a
+          non-degraded macro plan. */}
+      {(view.body === "FOODS" || view.degradation === "FOODS_WITHOUT_ITEMS") &&
+        extras?.dayOverrides &&
+        extras.dayOverrides.length > 0 && (
         <details className="group sf-glass-card">
-          <summary className="cursor-pointer px-5 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:text-zinc-300">
+          <summary className="flex min-h-[48px] cursor-pointer items-center px-5 py-3 text-xs font-bold uppercase tracking-wider text-zinc-500 transition-colors hover:text-zinc-300">
             Day Override Reference
           </summary>
           <div className="space-y-2 px-5 pb-4">

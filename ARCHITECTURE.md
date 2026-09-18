@@ -255,7 +255,9 @@ Steadfast/
 │   │
 │   ├── client/                        # Client-specific components
 │   │   ├── plan-tab.tsx               # Plan view (meal plan + training toggle)
-│   │   ├── simple-meal-plan.tsx       # Read-only meal plan (no macros)
+│   │   ├── simple-meal-plan.tsx       # Client plan shell (T-802a) — both modes, one screen
+│   │   ├── macro-plan-view.tsx        # MacroMealList — macro-mode meal list (mounted by the shell)
+│   │   ├── daily-totals-card.tsx      # DailyTotalsCard / MacroStackedBar — shared totals card
 │   │   ├── training-program.tsx       # Read-only training program
 │   │   ├── today-adherence.tsx        # Daily meal/workout check-offs
 │   │   ├── status-card.tsx            # Check-in status card

@@ -7,6 +7,7 @@ import { getTodayAdherence } from "@/lib/queries/adherence";
 import { getLocalDate } from "@/lib/utils/date";
 import { SimpleMealPlan } from "@/components/client/simple-meal-plan";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
 
 export default async function ClientMealPlanPage() {
   const user = await getCurrentDbUser();
@@ -45,10 +46,26 @@ export default async function ClientMealPlanPage() {
   const todayDate = getLocalDate(new Date(), tz);
 
   const [mealPlan, trainingProgram, todayAdherence] = await Promise.all([
+    // T-665: still missing the provider argument here — a legacy unfiltered
+    // read (`publishedAfter: undefined`), not this ticket's job to fix.
     getCurrentPublishedMealPlan(user.id),
     getPublishedTrainingProgram(user.id),
     getTodayAdherence(user.id, todayDate),
   ]);
+
+  if (mealPlan) {
+    logDegradedPlanRender({
+      mealPlanId: mealPlan.id,
+      planMode: mealPlan.planMode,
+      itemCount: mealPlan.items.length,
+      macroTargetCount: mealPlan.macroTargets?.length ?? 0,
+      view: resolveClientPlanView({
+        planMode: mealPlan.planMode,
+        itemCount: mealPlan.items.length,
+        macroTargetCount: mealPlan.macroTargets?.length ?? 0,
+      }),
+    });
+  }
 
   // Extract cardio from training program (__CARDIO__ day)
   const cardioDay = trainingProgram?.days?.find((d) => d.dayName === "__CARDIO__");
@@ -129,25 +146,14 @@ export default async function ClientMealPlanPage() {
         <h2 id="meal-plan-heading" className="sr-only">
           Meal plan details
         </h2>
-        {!mealPlan ? (
-          <div className="sf-surface-card flex flex-col items-center gap-4 px-5 py-14 text-center sm:px-8 sm:py-20" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.08)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}>
-            <div>
-              <p className="text-sm font-semibold">No meal plan yet</p>
-              <p className="mt-1 text-sm text-zinc-400">
-                Your coach hasn&apos;t published a meal plan yet. Check back soon!
-              </p>
-            </div>
-          </div>
-        ) : (
-          <SimpleMealPlan
-            mealPlan={mealPlan}
-            adherence={{
-              date: todayDate,
-              completedMeals: todayAdherence?.meals.filter((m) => m.completed).map((m) => m.mealNameSnapshot) ?? [],
-              todayWeekday: new Date(todayDate + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long" }),
-            }}
-          />
-        )}
+        <SimpleMealPlan
+          mealPlan={mealPlan}
+          adherence={{
+            date: todayDate,
+            completedMeals: todayAdherence?.meals.filter((m) => m.completed).map((m) => m.mealNameSnapshot) ?? [],
+            todayWeekday: new Date(todayDate + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long" }),
+          }}
+        />
       </section>
     </div>
   );

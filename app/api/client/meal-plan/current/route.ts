@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getMacroTarget } from "@/lib/queries/macro-targets";
 import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
 import { parsePlanExtras } from "@/types/meal-plan-extras";
+import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -66,6 +67,21 @@ export async function GET() {
     if (!plan) {
       return NextResponse.json({ mealPlan: null });
     }
+
+    // T-802a — one log call, from the row's true `planMode` and array
+    // lengths. This is what makes iOS-originated degraded renders visible
+    // server-side (T-802 §4.3).
+    logDegradedPlanRender({
+      mealPlanId: plan.id,
+      planMode: plan.planMode,
+      itemCount: plan.items.length,
+      macroTargetCount: plan.macroTargets.length,
+      view: resolveClientPlanView({
+        planMode: plan.planMode,
+        itemCount: plan.items.length,
+        macroTargetCount: plan.macroTargets.length,
+      }),
+    });
 
     // ── MacroTarget for the same weekOf as the plan ───────────────────────
     const macro = await getMacroTarget(user.id, plan.weekOf);

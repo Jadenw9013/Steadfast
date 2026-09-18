@@ -191,7 +191,7 @@ export function MacroPlanEditor({
   const [meals, setMeals] = useState<EditableMacroMeal[]>(() => macroTargetsToEditable(effectivePlan.macroTargets));
   // T-103 — `MealPlan.supportContent`, the same column and the same field the
   // foods editor authors. A macro week routinely inherits notes written in
-  // foods mode (T-101 carry-forward) and the client's MacroPlanView renders
+  // foods mode (T-101 carry-forward) and the client's MacroMealList renders
   // them, so the coach needs to be able to see and edit them here too.
   const [supportContent, setSupportContent] = useState<string>(effectivePlan.supportContent || "");
   const [saving, setSaving] = useState(false);
