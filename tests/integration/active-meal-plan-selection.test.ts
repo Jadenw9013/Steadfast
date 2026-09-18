@@ -298,12 +298,16 @@ suite("active meal plan selection (T-105)", () => {
       await publishFoods(client.id, WEEK_CURRENT, CURRENT_ITEMS);
 
       // The client HAS a published plan. `null` means "no active human
-      // provider", and must short-circuit before any query — not degrade into
-      // the unfiltered read that `undefined` still performs.
+      // provider", and must short-circuit before any query. T-665 deleted the
+      // legacy `undefined` (unfiltered) arm of `PublishedAfter` entirely, so
+      // there is no longer an `undefined` state to degrade into.
       expect(await resolveActiveMealPlanId(client.id, null)).toBeNull();
       expect(await getActiveMealNames(client.id, null)).toEqual([]);
-      // ...while the legacy `undefined` arm keeps its pre-T-105 behavior.
-      expect(await resolveActiveMealPlanId(client.id, undefined)).not.toBeNull();
+      // T-665 removed the legacy `undefined` arm of `PublishedAfter`. This line
+      // now carries the case's precondition: the client really does have a
+      // published plan, so the `null` short-circuit above is what produced the
+      // empty result, not an absence of data.
+      expect(await resolveActiveMealPlanId(client.id, new Date(0))).not.toBeNull();
     });
   });
 

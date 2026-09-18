@@ -46,14 +46,18 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     const coach = await db.user.create({ data: { clerkId: coachId, email: `${coachId}@example.test`, isCoach: true, activeRole: "COACH" } });
     const clientId = randomUUID();
     const client = await db.user.create({ data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true } });
-    await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
-    return { coach, client };
+    // T-665: `link` is returned so tests can pass `link.createdAt` as the
+    // required provider gate to `getCurrentPublishedMealPlan` — the link is
+    // created before every publish in this file, so `publishedAt >=
+    // link.createdAt` always holds.
+    const link = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+    return { coach, client, link };
   }
 
   const params = (clientId: string) => ({ params: Promise.resolve({ clientId }) });
 
   it("saves, publishes, and fetches a macro-only plan identically through the web action and the iOS REST route", async () => {
-    const { coach, client } = await fixture();
+    const { coach, client, link } = await fixture();
     mocks.authUserId = coach.clerkId;
 
     const macroTargets = [
@@ -72,7 +76,7 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     await publishMealPlan({ mealPlanId });
 
     // Read back through the web query module (feeds SimpleMealPlan / MealPlanEditorV2)
-    const web = await getCurrentPublishedMealPlan(client.id);
+    const web = await getCurrentPublishedMealPlan(client.id, link.createdAt);
     expect(web?.planMode).toBe("MACROS");
     expect(web?.macroTargets.map((t) => ({ mealName: t.mealName, calories: t.calories }))).toEqual([
       { mealName: "Breakfast", calories: 500 },
@@ -89,7 +93,7 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
   });
 
   it("does not disturb an existing meal-plan-only save/publish flow when macroTargets is never passed", async () => {
-    const { coach, client } = await fixture();
+    const { coach, client, link } = await fixture();
     mocks.authUserId = coach.clerkId;
 
     const items = [
@@ -101,14 +105,14 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     expect(saveResult).toEqual({ success: true });
     await publishMealPlan({ mealPlanId });
 
-    const web = await getCurrentPublishedMealPlan(client.id);
+    const web = await getCurrentPublishedMealPlan(client.id, link.createdAt);
     expect(web?.planMode).toBe("MEAL_PLAN");
     expect(web?.items).toHaveLength(1);
     expect(web?.macroTargets).toEqual([]);
   });
 
   it("saves macro targets identically when created via the iOS REST route instead of the web action", async () => {
-    const { coach, client } = await fixture();
+    const { coach, client, link } = await fixture();
     mocks.authUserId = coach.clerkId;
 
     const createResponse = await createDraftRest(
@@ -158,7 +162,7 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     // T-102a deleted `EffectiveMealPlan.planMode`. The original assertion here
     // was about the PUBLISHED ROW's own mode — the snapshot iOS wrote — so it
     // moves to that row's source of truth, not to `editorMode`.
-    expect((await getCurrentPublishedMealPlan(client.id))?.planMode).toBe("MACROS");
+    expect((await getCurrentPublishedMealPlan(client.id, link.createdAt))?.planMode).toBe("MACROS");
     // `editorMode` is NOT "MACROS" here, and that is the frozen rule working:
     // publishing consumed the draft, and this coach set `planMode` per-draft
     // without ever toggling `CoachClient.planMode`, so the editor falls back to
@@ -225,7 +229,7 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
   ];
 
   it("macro notes typed by the coach reach the client's macro view", async () => {
-    const { coach, client } = await fixture();
+    const { coach, client, link } = await fixture();
     mocks.authUserId = coach.clerkId;
 
     // Exactly what buildMacroDraftInput({ ..., supportContent: "SYNTHETIC coach notes" }) produces.
@@ -241,7 +245,7 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     // This is the data components/client/simple-meal-plan.tsx hands to
     // MacroPlanView — before T-103 there was no way to produce this row from
     // the macro editor at all.
-    const published = await getCurrentPublishedMealPlan(client.id);
+    const published = await getCurrentPublishedMealPlan(client.id, link.createdAt);
     expect(published?.planMode).toBe("MACROS");
     expect(published?.macroTargets.map((t) => t.mealName)).toEqual(["Breakfast", "Lunch"]);
     expect(published?.supportContent).toBe("SYNTHETIC coach notes");

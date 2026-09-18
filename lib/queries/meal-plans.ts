@@ -4,14 +4,14 @@ import { resolveDefaultPlanMode, resolveEditorPlanMode } from "@/lib/meal-plans/
 import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
 
 /**
- * Signature and return shape deliberately unchanged (T-105): selection is
- * delegated to `lib/meal-plans/active-plan.ts` so `/client/plan` and
- * `/client/meal-plan` — the screens that write `DailyMealCheckoff` rows —
- * agree with the checkoff list without being edited. The optional
- * `publishedAfter` stays alive for `app/client/meal-plan/page.tsx` until T-665
- * lands; `undefined` means "legacy unfiltered read", not "no provider".
+ * Return shape deliberately unchanged (T-105): selection is delegated to
+ * `lib/meal-plans/active-plan.ts` so `/client/plan` and `/client/meal-plan` —
+ * the screens that write `DailyMealCheckoff` rows — agree with the checkoff
+ * list without being edited. `publishedAfter` is REQUIRED (T-665) — `Date |
+ * null`, never optional — so every caller has resolved a provider first;
+ * `null` means "no active human provider → no plan".
  */
-export async function getCurrentPublishedMealPlan(clientId: string, publishedAfter?: Date) {
+export async function getCurrentPublishedMealPlan(clientId: string, publishedAfter: Date | null) {
   const id = await resolveActiveMealPlanId(clientId, publishedAfter);
   if (!id) return null;
   return db.mealPlan.findUnique({

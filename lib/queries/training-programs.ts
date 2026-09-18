@@ -33,9 +33,15 @@ export async function getTrainingProgramForReview(clientId: string, weekOf: Date
   return { source: "empty" as const, program: null };
 }
 
-export async function getPublishedTrainingProgram(clientId: string, publishedAfter?: Date) {
+export async function getPublishedTrainingProgram(clientId: string, publishedAfter: Date | null) {
+  // `== null` (not `===`): fails closed on `undefined` too, so an untyped or
+  // `as any` caller cannot reintroduce the pre-T-665 unfiltered read — Prisma
+  // treats `gte: undefined` as no filter.
+  if (publishedAfter == null) return null;
   return db.trainingProgram.findFirst({
-    where: { clientId, status: "PUBLISHED", ...(publishedAfter ? { publishedAt: { gte: publishedAfter } } : {}) },
+    where: { clientId, status: "PUBLISHED", publishedAt: { gte: publishedAfter } },
+    // T-744: the ordering rule here is still publishedAt desc; aligning it with
+    // ACTIVE_MEAL_PLAN_ORDER_BY is T-744's scope, not this ticket's.
     orderBy: { publishedAt: "desc" },
     include: programInclude,
   });

@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { getClientProvider } from "@/lib/queries/client-provider";
+import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { getCurrentDbUser } from "@/lib/auth/roles";
-import { db } from "@/lib/db";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { getTodayAdherence } from "@/lib/queries/adherence";
 import { getExerciseResultsForWeek, getPreviousExerciseResults } from "@/lib/queries/exercise-results";
@@ -10,13 +11,11 @@ import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 
 export default async function ClientTrainingPage() {
   const user = await getCurrentDbUser();
+  const provider = await getClientProvider(user.id);
+  if (provider.resolutionRequired) return <ProviderResolution />;
+  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={["plan"]} />;
 
-  const coachClient = await db.coachClient.findFirst({
-    where: { clientId: user.id },
-    select: { id: true },
-  });
-
-  if (!coachClient) {
+  if (provider.origin === "NONE") {
     return (
       <div className="space-y-8">
         <section className="animate-fade-in">
@@ -46,7 +45,7 @@ export default async function ClientTrainingPage() {
   const weekOf = normalizeToMonday(new Date());
 
   const [program, todayAdherence, currentResults, previousResults] = await Promise.all([
-    getPublishedTrainingProgram(user.id),
+    getPublishedTrainingProgram(user.id, provider.relationshipStartedAt),
     getTodayAdherence(user.id, todayDate),
     getExerciseResultsForWeek(user.id, weekOf),
     getPreviousExerciseResults(user.id, weekOf),

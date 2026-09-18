@@ -46,11 +46,11 @@ import type { PlanMode, Prisma } from "@/app/generated/prisma/client";
  * to revisit: the first ticket that adds a coach-facing week picker or a "plan
  * next week" affordance must re-open this rule. Do not reintroduce a ceiling.
  *
- * `publishedAfter: undefined` is a LEGACY state with exactly one caller —
- * `getCurrentPublishedMealPlan`'s optional parameter, which
- * `app/client/meal-plan/page.tsx` still relies on. T-665 removes it, and the
- * `undefined` arm of `PublishedAfter` dies with it. Never pass `undefined` from
- * new code.
+ * `publishedAfter: undefined` used to be a LEGACY unfiltered-read state with
+ * exactly one caller, `getCurrentPublishedMealPlan`'s optional parameter,
+ * which `app/client/meal-plan/page.tsx` relied on. T-665 removed it: that
+ * caller is now gated like every other client-facing read, and the
+ * `undefined` arm of `PublishedAfter` is gone. Never pass `undefined`.
  *
  * `deriveMealNames` de-dups on the EXACT `mealName` string — no trimming, no
  * case folding. `DailyMealCheckoff` is unique on
@@ -65,14 +65,12 @@ import type { PlanMode, Prisma } from "@/app/generated/prisma/client";
  *  passes to `toggleMealCheckoff` as `displayOrder`. Do not rename. */
 export type MealNameEntry = { mealName: string; order: number };
 
-/** Provider gate (house rule 2). Three explicit states:
- *    Date       → HUMAN provider: only plans published at/after it are visible
- *    null       → no active human provider (AI / NONE / resolutionRequired) → no plan
- *    undefined  → legacy unfiltered read. The ONLY caller allowed to produce this
- *                 is `getCurrentPublishedMealPlan`'s optional parameter, which
- *                 `app/client/meal-plan/page.tsx` still relies on until T-665
- *                 lands. Never pass `undefined` from new code. */
-export type PublishedAfter = Date | null | undefined;
+/** Provider gate (house rule 2). Two states:
+ *    Date  → HUMAN provider: only plans published at/after it are visible
+ *    null  → no active human provider (AI / NONE / resolutionRequired) → no plan
+ *  T-665 deleted the legacy `undefined` (unfiltered) arm; it had exactly one
+ *  caller, `app/client/meal-plan/page.tsx`, and that caller is now gated. */
+export type PublishedAfter = Date | null;
 
 export const ACTIVE_MEAL_PLAN_ORDER_BY: Prisma.MealPlanOrderByWithRelationInput[] = [
   { weekOf: "desc" },
@@ -87,10 +85,10 @@ export async function resolveActiveMealPlanId(
   clientId: string,
   publishedAfter: PublishedAfter
 ): Promise<string | null> {
-  // Strict identity check, NOT `if (!publishedAfter)`: `undefined` is the legacy
-  // unfiltered state and must fall through to a query with no `publishedAt`
-  // clause, byte-identical to the pre-T-105 `getCurrentPublishedMealPlan(clientId)`.
-  if (publishedAfter === null) return null;
+  // `== null` (not `===`): fails closed on `undefined` too, so an untyped or
+  // `as any` caller cannot reintroduce the pre-T-665 unfiltered read — Prisma
+  // treats `gte: undefined` as no filter.
+  if (publishedAfter == null) return null;
 
   // Covered by `@@index([clientId, weekOf])`: equality on `clientId`, then a
   // backward ordered scan on `weekOf`, with `status`/`publishedAt` as filters.
@@ -98,7 +96,7 @@ export async function resolveActiveMealPlanId(
     where: {
       clientId,
       status: "PUBLISHED",
-      ...(publishedAfter ? { publishedAt: { gte: publishedAfter } } : {}),
+      publishedAt: { gte: publishedAfter },
     },
     orderBy: ACTIVE_MEAL_PLAN_ORDER_BY,
     select: { id: true },
