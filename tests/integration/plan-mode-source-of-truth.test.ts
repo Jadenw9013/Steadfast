@@ -517,7 +517,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
 
       // (c) client dashboard nutrition card — review r2 finding 1 (same source).
       const [dashPlan, dashMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id),
+        getCurrentPublishedMealPlan(client.id, link.createdAt),
         getActiveMealNames(client.id, link.createdAt),
       ]);
       expect(dashPlan!.planMode).toBe("MEAL_PLAN");
@@ -558,7 +558,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       ]);
 
       const [dashPlan, dashMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id),
+        getCurrentPublishedMealPlan(client.id, link.createdAt),
         getActiveMealNames(client.id, link.createdAt),
       ]);
       expect(dashPlan!.planMode).toBe("MACROS");

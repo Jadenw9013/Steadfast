@@ -325,7 +325,7 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
 
       // `app/client/page.tsx` fetches exactly these two in its Promise.all.
       const [mealPlan, planMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id),
+        getCurrentPublishedMealPlan(client.id, link.createdAt),
         getActiveMealNames(client.id, link.createdAt),
       ]);
 
@@ -359,7 +359,7 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
       const [mealPlan, planMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id),
+        getCurrentPublishedMealPlan(client.id, link.createdAt),
         getActiveMealNames(client.id, link.createdAt),
       ]);
 

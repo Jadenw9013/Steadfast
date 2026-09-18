@@ -1,6 +1,7 @@
 import Link from "next/link";
+import { getClientProvider } from "@/lib/queries/client-provider";
+import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { getCurrentDbUser } from "@/lib/auth/roles";
-import { db } from "@/lib/db";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { getTodayAdherence } from "@/lib/queries/adherence";
@@ -10,13 +11,11 @@ import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 
 export default async function ClientMealPlanPage() {
   const user = await getCurrentDbUser();
+  const provider = await getClientProvider(user.id);
+  if (provider.resolutionRequired) return <ProviderResolution />;
+  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={["plan"]} />;
 
-  const coachClient = await db.coachClient.findFirst({
-    where: { clientId: user.id },
-    select: { id: true },
-  });
-
-  if (!coachClient) {
+  if (provider.origin === "NONE") {
     return (
       <div className="space-y-8">
         <section className="animate-fade-in">
@@ -45,8 +44,8 @@ export default async function ClientMealPlanPage() {
   const todayDate = getLocalDate(new Date(), tz);
 
   const [mealPlan, trainingProgram, todayAdherence] = await Promise.all([
-    getCurrentPublishedMealPlan(user.id),
-    getPublishedTrainingProgram(user.id),
+    getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt),
+    getPublishedTrainingProgram(user.id, provider.relationshipStartedAt),
     getTodayAdherence(user.id, todayDate),
   ]);
 
