@@ -151,9 +151,29 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     );
     expect(publishResponse.status).toBe(200);
 
-    // Read back through the web query module — must match what iOS wrote
-    const web = await getEffectiveMealPlanForReview(client.id, new Date("2026-09-14T00:00:00Z"));
-    expect(web.planMode).toBe("MACROS");
+    // Parity property this test exists to prove: the mode iOS wrote is the
+    // mode web reads back on the published row itself, independent of what
+    // the coach's editor resolves to (T-800 code-review r1, MINOR-6 — this
+    // assertion was dropped by a mechanical rename fix in r1 and is restored
+    // here).
+    const publishedRow = await db.mealPlan.findUniqueOrThrow({ where: { id: mealPlan.id } });
+    expect(publishedRow.planMode).toBe("MACROS");
+
+    // Read back through the web query module — must match what iOS wrote.
+    // T-800: EffectiveMealPlan.planMode was replaced with clientPlanMode +
+    // editorMode. No draft exists for this week, so editorMode is the
+    // CoachClient default (MEAL_PLAN — this fixture never toggled it),
+    // server-resolved as draft?.planMode ?? clientPlanMode with no inference
+    // from the published row's content (round-3 adjudication removed the r1
+    // MAJOR-2 content-based fallback — board/tickets/T-800.md "## Decision").
+    // The published row here has 0 items and 1 macro target, which
+    // contradicts that default, and that is the intended, recoverable state
+    // this ticket's spec (risk 2) accepts: the coach sees the foods editor
+    // and one labelled tap on the Plan Type toggle reveals the macro
+    // content.
+    const web = await getEffectiveMealPlanForReview({ coachId: coach.id, clientId: client.id, weekOf: new Date("2026-09-14T00:00:00Z") });
+    expect(web.editorMode).toBe("MEAL_PLAN");
+    expect(web.clientPlanMode).toBe("MEAL_PLAN");
     expect(web.macroTargets).toEqual([{ mealName: "Dinner", calories: 650, protein: 48, carbs: 62, fats: 19 }]);
   });
 
@@ -161,7 +181,14 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const { mealPlanId } = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-09-14", items: [] });
+    // T-800: publish now refuses an empty MEAL_PLAN plan, so this draft
+    // needs at least one item to reach PUBLISHED — the toggle/mode
+    // propagation under test doesn't depend on which item.
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 }],
+    });
     await publishMealPlan({ mealPlanId });
     // A second draft for a later week — should pick up the toggle immediately since it's still a draft
     const { mealPlanId: nextDraftId } = await createDraftMealPlan({ clientId: client.id, weekStartDate: "2026-09-21", items: [] });

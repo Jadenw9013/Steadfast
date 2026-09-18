@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { MealCard } from "./meal-card";
 import { MealPlanActions } from "./meal-plan-actions";
@@ -24,6 +24,8 @@ import {
 } from "@/types/meal-plan";
 import type { PlanExtras } from "@/types/meal-plan-extras";
 import type { EffectiveMealPlan } from "@/lib/queries/meal-plans";
+import { buildFoodsDraftInput, foodsEditorSignature } from "@/lib/meal-plans/editor-state";
+import { emptyPlanMessage } from "@/lib/meal-plans/publish-messages";
 
 export function MealPlanEditorV2({
   clientId,
@@ -48,15 +50,26 @@ export function MealPlanEditorV2({
     notes: string;
   } | null;
 }) {
+  // Only one editor is mounted at a time, and the toggle above is its sibling
+  // — so the mounted editor reports its own "the coach has typed something"
+  // here and the toggle can warn before unmounting it (T-800 code-review r1,
+  // MAJOR-3; verbatim pattern from team/sprint-1's "T-102a review, finding 1").
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   return (
     <div className="space-y-4">
-      <PlanModeToggle clientId={clientId} initialMode={effectivePlan.planMode} />
-      {effectivePlan.planMode === "MACROS" ? (
+      <PlanModeToggle
+        clientId={clientId}
+        initialMode={effectivePlan.editorMode}
+        hasUnsavedChanges={hasUnsavedChanges}
+      />
+      {effectivePlan.editorMode === "MACROS" ? (
         <MacroPlanEditor
           clientId={clientId}
           weekStartDate={weekStartDate}
           effectivePlan={effectivePlan}
           coachDefaultNotify={coachDefaultNotify}
+          onUnsavedChange={setHasUnsavedChanges}
         />
       ) : (
         <MealPlanEditorV2Body
@@ -67,6 +80,7 @@ export function MealPlanEditorV2({
           coachDefaultNotify={coachDefaultNotify}
           publishedMealPlanId={publishedMealPlanId}
           cardioPrescription={cardioPrescription}
+          onUnsavedChange={setHasUnsavedChanges}
         />
       )}
     </div>
@@ -81,6 +95,7 @@ function MealPlanEditorV2Body({
   coachDefaultNotify,
   publishedMealPlanId,
   cardioPrescription,
+  onUnsavedChange,
 }: {
   clientId: string;
   weekStartDate: string;
@@ -95,6 +110,7 @@ function MealPlanEditorV2Body({
     intensity: string;
     notes: string;
   } | null;
+  onUnsavedChange?: (hasUnsavedChanges: boolean) => void;
 }) {
   const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(effectivePlan.draftId);
@@ -111,9 +127,46 @@ function MealPlanEditorV2Body({
   const [publishing, setPublishing] = useState(false);
   const [notifyClient, setNotifyClient] = useState(coachDefaultNotify ?? true);
   const [highlightedMeals, setHighlightedMeals] = useState<Set<string>>(new Set());
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const isUnsaved = draftId === null;
   const totalItems = meals.reduce((sum, m) => sum + m.items.length, 0);
+
+  // Everything above lives only in `useState` until an explicit Save, and the
+  // plan-mode toggle unmounts this whole editor. "Unsaved" here means
+  // "differs from the effective plan this editor was seeded with" — strictly
+  // what a mode switch would destroy. After a Save + router.refresh() the
+  // seed moves forward with a new `effectivePlan` prop, so the flag clears
+  // itself (T-800 code-review r1, MAJOR-3).
+  const baselineSignature = useMemo(
+    () =>
+      foodsEditorSignature(
+        groupItemsToMeals(effectivePlan.items),
+        effectivePlan.planExtras,
+        effectivePlan.supportContent || ""
+      ),
+    [effectivePlan]
+  );
+  const hasUnsavedChanges =
+    foodsEditorSignature(meals, planExtras, supportContent) !== baselineSignature;
+
+  useEffect(() => {
+    onUnsavedChange?.(hasUnsavedChanges);
+    // On unmount the content is gone, so it can no longer be lost — clear the
+    // flag before the other editor mounts and reports its own.
+    return () => onUnsavedChange?.(false);
+  }, [hasUnsavedChanges, onUnsavedChange]);
+
+  // NIT: clear the stale publish-refusal sentence as soon as the coach adds
+  // the content it was complaining about, rather than leaving it on screen
+  // until the next publish attempt (T-800 code-review r1, NIT-1). Adjusted
+  // during render, not in an effect — same pattern as plan-mode-toggle.tsx's
+  // seeded-mode reset — so this can't cascade an extra render.
+  const [lastTotalItemsForError, setLastTotalItemsForError] = useState(totalItems);
+  if (totalItems !== lastTotalItemsForError) {
+    setLastTotalItemsForError(totalItems);
+    if (totalItems > 0 && publishError) setPublishError(null);
+  }
 
   const dailyTotals = meals.reduce(
     (acc, meal) => {
@@ -177,16 +230,19 @@ function MealPlanEditorV2Body({
     setTimeout(() => setHighlightedMeals(new Set()), 3000);
   }
 
-  /** Create a DB draft (with current items) and return its ID. */
+  /** Create a DB draft (with current items) and return its ID. Always passes
+   *  an explicit planMode — see lib/meal-plans/editor-state.ts (T-800). */
   async function ensureDraft(): Promise<string | null> {
     if (draftId) return draftId;
-    const result = await createDraftMealPlan({
-      clientId,
-      weekStartDate,
-      items: flattenMeals(meals),
-      planExtras: planExtras ?? undefined,
-      supportContent: supportContent || undefined,
-    });
+    const result = await createDraftMealPlan(
+      buildFoodsDraftInput({
+        clientId,
+        weekStartDate,
+        meals,
+        planExtras,
+        supportContent,
+      })
+    );
     if ("mealPlanId" in result) {
       setDraftId(result.mealPlanId);
       return result.mealPlanId;
@@ -214,6 +270,15 @@ function MealPlanEditorV2Body({
   }
 
   async function handlePublish() {
+    // Local pre-check with the exact sentence: production Next redacts
+    // Server Action error messages into a minified React error, so the
+    // server-side publish guard alone would turn "plan vanishes" into
+    // "Publish button does nothing" (T-800).
+    if (totalItems === 0) {
+      setPublishError(emptyPlanMessage("MEAL_PLAN"));
+      return;
+    }
+    setPublishError(null);
     setPublishing(true);
     try {
       const id = draftId ?? (await ensureDraft());
@@ -230,6 +295,10 @@ function MealPlanEditorV2Body({
       // Next edit will create a fresh draft via ensureDraft().
       setDraftId(null);
       router.refresh();
+    } catch {
+      // Never render the thrown message — production Next redacts Server
+      // Action errors into a minified React error string.
+      setPublishError("Publish failed. Please try again.");
     } finally {
       setPublishing(false);
     }
@@ -528,6 +597,11 @@ function MealPlanEditorV2Body({
 
 
       {/* Actions */}
+      {publishError && (
+        <p className="text-sm font-medium text-red-400" role="alert">
+          {publishError}
+        </p>
+      )}
       <MealPlanActions
         saving={saving}
         publishing={publishing}

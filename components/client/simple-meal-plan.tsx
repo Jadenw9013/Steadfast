@@ -5,6 +5,7 @@ import { parsePlanExtras, SUPPLEMENT_TIMING_ORDER, getOverrideColor, type PlanEx
 import { toggleMealCheckoff } from "@/app/actions/adherence";
 import { MacroPlanView } from "./macro-plan-view";
 import type { MacroMealTarget } from "@/types/meal-plan";
+import { resolveDisplayPlanMode } from "@/lib/meal-plans/display-mode";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -477,7 +478,15 @@ export function SimpleMealPlan({
   mealPlan: MealPlan;
   adherence?: MealAdherenceProps;
 }) {
-  if (mealPlan.planMode === "MACROS") {
+  // Defensive render rule (T-800): a plan can be stamped MACROS with zero
+  // macro targets but non-empty items (a mislabeled foods plan). Never blank
+  // the client when content exists — render the foods instead.
+  const displayMode = resolveDisplayPlanMode(mealPlan.planMode ?? "MEAL_PLAN", {
+    items: mealPlan.items.length,
+    macroTargets: (mealPlan.macroTargets ?? []).length,
+  });
+
+  if (displayMode === "MACROS") {
     return (
       <MacroPlanView
         meals={mealPlan.macroTargets ?? []}

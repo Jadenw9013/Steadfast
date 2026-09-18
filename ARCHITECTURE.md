@@ -579,7 +579,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | DELETE | `/api/me/push-token` | Unregister APNs token |
 | GET/PUT | `/api/me/notifications` | Notification preferences |
 | GET | `/api/client/home` | Client home dashboard data |
-| GET | `/api/client/meal-plan/current` | Active published meal plan |
+| GET | `/api/client/meal-plan/current` | Active published meal plan. `mealPlan.planMode` is a *display* mode, not necessarily the stored row's mode: a published row stamped `MACROS` with zero macro targets and at least one item is served as `MEAL_PLAN` so a client is never shown a blank plan (T-800). `items`/`macroTargets` always carry the row's true content. |
 | GET | `/api/client/training/current` | Active published training program |
 | GET/POST | `/api/client/checkin` | Check-in submission |
 | GET | `/api/client/checkins` | Check-in history |
@@ -595,8 +595,8 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 |---|---|---|
 | GET | `/api/coach/clients` | Client roster |
 | GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove |
-| GET/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD |
-| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan |
+| GET/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. GET response additionally carries `clientPlanMode` (the `CoachClient` default) and `editorMode` (server-resolved `draft?.planMode ?? clientPlanMode` — never inferred from the published row's content) — T-800. |
+| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan (409 `PLAN_NOT_DRAFT` if not a draft, 409 `PLAN_EMPTY` if the plan has no content for its mode — T-800) |
 | GET/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD |
 | POST | `/api/coach/clients/[clientId]/training/publish` | Publish training program |
 | GET | `/api/coach/clients/[clientId]/intake` | Client intake data |

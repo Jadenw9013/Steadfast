@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
+import { checkPlanPublishable } from "@/lib/meal-plans/publish-guard";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -60,7 +61,15 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
     if (plan.status !== "DRAFT") {
       return NextResponse.json(
-        { error: "Can only publish drafts" },
+        { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
+        { status: 409 }
+      );
+    }
+
+    const publishGuard = await checkPlanPublishable(mealPlanId);
+    if (!publishGuard.ok) {
+      return NextResponse.json(
+        { error: publishGuard.message, code: "PLAN_EMPTY" },
         { status: 409 }
       );
     }

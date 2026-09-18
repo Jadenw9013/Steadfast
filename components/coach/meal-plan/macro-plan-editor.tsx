@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createDraftMealPlan, saveDraftMealPlan, publishMealPlan } from "@/app/actions/meal-plans";
 import { MealPlanActions } from "./meal-plan-actions";
@@ -10,6 +10,8 @@ import {
   type EditableMacroMeal,
 } from "@/types/meal-plan";
 import type { EffectiveMealPlan } from "@/lib/queries/meal-plans";
+import { emptyPlanMessage } from "@/lib/meal-plans/publish-messages";
+import { macroEditorSignature } from "@/lib/meal-plans/editor-state";
 
 const MACRO_FIELDS = [
   { key: "calories" as const, label: "Calories", short: "Cal", accent: "text-blue-300", ring: "focus:border-blue-400/60 focus:ring-blue-400/20" },
@@ -139,11 +141,13 @@ export function MacroPlanEditor({
   weekStartDate,
   effectivePlan,
   coachDefaultNotify,
+  onUnsavedChange,
 }: {
   clientId: string;
   weekStartDate: string;
   effectivePlan: EffectiveMealPlan;
   coachDefaultNotify?: boolean;
+  onUnsavedChange?: (hasUnsavedChanges: boolean) => void;
 }) {
   const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(effectivePlan.draftId);
@@ -154,10 +158,36 @@ export function MacroPlanEditor({
   const [autofilling, setAutofilling] = useState(false);
   const [autofillError, setAutofillError] = useState<string | null>(null);
   const [privacyConsent, setPrivacyConsent] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
 
   const isUnsaved = draftId === null;
   // Foods from a prior MEAL_PLAN-mode edit of this same plan (if any) — the source autofill estimates from.
   const hasExistingItems = effectivePlan.items.length > 0;
+
+  // Mirror of the foods editor: the plan-mode toggle unmounts this editor and
+  // everything typed into it, so report whether the current targets differ
+  // from the ones this editor was seeded with (T-800 code-review r1, MAJOR-3).
+  const baselineSignature = useMemo(
+    () => macroEditorSignature(effectivePlan.macroTargets),
+    [effectivePlan]
+  );
+  const hasUnsavedChanges = macroEditorSignature(meals) !== baselineSignature;
+
+  useEffect(() => {
+    onUnsavedChange?.(hasUnsavedChanges);
+    return () => onUnsavedChange?.(false);
+  }, [hasUnsavedChanges, onUnsavedChange]);
+
+  // NIT: clear the stale publish-refusal sentence as soon as the coach adds a
+  // meal row, rather than leaving it on screen until the next publish attempt
+  // (T-800 code-review r1, NIT-1). Adjusted during render, not in an effect —
+  // same pattern as plan-mode-toggle.tsx's seeded-mode reset — so this can't
+  // cascade an extra render.
+  const [lastMealCountForError, setLastMealCountForError] = useState(meals.length);
+  if (meals.length !== lastMealCountForError) {
+    setLastMealCountForError(meals.length);
+    if (meals.length > 0 && publishError) setPublishError(null);
+  }
 
   const dailyTotals = meals.reduce(
     (acc, m) => ({
@@ -174,6 +204,9 @@ export function MacroPlanEditor({
     const result = await createDraftMealPlan({
       clientId,
       weekStartDate,
+      // Must stay explicit — this is the one editor where the coach
+      // deliberately chose MACROS. Omitting it (T-800) would let a new
+      // version fall through to a stale default instead.
       planMode: "MACROS",
       macroTargets: flattenMacroMeals(meals),
     });
@@ -199,6 +232,15 @@ export function MacroPlanEditor({
   }
 
   async function handlePublish() {
+    // Local pre-check with the exact sentence: production Next redacts
+    // Server Action error messages into a minified React error, so the
+    // server-side publish guard alone would turn "plan vanishes" into
+    // "Publish button does nothing" (T-800).
+    if (meals.length === 0) {
+      setPublishError(emptyPlanMessage("MACROS"));
+      return;
+    }
+    setPublishError(null);
     setPublishing(true);
     try {
       const id = draftId ?? (await ensureDraft());
@@ -207,6 +249,10 @@ export function MacroPlanEditor({
       await publishMealPlan({ mealPlanId: id, notifyClient });
       setDraftId(null);
       router.refresh();
+    } catch {
+      // Never render the thrown message — production Next redacts Server
+      // Action errors into a minified React error string.
+      setPublishError("Publish failed. Please try again.");
     } finally {
       setPublishing(false);
     }
@@ -375,6 +421,11 @@ export function MacroPlanEditor({
         Day overrides aren&rsquo;t supported in macro mode yet.
       </p>
 
+      {publishError && (
+        <p className="text-sm font-medium text-red-400" role="alert">
+          {publishError}
+        </p>
+      )}
       <MealPlanActions
         saving={saving}
         publishing={publishing}

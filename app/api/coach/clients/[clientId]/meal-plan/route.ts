@@ -10,6 +10,7 @@ import {
   macroTargetTransactionOps,
   resolveDefaultPlanMode,
 } from "@/lib/meal-plans/macro-targets";
+import { resolveEditorPlanMode } from "@/lib/meal-plans/plan-mode";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -98,36 +99,51 @@ export async function GET(req: NextRequest, { params }: Params) {
       fats: true,
     } as const;
 
-    const draft = await db.mealPlan.findFirst({
-      where: { clientId, weekOf, status: "DRAFT" },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        weekOf: true,
-        version: true,
-        status: true,
-        planMode: true,
-        planExtras: true,
-        items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
-        macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
-      },
-    });
+    // Draft, published and the client's persistent default all in parallel —
+    // the CoachClient.planMode read adds no latency. Mirrors
+    // `getEffectiveMealPlanForReview` in lib/queries/meal-plans.ts so the two
+    // coach-facing readers compose lib/meal-plans/plan-mode.ts the same way
+    // (T-800 code-review r1 MAJOR-1).
+    const [draft, published, clientPlanMode] = await Promise.all([
+      db.mealPlan.findFirst({
+        where: { clientId, weekOf, status: "DRAFT" },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          weekOf: true,
+          version: true,
+          status: true,
+          planMode: true,
+          planExtras: true,
+          items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
+          macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
+        },
+      }),
+      db.mealPlan.findFirst({
+        where: { clientId, status: "PUBLISHED" },
+        orderBy: { publishedAt: "desc" },
+        select: {
+          id: true,
+          weekOf: true,
+          version: true,
+          status: true,
+          planMode: true,
+          planExtras: true,
+          publishedAt: true,
+          items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
+          macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
+        },
+      }),
+      resolveDefaultPlanMode(user.id, clientId),
+    ]);
 
-    const published = await db.mealPlan.findFirst({
-      where: { clientId, status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-      select: {
-        id: true,
-        weekOf: true,
-        version: true,
-        status: true,
-        planMode: true,
-        planExtras: true,
-        publishedAt: true,
-        items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
-        macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
-      },
-    });
+    // Computed from the DRAFT for the requested week ONLY — never from
+    // `published`, or a toggle on a published-only week would silently do
+    // nothing again. See lib/meal-plans/plan-mode.ts. Server-resolved
+    // `draft?.planMode ?? clientPlanMode` — never inferred from the
+    // published row's content (round-2 adjudication, board/tickets/T-800.md
+    // "## Decision").
+    const editorMode = resolveEditorPlanMode(draft?.planMode ?? null, clientPlanMode);
 
     const active = draft ?? published;
 
@@ -150,6 +166,12 @@ export async function GET(req: NextRequest, { params }: Params) {
       // Server-computed "current week" — clients should prefer this over
       // any on-device date math when seeding a brand-new plan's weekOf.
       currentWeekOf: getCurrentWeekMonday().toISOString(),
+      // T-800 MAJOR-1, additive. Always present and never null, including
+      // when `mealPlan` is null. `mealPlan.planMode` above is unchanged and
+      // still means "the planMode of the row in `mealPlan`"; `editorMode` is
+      // what the coach's editor must render.
+      clientPlanMode,
+      editorMode,
     });
   } catch (err) {
     console.error("[GET /api/coach/clients/[clientId]/meal-plan]", err);

@@ -3,6 +3,7 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { getMacroTarget } from "@/lib/queries/macro-targets";
 import { parsePlanExtras } from "@/types/meal-plan-extras";
+import { resolveDisplayPlanMode } from "@/lib/meal-plans/display-mode";
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -59,6 +60,21 @@ export async function GET() {
     // ── MacroTarget for the same weekOf as the plan ───────────────────────
     const macro = await getMacroTarget(user.id, plan.weekOf);
 
+    // ── T-800 defensive render rule: never expose a mislabeled MACROS plan
+    // (zero targets, has items) as MACROS — the client would see a blank
+    // "no macro targets" card while the foods sit unrendered. ────────────
+    const displayPlanMode = resolveDisplayPlanMode(plan.planMode, {
+      items: plan.items.length,
+      macroTargets: plan.macroTargets.length,
+    });
+    if (displayPlanMode !== plan.planMode) {
+      console.warn("[meal-plan] mislabeled MACROS plan rendered as MEAL_PLAN", {
+        mealPlanId: plan.id,
+        items: plan.items.length,
+        macroTargets: plan.macroTargets.length,
+      });
+    }
+
     // ── planExtras: safe parse from Json field ────────────────────────────
     const extras = parsePlanExtras(plan.planExtras);
 
@@ -78,7 +94,7 @@ export async function GET() {
         id: plan.id,
         weekOf: plan.weekOf.toISOString(),
         status: plan.status,
-        planMode: plan.planMode,
+        planMode: displayPlanMode,
         publishedAt: plan.publishedAt?.toISOString() ?? null,
         planExtras: planExtrasOut,
         planNotes: plan.supportContent,

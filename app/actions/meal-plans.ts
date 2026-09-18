@@ -14,6 +14,7 @@ import {
   macroTargetTransactionOps,
   resolveDefaultPlanMode,
 } from "@/lib/meal-plans/macro-targets";
+import { checkPlanPublishable } from "@/lib/meal-plans/publish-guard";
 
 const mealPlanItemSchema = z.object({
   mealName: z.string().min(1).max(100),
@@ -218,6 +219,9 @@ export async function publishMealPlan(input: unknown) {
   if (plan.status !== "DRAFT") throw new Error("Can only publish drafts");
 
   await verifyCoachAccessToClient(plan.clientId);
+
+  const publishGuard = await checkPlanPublishable(parsed.data.mealPlanId);
+  if (!publishGuard.ok) throw new Error(publishGuard.message);
 
   await db.mealPlan.update({
     where: { id: parsed.data.mealPlanId },
