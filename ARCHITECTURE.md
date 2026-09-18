@@ -1,6 +1,6 @@
 # Steadfast Web — Project Architecture & Context
 
-> **Last updated:** 2026-04-08  
+> **Last updated:** 2026-09-18  
 > **Purpose:** Reference document for AI tools, code reviews, and onboarding. Describes the project structure, tech stack, conventions, and data flow for the Next.js web application.
 
 ---
@@ -303,6 +303,8 @@ Steadfast/
 │   │   ├── adherence.ts               # Daily adherence queries
 │   │   ├── intake.ts                  # Intake packet queries
 │   │   └── ... (12 more)
+│   ├── intake/
+│   │   └── completion.ts              # Shared intake answer merge + completeness rule (REST + action)
 │   ├── ocr/
 │   │   └── google-vision.ts           # Google Cloud Vision OCR extraction
 │   ├── llm/
@@ -545,7 +547,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | `OnboardingResponse` | Client's answers to onboarding form |
 | `ClientIntake` | Structured health/fitness intake (specific fields, not JSON) |
 | `IntakeFormTemplate` | Customizable intake form template per coach |
-| `IntakePacket` | Token-gated intake bundle (form + documents for leads) |
+| `IntakePacket` | Token-gated intake bundle (form + documents for leads). `formAnswers` can hold answers from two surfaces at once (flat keys from the app's REST saves, the nested `sections` shape from the web token form), so every writer merges through `mergePacketSubmission` / `mergePacketAnswers` in `lib/intake/completion.ts` rather than replacing it, and `/onboarding/intake/[token]` prefills from it. |
 | `IntakePacketDocument` | Documents included in an intake packet |
 | `CoachDocument` | Coach-owned documents (text or file) |
 | `ClientFormSubmission` | Form answers within intake flow |
@@ -591,6 +593,9 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET/POST | `/api/client/adherence/*` | Daily adherence (today, meal, workout) |
 | GET | `/api/client/adherence/today` | Today's checkoff record + `mealNames` for the active plan (`lib/meal-plans/active-plan.ts`, provider-gated) |
 | POST | `/api/client/training/results` | Exercise progress logging |
+| GET | `/api/intake/current` | The client's current intake (IntakePacket first, then ClientIntake) with its template and answers. `intake.template` is never null. |
+| PUT | `/api/intake/[id]/answers` | Save one section's answers. Accepts `{ answers: [{ questionId, answer }] }` (the legacy `{ answers: { qid: value } }` object form still works); an `answer` that is empty or whitespace-only is an explicit clear — it deletes the key from `IntakePacket.formAnswers` and nulls the `ClientIntake` column, numeric columns included. A reserved `questionId` (`sections`, anything starting with `_`) is refused on write. On the `ClientIntake` branch a value that cannot be stored in its column (a non-numeric or out-of-range number) is refused with 422 `{ code: "ANSWER_UNSTORABLE", refusedQuestionIds }` before any write, for the whole request — dropping it and answering 200 read as a successful save whenever the column already held an older value. Returns the full `IntakePacketData` with a real `template`. |
+| POST | `/api/intake/[id]/submit` | Submit the intake. The optional body carries the full answer set (`{ answers: [{ questionId, answer }] }`) as a safety net; it is merged before any write. Returns 422 `{ code: "INTAKE_INCOMPLETE", missingQuestionIds }` if a required question is still empty **or** a value cannot be stored in its column (e.g. a non-numeric bodyweight, or a number outside the range its column can hold), 422 `{ code: "DOCUMENTS_UNSIGNED" }` if the packet still has an unsigned document attached (the same rule the web token submit applies, worded to send the client to the emailed intake link, since the app has no signing UI), and 409 if already submitted (race-safe conditional update). On the packet branch it also advances the lead's `consultationStage` to `INTAKE_SUBMITTED`, as the web token submit does, but only from a stage that is not already `ACTIVE` or `DECLINED`. `lib/intake/completion.ts` is the single source of truth for answer normalisation, merging and completeness, shared with the two routes above and with the `submitClientIntake` Server Action. |
 
 ### Coach-facing (`/api/coach/`)
 

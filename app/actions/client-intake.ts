@@ -8,6 +8,12 @@ import {
   submitClientIntakeSchema,
   SubmitClientIntakeInput,
 } from "@/lib/validations/client-intake";
+import {
+  CLIENT_INTAKE_TEMPLATE,
+  INTAKE_INCOMPLETE_MESSAGE,
+  clientIntakeToAnswerMap,
+  missingRequiredAnswers,
+} from "@/lib/intake/completion";
 
 /**
  * Coach sends a structured intake questionnaire to a specific client.
@@ -110,6 +116,16 @@ export async function submitClientIntake(input: SubmitClientIntakeInput) {
   const parsed = submitClientIntakeSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors };
+  }
+
+  // Same completeness invariant the iOS-facing REST submit enforces
+  // (lib/intake/completion.ts) — one definition, both transports (T-624).
+  const missing = missingRequiredAnswers(
+    CLIENT_INTAKE_TEMPLATE.sections,
+    clientIntakeToAnswerMap(parsed.data as unknown as Record<string, unknown>)
+  );
+  if (missing.length > 0) {
+    return { error: { _form: [INTAKE_INCOMPLETE_MESSAGE] } };
   }
 
   const intake = await db.clientIntake.findUnique({

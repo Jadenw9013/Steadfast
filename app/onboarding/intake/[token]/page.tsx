@@ -1,4 +1,5 @@
 import { getIntakePacketByToken } from "@/lib/queries/intake";
+import { flattenPacketAnswers } from "@/lib/intake/completion";
 import IntakePacketPage from "./intake-packet-page";
 
 export default async function IntakeTokenPage({
@@ -76,6 +77,12 @@ export default async function IntakeTokenPage({
         };
     }));
 
+    // Whatever this prospect has already answered — including the flat answers
+    // an app client saved through `PUT /api/intake/[id]/answers` before being
+    // sent here to sign a document (T-624). Starting the form blank made them
+    // retype it, and the submit then overwrote what they had saved.
+    const initialAnswers = flattenPacketAnswers(packet.formAnswers);
+
     return (
         <IntakePacketPage
             token={token}
@@ -83,6 +90,7 @@ export default async function IntakeTokenPage({
             prospectName={prospectName}
             sections={sections}
             documents={documents}
+            initialAnswers={initialAnswers}
         />
     );
 }

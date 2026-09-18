@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
 import { sendEmail } from "@/lib/email/sendEmail";
+import { DOCUMENTS_UNSIGNED_MESSAGE, mergePacketSubmission, unsignedDocumentIds } from "@/lib/intake/completion";
 
 /** Resolve the current coach's CoachProfile.id. */
 async function getCoachProfileId(userId: string): Promise<string> {
@@ -341,19 +342,30 @@ export async function submitIntakePacket(input: {
         select: { userId: true, user: { select: { email: true, firstName: true } } },
     }) : null;
 
-    // Validate all docs have signatures
-    if (packet.documents.length > 0) {
-        const signedDocIds = new Set(input.documentSignatures.map(s => s.intakePacketDocumentId));
-        const unsigned = packet.documents.filter(d => !signedDocIds.has(d.id));
-        if (unsigned.length > 0) return { success: false, message: "Please sign all documents before submitting." };
-    }
+    // Validate all docs have signatures. Same predicate and same sentence as the
+    // iOS REST submit (`app/api/intake/[id]/submit/route.ts`), which had no such
+    // refusal at all before T-624 — behaviour here is unchanged.
+    const unsigned = unsignedDocumentIds(
+        packet.documents,
+        input.documentSignatures.map(s => s.intakePacketDocumentId)
+    );
+    if (unsigned.length > 0) return { success: false, message: DOCUMENTS_UNSIGNED_MESSAGE };
 
     // Store answers + signatures
     await db.$transaction(async (tx) => {
         await tx.intakePacket.update({
             where: { id: packet.id },
             data: {
-                formAnswers: input.answers as object,
+                // MERGE, never replace (T-624). This form is the only place an
+                // attached document can be signed, so it is where a client who
+                // filled the intake in the iOS app is sent when the REST submit
+                // refuses them — and a wholesale `formAnswers: input.answers`
+                // would erase every flat answer they already saved there. The
+                // page prefills from the same stored answers, so the payload
+                // normally re-states them; the merge is what protects the ones
+                // this form never rendered (a question the coach removed from
+                // the template after the client answered it).
+                formAnswers: mergePacketSubmission(packet.formAnswers, input.answers) as object,
                 submittedAt: new Date(),
             },
         });
@@ -401,7 +413,7 @@ export async function saveReviewEdits(input: {
     // adapter-pg safe: separate queries
     const packet = await db.intakePacket.findUnique({
         where: { id: input.packetId },
-        select: { id: true, coachingRequestId: true },
+        select: { id: true, coachingRequestId: true, formAnswers: true },
     });
     if (!packet) throw new Error("Not found");
 
@@ -415,7 +427,17 @@ export async function saveReviewEdits(input: {
     if (request.coachProfileId !== profileId) throw new Error("Not found");
 
     const data: Record<string, unknown> = {};
-    if (input.formAnswers !== undefined) data.formAnswers = input.formAnswers as object;
+    // Same merge as the client submit above, for the same reason: a wholesale
+    // write dropped every flat answer the client saved from iOS and any
+    // `_coachNotes`/`_savedAt` metadata. Callers differ in shape:
+    // `intake-summary-panel` sends `{ sections }` only, but `review-session`
+    // spreads the stored packet and replaces `sections`, so its payload also
+    // carries stale flat keys. `mergePacketSubmission` resolves that with
+    // nested-wins precedence (see `packetAnswerItems`), which is what makes the
+    // coach's edit stick — a flat key outranks nested on read (`flattenPacketAnswers`).
+    if (input.formAnswers !== undefined) {
+        data.formAnswers = mergePacketSubmission(packet.formAnswers, input.formAnswers) as object;
+    }
     if (input.coachNotes !== undefined) data.coachNotes = input.coachNotes;
 
     await db.intakePacket.update({ where: { id: input.packetId }, data });
