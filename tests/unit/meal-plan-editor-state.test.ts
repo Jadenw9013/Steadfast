@@ -27,8 +27,11 @@ import { describe, it, expect, vi } from "vitest";
 
 import {
   PLAN_MODE_SWITCH_WARNING,
+  VERSION_HISTORY_NAV_WARNING,
   MACRO_CALORIE_TOLERANCE,
+  isNewTabOrWindowClick,
   shouldProceedWithModeSwitch,
+  shouldProceedWithUnsavedChanges,
   foodsEditorSignature,
   macroEditorSignature,
   buildFoodsDraftInput,
@@ -143,6 +146,93 @@ describe("shouldProceedWithModeSwitch", () => {
   it("warns about losing work, not about the mode change itself", () => {
     expect(PLAN_MODE_SWITCH_WARNING).toMatch(/unsaved/i);
     expect(PLAN_MODE_SWITCH_WARNING).toMatch(/lost/i);
+  });
+});
+
+// ── T-801 review finding 1: the Version History link's guard ─────────────────
+//
+// The link unmounts the editor exactly like a plan-mode switch does, so it
+// must be gated by the same underlying rule. These tests pin down the shared
+// `shouldProceedWithUnsavedChanges` gate directly (what the link's onClick
+// calls) rather than re-deriving `shouldProceedWithModeSwitch`'s mode-specific
+// wrapper, which is covered above.
+
+describe("shouldProceedWithUnsavedChanges (shared by the mode toggle and the Version History link)", () => {
+  const confirmYes = () => true;
+  const confirmNo = () => false;
+
+  it("proceeds immediately when there is nothing typed — no dialog at all", () => {
+    const confirmDiscard = vi.fn(confirmYes);
+    const proceed = shouldProceedWithUnsavedChanges({
+      pending: false,
+      hasUnsavedChanges: false,
+      confirmDiscard,
+    });
+    expect(proceed).toBe(true);
+    expect(confirmDiscard).not.toHaveBeenCalled();
+  });
+
+  it("requires confirmation when there is unsaved content, and proceeds on confirm", () => {
+    const confirmDiscard = vi.fn(confirmYes);
+    const proceed = shouldProceedWithUnsavedChanges({
+      pending: false,
+      hasUnsavedChanges: true,
+      confirmDiscard,
+    });
+    expect(confirmDiscard).toHaveBeenCalledTimes(1);
+    expect(proceed).toBe(true);
+  });
+
+  it("does NOT proceed when the coach cancels the confirmation", () => {
+    const confirmDiscard = vi.fn(confirmNo);
+    const proceed = shouldProceedWithUnsavedChanges({
+      pending: false,
+      hasUnsavedChanges: true,
+      confirmDiscard,
+    });
+    expect(confirmDiscard).toHaveBeenCalledTimes(1);
+    // The link's onClick calls e.preventDefault() on false: navigation must
+    // not happen and the editor must stay mounted with its content intact.
+    expect(proceed).toBe(false);
+  });
+
+  it("ignores a click while an equivalent action is already in flight, without asking", () => {
+    const confirmDiscard = vi.fn(confirmYes);
+    expect(
+      shouldProceedWithUnsavedChanges({
+        pending: true,
+        hasUnsavedChanges: true,
+        confirmDiscard,
+      })
+    ).toBe(false);
+    expect(confirmDiscard).not.toHaveBeenCalled();
+  });
+
+  it("VERSION_HISTORY_NAV_WARNING warns about losing work, is its own constant distinct from PLAN_MODE_SWITCH_WARNING", () => {
+    expect(VERSION_HISTORY_NAV_WARNING).toMatch(/unsaved/i);
+    expect(VERSION_HISTORY_NAV_WARNING).toMatch(/lost/i);
+    expect(VERSION_HISTORY_NAV_WARNING).not.toBe(PLAN_MODE_SWITCH_WARNING);
+  });
+});
+
+// ── T-801 review round 2, MINOR 3: the Version History link's new-tab guard ──
+
+const plainClick = { metaKey: false, ctrlKey: false, shiftKey: false, altKey: false, button: 0 };
+
+describe("isNewTabOrWindowClick (the Version History link skips the whole confirm for these)", () => {
+  it("is false for a plain left click — the confirm guard still applies", () => {
+    expect(isNewTabOrWindowClick(plainClick)).toBe(false);
+  });
+
+  it("is true for cmd/ctrl/shift/alt-click, one modifier at a time", () => {
+    expect(isNewTabOrWindowClick({ ...plainClick, metaKey: true })).toBe(true);
+    expect(isNewTabOrWindowClick({ ...plainClick, ctrlKey: true })).toBe(true);
+    expect(isNewTabOrWindowClick({ ...plainClick, shiftKey: true })).toBe(true);
+    expect(isNewTabOrWindowClick({ ...plainClick, altKey: true })).toBe(true);
+  });
+
+  it("is true for a non-primary button (e.g. a middle click)", () => {
+    expect(isNewTabOrWindowClick({ ...plainClick, button: 1 })).toBe(true);
   });
 });
 

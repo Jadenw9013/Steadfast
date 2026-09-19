@@ -39,6 +39,24 @@ import type { PlanModeInput } from "@/lib/meal-plans/macro-targets";
 export const PLAN_MODE_SWITCH_WARNING =
   "Switching plan type replaces the editor below. Your unsaved changes to this week's plan will be lost. Switch anyway?";
 
+/** Shown before navigating away to Version History discards unsaved editor
+ *  content (T-801 review, finding 1). Same failure mode as the plan-mode
+ *  toggle: the link unmounts the editor, and editor content lives only in
+ *  `useState` until an explicit Save. */
+export const VERSION_HISTORY_NAV_WARNING =
+  "Viewing version history will leave this page. Your unsaved changes to this week's plan will be lost. Continue?";
+
+/** The Version History link's `onClick` fires above `MealPlanEditorV2Body` /
+ *  `MacroPlanEditor`, where `saving`/`publishing` actually live — there is no
+ *  "an equivalent action is already in flight" signal at that call site to
+ *  plumb into `shouldProceedWithUnsavedChanges`'s `pending` (T-801 review r2,
+ *  NIT). A named `false`, not a bare literal, so a future reader sees this was
+ *  a deliberate reading of the call site rather than a copy-pasted default.
+ *  Wiring a real per-editor `onPendingChange` (same shape as `onUnsavedChange`)
+ *  is the same class of change as the review's other MINOR — cross-editor
+ *  follow-up, not a fix here. */
+export const VERSION_HISTORY_LINK_HAS_NO_PENDING_SIGNAL = false;
+
 // ── "The coach has typed something" ───────────────────────────────────────────
 
 /**
@@ -99,11 +117,60 @@ export function macroEditorSignature(
 // ── The plan-mode toggle's guard ──────────────────────────────────────────────
 
 /**
+ * The generic "is there unsaved content worth confirming before it's thrown
+ * away" gate. `confirmDiscard` is only consulted when there is something to
+ * lose, so a fresh page load with no edits proceeds with no dialog at all.
+ *
+ * Shared by every action that can unmount the editor while its content still
+ * lives only in `useState`: the plan-mode toggle
+ * (`shouldProceedWithModeSwitch`, below) and the Version History link (T-801
+ * review, finding 1 — same failure class as the toggle, different trigger).
+ * A future third trigger must call this too, not write a fourth copy.
+ */
+export function shouldProceedWithUnsavedChanges(args: {
+  /** An equivalent action is already in flight. */
+  pending: boolean;
+  /** Reported by whichever editor is currently mounted. */
+  hasUnsavedChanges: boolean;
+  /** Returns true to discard the unsaved content and proceed anyway. */
+  confirmDiscard: () => boolean;
+}): boolean {
+  const { pending, hasUnsavedChanges, confirmDiscard } = args;
+  if (pending) return false;
+  if (!hasUnsavedChanges) return true;
+  return confirmDiscard();
+}
+
+/**
+ * True when a click on a plain `<a>`/`next/link` will NOT navigate the
+ * current tab away — a modifier key or a non-primary (e.g. middle) button
+ * makes the browser open a new tab/window instead, leaving this tab's
+ * mounted editor untouched. Callers must skip the unsaved-changes guard
+ * entirely in that case (T-801 review r2, MINOR 3): asking `confirmDiscard`
+ * is a false alarm because nothing in this tab is unmounting, and calling
+ * `e.preventDefault()` on a "no" answer would block the new tab from opening
+ * for a click that was never going to lose anything.
+ *
+ * Kept here, not inline in the component, so the decision is unit-testable —
+ * this repo has no jsdom/RTL to click a real anchor in a test.
+ */
+export function isNewTabOrWindowClick(e: {
+  metaKey: boolean;
+  ctrlKey: boolean;
+  shiftKey: boolean;
+  altKey: boolean;
+  button: number;
+}): boolean {
+  return e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0;
+}
+
+/**
  * Whether a click on the plan-mode toggle should actually switch the mode.
  *
  * Extracted from the toggle's click handler so the rule is testable without a
- * DOM. `confirmDiscard` is only consulted when there is something to lose, so a
- * fresh page load with no edits keeps its one-tap behavior.
+ * DOM. Delegates the "is there something to lose" decision to
+ * `shouldProceedWithUnsavedChanges` above; the only rule specific to a mode
+ * switch is that switching to the mode already active is always a no-op.
  */
 export function shouldProceedWithModeSwitch(args: {
   current: PlanModeInput;
@@ -115,10 +182,9 @@ export function shouldProceedWithModeSwitch(args: {
   /** Returns true to discard the unsaved content and switch anyway. */
   confirmDiscard: () => boolean;
 }): boolean {
-  const { current, next, pending, hasUnsavedChanges, confirmDiscard } = args;
-  if (next === current || pending) return false;
-  if (!hasUnsavedChanges) return true;
-  return confirmDiscard();
+  const { current, next, ...rest } = args;
+  if (next === current) return false;
+  return shouldProceedWithUnsavedChanges(rest);
 }
 
 // ── Draft-creation payloads ───────────────────────────────────────────────────

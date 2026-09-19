@@ -4,6 +4,13 @@ import type { MealPlanStatus, PlanMode, Prisma } from "@/app/generated/prisma/cl
 import { planExtrasSchema } from "@/types/meal-plan-extras";
 import { ACTIVE_MEAL_PLAN_ORDER_BY } from "@/lib/meal-plans/active-plan";
 import { createMealPlanDraft } from "@/lib/meal-plans/drafts";
+import { sourceNotRestorableMessage, draftExistsMessage } from "@/lib/meal-plans/history-messages";
+
+// Re-exported (not redefined) so every existing importer of the two frozen
+// sentences keeps working. The db-free module is what the client-side
+// `RestoreVersionButton` imports directly — see history-messages.ts and
+// T-801 review finding 4.
+export { sourceNotRestorableMessage, draftExistsMessage };
 
 /**
  * Single source of truth for meal-plan version history across every
@@ -255,15 +262,15 @@ export type RestoreMealPlanVersionResult =
   | { ok: false; code: "SOURCE_NOT_RESTORABLE"; status: MealPlanStatus }
   | { ok: false; code: "DRAFT_EXISTS"; existingDraftId: string };
 
-/** The single copy of each user-facing sentence, all three transports call it.
- *  Both are well under the 300-char cutoff in iOS `userFacingErrorMessage`
- *  (APIService.swift), which returns the `error` key verbatim. */
-export function sourceNotRestorableMessage(): string {
-  return "Only published plan versions can be restored.";
-}
-
-export function draftExistsMessage(): string {
-  return "This week already has a draft. Restoring will replace it.";
+/** The one definition of "can this version be restored", shared by the
+ *  enforcement below and by both `{mealPlanId}` surfaces' `isRestorable`
+ *  field (`history/[mealPlanId]/route.ts`, the version-detail page) — T-801
+ *  review, finding 4. Before this export existed the same two-status check
+ *  was copy-pasted three times, so a future status (T-803/T-805) could add
+ *  itself to this list here while a UI's stale copy kept the Restore button
+ *  greyed with no way to notice. */
+export function isRestorableStatus(status: MealPlanStatus): boolean {
+  return status === "PUBLISHED" || status === "SUPERSEDED";
 }
 
 /** Named for what it does, not for the button that calls it, so the Server
@@ -279,7 +286,7 @@ export async function createDraftFromMealPlanVersion(args: {
 }): Promise<RestoreMealPlanVersionResult> {
   const { source } = args;
 
-  if (source.status !== "PUBLISHED" && source.status !== "SUPERSEDED") {
+  if (!isRestorableStatus(source.status)) {
     return { ok: false, code: "SOURCE_NOT_RESTORABLE", status: source.status };
   }
 
@@ -320,21 +327,37 @@ export async function createDraftFromMealPlanVersion(args: {
   });
 
   // Create first, delete second. Never one transaction — see the file header.
-  const replacedDraftIds = existingDrafts.map((d) => d.id);
-  if (replacedDraftIds.length > 0) {
-    const deleted = await db.mealPlan.deleteMany({
-      where: {
-        id: { in: replacedDraftIds },
-        clientId: source.clientId,
-        weekOf: targetWeekOf,
-        status: "DRAFT",
-      },
-    });
-    // `status: "DRAFT"` is re-checked in the filter so a draft a concurrent
-    // request published between the read above and here is never deleted.
-    if (deleted.count !== replacedDraftIds.length) {
-      // Nothing to undo: the new draft already exists and is correct either
-      // way. A row that stopped being a DRAFT simply survives untouched.
+  const replacedCandidateIds = existingDrafts.map((d) => d.id);
+  let replacedDraftIds: string[] = [];
+  if (replacedCandidateIds.length > 0) {
+    try {
+      await db.mealPlan.deleteMany({
+        where: {
+          id: { in: replacedCandidateIds },
+          clientId: source.clientId,
+          weekOf: targetWeekOf,
+          status: "DRAFT",
+        },
+      });
+      // `status: "DRAFT"` is re-checked in the filter so a draft a concurrent
+      // request published between the read above and here is spared. Report
+      // only rows that are actually gone (T-801 review, finding 3) — the
+      // pre-delete candidate list is not proof of what was deleted, and
+      // returning it verbatim would tell a caller a now-PUBLISHED plan was
+      // replaced.
+      const stillPresent = await db.mealPlan.findMany({
+        where: { id: { in: replacedCandidateIds } },
+        select: { id: true },
+      });
+      const stillPresentIds = new Set(stillPresent.map((p) => p.id));
+      replacedDraftIds = replacedCandidateIds.filter((id) => !stillPresentIds.has(id));
+    } catch (err) {
+      // The new draft above was already created and is correct regardless of
+      // whether the old one gets cleaned up — a delete failure here must
+      // never be reported as a failed restore (T-801 review, finding 3). The
+      // stale draft becomes an extra row; the editor's "newest wins"
+      // ordering (`orderBy: { createdAt: "desc" }`) already tolerates that.
+      console.error("[createDraftFromMealPlanVersion] failed to delete replaced draft(s)", err);
     }
   }
 

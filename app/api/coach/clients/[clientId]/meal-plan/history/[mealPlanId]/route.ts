@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { verifyAssignment } from "@/app/api/coach/clients/[clientId]/meal-plan/route";
-import { getMealPlanVersionDetail, hasDraftForWeek } from "@/lib/meal-plans/history";
+import { getMealPlanVersionDetail, hasDraftForWeek, isRestorableStatus } from "@/lib/meal-plans/history";
 
 type Params = { params: Promise<{ clientId: string; mealPlanId: string }> };
 
@@ -43,7 +43,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
     }
 
     const weekHasDraft = await hasDraftForWeek(clientId, detail.weekOf);
-    const isRestorable = detail.status === "PUBLISHED" || detail.status === "SUPERSEDED";
+    const isRestorable = isRestorableStatus(detail.status);
 
     return NextResponse.json({
       mealPlan: {

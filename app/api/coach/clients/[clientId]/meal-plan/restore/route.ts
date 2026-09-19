@@ -44,7 +44,16 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
+    // Parsed in its own try/catch (T-801 review / parity gap 1): a body that
+    // is not valid JSON must 422 like any other malformed request, not fall
+    // through to the outer catch's 500. `publish/route.ts` has the same gap;
+    // fixing it there too is a follow-up, not part of this ticket.
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Validation failed", details: {} }, { status: 422 });
+    }
     const parsed = restoreSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
