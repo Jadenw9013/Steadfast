@@ -4,6 +4,7 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { parseWeekStartDate, getCurrentWeekMonday } from "@/lib/utils/date";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
+import { mergePlanExtras } from "@/lib/meal-plans/plan-extras-merge";
 import {
   mealMacroTargetSchema,
   planModeSchema,
@@ -369,7 +370,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const plan = await db.mealPlan.findUnique({
       where: { id: mealPlanId },
-      select: { clientId: true, status: true },
+      select: { clientId: true, status: true, planExtras: true },
     });
     if (!plan) {
       return NextResponse.json({ error: "Meal plan not found" }, { status: 404 });
@@ -402,11 +403,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
           ]
         : []),
       ...(macroTargets !== undefined ? macroTargetTransactionOps(mealPlanId, macroTargets) : []),
-      ...(planExtras !== undefined
+      // T-841 — merge key-wise against the RAW stored JSON instead of
+      // replacing wholesale. See lib/meal-plans/plan-extras-merge.ts and the
+      // identical comment in app/actions/meal-plans.ts:saveDraftMealPlan.
+      ...(planExtras != null
         ? [
             db.mealPlan.update({
               where: { id: mealPlanId },
-              data: { planExtras: planExtras ?? undefined },
+              data: { planExtras: mergePlanExtras(plan.planExtras, planExtras) },
             }),
           ]
         : []),

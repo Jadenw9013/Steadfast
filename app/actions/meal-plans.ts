@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
+import { mergePlanExtras } from "@/lib/meal-plans/plan-extras-merge";
 import {
   mealMacroTargetSchema,
   planModeSchema,
@@ -153,7 +154,7 @@ export async function saveDraftMealPlan(input: unknown) {
 
   const plan = await db.mealPlan.findUnique({
     where: { id: mealPlanId },
-    select: { clientId: true, status: true },
+    select: { clientId: true, status: true, planExtras: true },
   });
   if (!plan) throw new Error("Meal plan not found");
 
@@ -184,13 +185,21 @@ export async function saveDraftMealPlan(input: unknown) {
         ]
       : []),
     ...(macroTargets !== undefined ? macroTargetTransactionOps(mealPlanId, macroTargets) : []),
-    // Update planExtras/supportContent if provided
+    // Update planExtras/supportContent if provided.
+    // planExtras: T-841 — a defined, non-null value merges key-wise against
+    // the RAW stored JSON (see lib/meal-plans/plan-extras-merge.ts) instead
+    // of replacing the column wholesale. `null` is a documented no-op on
+    // this branch (origin/main), matching supportContent's `null` no-op
+    // below — do not "fix" this asymmetry here, see T-841 spec. Read-modify-
+    // write race accepted: strictly narrower than the prior unconditional
+    // replace; the atomic jsonb-concat form is deferred to T-873 pending
+    // proof the column is actually `jsonb` (no migration created it).
     ...(planExtras !== undefined || supportContent !== undefined
       ? [
           db.mealPlan.update({
             where: { id: mealPlanId },
             data: {
-              ...(planExtras !== undefined && { planExtras: planExtras ?? undefined }),
+              ...(planExtras != null && { planExtras: mergePlanExtras(plan.planExtras, planExtras) }),
               ...(supportContent !== undefined && { supportContent: supportContent ?? undefined }),
             },
           }),
