@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
 import { Prisma } from "@/app/generated/prisma/client";
 import type { MealPlanStatus, PlanMode } from "@/app/generated/prisma/client";
+import { reportAnomaly } from "@/lib/observability/report";
+import { MEALPLAN_MODE_DISAGREEMENT } from "@/lib/observability/events";
 
 /**
  * Single source of truth for every meal-plan publish transport: the
@@ -208,6 +210,23 @@ export async function publishMealPlanTarget(
   // DRAFT-only updateMany would have produced.
   if (!content) return { ok: false, code: "RACE_LOST" };
   if (isPlanEmptyForMode(content.planMode, content._count)) {
+    // T-920 — the T-800 shape: empty for its OWN planMode while the OTHER
+    // representation has content, which is how a foods plan gets published
+    // reading as "MACROS with zero targets" (T-101 made both arrays coexist
+    // on every row, so this is distinguishable from a genuinely blank plan).
+    const otherRepresentationHasContent =
+      content.planMode === "MACROS" ? content._count.items > 0 : content._count.macroTargets > 0;
+    if (otherRepresentationHasContent) {
+      reportAnomaly(MEALPLAN_MODE_DISAGREEMENT.evt, {
+        ids: { clientId: target.clientId, planId: target.id },
+        context: {
+          planMode: content.planMode,
+          itemCount: content._count.items,
+          macroTargetCount: content._count.macroTargets,
+        },
+        allow: MEALPLAN_MODE_DISAGREEMENT.allow,
+      });
+    }
     return { ok: false, code: "EMPTY_PLAN", planMode: content.planMode };
   }
 

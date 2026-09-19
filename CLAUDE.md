@@ -56,6 +56,9 @@ Run: npx playwright test
 - Do not use prisma db push — always use prisma migrate dev
 - font-size: max(1rem, 16px) on all inputs
 - Minimum 48px tap targets
+- Every branch that knowingly degrades — an empty render where a row exists, a mode/content disagreement, a
+  merge that drops keys — calls `reportAnomaly` from `lib/observability`. Never `console.error` a new one by
+  hand.
 
 ## Project Overview
 
