@@ -434,6 +434,7 @@ export default async function ClientProfilePage({
               weekStartDate: weekDateStr,
               templates: mappedTemplates,
               initialProgram,
+              carriedOverFromWeek: trainingData.carriedOverFrom ? formatDateUTC(trainingData.carriedOverFrom) : null,
             }}
           />
         </div>

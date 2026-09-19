@@ -169,6 +169,7 @@ export default async function ReviewWorkspacePage({
               weekStartDate: formatDateUTC(weekOf),
               templates: mappedTemplates,
               initialProgram,
+              carriedOverFromWeek: trainingData.carriedOverFrom ? formatDateUTC(trainingData.carriedOverFrom) : null,
             }}
           />
         </div>

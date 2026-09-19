@@ -3,37 +3,12 @@ import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { parseWeekStartDate, getCurrentWeekMonday } from "@/lib/utils/date";
+import {
+  getTrainingProgramForReview,
+  getLatestPublishedTrainingProgramForCoach,
+} from "@/lib/queries/training-programs";
 
 type Params = { params: Promise<{ clientId: string }> };
-
-const programSelect = {
-  id: true,
-  weekOf: true,
-  status: true,
-  weeklyFrequency: true,
-  clientNotes: true,
-  injuries: true,
-  equipment: true,
-  publishedAt: true,
-  days: {
-    orderBy: { sortOrder: "asc" as const },
-    select: {
-      id: true,
-      dayName: true,
-      sortOrder: true,
-      blocks: {
-        orderBy: { sortOrder: "asc" as const },
-        select: {
-          id: true,
-          type: true,
-          title: true,
-          content: true,
-          sortOrder: true,
-        },
-      },
-    },
-  },
-};
 
 async function verifyAssignment(coachId: string, clientId: string) {
   return db.coachClient.findUnique({
@@ -68,6 +43,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     let program = null;
     let source = "empty";
+    let carriedOverFromWeekOf: string | null = null;
 
     if (weekOfParam) {
       let weekOf: Date;
@@ -77,29 +53,12 @@ export async function GET(req: NextRequest, { params }: Params) {
         return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
       }
 
-      const draft = await db.trainingProgram.findFirst({
-        where: { clientId, weekOf, status: "DRAFT" },
-        select: programSelect,
-      });
-      if (draft) {
-        program = draft;
-        source = "draft";
-      } else {
-        const published = await db.trainingProgram.findFirst({
-          where: { clientId, weekOf, status: "PUBLISHED" },
-          select: programSelect,
-        });
-        if (published) {
-          program = published;
-          source = "published";
-        }
-      }
+      const result = await getTrainingProgramForReview(clientId, weekOf);
+      program = result.program;
+      source = result.source;
+      carriedOverFromWeekOf = result.carriedOverFrom ? result.carriedOverFrom.toISOString() : null;
     } else {
-      const published = await db.trainingProgram.findFirst({
-        where: { clientId, status: "PUBLISHED" },
-        orderBy: { publishedAt: "desc" },
-        select: programSelect,
-      });
+      const published = await getLatestPublishedTrainingProgramForCoach(clientId);
       if (published) {
         program = published;
         source = "published";
@@ -121,6 +80,7 @@ export async function GET(req: NextRequest, { params }: Params) {
             days: program.days,
           }
         : null,
+      carriedOverFromWeekOf,
       // Server-computed "current week" — clients should prefer this over
       // any on-device date math when seeding a brand-new program's weekOf.
       currentWeekOf: getCurrentWeekMonday().toISOString(),

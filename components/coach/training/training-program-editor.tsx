@@ -79,6 +79,13 @@ type InitialProgram = {
 type Mode = "empty" | "assign" | "edit";
 type ViewMode = "editor" | "preview";
 
+// carriedOverFromWeek is a YYYY-MM-DD string; format as "Mon D, YYYY" using
+// UTC so the displayed date never shifts a day based on the viewer's timezone.
+function formatCarriedOverWeek(weekOf: string): string {
+  const d = new Date(`${weekOf}T00:00:00Z`);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
 const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   EXERCISE: "Exercise",
   ACTIVATION: "Activation",
@@ -170,11 +177,13 @@ export function TrainingProgramEditor({
   weekStartDate,
   initialProgram,
   templates = [],
+  carriedOverFromWeek = null,
 }: {
   clientId: string;
   weekStartDate: string;
   initialProgram: InitialProgram;
   templates?: TemplateOption[];
+  carriedOverFromWeek?: string | null;
 }) {
   const router = useRouter();
 
@@ -195,9 +204,17 @@ export function TrainingProgramEditor({
 
   const [mode, setMode] = useState<Mode>(initialProgram ? "edit" : "empty");
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
-  const [programId, setProgramId] = useState<string | null>(initialProgram?.id ?? null);
+  // T-803: `programId` is intentionally write-only right now. It tracks the
+  // program created/loaded for this editor session so a future save/publish
+  // path can read it back without re-deriving it from `initialProgram`. Keep
+  // the state (only the setter is used today, at the save handler below) —
+  // do not delete it as dead code.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- see comment above, T-803
+  const [programId, setProgramId] = useState<string | null>(
+    carriedOverFromWeek ? null : initialProgram?.id ?? null
+  );
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | null>(
-    initialProgram?.status ?? null
+    carriedOverFromWeek ? null : initialProgram?.status ?? null
   );
   const [days, setDays] = useState<TrainingDayGroup[]>(_extracted.trainingDays);
 
@@ -438,7 +455,7 @@ export function TrainingProgramEditor({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setMode(programId ? "edit" : "empty")}
+            onClick={() => setMode(initialProgram ? "edit" : "empty")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
             aria-label="Back"
           >
@@ -668,6 +685,13 @@ export function TrainingProgramEditor({
           </button>
         </div>
       </div>
+
+      {carriedOverFromWeek && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-200">
+          Carried over from the week of {formatCarriedOverWeek(carriedOverFromWeek)}. This week has no
+          program of its own yet — Save or Publish to make this the program for this week.
+        </div>
+      )}
 
       {/* Preview mode */}
       {viewMode === "preview" ? (

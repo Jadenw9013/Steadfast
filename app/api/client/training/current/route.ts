@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
+import { PUBLISHED_TRAINING_ORDER_BY } from "@/lib/queries/training-programs";
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -19,7 +20,7 @@ export async function GET() {
     // ── Most recent published program — explicit select (no select *) ─────
     const program = await db.trainingProgram.findFirst({
       where: { clientId: user.id, status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
+      orderBy: PUBLISHED_TRAINING_ORDER_BY,
       select: {
         id: true,
         weekOf: true,

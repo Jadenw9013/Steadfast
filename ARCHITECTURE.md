@@ -440,7 +440,7 @@ app/actions/ (34 server action files)
 
 ### Week-Based Data Model
 
-All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnight UTC** via `normalizeToMonday()` in `lib/utils/date.ts`. Check-ins, macro targets, meal plans, training programs, and messages are all keyed by `(clientId, weekOf)`.
+All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnight UTC** via `normalizeToMonday()` in `lib/utils/date.ts`. Check-ins, macro targets, meal plans, training programs, and messages are all keyed by `(clientId, weekOf)`. A coach's week-scoped meal plan and training reads both fall back across weeks when the requested week has no plan/program of its own, rather than rendering empty — but they do NOT bound that fallback the same way. `getTrainingProgramForReview` carries over the latest published row from a **strictly earlier** week only (T-803). `getEffectiveMealPlanForReview` is **unbounded** and can therefore carry a *later* week's published plan back into an earlier week (`lib/queries/meal-plans.ts`); that asymmetry is a known defect, tracked in T-888, not a design choice.
 
 ### State Management
 
@@ -597,7 +597,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove |
 | GET/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. GET response additionally carries `clientPlanMode` (the `CoachClient` default) and `editorMode` (server-resolved `draft?.planMode ?? clientPlanMode` — never inferred from the published row's content) — T-800. PUT `planExtras` write semantics (T-841, identical on this route and the `saveDraftMealPlan` Server Action — shared logic in `lib/meal-plans/plan-extras-merge.ts`): absent/`undefined` key → no write; `null` → no write (documented no-op, do not "fix" this asymmetry); an object → shallow top-level merge against the raw stored JSON (`mergePlanExtras`), never a wholesale replace. `dayOverrides: []` is a present key and clears the overrides; an absent `dayOverrides` never clears. A present nested object (e.g. `metadata`) replaces the stored nested object wholesale — the merge is one level deep only. |
 | POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan (409 `PLAN_NOT_DRAFT` if not a draft, 409 `PLAN_EMPTY` if the plan has no content for its mode — T-800) |
-| GET/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD |
+| GET/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD. GET with `weekOf`: this week's DRAFT, else this week's PUBLISHED, else the client's latest PUBLISHED from an earlier week returned as `source: "carried-over"` with `carriedOverFromWeekOf` set to that week's ISO date (`getTrainingProgramForReview`, T-803). GET without `weekOf` (the shipped iOS app's only call shape) is unchanged: `source` is `"published"` or `"empty"`, `carriedOverFromWeekOf` is always `null`. Every published lookup is ordered `publishedAt desc nulls last, createdAt desc, id desc` (`PUBLISHED_TRAINING_ORDER_BY` in `lib/queries/training-programs.ts`) so duplicate PUBLISHED rows resolve deterministically to the newest. |
 | POST | `/api/coach/clients/[clientId]/training/publish` | Publish training program |
 | GET | `/api/coach/clients/[clientId]/intake` | Client intake data |
 | GET | `/api/coach/clients/[clientId]/messages` | Client message thread |
