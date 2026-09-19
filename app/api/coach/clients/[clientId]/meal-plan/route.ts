@@ -17,7 +17,9 @@ import {
 
 type Params = { params: Promise<{ clientId: string }> };
 
-async function verifyAssignment(coachId: string, clientId: string) {
+/** Exported so the three history routes (T-801) import this instead of
+ *  writing a third and fourth copy of the same assignment check. */
+export async function verifyAssignment(coachId: string, clientId: string) {
   return db.coachClient.findUnique({
     where: { coachId_clientId: { coachId, clientId } },
     select: { id: true },

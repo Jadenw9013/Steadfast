@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MealCard } from "./meal-card";
 import { MealPlanActions } from "./meal-plan-actions";
 import { MacroPlanEditor } from "./macro-plan-editor";
@@ -19,7 +20,11 @@ import {
   buildFoodsDraftInput,
   findMealNameProblem,
   foodsEditorSignature,
+  isNewTabOrWindowClick,
   mealNameProblemMessage,
+  shouldProceedWithUnsavedChanges,
+  VERSION_HISTORY_LINK_HAS_NO_PENDING_SIGNAL,
+  VERSION_HISTORY_NAV_WARNING,
 } from "@/lib/meal-plans/editor-state";
 import {
   groupItemsToMeals,
@@ -63,11 +68,37 @@ export function MealPlanEditorV2({
 
   return (
     <div className="space-y-4">
-      <PlanModeToggle
-        clientId={clientId}
-        initialMode={effectivePlan.editorMode}
-        hasUnsavedChanges={hasUnsavedChanges}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PlanModeToggle
+          clientId={clientId}
+          initialMode={effectivePlan.editorMode}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
+        {/* T-801 — the only web entry point into meal plan version history.
+            Editor content lives only in `useState` until an explicit Save,
+            so this navigation must be gated the same way the plan-mode
+            toggle's is (T-801 review, finding 1) — otherwise a coach with
+            unsaved edits loses them silently the instant this link unmounts
+            the editor. */}
+        <Link
+          href={`/coach/clients/${clientId}/meal-plan/history`}
+          onClick={(e) => {
+            // Cmd/ctrl/shift/alt-click and middle-click open a new tab —
+            // this tab's editor never unmounts, so let the browser handle it
+            // with no confirm and no preventDefault (T-801 review r2, MINOR 3).
+            if (isNewTabOrWindowClick(e)) return;
+            const proceed = shouldProceedWithUnsavedChanges({
+              pending: VERSION_HISTORY_LINK_HAS_NO_PENDING_SIGNAL,
+              hasUnsavedChanges,
+              confirmDiscard: () => window.confirm(VERSION_HISTORY_NAV_WARNING),
+            });
+            if (!proceed) e.preventDefault();
+          }}
+          className="inline-flex min-h-[48px] items-center rounded-xl border border-zinc-700 px-4 text-sm font-semibold text-zinc-300 transition-all hover:border-zinc-500 hover:text-zinc-100"
+        >
+          Version history
+        </Link>
+      </div>
       {effectivePlan.editorMode === "MACROS" ? (
         <MacroPlanEditor
           clientId={clientId}
