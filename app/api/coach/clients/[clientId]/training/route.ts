@@ -10,6 +10,13 @@ import {
 
 type Params = { params: Promise<{ clientId: string }> };
 
+// T-880 finding 3: thrown when the guarded updateMany inside the day-rewrite
+// transaction matches zero rows because a concurrent publish (another
+// transport, e.g. iOS) flipped the target out of DRAFT between the status
+// read above and this write. Distinguished from other transaction failures
+// so the outer catch can report 409 instead of 500.
+class ProgramPublishedDuringSaveError extends Error {}
+
 async function verifyAssignment(coachId: string, clientId: string) {
   return db.coachClient.findUnique({
     where: { coachId_clientId: { coachId, clientId } },
@@ -244,7 +251,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
     const program = await db.trainingProgram.findUnique({
       where: { id: programId },
-      select: { clientId: true, status: true },
+      select: {
+        id: true,
+        clientId: true,
+        weekOf: true,
+        status: true,
+        injuries: true,
+        equipment: true,
+        templateSourceId: true,
+        weeklyFrequency: true,
+        clientNotes: true,
+      },
     });
     if (!program) {
       return NextResponse.json({ error: "Program not found" }, { status: 404 });
@@ -253,14 +270,81 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Atomic replace: delete all days (cascades to blocks), recreate
+    const isForking = program.status !== "DRAFT";
+    // Finding 5: a fork must be a faithful copy plus the caller's overrides —
+    // an omitted (`undefined`) field inherits the target's value, matching
+    // the `!== undefined` rule used by team/sprint-1's saveTrainingProgramContent
+    // merge. A genuine DRAFT-direct edit keeps its pre-existing "omitted clears
+    // the field" behaviour untouched (byte-identical to before this fix).
+    const finalWeeklyFrequency = isForking
+      ? weeklyFrequency === undefined
+        ? program.weeklyFrequency
+        : weeklyFrequency
+      : weeklyFrequency ?? null;
+    const finalClientNotes = isForking
+      ? clientNotes === undefined
+        ? program.clientNotes
+        : clientNotes
+      : clientNotes ?? null;
+
+    let targetProgramId = programId;
+    let forkedNewProgramId: string | null = null;
+
+    // Atomic replace: delete all days (cascades to blocks), recreate.
+    // T-880 finding 3: the fork create is now INSIDE this transaction (round 2
+    // finding H). Previously it ran before $transaction opened, so a failure
+    // partway through the day rewrite left a bare, empty DRAFT row behind —
+    // and both coach reads prefer a DRAFT over a PUBLISHED row for the same
+    // week, so the coach's next load showed a blank editor for a week that
+    // still has published content. Now a failed save rolls back the fork
+    // itself; the coach reloads into the unchanged PUBLISHED program instead
+    // (release-safety: degrade, never disappear).
+    // The guarded updateMany runs before any destructive write. On the fork
+    // branch it targets a row created earlier in this same transaction
+    // (status DRAFT, so this is a no-op safety net, not reachable code for
+    // the 409). On the non-fork branch it targets the row read as DRAFT
+    // above, which a concurrent publish (another transport) could have
+    // flipped since that read. A zero-row result means exactly that: refuse
+    // the write and report, instead of silently rewriting a PUBLISHED row.
     await db.$transaction(async (tx) => {
-      await tx.trainingDay.deleteMany({ where: { programId } });
+      if (isForking) {
+        // CB04 / T-880: the client may be reading this row right now. Fork instead of
+        // rewriting it; the request body cannot express injuries/equipment/templateSourceId,
+        // so those are inherited from the row being forked.
+        const forked = await tx.trainingProgram.create({
+          data: {
+            clientId,
+            weekOf: program.weekOf,
+            status: "DRAFT",
+            weeklyFrequency: finalWeeklyFrequency,
+            clientNotes: finalClientNotes,
+            injuries: program.injuries,
+            equipment: program.equipment,
+            templateSourceId: program.templateSourceId,
+          },
+          select: { id: true },
+        });
+        targetProgramId = forked.id;
+        forkedNewProgramId = forked.id;
+      }
+
+      const guarded = await tx.trainingProgram.updateMany({
+        where: { id: targetProgramId, status: "DRAFT" },
+        data: {
+          weeklyFrequency: finalWeeklyFrequency,
+          clientNotes: finalClientNotes,
+        },
+      });
+      if (guarded.count === 0) {
+        throw new ProgramPublishedDuringSaveError();
+      }
+
+      await tx.trainingDay.deleteMany({ where: { programId: targetProgramId } });
 
       for (const day of days) {
         await tx.trainingDay.create({
           data: {
-            programId,
+            programId: targetProgramId,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             dayName: (day.dayName || undefined) as any,
             sortOrder: day.sortOrder,
@@ -275,18 +359,25 @@ export async function PUT(req: NextRequest, { params }: Params) {
           },
         });
       }
+    },
+      // T-880 review r3 finding 4: this transaction is strictly LARGER than the
+      // Server Action's (it can carry the fork create as well) and it is the
+      // path the iOS app uses, so it gets the same explicit headroom rather
+      // than relying on Prisma's 5000ms default. Same reasoning as
+      // app/actions/training-programs.ts: the measured shape is ~28ms locally
+      // and the day count is capped at 14 by both schemas, so 15000ms is
+      // headroom against a slow Neon window, not a response to a tight budget.
+      { timeout: 15000 },
+    );
 
-      await tx.trainingProgram.update({
-        where: { id: programId },
-        data: {
-          weeklyFrequency: weeklyFrequency ?? null,
-          clientNotes: clientNotes ?? null,
-        },
-      });
+    return NextResponse.json({
+      success: true,
+      ...(forkedNewProgramId !== null ? { forkedNewProgramId } : {}),
     });
-
-    return NextResponse.json({ success: true });
   } catch (err) {
+    if (err instanceof ProgramPublishedDuringSaveError) {
+      return NextResponse.json({ error: "PROGRAM_PUBLISHED_DURING_SAVE" }, { status: 409 });
+    }
     console.error("[PUT /api/coach/clients/[clientId]/training]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

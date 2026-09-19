@@ -52,64 +52,96 @@ export async function saveTrainingProgram(input: unknown) {
 
   const weekOf = parseWeekStartDate(weekStartDate);
 
+  // CB04 / T-880: a PUBLISHED program for this client/week is never a save
+  // target, because the client may be reading its exact content right now.
+  // This lookup is a plain read (no write, nothing to roll back), so it can
+  // stay outside the transaction — only the create below needs to move
+  // inside it (finding H).
   const existing = await db.trainingProgram.findFirst({
-    where: { clientId, weekOf },
+    where: { clientId, weekOf, status: "DRAFT" },
     orderBy: { updatedAt: "desc" },
     select: { id: true },
   });
 
-  let programId: string;
-  if (existing) {
-    programId = existing.id;
-    await db.trainingProgram.update({
-      where: { id: programId },
-      data: {
-        status: "DRAFT",
-        weeklyFrequency: weeklyFrequency ?? null,
-        clientNotes: clientNotes ?? null,
-        injuries: injuries ?? null,
-        equipment: equipment ?? null,
-        templateSourceId: templateSourceId ?? null,
-      },
-    });
-  } else {
-    const program = await db.trainingProgram.create({
-      data: {
-        clientId,
-        weekOf,
-        status: "DRAFT",
-        weeklyFrequency: weeklyFrequency ?? null,
-        clientNotes: clientNotes ?? null,
-        injuries: injuries ?? null,
-        equipment: equipment ?? null,
-        templateSourceId: templateSourceId ?? null,
-      },
-      select: { id: true },
-    });
-    programId = program.id;
-  }
+  // T-880 finding 3 (round 2, finding H): the empty-DRAFT create now runs
+  // INSIDE this transaction. It used to run before $transaction opened, so a
+  // failure partway through the day rewrite left a bare, empty DRAFT row
+  // behind — and getTrainingProgramForReview prefers a DRAFT over a
+  // PUBLISHED row for the same week, so the coach's next load showed a blank
+  // editor for a week that still has published content. Now a failed save
+  // rolls back the create itself; the coach reloads into the unchanged
+  // PUBLISHED program instead (release-safety: degrade, never disappear).
+  //
+  // This requires an interactive transaction rather than the previous
+  // batched `$transaction([...])` array form, because the guard below must
+  // branch on a prior statement's result (abort before the destructive
+  // deleteMany if the updateMany matched zero rows) — an array-form
+  // transaction cannot express that. Worst-case round-trip count is 16
+  // (optional create + guarded update + deleteMany + up to 14 day creates).
+  // Measured locally: exactly that shape (guard + deleteMany + 14 creates)
+  // completed in 28ms against local Postgres. Neon's pooled connection adds
+  // real network latency per round trip but nowhere near enough to threaten
+  // Prisma's default 5000ms interactive timeout even at 10x that
+  // measurement, so an explicit 15000ms timeout is applied below purely as
+  // headroom against a slow Neon window, not because the measured cost is
+  // close to the default.
+  const programId = await db.$transaction(
+    async (tx) => {
+      let id: string;
+      if (existing) {
+        id = existing.id;
+      } else {
+        const program = await tx.trainingProgram.create({
+          data: { clientId, weekOf, status: "DRAFT" },
+          select: { id: true },
+        });
+        id = program.id;
+      }
 
-  // Atomically replace all days (cascade deletes blocks)
-  await db.$transaction([
-    db.trainingDay.deleteMany({ where: { programId } }),
-    ...days.map((day, i) =>
-      db.trainingDay.create({
+      // T-880 finding 3: the row above may have been read as DRAFT (or just
+      // created as DRAFT), but a concurrent publish (e.g. from iOS) can land
+      // between that read and this write. Guard the write itself on
+      // status: "DRAFT", and refuse rather than silently rewriting a
+      // now-PUBLISHED row's days out from under the client.
+      const guarded = await tx.trainingProgram.updateMany({
+        where: { id, status: "DRAFT" },
         data: {
-          programId,
-          dayName: day.dayName,
-          sortOrder: i,
-          blocks: {
-            create: day.blocks.map((b, j) => ({
-              type: b.type,
-              title: b.title,
-              content: b.content,
-              sortOrder: j,
-            })),
-          },
+          weeklyFrequency: weeklyFrequency ?? null,
+          clientNotes: clientNotes ?? null,
+          injuries: injuries ?? null,
+          equipment: equipment ?? null,
+          templateSourceId: templateSourceId ?? null,
         },
-      })
-    ),
-  ]);
+      });
+      if (guarded.count === 0) {
+        throw new Error("TRAINING_PROGRAM_PUBLISHED_DURING_SAVE");
+      }
+
+      // Atomically replace all days (cascade deletes blocks)
+      await tx.trainingDay.deleteMany({ where: { programId: id } });
+      for (let i = 0; i < days.length; i++) {
+        const day = days[i];
+        await tx.trainingDay.create({
+          data: {
+            programId: id,
+            dayName: day.dayName,
+            sortOrder: i,
+            blocks: {
+              create: day.blocks.map((b, j) => ({
+                type: b.type,
+                title: b.title,
+                content: b.content,
+                sortOrder: j,
+              })),
+            },
+          },
+        });
+      }
+
+      return id;
+    },
+    { timeout: 15000 }
+  );
 
   revalidatePath("/coach", "layout");
   return { programId };
