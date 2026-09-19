@@ -9,6 +9,8 @@ import {
 } from "@/lib/meal-plans/macro-targets";
 import { resolveDefaultPlanMode } from "@/lib/meal-plans/plan-mode";
 import { createMealPlanWithNextVersion } from "@/lib/meal-plans/version";
+import { reportAnomaly } from "@/lib/observability/report";
+import { MEALPLAN_SAVE_DROPPED_KEYS } from "@/lib/observability/events";
 
 /**
  * Single source of truth for the meal-plan DRAFT lifecycle across both
@@ -305,6 +307,50 @@ export async function saveMealPlanDraftContent(
   input: SaveMealPlanDraftInput
 ): Promise<SaveMealPlanDraftResult> {
   const { items, macroTargets, planExtras, supportContent } = input;
+
+  // T-920 — the T-841 shape: a save payload that carries a `planExtras` object
+  // omitting top-level keys the stored row already has. This ONLY observes —
+  // the save below is unchanged, so a payload that genuinely means to drop a
+  // key (there is no such UI today, but nothing here forbids it) still drops
+  // it exactly as before. `target.planExtras != null` guards a save onto a row
+  // that never had planExtras at all (nothing to drop); `input.planExtras !=
+  // null` (not `!== null`) matches the frozen semantics above: an explicit
+  // `null` is a documented no-op for planExtras, not a "clear", so it must not
+  // read as "dropped everything".
+  //
+  // Deliberate ordering: this beacon fires here, before either write below is
+  // attempted (the in-place save or the CB04 fork), not after either commits.
+  // It reports "the incoming payload disagrees with the stored row", a fact
+  // about the request, independent of whether the write that follows
+  // succeeds. If the write below then fails or loses a race, this line has
+  // still fired — it means "a drop was detected in this request", not "a
+  // drop was persisted". Do not read "we logged it" as "it happened".
+  if (
+    input.planExtras != null &&
+    target.planExtras != null &&
+    typeof target.planExtras === "object" &&
+    !Array.isArray(target.planExtras)
+  ) {
+    const storedKeys = Object.keys(target.planExtras as Record<string, unknown>);
+    const incomingKeySet = new Set(Object.keys(input.planExtras));
+    const droppedKeys = storedKeys.filter((key) => !incomingKeySet.has(key));
+    if (droppedKeys.length > 0) {
+      // Any key not in planExtrasSchema's own shape is emitted as "[unknown]"
+      // rather than its literal name, so a hostile or unexpected key on the
+      // stored row cannot smuggle arbitrary content into a log line.
+      const allowedKeys = new Set(Object.keys(planExtrasSchema.shape));
+      const safeKeyNames = droppedKeys.map((key) => (allowedKeys.has(key) ? key : "[unknown]"));
+      reportAnomaly(MEALPLAN_SAVE_DROPPED_KEYS.evt, {
+        ids: { clientId: target.clientId, planId: target.id },
+        context: {
+          droppedKeys: safeKeyNames.join(","),
+          droppedCount: droppedKeys.length,
+          targetStatus: target.status,
+        },
+        allow: MEALPLAN_SAVE_DROPPED_KEYS.allow,
+      });
+    }
+  }
 
   // CB04: a PUBLISHED (or SUPERSEDED) plan is never mutated in place — the
   // client may be relying on its exact current content. Editing one instead

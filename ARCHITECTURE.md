@@ -718,6 +718,46 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 - Failing checks block deploy
 - Vercel auto-deploys from `main` branch
 
+### Observability
+No error-monitoring SDK is wired in yet (T-924 adds Sentry). Until then, `lib/observability/` (T-920) is the
+one place a "silently degraded" code path — content that disagrees with its own mode, a lookup that misses
+with no fallback, a merge that drops keys — announces itself. It exists because three production incidents
+(a mislabelled meal plan, dropped `planExtras`, an empty training tab) threw no exception at all, so a stock
+error tracker would have caught none of them.
+
+- `lib/observability/report.ts` — `reportAnomaly(evt, opts)` (level `warning`) and `reportServerError(evt,
+  error, opts)` (level `error`) are the only two entry points. Both are synchronous, never throw, never
+  `await`, and never run inside a `db.$transaction`. A branch that knowingly degrades calls `reportAnomaly`
+  from the shared service it lives in (never from a route handler or component) — never a hand-rolled
+  `console.error`.
+- `ObservabilityEvent` (same file) is a **closed** type — no `extra: Record<string, unknown>` map, no index
+  signature. A new field is an architect decision, not a cast.
+- `lib/observability/redact.ts` — `redactContext(context, allow)` keeps only allow-listed keys whose value is
+  a string/number/boolean, scrubbing every string against emails, E.164 phones, JWTs, `sk_`/`pk_`/`whsec_`
+  keys, any URL with a query string, and any base64-looking run over 64 chars (truncated to 120 chars).
+  `sanitizeErrorMessage(error)` returns the message **only** for `AiCoachError`, `Prisma.PrismaClientKnownRequestError`
+  and `ZodError` (200-char cap); anything else emits only the constructor name. `routePattern(pathname)` strips
+  the query string and replaces id-shaped segments with `[id]`. `safeFrames(stack)` reduces a stack trace to
+  our own `"file:line"` frames, dropping every `node_modules` line.
+- `lib/observability/sinks.ts` — `activeSinks()` returns `[consoleSink]`, which writes one line of JSON to
+  `console.error`, greppable by its `sf.`-prefixed `evt`. This is the single extension point T-924 edits to
+  add Sentry; nothing else in the codebase may know a third-party sink exists.
+- `lib/observability/events.ts` — owns the three frozen event names and their `context` allow-lists, so a call
+  site cannot typo an event name or widen an allow-list inline:
+
+  | `evt` | fires from | meaning |
+  |---|---|---|
+  | `sf.training.week_empty_with_history` | `getTrainingProgramForReview` (`lib/queries/training-programs.ts`), called from the two **web** coach training pages under `app/coach/clients/[clientId]/**` | the requested week has no DRAFT/PUBLISHED program but the client has one in another week — the T-803 shape (no cross-week fallback). **Not wired to iOS**: `app/api/coach/clients/[clientId]/training/route.ts` re-implements this lookup inline rather than calling the shared query, so an iOS coach hitting the same empty state emits no beacon today. Coverage extends to iOS once that route is reconciled onto `hotfix/T-803-training-week-fallback`, which rewrites it to call the shared function. |
+  | `sf.mealplan.mode_payload_disagreement` | `publishMealPlanTarget` (`lib/meal-plans/publish.ts`) | publish rejected as empty for its own `planMode` while the other representation on the row has content — the T-800 shape |
+  | `sf.mealplan.save_dropped_keys` | `saveMealPlanDraftContent` (`lib/meal-plans/drafts.ts`) | a save's `planExtras` payload omits a top-level key the stored row has — the T-841 shape |
+- `lib/observability/release.ts` — `releaseId()` and `deployEnv()`, memoized at module scope, read two
+  Vercel-injected environment variables (never set locally, never in `.env.example`):
+
+  | Variable | Injected by | Read as |
+  |---|---|---|
+  | `VERCEL_GIT_COMMIT_SHA` | Vercel (build time) | `release` — first 7 chars, or `"local"` when unset |
+  | `VERCEL_ENV` | Vercel (build + runtime) | `env` — `"production"` \| `"preview"` \| `"development"` (default) |
+
 ### Font Size
 - All inputs: `font-size: max(1rem, 16px)` (prevents iOS zoom)
 - Minimum 48px tap targets for interactive elements
