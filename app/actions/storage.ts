@@ -4,14 +4,28 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { consumeQuota } from "@/lib/security/quota";
 import { z } from "zod";
 import { createSignedUploadUrls as generateUrls } from "@/lib/supabase/storage";
+import { validateCheckInPhotoCount } from "@/lib/validations/check-in";
 import crypto from "crypto";
 
 export async function createSignedUploadUrls(fileNames: string[]) {
   const user = await getCurrentDbUser();
   const userId = user.clerkId;
-  const names = z.array(z.string().min(1).max(200)).min(1).max(3).parse(fileNames);
 
-  if (!await consumeQuota("photo-uploads", user.id, 60, 3600)) throw new Error("Upload limit reached. Please try again later.");
+  const countValidation = validateCheckInPhotoCount(Array.isArray(fileNames) ? fileNames.length : 0);
+  if (!countValidation.valid) {
+    return { error: countValidation.error! };
+  }
+
+  const nameSchema = z.array(z.string().min(1).max(200));
+  const parsed = nameSchema.safeParse(fileNames);
+  if (!parsed.success) {
+    return { error: "Invalid photo filename." };
+  }
+  const names = parsed.data;
+
+  if (!await consumeQuota("photo-uploads", user.id, 60, 3600)) {
+    return { error: "Upload limit reached. Please try again later." };
+  }
 
   const batchId = crypto.randomUUID();
   const paths = names.map(

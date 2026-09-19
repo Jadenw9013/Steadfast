@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { MAX_CHECKIN_PHOTOS } from "@/lib/validations/check-in";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -20,7 +21,7 @@ function formatSize(bytes: number): string {
 export function PhotoUpload({
   files,
   onFilesChange,
-  maxFiles = 10,
+  maxFiles = MAX_CHECKIN_PHOTOS,
 }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +39,10 @@ export function PhotoUpload({
         setError(`"${file.name}" exceeds the 5 MB limit (${formatSize(file.size)}).`);
         return;
       }
+    }
+
+    if (files.length + selected.length > maxFiles) {
+      setError(`${maxFiles} photos maximum`);
     }
 
     const combined = [...files, ...selected].slice(0, maxFiles);
@@ -58,6 +63,7 @@ export function PhotoUpload({
   }
 
   function removeFile(index: number) {
+    setError(null);
     onFilesChange(files.filter((_, i) => i !== index));
   }
 

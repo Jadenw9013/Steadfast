@@ -137,7 +137,13 @@ export function CheckInForm({
     if (files.length > 0) {
       setUploadState("getting-urls");
       const fileNames = files.map((f) => f.name);
-      const uploadUrls = await withRetry(() => createSignedUploadUrls(fileNames), 2, 1000);
+      const uploadUrls = await withRetry(async () => {
+        const res = await createSignedUploadUrls(fileNames);
+        if ("error" in res) {
+          throw new Error(res.error);
+        }
+        return res;
+      }, 2, 1000);
       setUploadState("uploading");
       await Promise.all(
         uploadUrls.map(async ({ signedUrl, path }, i) => {

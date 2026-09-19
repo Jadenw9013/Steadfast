@@ -6,9 +6,9 @@ import { db } from "@/lib/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { consumeQuota } from "@/lib/security/quota";
 import { readBoundedBody } from "@/lib/security/body";
+import { MAX_CHECKIN_PHOTOS } from "@/lib/validations/check-in";
 
 const BUCKET = "check-in-photos";
-const MAX_PHOTOS = 10;
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
   try { user = await getCurrentDbUser(); }
@@ -23,8 +23,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const bytes = await readBoundedBody(req, 20 * 1024 * 1024);
     const form = await new Response(bytes as BodyInit, { headers: { "Content-Type": req.headers.get("content-type") ?? "" } }).formData();
     const files = form.getAll("photos");
-    if (!files.length || files.length > MAX_PHOTOS || files.some(file => typeof file === "string" || file.size === 0 || file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type))) {
-      return NextResponse.json({ error: "Upload 1–10 JPEG, PNG, or WebP photos, up to 5 MB each." }, { status: 422 });
+    if (!files.length || files.length > MAX_CHECKIN_PHOTOS || files.some(file => typeof file === "string" || file.size === 0 || file.size > 5 * 1024 * 1024 || !["image/jpeg", "image/png", "image/webp"].includes(file.type))) {
+      return NextResponse.json({ error: `Upload 1–${MAX_CHECKIN_PHOTOS} JPEG, PNG, or WebP photos, up to 5 MB each.` }, { status: 422 });
     }
     const images: Buffer[] = [];
     try {
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       // Serialize batches so concurrent uploads cannot exceed the photo limit.
       await tx.$queryRaw`SELECT id FROM "CheckIn" WHERE id = ${checkInId} FOR UPDATE`;
       const checkIn = await tx.checkIn.findFirst({ where: { id: checkInId, clientId: user.id, deletedAt: null }, select: { _count: { select: { photos: true } } } });
-      if (!checkIn || checkIn._count.photos + images.length > MAX_PHOTOS) throw new Error("Photo limit reached or check-in unavailable");
+      if (!checkIn || checkIn._count.photos + images.length > MAX_CHECKIN_PHOTOS) throw new Error("Photo limit reached or check-in unavailable");
       const created: { id: string; path: string }[] = [];
       for (const [index, image] of images.entries()) {
         const path = `${checkInId}/${randomUUID()}.jpg`;
