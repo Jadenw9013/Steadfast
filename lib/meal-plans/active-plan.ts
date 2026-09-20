@@ -113,11 +113,14 @@ export async function resolveActiveMealPlanId(
  * — so "which array is non-empty" is not a usable signal. A MACROS plan
  * routinely carries the previous foods plan's items, and deriving the
  * checklist from those would write `mealNameSnapshot` rows for meals the
- * client is never shown: the macro-mode UI
- * (`components/client/macro-plan-view.tsx`) builds its own checklist from the
- * macro targets and calls `toggleMealCheckoff` with THOSE names, so the two
- * lists would persist two disjoint sets of checkoffs for the same day. Pick by
- * `planMode`, exactly as the client view does.
+ * client is never shown: the client plan shell
+ * (`components/client/simple-meal-plan.tsx`, T-802a) builds its own checklist
+ * from whichever body `resolveClientPlanView` renders and calls
+ * `toggleMealCheckoff` with THOSE names, so the two lists would persist two
+ * disjoint sets of checkoffs for the same day. Pick by `planMode`, exactly as
+ * the client view's non-degraded rows do. (Degraded rows are read-only on the
+ * client per T-802's lead decision, so this function's own set is never
+ * challenged there either.)
  */
 export function deriveMealNames(plan: {
   planMode: PlanMode;

@@ -15,11 +15,13 @@
 
 ## Relationship to the existing "hide macros" rule
 
-The existing human-coaching client meal view (`SimpleMealPlan`) intentionally hides macros,
-version numbers and draft/published status from clients. **That rule is scoped to the human
-meal view only.** AI macro mode (`/client/plan` when `ClientCoachingContext.mode === "AI"` and
-nutrition presentation is `MACROS`) must show its numeric targets and permitted ranges — hiding
-them contradicts PR-03. Do not extend the "hide macros" rule to AI-mode screens.
+As of T-802a, the existing human-coaching client meal view (`SimpleMealPlan`) shows a daily
+totals card (calories + protein/carbs/fats) in **both** plan modes — it no longer hides macros.
+It still hides version numbers and draft/published status from clients, and that narrower rule
+remains scoped to the human meal view only. AI macro mode (`/client/plan` when
+`ClientCoachingContext.mode === "AI"` and nutrition presentation is `MACROS`) must show its
+numeric targets and permitted ranges — hiding them contradicts PR-03. Do not extend the
+version-number/draft-status hiding rule to AI-mode screens.
 
 ## Shared rules across all `/client/ai-coach/*` routes
 

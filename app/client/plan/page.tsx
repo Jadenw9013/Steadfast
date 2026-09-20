@@ -9,6 +9,7 @@ import { getLocalDate, normalizeToMonday } from "@/lib/utils/date";
 import { SimpleMealPlan } from "@/components/client/simple-meal-plan";
 import { TrainingProgram } from "@/components/client/training-program";
 import { PlanTab } from "@/components/client/plan-tab";
+import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
 
 export default async function ClientPlanPage() {
   const user = await getCurrentDbUser();
@@ -27,6 +28,20 @@ export default async function ClientPlanPage() {
     getExerciseResultsForWeek(user.id, weekOf),
     getPreviousExerciseResults(user.id, weekOf),
   ]);
+
+  if (mealPlan) {
+    logDegradedPlanRender({
+      mealPlanId: mealPlan.id,
+      planMode: mealPlan.planMode,
+      itemCount: mealPlan.items.length,
+      macroTargetCount: mealPlan.macroTargets?.length ?? 0,
+      view: resolveClientPlanView({
+        planMode: mealPlan.planMode,
+        itemCount: mealPlan.items.length,
+        macroTargetCount: mealPlan.macroTargets?.length ?? 0,
+      }),
+    });
+  }
 
   // Serialize Maps to plain Records for TrainingProgram client component
   const currentWeek: Record<string, { id: string; exerciseName: string; programDay: string; weight: number; reps: number; createdAt: string }> = {};
@@ -52,18 +67,11 @@ export default async function ClientPlanPage() {
       })()
     : null;
 
-  // ── Meal Plan content ──
-  const mealPlanContent = !mealPlan ? (
-    <div
-      className="sf-surface-card flex flex-col items-center gap-4 px-5 py-14 text-center sm:px-8 sm:py-20"
-      style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.08)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}
-    >
-      <p className="text-sm font-semibold">No meal plan yet</p>
-      <p className="mt-1 text-sm text-zinc-400">
-        Your coach hasn&apos;t published a meal plan yet. Check back soon!
-      </p>
-    </div>
-  ) : (
+  // ── Meal Plan content ── the cardio strip is gated on `cardioPrescription`
+  // alone (T-802a web change 5): a cardio prescription is a training
+  // prescription and has no reason to vanish because the meal plan hasn't
+  // been published. `SimpleMealPlan` now owns the no-plan state itself.
+  const mealPlanContent = (
     <div className="space-y-6">
       {cardioPrescription && (
         <div className="sf-glass-card px-5 py-4" style={{ borderColor: "rgba(34, 197, 94, 0.20)" }}>
