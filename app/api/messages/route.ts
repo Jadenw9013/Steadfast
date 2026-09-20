@@ -4,6 +4,8 @@ import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { normalizeToMonday } from "@/lib/utils/date";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 // ── GET — fetch message thread ────────────────────────────────────────────────
 
@@ -103,6 +105,13 @@ export async function GET(req: NextRequest) {
       blockedMe,
     });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/messages",
+      method: "GET",
+      statusCode: 500,
+      context: { handler: "GET /api/messages" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[GET /api/messages]", err);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -253,6 +262,13 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/messages",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST /api/messages" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/messages]", err);
     return NextResponse.json(
       { error: "Internal server error" },

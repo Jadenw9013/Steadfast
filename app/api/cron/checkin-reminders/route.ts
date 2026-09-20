@@ -9,6 +9,8 @@ import { checkinReminderEmail, checkinOverdueEmail } from "@/lib/email/templates
 import { pushCheckinReminder, pushCheckinOverdue } from "@/lib/notifications/push";
 import { getLocalDate } from "@/lib/utils/date";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays } from "@/lib/scheduling/cadence";
+import { CRON_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 /** Timing-safe bearer token comparison. */
 function verifyCronSecret(authHeader: string | null, secret: string): boolean {
@@ -271,6 +273,12 @@ export async function GET(req: NextRequest) {
     // Reminder-sending failed — record it, but fall through to the
     // independent sweeps below rather than returning early.
     reminderError = err instanceof Error ? err.message : String(err);
+    reportServerError(CRON_FAILED.evt, err, {
+      route: "/api/cron/checkin-reminders",
+      method: "GET",
+      context: { job: "checkin-reminders", phase: "reminders" },
+      allow: CRON_FAILED.allow,
+    });
     console.error("Cron checkin-reminders: reminder phase failed", err);
   }
 
@@ -281,6 +289,12 @@ export async function GET(req: NextRequest) {
     const { sweepAccountDeletions } = await import("@/lib/account-deletion/sweep");
     purgeResult = await sweepAccountDeletions();
   } catch (err) {
+    reportServerError(CRON_FAILED.evt, err, {
+      route: "/api/cron/checkin-reminders",
+      method: "GET",
+      context: { job: "checkin-reminders", phase: "purge-sweep" },
+      allow: CRON_FAILED.allow,
+    });
     console.error("[cron] purge sweep error:", err);
   }
 
@@ -290,6 +304,12 @@ export async function GET(req: NextRequest) {
     const { processStorageCleanupOutbox } = await import("@/lib/storage/cleanup-outbox");
     storageCleanupResult = await processStorageCleanupOutbox();
   } catch (err) {
+    reportServerError(CRON_FAILED.evt, err, {
+      route: "/api/cron/checkin-reminders",
+      method: "GET",
+      context: { job: "checkin-reminders", phase: "storage-cleanup" },
+      allow: CRON_FAILED.allow,
+    });
     console.error("[cron] storage cleanup sweep error:", err);
   }
 

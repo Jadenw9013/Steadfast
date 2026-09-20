@@ -123,6 +123,8 @@ function isIdSegment(segment: string): boolean {
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment)) return true;
   // purely numeric id
   if (/^\d+$/.test(segment)) return true;
+  // Provider-prefixed opaque ids (Clerk `user_...`, Stripe `cus_...`, etc.).
+  if (/^[a-z][a-z0-9]*_[a-z0-9_-]{6,}$/i.test(segment)) return true;
   // long opaque alphanumeric token (cuid, mongo objectid, etc.)
   if (/^[a-z0-9]{20,}$/i.test(segment)) return true;
   // shorter alphanumeric token that mixes letters and digits — e.g. a short
@@ -135,7 +137,14 @@ function isIdSegment(segment: string): boolean {
  *  with `[id]`, so the same logical route always produces the same pattern
  *  regardless of which row it was called for. */
 export function routePattern(pathname: string): string {
-  const withoutFragment = pathname.split("#")[0] ?? pathname;
+  let pathOnly = pathname;
+  try {
+    pathOnly = new URL(pathname, "http://route-pattern.invalid").pathname;
+  } catch {
+    // Malformed input still goes through the conservative query/fragment and
+    // id-segment stripping below; observability must never throw.
+  }
+  const withoutFragment = pathOnly.split("#")[0] ?? pathOnly;
   const withoutQuery = withoutFragment.split("?")[0] ?? withoutFragment;
   return withoutQuery
     .split("/")

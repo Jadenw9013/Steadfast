@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "crypto";
 import { sweepAccountDeletions } from "@/lib/account-deletion/sweep";
+import { CRON_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 /**
  * Cron endpoint: purge accounts whose 30-day grace period has expired.
@@ -30,6 +32,13 @@ export async function GET(req: NextRequest) {
 
   try { return NextResponse.json(await sweepAccountDeletions()); }
   catch (error) {
+    reportServerError(CRON_FAILED.evt, error, {
+      route: "/api/cron/purge-deleted-accounts",
+      method: "GET",
+      statusCode: 500,
+      context: { job: "purge-deleted-accounts", phase: "purge-sweep" },
+      allow: CRON_FAILED.allow,
+    });
     console.error("[purge-cron]", error);
     return NextResponse.json({ error: "Purge sweep failed" }, { status: 500 });
   }

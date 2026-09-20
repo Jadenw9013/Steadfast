@@ -59,6 +59,7 @@ Run: npx playwright test
 - Every branch that knowingly degrades — an empty render where a row exists, a mode/content disagreement, a
   merge that drops keys — calls `reportAnomaly` from `lib/observability`. Never `console.error` a new one by
   hand.
+- A route that catches and returns a 5xx also calls `reportServerError`; `console.error` alone is not monitoring.
 
 ## Project Overview
 

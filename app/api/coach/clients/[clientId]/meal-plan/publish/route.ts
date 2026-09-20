@@ -8,6 +8,8 @@ import {
   getMealPlanPublishTarget,
   publishMealPlanTarget,
 } from "@/lib/meal-plans/publish";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -120,6 +122,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan/publish",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST meal-plan publish" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/coach/clients/[clientId]/meal-plan/publish]", err);
     return NextResponse.json(
       { error: "Internal server error" },

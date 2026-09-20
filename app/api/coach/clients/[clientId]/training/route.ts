@@ -12,6 +12,8 @@ import {
   weeklyFrequencySchema,
   type TrainingDayInput,
 } from "@/lib/training-programs/drafts";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -135,6 +137,13 @@ export async function GET(req: NextRequest, { params }: Params) {
       currentWeekOf: getCurrentWeekMonday().toISOString(),
     });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/training",
+      method: "GET",
+      statusCode: 500,
+      context: { handler: "GET training" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[GET /api/coach/clients/[clientId]/training]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -234,6 +243,13 @@ export async function POST(req: NextRequest, { params }: Params) {
       { status: 201 }
     );
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/training",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST training" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/coach/clients/[clientId]/training]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
@@ -313,6 +329,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
       ...(forkedNewProgramId && { forkedNewProgramId }),
     });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/training",
+      method: "PUT",
+      statusCode: 500,
+      context: { handler: "PUT training" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[PUT /api/coach/clients/[clientId]/training]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
