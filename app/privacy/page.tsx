@@ -82,6 +82,9 @@ export default function PrivacyPage() {
                     <p className="mt-2">
                         We do not sell, rent, or share your personal data with third parties for their own marketing or advertising purposes.
                     </p>
+                    <p className="mt-2">
+                        The iOS app reports technical diagnostics when it cannot read a response from our server — the API route involved, the error type, your app version and device model. It never sends the content of the response, your messages, check-ins, plans or photos.
+                    </p>
                 </section>
 
                 <section>

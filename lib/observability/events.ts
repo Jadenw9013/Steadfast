@@ -22,3 +22,23 @@ export const MEALPLAN_SAVE_DROPPED_KEYS = {
   evt: "sf.mealplan.save_dropped_keys",
   allow: ["droppedKeys", "droppedCount", "targetStatus"],
 } as const;
+
+const IOS_API_CONTEXT = [
+  "appVersion",
+  "build",
+  "osVersion",
+  "deviceModel",
+  "errorKind",
+  "codingPath",
+  "count",
+] as const;
+
+export const IOS_API_DECODE_FAILED = {
+  evt: "ios.api.decode_failed",
+  allow: IOS_API_CONTEXT,
+} as const;
+
+export const IOS_API_SERVER_ERROR = {
+  evt: "ios.api.server_error",
+  allow: IOS_API_CONTEXT,
+} as const;

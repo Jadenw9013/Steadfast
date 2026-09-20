@@ -636,6 +636,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET | `/api/messages/weeks` | Available message weeks |
 | POST | `/api/actions/account-deletion` | Request account deletion |
 | POST | `/api/actions/account-deletion/cancel` | Cancel deletion |
+| POST | `/api/app-events` | Authenticated, bounded iOS handled-error diagnostics; no response or request content is accepted or persisted |
 | GET | `/api/public/coaches` | Public coach listings (marketplace) |
 | GET | `/api/public/coaches/[slug]` | Public coach profile |
 | POST | `/api/public/coaching-request` | Submit coaching request (no auth required) |
@@ -742,7 +743,7 @@ error tracker would have caught none of them.
 - `lib/observability/sinks.ts` — `activeSinks()` returns `[consoleSink]`, which writes one line of JSON to
   `console.error`, greppable by its `sf.`-prefixed `evt`. This is the single extension point T-924 edits to
   add Sentry; nothing else in the codebase may know a third-party sink exists.
-- `lib/observability/events.ts` — owns the three frozen event names and their `context` allow-lists, so a call
+- `lib/observability/events.ts` — owns the five frozen event names and their `context` allow-lists, so a call
   site cannot typo an event name or widen an allow-list inline:
 
   | `evt` | fires from | meaning |
@@ -750,6 +751,12 @@ error tracker would have caught none of them.
   | `sf.training.week_empty_with_history` | `getTrainingProgramForReview` (`lib/queries/training-programs.ts`), called from the two **web** coach training pages under `app/coach/clients/[clientId]/**` | the requested week has no DRAFT/PUBLISHED program but the client has one in another week — the T-803 shape (no cross-week fallback). **Not wired to iOS**: `app/api/coach/clients/[clientId]/training/route.ts` re-implements this lookup inline rather than calling the shared query, so an iOS coach hitting the same empty state emits no beacon today. Coverage extends to iOS once that route is reconciled onto `hotfix/T-803-training-week-fallback`, which rewrites it to call the shared function. |
   | `sf.mealplan.mode_payload_disagreement` | `publishMealPlanTarget` (`lib/meal-plans/publish.ts`) | publish rejected as empty for its own `planMode` while the other representation on the row has content — the T-800 shape |
   | `sf.mealplan.save_dropped_keys` | `saveMealPlanDraftContent` (`lib/meal-plans/drafts.ts`) | a save's `planExtras` payload omits a top-level key the stored row has — the T-841 shape |
+  | `ios.api.decode_failed` | iOS `APIService.request<T>` | a typed response could not be decoded; route pattern and schema coding path only, never response content |
+  | `ios.api.server_error` | iOS `APIService.request<T>` | a non-401 response failed; route pattern and status code only, never response content |
+- `POST /api/app-events` accepts the two closed `ios.*` event names from authenticated app sessions. It
+  bounds and validates every scalar, rewrites route IDs server-side, applies a per-user quota, and emits
+  through the same sinks with `platform: "ios"`. Nothing is stored in Postgres. Set
+  `APP_EVENTS_INGEST_DISABLED=true` for an emergency 204 no-op without an app update.
 - `lib/observability/release.ts` — `releaseId()` and `deployEnv()`, memoized at module scope, read two
   Vercel-injected environment variables (never set locally, never in `.env.example`):
 

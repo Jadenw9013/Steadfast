@@ -12,12 +12,12 @@ export type ObservabilityLevel = "error" | "warning";
  * signature or a `Record<string, unknown>`.
  */
 export type ObservabilityEvent = {
-  evt: string; // dotted, always `sf.`-prefixed on web
+  evt: string; // dotted; `sf.*` from web services or closed `ios.*` ingest names
   level: ObservabilityLevel;
   ts: string; // ISO 8601
   release: string; // 7-char sha or "local"
   env: "production" | "preview" | "development";
-  platform: "web";
+  platform: "web" | "ios";
   route?: string; // route PATTERN only
   method?: string;
   statusCode?: number;
@@ -37,12 +37,16 @@ export type ObservabilityEvent = {
   context?: Record<string, string | number | boolean>; // post-redaction only
 };
 
-function baseFields(route?: string): Pick<ObservabilityEvent, "ts" | "release" | "env" | "platform" | "route"> {
+function baseFields(
+  route?: string,
+  platform: ObservabilityEvent["platform"] = "web",
+  timestamp?: string
+): Pick<ObservabilityEvent, "ts" | "release" | "env" | "platform" | "route"> {
   return {
-    ts: new Date().toISOString(),
+    ts: timestamp ?? new Date().toISOString(),
     release: releaseId(),
     env: deployEnv(),
-    platform: "web",
+    platform,
     ...(route !== undefined ? { route: routePattern(route) } : {}),
   };
 }
@@ -98,6 +102,10 @@ export function reportAnomaly(
     context?: Record<string, string | number | boolean>;
     allow?: readonly string[];
     route?: string;
+    method?: string;
+    statusCode?: number;
+    platform?: ObservabilityEvent["platform"];
+    timestamp?: string;
   }
 ): void {
   try {
@@ -105,7 +113,9 @@ export function reportAnomaly(
     const event: ObservabilityEvent = {
       evt,
       level: "warning",
-      ...baseFields(opts.route),
+      ...baseFields(opts.route, opts.platform, opts.timestamp),
+      ...(opts.method !== undefined ? { method: opts.method } : {}),
+      ...(opts.statusCode !== undefined ? { statusCode: opts.statusCode } : {}),
       ...(opts.ids !== undefined ? { ids: scrubIds(opts.ids) } : {}),
       ...(context !== undefined ? { context } : {}),
     };
@@ -129,6 +139,8 @@ export function reportServerError(
     ids?: ObservabilityEvent["ids"];
     context?: Record<string, string | number | boolean>;
     allow?: readonly string[];
+    platform?: ObservabilityEvent["platform"];
+    timestamp?: string;
   }
 ): void {
   try {
@@ -142,7 +154,7 @@ export function reportServerError(
     const event: ObservabilityEvent = {
       evt,
       level: "error",
-      ...baseFields(opts?.route),
+      ...baseFields(opts?.route, opts?.platform, opts?.timestamp),
       ...(opts?.method !== undefined ? { method: opts.method } : {}),
       ...(opts?.statusCode !== undefined ? { statusCode: opts.statusCode } : {}),
       ...(opts?.ids !== undefined ? { ids: scrubIds(opts.ids) } : {}),
