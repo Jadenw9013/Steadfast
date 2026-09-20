@@ -4,6 +4,10 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { parseWeekStartDate } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
+import {
+  getTrainingProgramPublishTarget,
+  publishTrainingProgramTarget,
+} from "@/lib/training-programs/publish";
 import { revalidatePath } from "next/cache";
 
 const BLOCK_TYPES = ["EXERCISE", "ACTIVATION", "INSTRUCTION", "SUPERSET", "CARDIO", "OPTIONAL"] as const;
@@ -155,20 +159,23 @@ export async function publishTrainingProgram(input: unknown) {
   const parsed = publishSchema.safeParse(input);
   if (!parsed.success) throw new Error("Invalid input");
 
-  const program = await db.trainingProgram.findUnique({
-    where: { id: parsed.data.programId },
-    select: { clientId: true, status: true },
-  });
-  if (!program) throw new Error("Training program not found");
+  const target = await getTrainingProgramPublishTarget(parsed.data.programId);
+  if (!target) throw new Error("Training program not found");
 
-  await verifyCoachAccessToClient(program.clientId);
+  await verifyCoachAccessToClient(target.clientId);
 
-  await db.trainingProgram.update({
-    where: { id: parsed.data.programId },
-    data: { status: "PUBLISHED", publishedAt: new Date() },
-  });
+  const result = await publishTrainingProgramTarget(target);
+  if (!result.ok) {
+    return {
+      success: false as const,
+      message:
+        result.code === "NOT_DRAFT"
+          ? "Can only publish drafts"
+          : "This program was already published or changed by someone else. Refresh and try again.",
+    };
+  }
 
   revalidatePath("/coach", "layout");
   revalidatePath("/client", "layout");
-  return { success: true };
+  return { success: true as const };
 }

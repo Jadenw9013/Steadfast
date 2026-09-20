@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
 import { parsedWorkoutProgramSchema } from "@/lib/validations/workout-import";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
+import { publishTrainingProgramTarget } from "@/lib/training-programs/publish";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
@@ -116,8 +117,6 @@ export async function POST(req: NextRequest) {
       }
 
       const weekOf = getCurrentWeekMonday();
-      const programStatus = publish ? "PUBLISHED" : "DRAFT";
-
       // Delete any existing draft for this week
       const existing = await db.trainingProgram.findFirst({
         where: { clientId: targetClientId, weekOf, status: "DRAFT" },
@@ -131,8 +130,7 @@ export async function POST(req: NextRequest) {
         data: {
           clientId: targetClientId,
           weekOf,
-          status: programStatus,
-          publishedAt: publish ? new Date() : null,
+          status: "DRAFT",
           clientNotes: program.notes || null,
           days: {
             create: program.days.map((day, i) => ({
@@ -151,6 +149,26 @@ export async function POST(req: NextRequest) {
         },
         select: { id: true },
       });
+
+      if (publish) {
+        const result = await publishTrainingProgramTarget({
+          id: trainingProgram.id,
+          clientId: targetClientId,
+          status: "DRAFT",
+        });
+        if (!result.ok) {
+          return NextResponse.json(
+            result.code === "RACE_LOST"
+              ? {
+                  error:
+                    "This program was already published or changed by someone else",
+                  code: "PUBLISH_RACE_LOST",
+                }
+              : { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
+            { status: 409 }
+          );
+        }
+      }
 
       await db.workoutImportDraft.update({
         where: { id: draftId },

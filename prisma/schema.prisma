@@ -568,9 +568,15 @@ model TrainingTemplateCardio {
 
 // ── Training Programs (client-specific, week-scoped) ────────────────────────
 
+// SUPERSEDED has NO migration in this repo on purpose. The production database
+// already carries it (verified read-only against pg_enum on 2026-09-20); the value
+// arrived in one of the migrations applied ahead of deployed code — see T-1000.
+// This declaration makes the generated client able to read rows written by the
+// shared publish service. Do not add a migration for a value production has.
 enum TrainingProgramStatus {
   DRAFT
   PUBLISHED
+  SUPERSEDED
 }
 
 enum BlockType {

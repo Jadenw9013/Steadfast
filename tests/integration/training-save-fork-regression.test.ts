@@ -379,7 +379,9 @@ suite("T-880: saveTrainingProgram and REST PUT never write into a non-DRAFT trai
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    await seedPublished(client.id, { publishedAt: new Date("2026-09-14T12:00:00Z") });
+    const previous = await seedPublished(client.id, {
+      publishedAt: new Date("2026-09-14T12:00:00Z"),
+    });
     const saved = await saveTrainingProgram(actionPayload(client.id, ["New A"]));
     const forkId = (saved as { programId: string }).programId;
 
@@ -388,10 +390,13 @@ suite("T-880: saveTrainingProgram and REST PUT never write into a non-DRAFT trai
     const nowPublished = await getPublishedTrainingProgram(client.id);
     expect(nowPublished?.id).toBe(forkId);
 
-    // Documented pre-existing condition (D2, owned by T-803): two PUBLISHED
-    // rows now exist for the same client+week.
-    const publishedCount = await db.trainingProgram.count({ where: { clientId: client.id, weekOf: WEEK, status: "PUBLISHED" } });
-    expect(publishedCount).toBe(2);
+    const rows = await db.trainingProgram.findMany({
+      where: { clientId: client.id, weekOf: WEEK },
+      select: { id: true, status: true },
+    });
+    expect(rows).toContainEqual({ id: previous.id, status: "SUPERSEDED" });
+    expect(rows).toContainEqual({ id: forkId, status: "PUBLISHED" });
+    expect(rows.filter((row) => row.status === "PUBLISHED")).toHaveLength(1);
   });
 
   it("C7 — REST PUT against a PUBLISHED program forks, and a body omitting clientNotes/weeklyFrequency does not drop the coach's notes (finding 5)", async () => {

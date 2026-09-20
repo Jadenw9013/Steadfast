@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
+import {
+  getTrainingProgramPublishTarget,
+  publishTrainingProgramTarget,
+} from "@/lib/training-programs/publish";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -46,30 +50,30 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     const { programId } = parsed.data;
 
-    const program = await db.trainingProgram.findUnique({
-      where: { id: programId },
-      select: { clientId: true, status: true },
-    });
-    if (!program) {
+    const target = await getTrainingProgramPublishTarget(programId);
+    if (!target) {
       return NextResponse.json(
         { error: "Training program not found" },
         { status: 404 }
       );
     }
-    if (program.clientId !== clientId) {
+    if (target.clientId !== clientId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (program.status !== "DRAFT") {
+
+    const result = await publishTrainingProgramTarget(target);
+    if (!result.ok) {
       return NextResponse.json(
-        { error: "Can only publish drafts" },
+        result.code === "RACE_LOST"
+          ? {
+              error:
+                "This program was already published or changed by someone else",
+              code: "PUBLISH_RACE_LOST",
+            }
+          : { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
         { status: 409 }
       );
     }
-
-    await db.trainingProgram.update({
-      where: { id: programId },
-      data: { status: "PUBLISHED", publishedAt: new Date() },
-    });
 
     // Fire-and-forget push to client
     // NOTE: The schema has no separate pushTrainingUpdates preference column. We gate

@@ -62,9 +62,11 @@ function buildCardioDayBlock(cardio: {
   };
 }
 
+type TrainingStatus = "DRAFT" | "PUBLISHED" | "SUPERSEDED";
+
 type InitialProgram = {
   id: string;
-  status: "DRAFT" | "PUBLISHED";
+  status: TrainingStatus;
   templateSourceId: string | null;
   weeklyFrequency: number | null;
   clientNotes: string | null;
@@ -213,7 +215,7 @@ export function TrainingProgramEditor({
   const [programId, setProgramId] = useState<string | null>(
     carriedOverFromWeek ? null : initialProgram?.id ?? null
   );
-  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | null>(
+  const [status, setStatus] = useState<TrainingStatus | null>(
     carriedOverFromWeek ? null : initialProgram?.status ?? null
   );
   const [days, setDays] = useState<TrainingDayGroup[]>(_extracted.trainingDays);
@@ -399,7 +401,11 @@ export function TrainingProgramEditor({
       const id = result.programId;
       setProgramId(id);
 
-      await publishTrainingProgram({ programId: id });
+      const publishResult = await publishTrainingProgram({ programId: id });
+      if (!publishResult.success) {
+        setError(publishResult.message);
+        return;
+      }
       setStatus("PUBLISHED");
       setMode("edit");
       router.refresh();
@@ -623,10 +629,16 @@ export function TrainingProgramEditor({
               aria-live="polite"
               className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${status === "PUBLISHED"
                 ? "bg-emerald-500/10 text-emerald-400"
-                : "bg-amber-500/10 text-amber-400"
+                : status === "SUPERSEDED"
+                  ? "bg-zinc-500/10 text-zinc-400"
+                  : "bg-amber-500/10 text-amber-400"
                 }`}
             >
-              {status === "PUBLISHED" ? "Published" : "Draft"}
+              {status === "PUBLISHED"
+                ? "Published"
+                : status === "SUPERSEDED"
+                  ? "Superseded"
+                  : "Draft"}
             </span>
           )}
           {activeTemplateName && (
