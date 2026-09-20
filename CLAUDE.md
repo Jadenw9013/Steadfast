@@ -220,6 +220,8 @@ claude-flow daemon start                  # background workers
 
 ## graphify
 
+`APP_EVENTS_INGEST_DISABLED=true` disables the authenticated iOS diagnostics ingest route with a 204 response; it is an emergency kill switch and is intentionally absent from `.env.example`.
+
 This project has a graphify knowledge graph at graphify-out/.
 
 Rules:
