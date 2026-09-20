@@ -83,7 +83,8 @@ export function MealPlanEditor({
         mealPlanId: plan.id,
         items: plan.items.map((item, i) => ({ ...item, sortOrder: i })),
       });
-      await publishMealPlan({ mealPlanId: plan.id });
+      const result = await publishMealPlan({ mealPlanId: plan.id });
+      if (!result.success) throw new Error(result.message);
       router.refresh();
     } catch (err) {
       console.error("Failed to publish:", err);

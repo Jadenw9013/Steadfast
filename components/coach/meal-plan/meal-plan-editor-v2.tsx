@@ -290,7 +290,11 @@ function MealPlanEditorV2Body({
         planExtras: planExtras ?? undefined,
         supportContent: supportContent || undefined,
       });
-      await publishMealPlan({ mealPlanId: id, notifyClient });
+      const result = await publishMealPlan({ mealPlanId: id, notifyClient });
+      if (!result.success) {
+        setPublishError(result.message);
+        return;
+      }
       // Clear stale draft ID — the plan is now PUBLISHED.
       // Next edit will create a fresh draft via ensureDraft().
       setDraftId(null);

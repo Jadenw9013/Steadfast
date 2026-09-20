@@ -262,9 +262,17 @@ model MacroTarget {
   @@unique([clientId, weekOf])
 }
 
+// SUPERSEDED has NO migration in this repo on purpose. The production database
+// already carries it (verified read-only against pg_enum on 2026-09-19); the value
+// arrived in one of the 19 migrations applied ahead of deployed code — see T-1000.
+// This declaration makes the generated client able to READ those rows, which it
+// could not before T-952a. Do not `prisma migrate dev` to "fix" the missing
+// migration: it would try to add an enum value production already has. The real
+// migration lands when team/sprint-1 merges.
 enum MealPlanStatus {
   DRAFT
   PUBLISHED
+  SUPERSEDED
 }
 
 // MEAL_PLAN = coach fills in real foods (MealPlanItem rows, existing behavior).

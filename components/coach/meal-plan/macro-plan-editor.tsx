@@ -246,7 +246,11 @@ export function MacroPlanEditor({
       const id = draftId ?? (await ensureDraft());
       if (!id) return;
       await saveDraftMealPlan({ mealPlanId: id, macroTargets: flattenMacroMeals(meals) });
-      await publishMealPlan({ mealPlanId: id, notifyClient });
+      const result = await publishMealPlan({ mealPlanId: id, notifyClient });
+      if (!result.success) {
+        setPublishError(result.message);
+        return;
+      }
       setDraftId(null);
       router.refresh();
     } catch {

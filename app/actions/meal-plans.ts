@@ -15,7 +15,10 @@ import {
   macroTargetTransactionOps,
   resolveDefaultPlanMode,
 } from "@/lib/meal-plans/macro-targets";
-import { checkPlanPublishable } from "@/lib/meal-plans/publish-guard";
+import {
+  getMealPlanPublishTarget,
+  publishMealPlanTarget,
+} from "@/lib/meal-plans/publish";
 
 const mealPlanItemSchema = z.object({
   mealName: z.string().min(1).max(100),
@@ -220,25 +223,20 @@ export async function publishMealPlan(input: unknown) {
   const parsed = publishSchema.safeParse(input);
   if (!parsed.success) throw new Error("Invalid input");
 
-  const plan = await db.mealPlan.findUnique({
-    where: { id: parsed.data.mealPlanId },
-    select: { clientId: true, status: true },
-  });
-  if (!plan) throw new Error("Meal plan not found");
-  if (plan.status !== "DRAFT") throw new Error("Can only publish drafts");
+  const target = await getMealPlanPublishTarget(parsed.data.mealPlanId);
+  if (!target) throw new Error("Meal plan not found");
 
-  await verifyCoachAccessToClient(plan.clientId);
+  await verifyCoachAccessToClient(target.clientId);
 
-  const publishGuard = await checkPlanPublishable(parsed.data.mealPlanId);
-  if (!publishGuard.ok) throw new Error(publishGuard.message);
-
-  await db.mealPlan.update({
-    where: { id: parsed.data.mealPlanId },
-    data: {
-      status: "PUBLISHED",
-      publishedAt: new Date(),
-    },
-  });
+  const result = await publishMealPlanTarget(target);
+  if (!result.ok) {
+    if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
+    if (result.code === "EMPTY_PLAN") throw new Error(result.message);
+    return {
+      success: false as const,
+      message: "This plan was already published or changed by someone else. Refresh and try again.",
+    };
+  }
 
   revalidatePath("/coach", "layout");
   revalidatePath("/client", "layout");
@@ -246,10 +244,10 @@ export async function publishMealPlan(input: unknown) {
   if (parsed.data.notifyClient) {
     try {
       const user = await getCurrentDbUser();
-      await notifyMealPlanUpdated(plan.clientId, user.firstName);
+      await notifyMealPlanUpdated(target.clientId, user.firstName);
 
       // Background email to client
-      const client = await db.user.findUnique({ where: { id: plan.clientId }, select: { email: true, firstName: true, emailMealPlanUpdates: true } });
+      const client = await db.user.findUnique({ where: { id: target.clientId }, select: { email: true, firstName: true, emailMealPlanUpdates: true } });
       if (client?.email && client.emailMealPlanUpdates) {
         const { sendEmail } = await import("@/lib/email/sendEmail");
         const { mealPlanUpdatedEmail } = await import("@/lib/email/templates");
@@ -261,5 +259,5 @@ export async function publishMealPlan(input: unknown) {
     }
   }
 
-  return { success: true };
+  return { success: true as const };
 }
