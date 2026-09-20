@@ -10,6 +10,8 @@ import { emptyPlanMessage, publishMealPlanTarget } from "@/lib/meal-plans/publis
 import { parsePlanExtras } from "@/types/meal-plan-extras";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { NextRequest, NextResponse } from "next/server";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 /**
  * OCR/LLM import of a coach-uploaded meal-plan document (T-730).
@@ -167,6 +169,15 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     const { message, status } = prismaErrorMessage(error);
+    if (status >= 500) {
+      reportServerError(ROUTE_FAILED.evt, error, {
+        route: "/api/mealplans/import-plan",
+        method: "POST",
+        statusCode: status,
+        context: { handler: "POST meal-plan import" },
+        allow: ROUTE_FAILED.allow,
+      });
+    }
     console.error("[import]", message);
     return NextResponse.json({ error: message }, { status });
   }

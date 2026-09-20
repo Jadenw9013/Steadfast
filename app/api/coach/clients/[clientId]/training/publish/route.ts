@@ -6,6 +6,8 @@ import {
   getTrainingProgramPublishTarget,
   publishTrainingProgramTarget,
 } from "@/lib/training-programs/publish";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -98,6 +100,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/training/publish",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST training publish" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/coach/clients/[clientId]/training/publish]", err);
     return NextResponse.json(
       { error: "Internal server error" },

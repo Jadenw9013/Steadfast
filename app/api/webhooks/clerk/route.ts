@@ -3,12 +3,21 @@ import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { resolveRoleOnCreate, resolveRoleOnUpdate } from "@/lib/auth/clerk-webhook";
+import { WEBHOOK_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 export async function POST(req: NextRequest) {
   let evt;
   try {
     evt = await verifyWebhook(req);
   } catch (err) {
+    reportServerError(WEBHOOK_FAILED.evt, err, {
+      route: "/api/webhooks/clerk",
+      method: "POST",
+      statusCode: 400,
+      context: { provider: "clerk", phase: "signature" },
+      allow: WEBHOOK_FAILED.allow,
+    });
     console.error("Clerk webhook verification failed", err);
     return new Response("Webhook verification failed", { status: 400 });
   }

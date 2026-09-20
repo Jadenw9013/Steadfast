@@ -63,6 +63,7 @@ npx prisma generate
 ```
 Steadfast/
 ├── proxy.ts                           # Auth middleware (Next.js 16 convention, replaces middleware.ts)
+├── instrumentation.ts                 # Next server error hook → shared observability pipeline
 ├── next.config.ts                     # Next.js config (Supabase image domains)
 ├── vercel.json                        # Cron job definitions
 ├── release.sh                         # Pre-deploy release gate script
@@ -743,7 +744,9 @@ error tracker would have caught none of them.
 - `lib/observability/sinks.ts` — `activeSinks()` returns `[consoleSink]`, which writes one line of JSON to
   `console.error`, greppable by its `sf.`-prefixed `evt`. This is the single extension point T-924 edits to
   add Sentry; nothing else in the codebase may know a third-party sink exists.
-- `lib/observability/events.ts` — owns the five frozen event names and their `context` allow-lists, so a call
+- `instrumentation.ts` reports uncaught route, Server Action and RSC errors through `reportServerError`.
+  It reads only the request path and method; request headers are never read or forwarded.
+- `lib/observability/events.ts` — owns the frozen event names and their `context` allow-lists, so a call
   site cannot typo an event name or widen an allow-list inline:
 
   | `evt` | fires from | meaning |
@@ -753,6 +756,15 @@ error tracker would have caught none of them.
   | `sf.mealplan.save_dropped_keys` | `saveMealPlanDraftContent` (`lib/meal-plans/drafts.ts`) | a save's `planExtras` payload omits a top-level key the stored row has — the T-841 shape |
   | `ios.api.decode_failed` | iOS `APIService.request<T>` | a typed response could not be decoded; route pattern and schema coding path only, never response content |
   | `ios.api.server_error` | iOS `APIService.request<T>` | a non-401 response failed; route pattern and status code only, never response content |
+  | `sf.server.unhandled` | root `instrumentation.ts` | an uncaught server route, Server Action or RSC error |
+  | `sf.route.failed` | caught 5xx branches on critical coach/client routes | a route returned its existing generic failure response after reporting the thrown error |
+  | `sf.webhook.failed` | Stripe and Clerk webhook catches | signature or event-processing failure, with provider/phase and event type only |
+  | `sf.cron.failed` | reminder, purge and storage-cleanup catches | an independent cron phase failed while the remaining phases kept running |
+  | `sf.aicoach.envelope_failed` | `aiHttp` unknown-error branch | an unexpected error was converted to the existing `TEMPORARILY_UNAVAILABLE` response |
+- `lib/observability/critical-paths.ts` owns the route patterns where a 5xx means a coach or client cannot
+  complete their work: meal-plan and training save/publish, check-in submit, messages and meal-plan import.
+  T-923 consumes this list as alerting policy instead of maintaining another copy.
+- Server Actions that catch their own error and return `{ error }` are not captured; only those that throw.
 - `POST /api/app-events` accepts the two closed `ios.*` event names from authenticated app sessions. It
   bounds and validates every scalar, rewrites route IDs server-side, applies a per-user quota, and emits
   through the same sinks with `platform: "ios"`. Nothing is stored in Postgres. Set

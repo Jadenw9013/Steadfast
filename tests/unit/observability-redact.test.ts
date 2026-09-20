@@ -165,6 +165,18 @@ describe("routePattern", () => {
   it("leaves a route with no id segments unchanged", () => {
     expect(routePattern("/api/coach/clients")).toBe("/api/coach/clients");
   });
+
+  it("drops the scheme and host from an absolute request URL", () => {
+    expect(routePattern("https://steadfast.example/api/messages?clientId=client_1")).toBe(
+      "/api/messages"
+    );
+  });
+
+  it("replaces provider-prefixed opaque ids", () => {
+    expect(routePattern("/api/users/user_2abcDEF123/profile")).toBe(
+      "/api/users/[id]/profile"
+    );
+  });
 });
 
 describe("safeFrames", () => {

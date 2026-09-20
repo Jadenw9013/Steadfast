@@ -14,6 +14,8 @@ import {
   getMealPlanSaveTarget,
   saveMealPlanDraftContent,
 } from "@/lib/meal-plans/drafts";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -177,6 +179,13 @@ export async function GET(req: NextRequest, { params }: Params) {
       editorMode,
     });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "GET",
+      statusCode: 500,
+      context: { handler: "GET meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[GET /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -258,6 +267,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ mealPlan: fullPlan }, { status: 201 });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -332,6 +348,13 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "PUT",
+      statusCode: 500,
+      context: { handler: "PUT meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[PUT /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -390,6 +413,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     await db.mealPlan.delete({ where: { id: mealPlanId } });
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "DELETE",
+      statusCode: 500,
+      context: { handler: "DELETE meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[DELETE /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },

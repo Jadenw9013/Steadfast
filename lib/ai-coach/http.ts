@@ -4,6 +4,8 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { readBoundedBody } from "@/lib/security/body";
 import { consumeQuota } from "@/lib/security/quota";
 import { AiCoachError } from "./access";
+import { AICOACH_ENVELOPE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 /** Cookie mutations require a same-origin request. Native bearer calls must not
  * carry cookies or a foreign Origin; identity still comes from verified Clerk auth.
@@ -32,6 +34,16 @@ export async function aiHttp(req: NextRequest, mutation: boolean, action: (clien
     }
     return NextResponse.json({ data: await action(user.id, body), requestId }, { headers });
   } catch (error) {
+    if (!(error instanceof AiCoachError)) {
+      reportServerError(AICOACH_ENVELOPE_FAILED.evt, error, {
+        route: req.nextUrl.pathname,
+        method: req.method,
+        statusCode: 503,
+        ids: { requestId },
+        context: { code: "TEMPORARILY_UNAVAILABLE", role, mutation },
+        allow: AICOACH_ENVELOPE_FAILED.allow,
+      });
+    }
     const safe = error instanceof AiCoachError ? error : new AiCoachError("TEMPORARILY_UNAVAILABLE", "This request could not finish. Please try again.", 503);
     return NextResponse.json({ error: { code: safe.code, message: safe.message, retryable: [429, 503].includes(safe.status) }, requestId }, { status: safe.status, headers });
   }

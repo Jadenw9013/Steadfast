@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { submitCheckIn } from "@/lib/check-ins/submit";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 export async function POST(req: NextRequest) {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -61,6 +63,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ checkIn: { id: result.checkInId } }, { status: 201 });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/client/checkin",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST /api/client/checkin" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/client/checkin]", err);
     return NextResponse.json(
       { error: "Internal server error" },
