@@ -113,7 +113,7 @@ pnpm exec prisma generate
 
 ### Routing & Auth
 
-- **Auth middleware:** `proxy.ts` at project root (Next.js 16 convention, replaces `middleware.ts`). Uses `clerkMiddleware()` — protects all routes except `/`, `/sign-in`, `/sign-up`, `/api/webhooks`.
+- **Auth middleware:** `proxy.ts` at project root (Next.js 16 convention, replaces `middleware.ts`). Uses `clerkMiddleware()` — protects all routes except `/`, `/sign-in`, `/sign-up`, `/api/webhooks`, and the bounded `/api/health` liveness response.
 - **Role gating:** Not in middleware. Each route's Server Component calls `getCurrentDbUser()` and checks `activeRole`. Coach layout redirects non-coaches to `/client`; client pages verify client role.
 - **Roles:** Clerk `publicMetadata.role` synced via webhook → DB `User.activeRole`. Users can have both `isCoach` + `isClient` flags and switch via `setActiveRole()` action.
 - **Path alias:** `@/*` maps to the project root.

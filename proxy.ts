@@ -14,6 +14,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   "/api/webhooks(.*)",
   "/api/cron(.*)",
   "/api/public(.*)",
+  "/api/health",
   ...(process.env.NODE_ENV === "development" ? [
     "/api/dev/test-sms(.*)",
     "/api/dev/sms-smoke(.*)"

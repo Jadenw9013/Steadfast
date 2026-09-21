@@ -640,6 +640,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | POST | `/api/actions/account-deletion` | Request account deletion |
 | POST | `/api/actions/account-deletion/cancel` | Cancel deletion |
 | POST | `/api/app-events` | Authenticated, bounded iOS handled-error diagnostics; no response or request content is accepted or persisted |
+| GET | `/api/health` | Unauthenticated liveness: build sha, DB reachability and migration ledger; no auth or PII |
 | GET | `/api/public/coaches` | Public coach listings (marketplace) |
 | GET | `/api/public/coaches/[slug]` | Public coach profile |
 | POST | `/api/public/coaching-request` | Submit coaching request (no auth required) |
@@ -778,6 +779,11 @@ error tracker would have caught none of them.
   |---|---|---|
   | `VERCEL_GIT_COMMIT_SHA` | Vercel (build time) | `release` — first 7 chars, or `"local"` when unset |
   | `VERCEL_ENV` | Vercel (build + runtime) | `env` — `"production"` \| `"preview"` \| `"development"` (default) |
+- `GET /api/health` is public and returns only nine bounded scalars: status, short release, deploy class,
+  DB reachability, migration-ledger state/counts, elapsed milliseconds and timestamp. It never returns a
+  database host/name/user/URL, migration name, runtime/package version, environment variable, stack trace,
+  driver message, business count, user identifier, deployment URL or feature flag. The single ledger query
+  is shared in-process for 10 seconds and times out after 2 seconds.
 
 ### Font Size
 - All inputs: `font-size: max(1rem, 16px)` (prevents iOS zoom)
