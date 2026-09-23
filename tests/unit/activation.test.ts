@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getActivationMessage, validateActivationPreconditions } from "@/lib/activation";
+import { getActivationMessage } from "@/lib/activation";
 
 /**
  * Activation safety tests.
@@ -52,76 +52,6 @@ describe("getActivationMessage", () => {
     });
 });
 
-describe("validateActivationPreconditions", () => {
-    it("returns error for ACTIVE leads (idempotency guard)", () => {
-        const err = validateActivationPreconditions({ consultationStage: "ACTIVE" });
-        expect(err).toBe("Already active.");
-    });
-
-    // ── Normal pipeline (allowAnyStage = false) ──────────────────────────
-    describe("normal pipeline (strict stage check)", () => {
-        it("allows FORMS_SIGNED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "FORMS_SIGNED" });
-            expect(err).toBeNull();
-        });
-
-        it("allows INTAKE_SUBMITTED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "INTAKE_SUBMITTED" });
-            expect(err).toBeNull();
-        });
-
-        it("blocks PENDING", () => {
-            const err = validateActivationPreconditions({ consultationStage: "PENDING" });
-            expect(err).toContain("complete intake");
-        });
-
-        it("blocks CONSULTATION_SCHEDULED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "CONSULTATION_SCHEDULED" });
-            expect(err).toContain("complete intake");
-        });
-
-        it("blocks FORMS_SENT", () => {
-            const err = validateActivationPreconditions({ consultationStage: "FORMS_SENT" });
-            expect(err).toContain("complete intake");
-        });
-    });
-
-    // ── Bypass pipeline (allowAnyStage = true) ───────────────────────────
-    describe("bypass pipeline (any stage allowed)", () => {
-        it("allows PENDING when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "PENDING",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("allows CONSULTATION_SCHEDULED when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "CONSULTATION_SCHEDULED",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("allows FORMS_SENT when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "FORMS_SENT",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("still blocks ACTIVE even with bypass (idempotency)", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "ACTIVE",
-                allowAnyStage: true,
-            });
-            expect(err).toBe("Already active.");
-        });
-    });
-});
-
 /**
  * ARCHITECTURAL INVARIANT TEST
  *
@@ -139,11 +69,6 @@ describe("activation helper contract", () => {
     it("exports getActivationMessage", async () => {
         const mod = await import("@/lib/activation");
         expect(typeof mod.getActivationMessage).toBe("function");
-    });
-
-    it("exports validateActivationPreconditions", async () => {
-        const mod = await import("@/lib/activation");
-        expect(typeof mod.validateActivationPreconditions).toBe("function");
     });
 
     it("exports acceptClientInviteForUser", async () => {

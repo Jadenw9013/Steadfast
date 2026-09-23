@@ -355,25 +355,3 @@ export function getActivationMessage(prospectName: string, result: LinkResult): 
   }
   return getLeadActivationMessage(prospectName, "invite_emailed", { email: result.email });
 }
-
-/**
- * Validates that activation prerequisites are satisfied.
- * Returns null if OK, or an error message string.
- */
-export function validateActivationPreconditions(lead: {
-  consultationStage: string;
-  allowAnyStage?: boolean;
-}): string | null {
-  if (lead.consultationStage === "ACTIVE") {
-    return "Already active.";
-  }
-  // Normal pipeline requires FORMS_SIGNED or INTAKE_SUBMITTED;
-  // bypass pipeline allows any stage.
-  if (!lead.allowAnyStage) {
-    const validStages = ["FORMS_SIGNED", "INTAKE_SUBMITTED"];
-    if (!validStages.includes(lead.consultationStage)) {
-      return "This lead must complete intake before activating.";
-    }
-  }
-  return null;
-}

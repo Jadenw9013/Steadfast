@@ -303,7 +303,11 @@ export function getActivationMessage(
 
 type TxOutcome =
   | { kind: "refusal"; refusal: ActivationRefusal; prospectName: string }
-  | { kind: "already_active"; prospectName: string }
+  // I1(a) IS evaluated here (T-978 review round 1, CR-5 / parity gap 8) —
+  // `onRoster`/`clientId` reflect the real roster state, not a hard-coded
+  // "unknown". The outcome name stays already_active (nothing was WRITTEN
+  // this call) even when the prospect happens to already be on the roster.
+  | { kind: "already_active"; prospectName: string; onRoster: boolean; clientId: string | null }
   | { kind: "roster"; clientId: string; prospectName: string }
   | { kind: "invite"; invite: ClientInvite; prospectName: string; coachName: string };
 
@@ -352,7 +356,21 @@ export async function activateLead(input: ActivateLeadInput): Promise<ActivateLe
       });
 
       if (lead.consultationStage === "ACTIVE") {
-        return { kind: "already_active", prospectName: lead.prospectName };
+        // I1(a) is evaluated here rather than assumed false — a lead can be
+        // ACTIVE via an accepted invite (prospectId set on acceptance) with
+        // no further write from this call.
+        const roster = lead.prospectId
+          ? await trx.coachClient.findFirst({
+              where: { coachId: coachUserId, clientId: lead.prospectId },
+              select: { clientId: true },
+            })
+          : null;
+        return {
+          kind: "already_active",
+          prospectName: lead.prospectName,
+          onRoster: roster !== null,
+          clientId: roster?.clientId ?? null,
+        };
       }
 
       const wrongStage =
@@ -424,8 +442,8 @@ export async function activateLead(input: ActivateLeadInput): Promise<ActivateLe
       ok: true,
       outcome: "already_active",
       stageChanged: false,
-      onRoster: false,
-      clientId: null,
+      onRoster: tx.onRoster,
+      clientId: tx.clientId,
       inviteEmail: null,
       inviteExpiresAt: null,
       emailSent: null,
