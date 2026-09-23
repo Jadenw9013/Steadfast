@@ -61,7 +61,7 @@ Run: npx playwright test
   hand.
 - A route that catches and returns a 5xx also calls `reportServerError`; `console.error` alone is not monitoring.
 - **T-978, two standing rules from the onboarding funnel post-mortem** (full write-up:
-  `steadfast-hq/docs/onboarding-funnel.md`):
+  `docs/onboarding-funnel.md`):
   1. A screen may never assert that a relationship exists from a proxy field (`prospectId`, an email match,
      a phone match). It reads the relationship table (`CoachClient`).
   2. A state that implies a relationship (e.g. `CoachingRequest.consultationStage = 'ACTIVE'`) is written in

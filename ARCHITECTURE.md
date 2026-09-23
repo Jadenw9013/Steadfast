@@ -550,7 +550,7 @@ letter of the invariant while still stranding the lead). `lib/leads/activate-lea
 only writer of that value anywhere in the repo; a static guard
 (`tests/unit/single-activation-writer.test.ts`) and the funnel matrix
 (`tests/integration/lead-activation-funnel-matrix.test.ts`) both enforce it. Design write-up:
-`steadfast-hq/docs/onboarding-funnel.md`.
+`docs/onboarding-funnel.md`.
 
 ### Onboarding & Intake
 

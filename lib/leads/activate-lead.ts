@@ -10,7 +10,7 @@ import { LEAD_INVITE_EMAIL_FAILED } from "@/lib/observability/events";
 /**
  * T-978 — the single activation service.
  *
- * Invariant I1 (see docs/onboarding-funnel.md at the HQ level for the full
+ * Invariant I1 (see docs/onboarding-funnel.md in this repo for the full
  * picture): every committed transaction that writes
  * `CoachingRequest.consultationStage = 'ACTIVE'` leaves, in that SAME
  * transaction, either (a) a `CoachClient` row for this coach and prospect, or
