@@ -60,6 +60,15 @@ Run: npx playwright test
   merge that drops keys — calls `reportAnomaly` from `lib/observability`. Never `console.error` a new one by
   hand.
 - A route that catches and returns a 5xx also calls `reportServerError`; `console.error` alone is not monitoring.
+- **T-978, two standing rules from the onboarding funnel post-mortem** (full write-up:
+  `steadfast-hq/docs/onboarding-funnel.md`):
+  1. A screen may never assert that a relationship exists from a proxy field (`prospectId`, an email match,
+     a phone match). It reads the relationship table (`CoachClient`).
+  2. A state that implies a relationship (e.g. `CoachingRequest.consultationStage = 'ACTIVE'`) is written in
+     the **same transaction** as the relationship or the invite that stands in for it — not immediately
+     after.
+  Reviewer rule: a diff that writes `consultationStage = 'ACTIVE'` outside
+  `lib/leads/activate-lead.ts` is an automatic CHANGES.
 
 ## Project Overview
 

@@ -542,6 +542,16 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | `Testimonial` | Client reviews (1-5 stars, text, up to 4 images) |
 | `SavedCoach` | Client bookmarks |
 
+**T-978 — the activation invariant (I1).** A `CoachingRequest` at `consultationStage = 'ACTIVE'` always
+leaves, in the same committed transaction, either a `CoachClient` row for that coach and prospect, or a
+live, unexpired `ClientInvite` addressed to someone other than the coach themselves (a self-addressed
+invite is permanently unredeemable — `acceptClientInviteForUser` refuses it — so it would satisfy the
+letter of the invariant while still stranding the lead). `lib/leads/activate-lead.ts#activateLead` is the
+only writer of that value anywhere in the repo; a static guard
+(`tests/unit/single-activation-writer.test.ts`) and the funnel matrix
+(`tests/integration/lead-activation-funnel-matrix.test.ts`) both enforce it. Design write-up:
+`steadfast-hq/docs/onboarding-funnel.md`.
+
 ### Onboarding & Intake
 
 | Model | Purpose |
@@ -619,8 +629,8 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET/POST | `/api/coach/leads` | Leads pipeline |
 | GET/PUT | `/api/coach/leads/[leadId]` | Lead detail / update |
 | POST | `/api/coach/leads/[leadId]/stage` | Advance lead stage |
-| POST | `/api/coach/leads/[leadId]/activate` | Convert lead to client |
-| POST | `/api/coach/leads/[leadId]/bypass-activate` | Direct activation (skip intake) |
+| POST | `/api/coach/leads/[leadId]/activate` | T-978: normal-pipeline activation (FORMS_SIGNED/INTAKE_SUBMITTED only). A thin wrapper over `activateClient` → `lib/leads/activate-lead.ts#activateLead`, the only writer of `consultationStage = 'ACTIVE'` in the repo. The stage write and the roster-or-invite write commit in one transaction (invariant I1) or neither happens; a lead with no email on file refuses (422) rather than activating with nothing behind it. |
+| POST | `/api/coach/leads/[leadId]/bypass-activate` | T-978: bypass activation (any non-DECLINED stage). A thin wrapper over `bypassPipelineAndActivate` → the same `activateLead` service — no second implementation. `409` if already active, `422` for every other refusal (including no email on file), both bodies carrying `error`/`message` with the identical sentence. |
 | GET | `/api/coach/leads/[leadId]/intake` | Lead intake data |
 | GET/PUT | `/api/coach/profile` | Coach profile CRUD |
 | POST | `/api/coach/profile-photo` | Upload coach photo |
