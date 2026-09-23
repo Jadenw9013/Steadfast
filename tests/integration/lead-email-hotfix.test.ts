@@ -104,7 +104,7 @@ suite("T-961: lead email hotfix", () => {
   });
 
 
-  it("never links a coach to themselves when their own address is on the lead", async () => {
+  it("a coach's own address never creates a self-client at activation (an invite is still issued — T-973)", async () => {
     // Storing the address the iOS client sends is what makes this reachable
     // from the app: before the fix the field was dropped, so a coach typing
     // their own address could not resolve to their own account.
@@ -130,6 +130,62 @@ suite("T-961: lead email hotfix", () => {
       where: { coachId_clientId: { coachId: user.id, clientId: user.id } },
     });
     expect(selfLink).toBeNull();
+
+    // Honest about what is NOT closed. The guard stops the immediate auto-link,
+    // but execution falls through to Path B, which issues an invite addressed to
+    // the coach's own inbox. redeemInvite has no self-check, so clicking it would
+    // still produce a self-client. Asserted here so the suite records the real
+    // behaviour rather than implying an invariant the code does not hold.
+    // Tracked in T-973; deliberately not fixed in a same-day hotfix because it
+    // changes the LinkResult contract that five call sites depend on.
+    const selfInvite = await db.clientInvite.findFirst({
+      where: { coachId: user.id, email: user.email },
+    });
+    expect(selfInvite).not.toBeNull();
+  });
+
+  it("an over-long address is dropped, not turned into a 422 that loses the lead", async () => {
+    const { user } = await makeCoach();
+    mocks.authUserId = user.clerkId;
+
+    const tooLong = "x".repeat(95) + "@example.com"; // 107 chars
+    const req = new NextRequest("https://example.test/api/coach/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prospectName: "Long Address",
+        prospectEmail: "555-0100",
+        prospectEmailAddr: tooLong,
+      }),
+    });
+
+    const response = await createLead(req);
+    // The whole point of this route's fix: a bad address costs the address,
+    // never the lead.
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.lead.prospectEmailAddr).toBeNull();
+    expect(body.lead.prospectName).toBe("Long Address");
+  });
+
+  it("a non-string prospectEmailAddr is dropped, not a 422", async () => {
+    const { user } = await makeCoach();
+    mocks.authUserId = user.clerkId;
+
+    const req = new NextRequest("https://example.test/api/coach/leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prospectName: "Odd Payload",
+        prospectEmail: "555-0100",
+        prospectEmailAddr: 12345,
+      }),
+    });
+
+    const response = await createLead(req);
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.lead.prospectEmailAddr).toBeNull();
   });
 
   it("does not mistake a phone number, a name or a blank contact field for an email", async () => {
@@ -154,13 +210,21 @@ suite("T-961: lead email hotfix", () => {
   });
 
 
-  it("a legacy-column address invites, and never auto-links an existing account (Decision H1)", async () => {
+  it("a legacy-column address invites, and never auto-links through the email lookup (Decision H1)", async () => {
     // H1, recorded 2026-09-23: an address found only in the legacy contact
     // column may be used to SEND an invite, but must never select an existing
     // user and create a CoachClient without that person accepting. This test
     // pins that boundary so a future "helpful" fallback cannot widen it
     // silently. It is an invariant, not a regression: it holds on 65da78f too.
     const { user: coach, profile } = await makeCoach();
+    // Digits are stripped deliberately, and that is a limitation of this test,
+    // not a property of the code. The phone matcher below the email lookup
+    // builds its digits from this same legacy column, so an address that
+    // happens to carry >=7 digits (4155551234@txt.att.net) can still
+    // substring-match User.phoneNumber and auto-link, defeating H1 by a route
+    // this test does not cover. Pre-existing on the deployed commit, not a
+    // regression, tracked in T-974. This case pins the email-lookup boundary
+    // only, which is the boundary this change is responsible for.
     const legacyAddress = `legacy-${randomUUID()}@example.test`.replace(/[0-9]/g, "x");
     const prospect = await db.user.create({
       data: { clerkId: randomUUID(), email: legacyAddress, isClient: true },

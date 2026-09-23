@@ -82,10 +82,12 @@ const createLeadSchema = z.object({
   prospectName: z.string().min(2).max(100),
   prospectEmail: z.string().max(100),
   // Optional dedicated email field the iOS client sends alongside the legacy
-  // phone/contact field. Not validated with `.email()` at the schema level —
-  // a mistyped address must not reject the whole lead (see POST handler,
-  // which validates it separately and simply drops it if malformed).
-  prospectEmailAddr: z.string().max(100).nullable().optional(),
+  // phone/contact field. NOTHING about it may reject the lead — not the type,
+  // not the length, not the format. A bound here would sit on the 422 path
+  // below and throw away the whole lead over a mistyped address, which is the
+  // exact bug this route is being fixed for. Every constraint lives in
+  // `emailFormat`, which drops a bad value instead of rejecting the request.
+  prospectEmailAddr: z.unknown().optional(),
   intakeAnswers: z
     .object({
       goals: z.string().max(1000).default(""),
@@ -95,7 +97,7 @@ const createLeadSchema = z.object({
     .default({ goals: "" }),
 });
 
-const emailFormat = z.string().trim().toLowerCase().email();
+const emailFormat = z.string().trim().toLowerCase().email().max(100);
 
 export async function POST(req: NextRequest) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
@@ -134,9 +136,10 @@ export async function POST(req: NextRequest) {
 
     // Malformed values are silently dropped rather than rejected — a coach
     // mistyping an email must not lose the whole lead.
-    const emailResult = parsed.data.prospectEmailAddr
-      ? emailFormat.safeParse(parsed.data.prospectEmailAddr)
-      : null;
+    const emailResult =
+      typeof parsed.data.prospectEmailAddr === "string"
+        ? emailFormat.safeParse(parsed.data.prospectEmailAddr)
+        : null;
     const prospectEmailAddr = emailResult?.success ? emailResult.data : null;
 
     const lead = await db.coachingRequest.create({
