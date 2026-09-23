@@ -9,6 +9,16 @@ import { NextRequest } from "next/server";
  * matrix file, this one DOES import activateLead directly — it is testing
  * the service's own behaviour, not re-deriving an invariant from the
  * database independently of it.
+ *
+ * NEGATIVE CONTROL GAP, stated rather than implied (T-978 review round 1):
+ * this file imports `@/lib/leads/activate-lead`, which does not exist on
+ * this branch's base (`f1a2816`), so it cannot even be loaded there — every
+ * case in it, including R5 ("the single most important assertion in the
+ * ticket"), has no negative control. That is unavoidable given the file
+ * under test is new. The matrix file's negative control (run against the
+ * same base, copied verbatim, nothing here imported) is the only evidence
+ * that exists for this ticket's regression-catching power; see its own run
+ * log for the predicted failing set.
  */
 
 const auth = vi.hoisted(() => ({ user: null as unknown }));
