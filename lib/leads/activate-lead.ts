@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email/sendEmail";
 import type { ClientInvite, Prisma } from "@/app/generated/prisma/client";
 import { resolveEmailCandidate } from "@/lib/leads/resolve-invite-recipient";
+import { reportAnomaly } from "@/lib/observability/report";
+import { LEAD_INVITE_EMAIL_FAILED } from "@/lib/observability/events";
 
 /**
  * T-978 — the single activation service.
@@ -457,9 +459,17 @@ export async function activateLead(input: ActivateLeadInput): Promise<ActivateLe
     await sendEmail({ to: tx.invite.email, ...emailContent });
   } catch (err) {
     emailSent = false;
-    // We have no monitoring for this path yet (T-910) — no PII, just the
-    // ids needed to find the row.
-    console.error("[activateLead] invite email failed", { requestId, coachId: coachUserId, err });
+    // lib/observability shipped in T-920/T-924 — this branch is a
+    // knowingly-degrading path (CLAUDE.md's constraint), so it reports
+    // through reportAnomaly rather than console.error (T-978 review round
+    // 1, CR-8). No email, prospect name or invite token — only the ids
+    // needed to find the row and a class name for the error.
+    const errorKind = err instanceof Error ? err.constructor.name || "Error" : typeof err;
+    reportAnomaly(LEAD_INVITE_EMAIL_FAILED.evt, {
+      ids: { requestId, coachId: coachUserId },
+      context: { errorKind },
+      allow: LEAD_INVITE_EMAIL_FAILED.allow,
+    });
   }
 
   return {

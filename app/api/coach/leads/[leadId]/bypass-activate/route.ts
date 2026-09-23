@@ -25,25 +25,16 @@ export async function POST(_req: NextRequest, { params }: Params) {
     const result = await bypassPipelineAndActivate({ requestId: leadId });
 
     if (!result.success) {
-      // Kept byte-for-byte: "Already active." is 409, "Lead not found" is
-      // 404, everything else is 422 — the same three status codes this
-      // route always returned, now derived from one shared service instead
-      // of a second, divergent implementation of activation.
-      if (result.message === "Already active.") {
-        return NextResponse.json(
-          { success: false, error: result.message, message: result.message },
-          { status: 409 }
-        );
-      }
-      if (result.message === "Lead not found") {
-        return NextResponse.json(
-          { success: false, error: result.message, message: result.message },
-          { status: 404 }
-        );
-      }
+      // Status is keyed off the service's own discriminant (`refusal`), not
+      // the coach-facing sentence — T-960 owns that wording and a reword
+      // must never silently change which status code a refusal answers
+      // with (T-978 review round 1, CR-3 / parity gap 5). Same three
+      // status codes this route always returned: 409 for "already active",
+      // 404 for "not found", 422 for every other refusal.
+      const status = result.refusal === "already_active" ? 409 : result.refusal === "not_found" ? 404 : 422;
       return NextResponse.json(
         { success: false, error: result.message, message: result.message },
-        { status: 422 }
+        { status }
       );
     }
 

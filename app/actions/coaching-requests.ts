@@ -19,8 +19,17 @@ import {
     COACH_SETTABLE_STAGES,
     type ActivateLeadResult,
     type ActivationOutcome,
+    type ActivationRefusal,
     type CoachSettableStage,
 } from "@/lib/leads/activate-lead";
+
+/** The exact string activateClient throws for a not-found/wrong-owner lead
+ *  (pre-existing behaviour, preserved by T-978). Exported so
+ *  activate/route.ts matches it by reference rather than duplicating the
+ *  literal — a rename here is then a compile-visible change on both sides,
+ *  not two independent strings that happen to agree (T-978 review round 1,
+ *  CR-3). */
+export const ACTIVATE_NOT_FOUND_ERROR = "Request not found";
 
 type ActivateActionResult =
     | {
@@ -32,13 +41,21 @@ type ActivateActionResult =
           email: string | null;
           inviteExpiresAt: string | null;
       }
-    | { success: false; message: string };
+    // "already_active" is not an ActivationRefusal — it is a synthetic
+    // marker bypassPipelineAndActivate adds itself, below, because bypass
+    // (unlike pipeline) has always treated an already-active lead as a
+    // refusal rather than an idempotent success.
+    | { success: false; refusal: ActivationRefusal | "already_active"; message: string };
 
 /** Shared by activateClient and bypassPipelineAndActivate — the only two
- *  callers of activateLead in this file. Never duplicate this mapping. */
+ *  callers of activateLead in this file. Never duplicate this mapping.
+ *  Carries `refusal` through so a caller (a REST route) can key an HTTP
+ *  status off the discriminant the service produced, instead of
+ *  string-matching the coach-facing sentence T-960 owns (T-978 review
+ *  round 1, CR-3 / parity gap 5). */
 function toActivateActionResult(result: ActivateLeadResult): ActivateActionResult {
     if (!result.ok) {
-        return { success: false, message: result.message };
+        return { success: false, refusal: result.refusal, message: result.message };
     }
     return {
         success: true,
@@ -693,7 +710,7 @@ export async function bypassPipelineAndActivate(input: { requestId: string }): P
         // Bypass has always refused an already-active lead (409 on the REST
         // twin), unlike the pipeline Activate button below, which treats it
         // as an idempotent success. Preserved byte for byte.
-        return { success: false, message: "Already active." };
+        return { success: false, refusal: "already_active", message: "Already active." };
     }
 
     return toActivateActionResult(result);
@@ -715,7 +732,7 @@ export async function activateClient(input: { requestId: string }): Promise<Acti
     const result = await activateLead({ requestId: input.requestId, coachUserId: user.id, mode: "PIPELINE" });
 
     if (!result.ok && result.refusal === "not_found") {
-        throw new Error("Request not found");
+        throw new Error(ACTIVATE_NOT_FOUND_ERROR);
     }
 
     revalidatePath("/coach/leads");
