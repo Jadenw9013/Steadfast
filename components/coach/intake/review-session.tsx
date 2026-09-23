@@ -266,6 +266,25 @@ export function ReviewSession({
         );
     }
 
+    // --- Activation error content (T-978 review round 3, m-2): shared by
+    // the desktop sidebar and the mobile fixed bottom bar below, so the two
+    // structurally cannot drift the way review round 3 found a hand-copied
+    // version already had (a canFinalize guard, w-full, minHeight — three
+    // differences a comment claiming "never drift apart" did not prevent).
+    // One implementation, same principle as sidebarContent below.
+    const activationErrorContent = error && (
+        <div className="space-y-2">
+            <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</p>
+            <button
+                onClick={() => { setActivateStep("idle"); setError(null); }}
+                className="w-full rounded-xl border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-all"
+                style={{ minHeight: "48px" }}
+            >
+                Try Again
+            </button>
+        </div>
+    );
+
     // --- Sidebar content (reused in desktop sidebar + mobile inline) ---
     const sidebarContent = (
         <>
@@ -361,17 +380,7 @@ export function ReviewSession({
             )}
 
             {/* Error in sidebar */}
-            {activateStep === "error" && error && (
-                <div className="space-y-2">
-                    <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</p>
-                    <button
-                        onClick={() => { setActivateStep("idle"); setError(null); }}
-                        className="rounded-xl border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-all"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            )}
+            {activateStep === "error" && activationErrorContent}
         </>
     );
 
@@ -721,20 +730,12 @@ export function ReviewSession({
                 block did not exist: on any viewport narrower than `lg`, the
                 whole activation UI (button, confirm, error, retry) simply
                 disappeared, leaving a coach with no message and no way
-                forward. Mirrors the desktop sidebar's error content
-                (`sidebarContent` above) so the two never drift apart. */}
-            {canFinalize && activateStep === "error" && error && (
+                forward. Renders the same `activationErrorContent` the
+                desktop sidebar uses (T-978 review round 3, m-2) — a hoisted
+                const, not a hand copy, so the two cannot drift apart. */}
+            {canFinalize && activateStep === "error" && (
                 <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-white/[0.08] bg-zinc-950/95 backdrop-blur px-4 py-4" role="region" aria-label="Actions">
-                    <div className="space-y-2">
-                        <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</p>
-                        <button
-                            onClick={() => { setActivateStep("idle"); setError(null); }}
-                            className="w-full rounded-xl border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-all"
-                            style={{ minHeight: "48px" }}
-                        >
-                            Try Again
-                        </button>
-                    </div>
+                    {activationErrorContent}
                 </div>
             )}
 

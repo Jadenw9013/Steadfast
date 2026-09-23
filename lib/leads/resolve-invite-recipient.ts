@@ -7,9 +7,13 @@ import { z } from "zod";
  *
  * Deliberately dependency-free (zod only, no db/network) so it can be
  * imported from both `lib/leads/activate-lead.ts` (server) and a "use
- * client" confirm dialog that wants to gate itself on "will this even have
- * anywhere to send an invite" without duplicating the rule and risking the
- * two disagreeing (T-978 review round 1, gap 1 / N9).
+ * client" confirm dialog, which chooses its warning copy from "will this
+ * even have anywhere to send an invite" without duplicating the rule and
+ * risking the two disagreeing (T-978 review round 1, gap 1 / N9). The
+ * dialog does not gate the control on this answer — round 2's A1 found
+ * that half-rule dead wrong, since a client component cannot also evaluate
+ * the roster clause; the server stays the sole authority on whether
+ * activation succeeds.
  *
  * T-980 replaces this body with T-961's resolveProspectEmail. T-978/this
  * fix change no resolution rule.

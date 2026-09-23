@@ -140,8 +140,11 @@ const inviteEmailFormat = z.string().trim().toLowerCase().email().max(100);
  *
  * Delegates to `lib/leads/resolve-invite-recipient.ts#resolveEmailCandidate`
  * — the one implementation of this rule, also imported by the web bypass
- * confirm dialog so it can gate itself on the same answer this function
- * commits inside the transaction (T-978 review round 1, gap 1).
+ * confirm dialog, which chooses its warning copy from the same answer this
+ * function commits inside the transaction (T-978 review round 1, gap 1;
+ * round 2, A1 — the dialog does not gate the control on this, only the
+ * server does, since a client component cannot evaluate the roster half of
+ * the rule).
  */
 async function resolveInviteRecipient(
   _tx: Prisma.TransactionClient,

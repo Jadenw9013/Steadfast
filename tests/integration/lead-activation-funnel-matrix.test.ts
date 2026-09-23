@@ -528,28 +528,44 @@ suite("T-978 — the funnel matrix", () => {
     await walkToStage(coach, leadId, "INTAKE_SUBMITTED");
 
     auth.user = coach;
-    // T-978 review round 2, A3 — rewritten to state what is actually known,
-    // not a diagnosis that did not survive review.
+    // T-978 review round 2, A3 / round 3, m-3 — rewritten twice now to state
+    // what is actually known, not a diagnosis that did not survive review.
     //
-    // SYMPTOM: without the setTimeout(0) stagger below on the second call,
-    // firing A2 and A4 in the same microtask tick reproduced 100% (8/8
-    // isolated reruns): one side's `await import("@/lib/auth/roles")`
+    // SYMPTOM, and the configuration it was measured in (round 3 correction:
+    // round 2's "8/8" cited these same runs as if they were representative
+    // of this file's normal, full-suite execution — they are not). Both
+    // repro logs (`board/logs/20260923-151259-web-int-t978-x2-repro.log`,
+    // `...-151717-...-x2-fix-repro.log`, pasted in full in
+    // `board/evidence/T-978.md`) were `vitest run ... -t "X2"`, which
+    // reports `Tests 1 failed | 50 skipped (51)` / `1 passed | 50 skipped`
+    // on every one of the 16 runs — the other 50 cells in this file, the
+    // ones that dynamically import `@/lib/auth/roles` dozens of times
+    // before X2 ever runs, never executed. That is the COLD-module state.
+    // Without the stagger below, that cold, `-t`-isolated run of X2 alone
+    // reproduced 100% (8/8): one side's `await import("@/lib/auth/roles")`
     // (both A2 and A4 route deep into a Server Action that dynamically
     // imports it) resolved to the real, unmocked module instead of the
-    // cached mock, threw "Not authenticated", and surfaced as a 500 — which
-    // the status assertions below correctly failed on before this stagger
-    // existed.
+    // cached mock, threw "Not authenticated", and surfaced as a 500.
     //
-    // CAUSE: UNKNOWN. Round 1's diagnosis (a cold-cache resolution race) was
-    // checked in round-2 review and does not hold: `@/lib/auth/roles` is
-    // dynamically imported dozens of times by the 32 core-grid cells that
-    // run earlier in this same file, `beforeEach` never calls
-    // `vi.resetModules()`, and the config sets no module reset — so the
-    // module is warm long before this test runs. RULED OUT: module
-    // coldness. A 15-line isolated repro without any production code
-    // reproduced a *cold*-module version of this; it does not establish
-    // the mechanism for the warm case actually in play here. Investigating
-    // the real mechanism is T-983.
+    // What this does NOT establish: X2 has never been observed failing in
+    // the full-suite (WARM) configuration it actually ships in and runs in
+    // every real test invocation — `board/evidence/T-978.md` §9 records it
+    // *passing* there, and no log anywhere shows a warm failure. So the
+    // 8/8 figure is real but describes a configuration this cell is never
+    // actually run in; it is not evidence that the stagger below does
+    // anything in the state that matters. The possibility that the stagger
+    // is load-bearing for nothing is live and unresolved.
+    //
+    // CAUSE: UNKNOWN either way. Round 1's diagnosis (a cold-cache
+    // resolution race) was checked in round-2 review and does not hold in
+    // the warm state: `@/lib/auth/roles` is dynamically imported dozens of
+    // times by the 32 core-grid cells that run earlier in this same file,
+    // `beforeEach` never calls `vi.resetModules()`, and the config sets no
+    // module reset — so the module is warm long before this test runs in
+    // its real, unfiltered execution. RULED OUT: module coldness, as a
+    // description of the warm state. NOT ESTABLISHED: any mechanism that
+    // reproduces in the warm state, or that the stagger fixes anything
+    // real. A proper warm-state repro is T-983's to build.
     //
     // WORKAROUND, cost stated rather than hidden: `setTimeout(…, 0)` is
     // clamped to >=1ms in Node. A loopback-Postgres BEGIN + FOR UPDATE +
