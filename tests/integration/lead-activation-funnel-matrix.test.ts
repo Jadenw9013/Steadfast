@@ -494,12 +494,34 @@ suite("T-978 — the funnel matrix", () => {
     await walkToStage(coach, leadId, "INTAKE_SUBMITTED");
 
     auth.user = coach;
+    // A one-macrotask stagger on the second call only, not a serialisation
+    // of the two requests: real concurrent HTTP requests are never
+    // sub-millisecond-simultaneous either, and the actual race this test
+    // exists to exercise is the Postgres FOR UPDATE lock, which the first
+    // call is still awaiting (real DB I/O, several ms) by the time the
+    // second one starts. Without this stagger, firing two `await
+    // import("@/lib/auth/roles")` calls (both A2 and A4 route deep into a
+    // Server Action that dynamically imports it) in the exact same
+    // microtask tick hits a genuine Vitest/Vite-node module-loader race
+    // that can resolve one of the two dynamic imports to the real,
+    // unmocked module instead of the cached mock — verified in isolation
+    // with no production code involved at all. Confirmed the stagger does
+    // not mask a real deadlock: the status assertions below still fail
+    // loudly on a 500 if one occurs.
     const [r1, r2] = await Promise.all([
       attemptActivation("A2", coach, leadId),
-      attemptActivation("A4", coach, leadId),
+      new Promise<void>((resolve) => setTimeout(resolve, 0)).then(() => attemptActivation("A4", coach, leadId)),
     ]);
     expect(r1.threw).toBe(false);
     expect(r2.threw).toBe(false);
+    // T-978 review round 1, CR-7: threw === false is true for every REST
+    // response including a 500 (a Response was still returned, nothing
+    // was thrown) — a deadlock surfacing as 500 on one side would pass
+    // the assertions above with one invite and one ACTIVE lead. Pin the
+    // actual status codes: the winner is 200, the loser (already ACTIVE)
+    // is 200 on A2 or 409 on A4 — never 500.
+    expect([200, 409]).toContain(r1.status);
+    expect([200, 409]).toContain(r2.status);
 
     expect(await db.clientInvite.count({ where: { requestId: leadId } })).toBe(1);
     const lead = await db.coachingRequest.findUniqueOrThrow({ where: { id: leadId }, select: { consultationStage: true } });

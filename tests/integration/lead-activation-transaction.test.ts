@@ -255,14 +255,23 @@ suite("T-978 — transaction properties the matrix cannot express", () => {
     expect(invite.status).toBe("PENDING");
   });
 
-  it("R5 — atomicity: clientInvite.create rejecting leaves consultationStage unchanged (the single most important assertion in this ticket)", async () => {
+  it("R5 — atomicity: a genuinely-INSERTed invite is rolled back when the later stage write fails (the single most important assertion in this ticket)", async () => {
+    // T-978 review round 1, CR-6: the original version of this test forced
+    // clientInvite.create — the FIRST write in the invite branch — to
+    // reject, so nothing had been written when the transaction aborted.
+    // That proves statement ordering, not rollback: there was nothing to
+    // roll back. This version lets the create() genuinely INSERT a real
+    // row, then forces the *second*, later write (coachingRequest.update)
+    // to reject, and asserts the invite row is gone afterwards. That
+    // assertion can only pass if Postgres rolled back a write that had
+    // already succeeded — which is what "atomicity" actually means.
     const { coach, profile } = await makeCoach();
-    const email = `prospect-${randomUUID()}@example.test`;
+    const email = `prospect-${randomUUID()}@example.test`; // P3: no account, valid address -> invite branch
     const leadId = await createLead(profile.id, "R5 Person", email);
     await walkToStage(coach, leadId, "INTAKE_SUBMITTED");
     const before = await db.coachingRequest.findUniqueOrThrow({ where: { id: leadId }, select: { consultationStage: true } });
 
-    const spy = forceOneTxCallToReject("clientInvite", "create");
+    const spy = forceOneTxCallToReject("coachingRequest", "update");
     try {
       const result = await activateLead({ requestId: leadId, coachUserId: coach.id, mode: "PIPELINE" });
       expect(result.ok).toBe(false);
@@ -274,10 +283,13 @@ suite("T-978 — transaction properties the matrix cannot express", () => {
     const after = await db.coachingRequest.findUniqueOrThrow({ where: { id: leadId }, select: { consultationStage: true, prospectId: true } });
     expect(after.consultationStage).toBe(before.consultationStage);
     expect(after.consultationStage).not.toBe("ACTIVE");
+    // The real proof: ensureInviteForRequest's clientInvite.create() ran
+    // for real (it is upstream of the forced rejection, not the target of
+    // it) — if this is 0, Postgres genuinely undid that INSERT.
     expect(await db.clientInvite.count({ where: { requestId: leadId } })).toBe(0);
   });
 
-  it("R6 — the same spy on the roster branch (coachingRequest.update rejects): stage unchanged, no prospectId written", async () => {
+  it("R6 — the same spy on the roster branch (coachingRequest.update rejects): stage unchanged, no prospectId written. This branch's only write is the one forced to reject, so — unlike R5 — this proves ordering (the write never lands), not a rollback of a prior write; there is no prior write in this branch to roll back.", async () => {
     const { coach, profile } = await makeCoach();
     const email = `prospect-${randomUUID()}@example.test`;
     const account = await makeClientAccount(email);
