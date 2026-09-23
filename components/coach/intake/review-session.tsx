@@ -713,6 +713,31 @@ export function ReviewSession({
                 </div>
             )}
 
+            {/* Mobile: error — T-978 review round 2, ui-qa MAJOR. Before this
+                ticket, activateStep === "error" was reached almost only via a
+                thrown exception (network/auth failure) — rare. T-978 makes a
+                refusal (no_email_on_file, wrong_stage, self_addressed, failed)
+                a normal, everyday outcome of this exact screen, and this
+                block did not exist: on any viewport narrower than `lg`, the
+                whole activation UI (button, confirm, error, retry) simply
+                disappeared, leaving a coach with no message and no way
+                forward. Mirrors the desktop sidebar's error content
+                (`sidebarContent` above) so the two never drift apart. */}
+            {canFinalize && activateStep === "error" && error && (
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-white/[0.08] bg-zinc-950/95 backdrop-blur px-4 py-4" role="region" aria-label="Actions">
+                    <div className="space-y-2">
+                        <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</p>
+                        <button
+                            onClick={() => { setActivateStep("idle"); setError(null); }}
+                            className="w-full rounded-xl border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-all"
+                            style={{ minHeight: "48px" }}
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Bottom padding for mobile fixed bottom bar */}
             {canFinalize && <div className="lg:hidden h-24" />}
         </div>

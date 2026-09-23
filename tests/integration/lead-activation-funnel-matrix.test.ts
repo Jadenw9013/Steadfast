@@ -467,6 +467,40 @@ suite("T-978 — the funnel matrix", () => {
     await assertCell(leadId, coach.id, "roster", before);
   });
 
+  // T-978 review round 2, A1: the gap the reviewer named — "on the roster,
+  // no resolvable address anywhere" was not covered anywhere in this file.
+  // P1 elsewhere always carries a dedicated address; this cell deliberately
+  // has none, matching the exact public-enquiry shape (prospectId set,
+  // legacy prospectEmail is a phone number, prospectEmailAddr null) that
+  // exposed the client-side gate's false refusal. The server must still
+  // activate via the roster candidate id alone — no address is needed for
+  // I1(a).
+  for (const path of ["A1", "A2", "A3", "A4"] as const) {
+    it(`on-roster + no address anywhere x ${path}: server activates via roster despite nothing to invite`, async () => {
+      const { coach, profile } = await makeCoach();
+      const account = await makeClientAccount(`prospect-${randomUUID()}@example.test`);
+      await db.coachClient.create({ data: { coachId: coach.id, clientId: account.id } });
+      // No emailAddr passed — this lead's only identity signal is prospectId,
+      // set below exactly as app/api/public/coaching-request/route.ts sets it
+      // for a signed-in enquirer (no route exposes setting it directly, so a
+      // direct DB write stands in for "the enquirer was signed in", same
+      // precedent as R3's address-change fixture in the sibling file).
+      const leadId = await createC1(profile.id, "Roster No Address");
+      await db.coachingRequest.update({ where: { id: leadId }, data: { prospectId: account.id } });
+
+      if (path === "A1" || path === "A2") {
+        await walkToStage(coach, leadId, "INTAKE_SUBMITTED");
+      }
+      const before = await snapshotBefore(leadId);
+      const outcome = await attemptActivation(path, coach, leadId);
+      expect(outcome.threw, `${path} threw unexpectedly: ${JSON.stringify(outcome.body)}`).toBe(false);
+      await assertCell(leadId, coach.id, "roster", before);
+      // The roster candidate resolved purely from prospectId — no
+      // ClientInvite was ever needed or created.
+      expect(await db.clientInvite.count({ where: { requestId: leadId } })).toBe(0);
+    });
+  }
+
   // ── Cross-route cells — the leaks between routes individual route tests
   //    cannot see. ────────────────────────────────────────────────────────
 

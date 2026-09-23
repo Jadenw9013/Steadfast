@@ -366,6 +366,17 @@ export function LeadActions({
                                 // T-978 review round 1, gap 1: the backend refuses activation
                                 // with no email on file (no_email_on_file). Say so here instead
                                 // of promising the action will work.
+                                //
+                                // T-978 review round 2, A1: this client-side check is only the
+                                // recipient half of the server's rule — it does not know whether
+                                // the prospect is already on this coach's roster (a CoachClient
+                                // row), which the server checks FIRST and which needs no address
+                                // at all. A client component cannot evaluate that half (it isn't
+                                // on this lead's props), so this warning can be wrong in that one
+                                // case. The control below is deliberately NOT disabled on this
+                                // condition alone — the server stays authoritative, and a wrong
+                                // warning next to a working control is a screen that degrades,
+                                // not one that disappears (release-safety §4).
                                 <p className="text-sm text-amber-300">
                                     <strong>{prospectName}</strong> has no email address on file, so nothing can be
                                     sent and activation will be refused. Add an email on this lead, then activate.
@@ -373,7 +384,7 @@ export function LeadActions({
                             )}
                             <div className="flex gap-2">
                                 <button
-                                    disabled={pending || !hasResolvableAddress}
+                                    disabled={pending}
                                     onClick={() => {
                                         run(() => bypassPipelineAndActivate({ requestId }), "Client activated.");
                                         setConfirmBypass(false);
