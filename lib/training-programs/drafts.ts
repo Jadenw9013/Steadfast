@@ -104,9 +104,9 @@ const BLOCK_TYPE_LIST = [
  * same six literals can only agree with itself). Adding a value is a contract
  * change: it must land here, in the iOS block badge, and in the docs together.
  */
-export const TRAINING_BLOCK_TYPES: [
-  Exclude<BlockType, (typeof BLOCK_TYPE_LIST)[number]>,
-] extends [never]
+export const TRAINING_BLOCK_TYPES: [Exclude<BlockType, (typeof BLOCK_TYPE_LIST)[number]>] extends [
+  never,
+]
   ? typeof BLOCK_TYPE_LIST
   : never = BLOCK_TYPE_LIST;
 
@@ -214,11 +214,10 @@ function dayCreateData(day: NormalizedTrainingDay) {
 /**
  * Metadata write semantics, frozen and identical on both surfaces:
  *
- *   `weeklyFrequency` / `clientNotes` — REQUIRED. A number/string sets, `null`
- *     clears. Absent-means-clear is today's behavior on BOTH surfaces (the
- *     action passes `?? null`, the route's update writes `?? null`), and iOS
- *     sends an explicit `null` for "the coach emptied the field", so these must
- *     not quietly become patch semantics.
+ *   `weeklyFrequency` / `clientNotes` — a number/string sets and `null` clears.
+ *     On an in-place DRAFT save, absent also clears (the established behavior).
+ *     On a fork, absent inherits from the immutable published/superseded source
+ *     so a days-only iOS save cannot discard coach-authored metadata (T-880).
  *
  *   `injuries` / `equipment` / `templateSourceId` — `undefined` leaves the
  *     column unchanged (and inherits from the fork source on the fork path),
@@ -227,8 +226,8 @@ function dayCreateData(day: NormalizedTrainingDay) {
  *     leave them alone.
  */
 export type TrainingMetadataInput = {
-  weeklyFrequency: number | null;
-  clientNotes: string | null;
+  weeklyFrequency?: number | null;
+  clientNotes?: string | null;
   injuries?: string | null;
   equipment?: string | null;
   templateSourceId?: string | null;
@@ -279,9 +278,7 @@ const saveTargetSelect = {
  * Reads the row both surfaces need before their own authorization check.
  * Returns null when the program does not exist. Performs no authorization.
  */
-export async function getTrainingSaveTarget(
-  programId: string
-): Promise<TrainingSaveTarget | null> {
+export async function getTrainingSaveTarget(programId: string): Promise<TrainingSaveTarget | null> {
   return db.trainingProgram.findUnique({
     where: { id: programId },
     select: saveTargetSelect,
@@ -300,6 +297,7 @@ export async function findTrainingDraftForWeek(
 ): Promise<TrainingSaveTarget | null> {
   return db.trainingProgram.findFirst({
     where: { clientId, weekOf, status: "DRAFT" },
+    orderBy: { updatedAt: "desc" },
     select: saveTargetSelect,
   });
 }
@@ -355,6 +353,18 @@ export type SaveTrainingProgramContentResult = {
 };
 
 /**
+ * Raised when a row read as DRAFT is published before its guarded write.
+ * Routes map this expected conflict to 409; server actions intentionally let
+ * it reject so callers cannot mistake an uncommitted save for success.
+ */
+export class TrainingProgramPublishedDuringSaveError extends Error {
+  constructor() {
+    super("TRAINING_PROGRAM_PUBLISHED_DURING_SAVE");
+    this.name = "TrainingProgramPublishedDuringSaveError";
+  }
+}
+
+/**
  * CB05. Callers MUST have authorized coach access to `target.clientId` first.
  *
  *   DRAFT       → replace every day/block and apply metadata, one transaction.
@@ -383,13 +393,17 @@ export async function saveTrainingProgramContent(
   const { metadata } = input;
 
   if (target.status !== "DRAFT") {
+    const weeklyFrequency =
+      metadata.weeklyFrequency === undefined ? target.weeklyFrequency : metadata.weeklyFrequency;
+    const clientNotes =
+      metadata.clientNotes === undefined ? target.clientNotes : metadata.clientNotes;
     const forked = await db.trainingProgram.create({
       data: {
         clientId: target.clientId,
         weekOf: target.weekOf,
         status: "DRAFT",
-        weeklyFrequency: metadata.weeklyFrequency,
-        clientNotes: metadata.clientNotes,
+        weeklyFrequency,
+        clientNotes,
         // `undefined` means "leave unchanged", which on a fork means "inherit
         // from the program being forked".
         injuries: metadata.injuries !== undefined ? metadata.injuries : target.injuries,
@@ -407,22 +421,33 @@ export async function saveTrainingProgramContent(
 
   const programId = target.id;
 
-  // Metadata and children commit together: they used to be two separate
-  // non-atomic operations, so a failed day write left the new weeklyFrequency
-  // on the old days.
-  await db.$transaction([
-    db.trainingProgram.update({
-      where: { id: programId },
-      data: {
-        weeklyFrequency: metadata.weeklyFrequency,
-        clientNotes: metadata.clientNotes,
-        ...optionalMetadata(metadata),
-      },
-    }),
-    // Deleting the days cascades to their blocks.
-    db.trainingDay.deleteMany({ where: { programId } }),
-    ...days.map((day) => db.trainingDay.create({ data: { programId, ...dayCreateData(day) } })),
-  ]);
+  // Metadata and children commit together. The status predicate closes the
+  // read/write window: a concurrent publish makes the update match zero rows,
+  // and the transaction aborts before any day is deleted.
+  await db.$transaction(
+    async (tx) => {
+      const guarded = await tx.trainingProgram.updateMany({
+        where: { id: programId, status: "DRAFT" },
+        data: {
+          // Omission on an in-place DRAFT save retains the established
+          // clear-to-null behavior. Forks inherit omitted values above.
+          weeklyFrequency: metadata.weeklyFrequency ?? null,
+          clientNotes: metadata.clientNotes ?? null,
+          ...optionalMetadata(metadata),
+        },
+      });
+      if (guarded.count === 0) {
+        throw new TrainingProgramPublishedDuringSaveError();
+      }
+
+      // Deleting the days cascades to their blocks.
+      await tx.trainingDay.deleteMany({ where: { programId } });
+      for (const day of days) {
+        await tx.trainingDay.create({ data: { programId, ...dayCreateData(day) } });
+      }
+    },
+    { timeout: 15_000 }
+  );
 
   return { programId, forkedNewProgramId: null };
 }

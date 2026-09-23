@@ -8,43 +8,19 @@ import {
   createTrainingProgramDraft,
   getTrainingSaveTarget,
   saveTrainingProgramContent,
+  TrainingProgramPublishedDuringSaveError,
   trainingDaysSchema,
   weeklyFrequencySchema,
   type TrainingDayInput,
 } from "@/lib/training-programs/drafts";
+import {
+  getLatestPublishedTrainingProgramForCoach,
+  getTrainingProgramForReview,
+} from "@/lib/queries/training-programs";
 import { ROUTE_FAILED } from "@/lib/observability/events";
 import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
-
-const programSelect = {
-  id: true,
-  weekOf: true,
-  status: true,
-  weeklyFrequency: true,
-  clientNotes: true,
-  injuries: true,
-  equipment: true,
-  publishedAt: true,
-  days: {
-    orderBy: { sortOrder: "asc" as const },
-    select: {
-      id: true,
-      dayName: true,
-      sortOrder: true,
-      blocks: {
-        orderBy: { sortOrder: "asc" as const },
-        select: {
-          id: true,
-          type: true,
-          title: true,
-          content: true,
-          sortOrder: true,
-        },
-      },
-    },
-  },
-};
 
 async function verifyAssignment(coachId: string, clientId: string) {
   return db.coachClient.findUnique({
@@ -79,6 +55,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     let program = null;
     let source = "empty";
+    let carriedOverFromWeekOf: string | null = null;
 
     if (weekOfParam) {
       let weekOf: Date;
@@ -88,29 +65,12 @@ export async function GET(req: NextRequest, { params }: Params) {
         return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
       }
 
-      const draft = await db.trainingProgram.findFirst({
-        where: { clientId, weekOf, status: "DRAFT" },
-        select: programSelect,
-      });
-      if (draft) {
-        program = draft;
-        source = "draft";
-      } else {
-        const published = await db.trainingProgram.findFirst({
-          where: { clientId, weekOf, status: "PUBLISHED" },
-          select: programSelect,
-        });
-        if (published) {
-          program = published;
-          source = "published";
-        }
-      }
+      const result = await getTrainingProgramForReview(clientId, weekOf);
+      program = result.program;
+      source = result.source;
+      carriedOverFromWeekOf = result.carriedOverFrom?.toISOString() ?? null;
     } else {
-      const published = await db.trainingProgram.findFirst({
-        where: { clientId, status: "PUBLISHED" },
-        orderBy: { publishedAt: "desc" },
-        select: programSelect,
-      });
+      const published = await getLatestPublishedTrainingProgramForCoach(clientId);
       if (published) {
         program = published;
         source = "published";
@@ -132,6 +92,7 @@ export async function GET(req: NextRequest, { params }: Params) {
             days: program.days,
           }
         : null,
+      carriedOverFromWeekOf,
       // Server-computed "current week" — clients should prefer this over
       // any on-device date math when seeding a brand-new program's weekOf.
       currentWeekOf: getCurrentWeekMonday().toISOString(),
@@ -318,8 +279,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const { forkedNewProgramId } = await saveTrainingProgramContent(target, {
       days,
       metadata: {
-        weeklyFrequency: weeklyFrequency ?? null,
-        clientNotes: clientNotes ?? null,
+        weeklyFrequency,
+        clientNotes,
       },
     });
 
@@ -329,6 +290,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
       ...(forkedNewProgramId && { forkedNewProgramId }),
     });
   } catch (err) {
+    if (err instanceof TrainingProgramPublishedDuringSaveError) {
+      return NextResponse.json({ error: "PROGRAM_PUBLISHED_DURING_SAVE" }, { status: 409 });
+    }
     reportServerError(ROUTE_FAILED.evt, err, {
       route: "/api/coach/clients/[id]/training",
       method: "PUT",

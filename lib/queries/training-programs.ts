@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { reportAnomaly } from "@/lib/observability/report";
 import { TRAINING_WEEK_EMPTY } from "@/lib/observability/events";
+import type { Prisma } from "@/app/generated/prisma/client";
 
 const daySelect = {
   id: true,
@@ -19,18 +20,46 @@ const programInclude = {
   },
 };
 
+// Postgres sorts nulls first for DESC unless told otherwise. The final two
+// keys make every published-program lookup deterministic when timestamps tie.
+export const PUBLISHED_TRAINING_ORDER_BY: Prisma.TrainingProgramOrderByWithRelationInput[] = [
+  { publishedAt: { sort: "desc", nulls: "last" } },
+  { createdAt: "desc" },
+  { id: "desc" },
+];
+
+export const DRAFT_TRAINING_ORDER_BY: Prisma.TrainingProgramOrderByWithRelationInput[] = [
+  { updatedAt: "desc" },
+  { id: "desc" },
+];
+
 export async function getTrainingProgramForReview(clientId: string, weekOf: Date) {
   const draft = await db.trainingProgram.findFirst({
     where: { clientId, weekOf, status: "DRAFT" },
+    orderBy: DRAFT_TRAINING_ORDER_BY,
     include: programInclude,
   });
-  if (draft) return { source: "draft" as const, program: draft };
+  if (draft) return { source: "draft" as const, program: draft, carriedOverFrom: null };
 
   const published = await db.trainingProgram.findFirst({
     where: { clientId, weekOf, status: "PUBLISHED" },
+    orderBy: PUBLISHED_TRAINING_ORDER_BY,
     include: programInclude,
   });
-  if (published) return { source: "published" as const, program: published };
+  if (published) return { source: "published" as const, program: published, carriedOverFrom: null };
+
+  const carriedOver = await db.trainingProgram.findFirst({
+    where: { clientId, status: "PUBLISHED", weekOf: { lt: weekOf } },
+    orderBy: PUBLISHED_TRAINING_ORDER_BY,
+    include: programInclude,
+  });
+  if (carriedOver) {
+    return {
+      source: "carried-over" as const,
+      program: carriedOver,
+      carriedOverFrom: carriedOver.weekOf,
+    };
+  }
 
   // T-920 — only reached once this week already missed on both DRAFT and
   // PUBLISHED, so the extra query never runs on the normal path. If the
@@ -85,7 +114,15 @@ export async function getTrainingProgramForReview(clientId: string, weekOf: Date
     // succeed — see the comment above.
   }
 
-  return { source: "empty" as const, program: null };
+  return { source: "empty" as const, program: null, carriedOverFrom: null };
+}
+
+export async function getLatestPublishedTrainingProgramForCoach(clientId: string) {
+  return db.trainingProgram.findFirst({
+    where: { clientId, status: "PUBLISHED" },
+    orderBy: PUBLISHED_TRAINING_ORDER_BY,
+    include: programInclude,
+  });
 }
 
 export async function getPublishedTrainingProgram(clientId: string, publishedAfter: Date | null) {
@@ -95,9 +132,7 @@ export async function getPublishedTrainingProgram(clientId: string, publishedAft
   if (publishedAfter == null) return null;
   return db.trainingProgram.findFirst({
     where: { clientId, status: "PUBLISHED", publishedAt: { gte: publishedAfter } },
-    // T-744: the ordering rule here is still publishedAt desc; aligning it with
-    // ACTIVE_MEAL_PLAN_ORDER_BY is T-744's scope, not this ticket's.
-    orderBy: { publishedAt: "desc" },
+    orderBy: PUBLISHED_TRAINING_ORDER_BY,
     include: programInclude,
   });
 }

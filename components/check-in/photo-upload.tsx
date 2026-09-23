@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { MAX_CHECKIN_PHOTOS } from "@/lib/validations/check-in";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -20,7 +21,7 @@ function formatSize(bytes: number): string {
 export function PhotoUpload({
   files,
   onFilesChange,
-  maxFiles = 10,
+  maxFiles = MAX_CHECKIN_PHOTOS,
 }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +39,10 @@ export function PhotoUpload({
         setError(`"${file.name}" exceeds the 5 MB limit (${formatSize(file.size)}).`);
         return;
       }
+    }
+
+    if (files.length + selected.length > maxFiles) {
+      setError(`${maxFiles} photos maximum`);
     }
 
     const combined = [...files, ...selected].slice(0, maxFiles);
@@ -58,6 +63,7 @@ export function PhotoUpload({
   }
 
   function removeFile(index: number) {
+    setError(null);
     onFilesChange(files.filter((_, i) => i !== index));
   }
 
@@ -115,13 +121,15 @@ export function PhotoUpload({
               inputRef.current?.click();
             }
           }}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
           onDragLeave={() => setDragOver(false)}
           onDrop={handleDrop}
-          className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${dragOver
-              ? "border-blue-500/50 bg-blue-500/5"
-              : "border-white/15 hover:border-white/25"
-            }`}
+          className={`flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
+            dragOver ? "border-blue-500/50 bg-blue-500/5" : "border-white/15 hover:border-white/25"
+          }`}
           aria-label="Drop photos here or click to browse"
         >
           <input
@@ -133,9 +141,7 @@ export function PhotoUpload({
             className="sr-only"
           />
           <p className="text-sm font-medium text-zinc-300">
-            {files.length === 0
-              ? "Tap to add photos"
-              : `Add ${maxFiles - files.length} more`}
+            {files.length === 0 ? "Tap to add photos" : `Add ${maxFiles - files.length} more`}
           </p>
           <p className="text-xs text-zinc-500">JPEG, PNG, or WebP &middot; 5 MB max</p>
         </div>

@@ -8,6 +8,7 @@ import {
   type PlanModeInput,
 } from "@/lib/meal-plans/macro-targets";
 import { resolveDefaultPlanMode } from "@/lib/meal-plans/plan-mode";
+import { mergePlanExtras } from "@/lib/meal-plans/plan-extras-merge";
 import { createMealPlanWithNextVersion } from "@/lib/meal-plans/version";
 import { reportAnomaly } from "@/lib/observability/report";
 import { MEALPLAN_SAVE_DROPPED_KEYS } from "@/lib/observability/events";
@@ -223,7 +224,9 @@ export async function createMealPlanDraft(
   const macroTargets = input.macroTargets ?? source?.macroTargets ?? [];
   const planExtras = input.planExtras ?? source?.planExtras;
   const supportContent =
-    input.supportContent !== undefined ? input.supportContent : (source?.supportContent ?? undefined);
+    input.supportContent !== undefined
+      ? input.supportContent
+      : (source?.supportContent ?? undefined);
 
   // Never reads source.planMode, never inspects items/macroTargets.
   const planMode = input.planMode ?? (await resolveDefaultPlanMode(input.coachId, input.clientId));
@@ -372,26 +375,35 @@ export async function saveMealPlanDraftContent(
       },
     });
 
-    const forked = await createMealPlanWithNextVersion(target.clientId, target.weekOf, (version) => ({
-      clientId: target.clientId,
-      weekOf: target.weekOf,
-      version,
-      status: "DRAFT",
-      planMode: target.planMode,
-      planExtras: (planExtras !== undefined ? planExtras : target.planExtras) ?? undefined,
-      supportContent: supportContent !== undefined ? supportContent : target.supportContent,
-      items: {
-        create:
-          items !== undefined
-            ? items.map((item, i) => ({
-                ...item,
-                sortOrder: i,
-                servingDescription: item.servingDescription || null,
-              }))
-            : existing.items,
-      },
-      macroTargets: { create: macroTargets ?? existing.macroTargets },
-    }));
+    const forked = await createMealPlanWithNextVersion(
+      target.clientId,
+      target.weekOf,
+      (version) => ({
+        clientId: target.clientId,
+        weekOf: target.weekOf,
+        version,
+        status: "DRAFT",
+        planMode: target.planMode,
+        // T-841: a partial iOS payload must not erase web-authored metadata or
+        // unknown legacy top-level keys. Explicit null remains a no-op.
+        planExtras:
+          planExtras != null
+            ? mergePlanExtras(target.planExtras, planExtras)
+            : (target.planExtras ?? undefined),
+        supportContent: supportContent !== undefined ? supportContent : target.supportContent,
+        items: {
+          create:
+            items !== undefined
+              ? items.map((item, i) => ({
+                  ...item,
+                  sortOrder: i,
+                  servingDescription: item.servingDescription || null,
+                }))
+              : existing.items,
+        },
+        macroTargets: { create: macroTargets ?? existing.macroTargets },
+      })
+    );
 
     return { mealPlanId: target.id, forkedNewDraftId: forked.id };
   }
@@ -428,11 +440,12 @@ export async function saveMealPlanDraftContent(
           db.mealPlan.update({
             where: { id: mealPlanId },
             data: {
-              // planExtras keeps today's semantics exactly: an explicit null is
-              // a no-op. supportContent's explicit null DOES clear. The
-              // asymmetry is deliberate and scoped to T-101; harmonizing
-              // planExtras is out of scope.
-              ...(planExtras !== undefined && { planExtras: planExtras ?? undefined }),
+              // T-841: merge defined objects one level against the raw stored
+              // JSON. An explicit null remains a no-op; supportContent's null
+              // still clears, so the pre-existing asymmetry is preserved.
+              ...(planExtras != null && {
+                planExtras: mergePlanExtras(target.planExtras, planExtras),
+              }),
               ...(supportContent !== undefined && { supportContent }),
             },
           }),

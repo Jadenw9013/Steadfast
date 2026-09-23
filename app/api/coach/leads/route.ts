@@ -69,10 +69,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[GET /api/coach/leads]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -81,6 +78,13 @@ export async function GET() {
 const createLeadSchema = z.object({
   prospectName: z.string().min(2).max(100),
   prospectEmail: z.string().max(100),
+  // Optional dedicated email field the iOS client sends alongside the legacy
+  // phone/contact field. NOTHING about it may reject the lead — not the type,
+  // not the length, not the format. A bound here would sit on the 422 path
+  // below and throw away the whole lead over a mistyped address, which is the
+  // exact bug this route is being fixed for. Every constraint lives in
+  // `emailFormat`, which drops a bad value instead of rejecting the request.
+  prospectEmailAddr: z.unknown().optional(),
   intakeAnswers: z
     .object({
       goals: z.string().max(1000).default(""),
@@ -89,6 +93,8 @@ const createLeadSchema = z.object({
     })
     .default({ goals: "" }),
 });
+
+const emailFormat = z.string().trim().toLowerCase().email().max(100);
 
 export async function POST(req: NextRequest) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
@@ -108,10 +114,7 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     if (!profile) {
-      return NextResponse.json(
-        { error: "Coach profile not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Coach profile not found" }, { status: 404 });
     }
 
     const body = await req.json();
@@ -125,28 +128,39 @@ export async function POST(req: NextRequest) {
 
     const { prospectName, prospectEmail, intakeAnswers } = parsed.data;
 
+    // Malformed values are silently dropped rather than rejected — a coach
+    // mistyping an email must not lose the whole lead.
+    const emailResult =
+      typeof parsed.data.prospectEmailAddr === "string"
+        ? emailFormat.safeParse(parsed.data.prospectEmailAddr)
+        : null;
+    const prospectEmailAddr = emailResult?.success ? emailResult.data : null;
+
     const lead = await db.coachingRequest.create({
       data: {
         coachProfileId: profile.id,
         prospectName,
         prospectEmail,
+        prospectEmailAddr,
         intakeAnswers,
       },
       select: {
         id: true,
         prospectName: true,
         prospectEmail: true,
+        prospectEmailAddr: true,
         status: true,
         createdAt: true,
+        // iOS decodes this response into LeadRow, which declares `updatedAt`
+        // non-optional (SteadfastAPI.swift). Omitting it made every manual
+        // add-lead from the app fail to decode even though the row was written.
+        updatedAt: true,
       },
     });
 
     return NextResponse.json({ lead }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/coach/leads]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
