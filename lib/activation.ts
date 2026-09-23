@@ -63,6 +63,12 @@ export async function linkOrInviteProspect(
         });
     }
 
+    // A coach is never their own client. Storing the address the iOS client
+    // sends is what makes this reachable from the app for the first time:
+    // a coach typing their own address into Add Lead would otherwise resolve
+    // to their own account and create a CoachClient with coachId == clientId.
+    if (existingUser && existingUser.id === coach.coachId) existingUser = null;
+
     if (existingUser) {
         // Create CoachClient link (idempotent)
         const existingConn = await db.coachClient.findUnique({

@@ -24,6 +24,7 @@ vi.mock("@/lib/email/sendEmail", () => ({ sendEmail: vi.fn().mockResolvedValue({
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { POST as createLead } from "@/app/api/coach/leads/route";
+import { linkOrInviteProspect } from "@/lib/activation";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: never run against a production database.
@@ -100,6 +101,56 @@ suite("T-961: lead email hotfix", () => {
     expect(response.status).toBe(201);
     const body = await response.json();
     expect(body.lead.prospectEmailAddr).toBeNull();
+  });
+
+
+  it("never links a coach to themselves when their own address is on the lead", async () => {
+    // Storing the address the iOS client sends is what makes this reachable
+    // from the app: before the fix the field was dropped, so a coach typing
+    // their own address could not resolve to their own account.
+    const { user, profile } = await makeCoach();
+    const lead = await db.coachingRequest.create({
+      data: {
+        coachProfileId: profile.id,
+        prospectName: "Me",
+        prospectEmail: "555-0100",
+        prospectEmailAddr: user.email,
+        intakeAnswers: { goals: "" },
+      },
+    });
+
+    const result = await linkOrInviteProspect(
+      { prospectName: "Me", prospectEmail: "555-0100", prospectPhone: null, prospectEmailAddr: user.email },
+      { coachId: user.id, coachFirstName: "Coach" },
+      lead.id,
+    );
+
+    expect(result.linked).toBe(false);
+    const selfLink = await db.coachClient.findUnique({
+      where: { coachId_clientId: { coachId: user.id, clientId: user.id } },
+    });
+    expect(selfLink).toBeNull();
+  });
+
+  it("does not mistake a phone number, a name or a blank contact field for an email", async () => {
+    const { user, profile } = await makeCoach();
+    for (const contact of ["555-0100", "Jad Shehadeh", " "]) {
+      const lead = await db.coachingRequest.create({
+        data: {
+          coachProfileId: profile.id,
+          prospectName: "Jad Shehadeh",
+          prospectEmail: contact,
+          intakeAnswers: { goals: "" },
+        },
+      });
+      const result = await linkOrInviteProspect(
+        { prospectName: "Jad Shehadeh", prospectEmail: contact, prospectPhone: null, prospectEmailAddr: null },
+        { coachId: user.id, coachFirstName: "Coach" },
+        lead.id,
+      );
+      // No address on file must never become a link to somebody's account.
+      expect(result.linked).toBe(false);
+    }
   });
 
 });
