@@ -153,4 +153,52 @@ suite("T-961: lead email hotfix", () => {
     }
   });
 
+
+  it("a legacy-column address invites, and never auto-links an existing account (Decision H1)", async () => {
+    // H1, recorded 2026-09-23: an address found only in the legacy contact
+    // column may be used to SEND an invite, but must never select an existing
+    // user and create a CoachClient without that person accepting. This test
+    // pins that boundary so a future "helpful" fallback cannot widen it
+    // silently. It is an invariant, not a regression: it holds on 65da78f too.
+    const { user: coach, profile } = await makeCoach();
+    const legacyAddress = `legacy-${randomUUID()}@example.test`.replace(/[0-9]/g, "x");
+    const prospect = await db.user.create({
+      data: { clerkId: randomUUID(), email: legacyAddress, isClient: true },
+    });
+
+    const lead = await db.coachingRequest.create({
+      data: {
+        coachProfileId: profile.id,
+        prospectName: "Legacy Prospect",
+        prospectEmail: legacyAddress, // the address lives ONLY here
+        prospectEmailAddr: null,
+        intakeAnswers: { goals: "" },
+      },
+    });
+
+    const result = await linkOrInviteProspect(
+      {
+        prospectName: "Legacy Prospect",
+        prospectEmail: legacyAddress,
+        prospectPhone: null,
+        prospectEmailAddr: null,
+      },
+      { coachId: coach.id, coachFirstName: "Coach" },
+      lead.id,
+    );
+
+    // Invited, not linked.
+    expect(result.linked).toBe(false);
+    const invite = await db.clientInvite.findFirst({
+      where: { coachId: coach.id, email: legacyAddress },
+    });
+    expect(invite).not.toBeNull();
+
+    // The existing account was NOT attached to the coach.
+    const link = await db.coachClient.findUnique({
+      where: { coachId_clientId: { coachId: coach.id, clientId: prospect.id } },
+    });
+    expect(link).toBeNull();
+  });
+
 });
