@@ -81,6 +81,11 @@ export async function GET() {
 const createLeadSchema = z.object({
   prospectName: z.string().min(2).max(100),
   prospectEmail: z.string().max(100),
+  // Optional dedicated email field the iOS client sends alongside the legacy
+  // phone/contact field. Not validated with `.email()` at the schema level —
+  // a mistyped address must not reject the whole lead (see POST handler,
+  // which validates it separately and simply drops it if malformed).
+  prospectEmailAddr: z.string().max(100).nullable().optional(),
   intakeAnswers: z
     .object({
       goals: z.string().max(1000).default(""),
@@ -89,6 +94,8 @@ const createLeadSchema = z.object({
     })
     .default({ goals: "" }),
 });
+
+const emailFormat = z.string().trim().toLowerCase().email();
 
 export async function POST(req: NextRequest) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
@@ -125,19 +132,32 @@ export async function POST(req: NextRequest) {
 
     const { prospectName, prospectEmail, intakeAnswers } = parsed.data;
 
+    // Malformed values are silently dropped rather than rejected — a coach
+    // mistyping an email must not lose the whole lead.
+    const emailResult = parsed.data.prospectEmailAddr
+      ? emailFormat.safeParse(parsed.data.prospectEmailAddr)
+      : null;
+    const prospectEmailAddr = emailResult?.success ? emailResult.data : null;
+
     const lead = await db.coachingRequest.create({
       data: {
         coachProfileId: profile.id,
         prospectName,
         prospectEmail,
+        prospectEmailAddr,
         intakeAnswers,
       },
       select: {
         id: true,
         prospectName: true,
         prospectEmail: true,
+        prospectEmailAddr: true,
         status: true,
         createdAt: true,
+        // iOS decodes this response into LeadRow, which declares `updatedAt`
+        // non-optional (SteadfastAPI.swift). Omitting it made every manual
+        // add-lead from the app fail to decode even though the row was written.
+        updatedAt: true,
       },
     });
 
