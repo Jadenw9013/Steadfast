@@ -528,20 +528,44 @@ suite("T-978 — the funnel matrix", () => {
     await walkToStage(coach, leadId, "INTAKE_SUBMITTED");
 
     auth.user = coach;
-    // A one-macrotask stagger on the second call only, not a serialisation
-    // of the two requests: real concurrent HTTP requests are never
-    // sub-millisecond-simultaneous either, and the actual race this test
-    // exists to exercise is the Postgres FOR UPDATE lock, which the first
-    // call is still awaiting (real DB I/O, several ms) by the time the
-    // second one starts. Without this stagger, firing two `await
-    // import("@/lib/auth/roles")` calls (both A2 and A4 route deep into a
-    // Server Action that dynamically imports it) in the exact same
-    // microtask tick hits a genuine Vitest/Vite-node module-loader race
-    // that can resolve one of the two dynamic imports to the real,
-    // unmocked module instead of the cached mock — verified in isolation
-    // with no production code involved at all. Confirmed the stagger does
-    // not mask a real deadlock: the status assertions below still fail
-    // loudly on a 500 if one occurs.
+    // T-978 review round 2, A3 — rewritten to state what is actually known,
+    // not a diagnosis that did not survive review.
+    //
+    // SYMPTOM: without the setTimeout(0) stagger below on the second call,
+    // firing A2 and A4 in the same microtask tick reproduced 100% (8/8
+    // isolated reruns): one side's `await import("@/lib/auth/roles")`
+    // (both A2 and A4 route deep into a Server Action that dynamically
+    // imports it) resolved to the real, unmocked module instead of the
+    // cached mock, threw "Not authenticated", and surfaced as a 500 — which
+    // the status assertions below correctly failed on before this stagger
+    // existed.
+    //
+    // CAUSE: UNKNOWN. Round 1's diagnosis (a cold-cache resolution race) was
+    // checked in round-2 review and does not hold: `@/lib/auth/roles` is
+    // dynamically imported dozens of times by the 32 core-grid cells that
+    // run earlier in this same file, `beforeEach` never calls
+    // `vi.resetModules()`, and the config sets no module reset — so the
+    // module is warm long before this test runs. RULED OUT: module
+    // coldness. A 15-line isolated repro without any production code
+    // reproduced a *cold*-module version of this; it does not establish
+    // the mechanism for the warm case actually in play here. Investigating
+    // the real mechanism is T-983.
+    //
+    // WORKAROUND, cost stated rather than hidden: `setTimeout(…, 0)` is
+    // clamped to >=1ms in Node. A loopback-Postgres BEGIN + FOR UPDATE +
+    // reads + one write + COMMIT can finish inside that window — if it
+    // does, A4 only starts after A2 has already committed, and this cell
+    // silently degenerates into the sequential case X1 (covered elsewhere)
+    // while still being named the concurrency test. Nothing here detects
+    // when that happens, so **overlap of the two transactions is no longer
+    // guaranteed on every run.** What the stagger does not weaken: a real
+    // deadlock, lock timeout or aborted transaction still maps to 422 or
+    // 500 (`activate-lead.ts`'s catch-all + both routes), neither of which
+    // is in `[200, 409]`, so the assertions below still fail loudly on an
+    // actual concurrency defect when the two calls do overlap. Building a
+    // deterministic replacement (delay, don't reject, `coachingRequest.update`
+    // the way R5's sibling technique does, so A4 is provably parked on
+    // `FOR UPDATE` when A2 commits) is T-983; not attempted here.
     const [r1, r2] = await Promise.all([
       attemptActivation("A2", coach, leadId),
       new Promise<void>((resolve) => setTimeout(resolve, 0)).then(() => attemptActivation("A4", coach, leadId)),

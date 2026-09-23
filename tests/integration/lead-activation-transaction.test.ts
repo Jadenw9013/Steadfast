@@ -299,7 +299,12 @@ suite("T-978 — transaction properties the matrix cannot express", () => {
     expect(await db.clientInvite.count({ where: { requestId: leadId } })).toBe(0);
   });
 
-  it("R6 — the same spy on the roster branch (coachingRequest.update rejects): stage unchanged, no prospectId written. This branch's only write is the one forced to reject, so — unlike R5 — this proves ordering (the write never lands), not a rollback of a prior write; there is no prior write in this branch to roll back.", async () => {
+  // T-978 review round 2, N1: rationale moved here from the it() title,
+  // which printed ~250 characters on every verbose reporter line.
+  // This branch's only write is the one forced to reject, so — unlike R5 —
+  // this proves ordering (the write never lands), not a rollback of a
+  // prior write; there is no prior write in this branch to roll back.
+  it("R6 — the same spy on the roster branch (coachingRequest.update rejects): stage unchanged, no prospectId written", async () => {
     const { coach, profile } = await makeCoach();
     const email = `prospect-${randomUUID()}@example.test`;
     const account = await makeClientAccount(email);
