@@ -3,22 +3,12 @@ import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { COACH_SETTABLE_STAGES } from "@/lib/leads/activate-lead";
 
 type Params = { params: Promise<{ leadId: string }> };
 
-const VALID_STAGES = [
-  "PENDING",
-  "CONSULTATION_SCHEDULED",
-  "CONSULTATION_DONE",
-  "INTAKE_SENT",
-  "INTAKE_SUBMITTED",
-  "FORMS_SENT",
-  "FORMS_SIGNED",
-  "DECLINED",
-] as const;
-
 const stageSchema = z.object({
-  stage: z.enum(VALID_STAGES),
+  stage: z.enum(COACH_SETTABLE_STAGES),
 });
 
 // ── PUT — update consultationStage ────────────────────────────────────────────

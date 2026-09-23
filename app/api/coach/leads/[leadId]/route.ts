@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
+import { COACH_SETTABLE_STAGES } from "@/lib/leads/activate-lead";
 
 type Params = { params: Promise<{ leadId: string }> };
 
@@ -129,7 +130,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
 const patchSchema = z.object({
   coachNotes: z.string().max(5000).optional(),
   intakeAnswers: z.record(z.string(), z.unknown()).optional(),
-  consultationStage: z.string().optional(),
+  // T-978: was z.string() — an unvalidated free-form string cast to the enum
+  // in raw SQL below, which let {"consultationStage":"ACTIVE"} flip any
+  // owned lead ACTIVE with no transition check, no relationship and no
+  // invite. Narrowed to the same ACTIVE-excluding enum PUT already used.
+  consultationStage: z.enum(COACH_SETTABLE_STAGES).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: Params) {
@@ -225,16 +230,13 @@ export async function PATCH(req: NextRequest, { params }: Params) {
 }
 
 // ── PUT — update lead status and/or consultation stage ────────────────────────
-
-const VALID_CONSULTATION_STAGES = [
-  "PENDING", "CONSULTATION_SCHEDULED", "CONSULTATION_DONE",
-  "INTAKE_SENT", "INTAKE_SUBMITTED", "FORMS_SENT", "FORMS_SIGNED", "DECLINED",
-] as const;
+// ACTIVE excluded from both — this route was already the precedent
+// COACH_SETTABLE_STAGES generalises (T-978).
 
 const updateLeadSchema = z.object({
   status: z.enum(["PENDING", "CONTACTED", "CALL_SCHEDULED", "ACCEPTED", "DECLINED", "WAITLISTED"]).optional(),
-  stage: z.enum(VALID_CONSULTATION_STAGES).optional(),
-  consultationStage: z.enum(VALID_CONSULTATION_STAGES).optional(),
+  stage: z.enum(COACH_SETTABLE_STAGES).optional(),
+  consultationStage: z.enum(COACH_SETTABLE_STAGES).optional(),
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {

@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
-import { db } from "@/lib/db";
-import { linkOrInviteProspect, getActivationMessage } from "@/lib/activation";
+import { bypassPipelineAndActivate } from "@/app/actions/coaching-requests";
 
 type Params = { params: Promise<{ leadId: string }> };
 
 // ── POST — bypass pipeline and activate lead directly ────────────────────────
-// Uses the shared linkOrInviteProspect helper to guarantee that both the
-// has-account and no-account paths are always handled correctly.
+// T-978: the twin of activate/route.ts. The duplicated ownership query, raw
+// stage write, swallowed try/catch and fabricated { inviteToken: "", email: "" }
+// that used to live here are gone — they now live once, inside
+// lib/leads/activate-lead.ts#activateLead.
 
 export async function POST(_req: NextRequest, { params }: Params) {
   let user: Awaited<ReturnType<typeof getCurrentDbUser>>;
@@ -21,71 +22,35 @@ export async function POST(_req: NextRequest, { params }: Params) {
   try {
     const { leadId } = await params;
 
-    // 1. Verify coach owns this lead + get basic info
-    const leads = await db.$queryRaw<Array<{
-      id: string;
-      consultationStage: string;
-      prospectName: string;
-      prospectEmail: string;
-      prospectPhone: string | null;
-      prospectEmailAddr: string | null;
-    }>>`
-      SELECT cr."id", cr."consultationStage",
-             cr."prospectName", cr."prospectEmail", cr."prospectPhone", cr."prospectEmailAddr"
-      FROM "CoachingRequest" cr
-      JOIN "CoachProfile" cp ON cp."id" = cr."coachProfileId"
-      WHERE cr."id" = ${leadId} AND cp."userId" = ${user.id}
-      LIMIT 1
-    `;
+    const result = await bypassPipelineAndActivate({ requestId: leadId });
 
-    if (leads.length === 0) {
-      return NextResponse.json({ success: false, message: "Lead not found" }, { status: 404 });
-    }
-    const lead = leads[0];
-
-    if (lead.consultationStage === "ACTIVE") {
-      return NextResponse.json({ success: false, message: "Already active." }, { status: 409 });
-    }
-
-    // 2. Mark lead as ACTIVE
-    await db.$executeRaw`
-      UPDATE "CoachingRequest"
-      SET "consultationStage" = 'ACTIVE'::"ConsultationStage",
-          "status" = 'ACCEPTED'::"RequestStatus",
-          "updatedAt" = NOW()
-      WHERE "id" = ${leadId}
-    `;
-
-    // 3. Link prospect or create invite (shared helper — single source of truth)
-    let linkResult: Awaited<ReturnType<typeof linkOrInviteProspect>> | null = null;
-    try {
-      linkResult = await linkOrInviteProspect(
-        lead,
-        { coachId: user.id, coachFirstName: user.firstName },
-        leadId,
-        "Activated via pipeline bypass.",
+    if (!result.success) {
+      // Kept byte-for-byte: "Already active." is 409, "Lead not found" is
+      // 404, everything else is 422 — the same three status codes this
+      // route always returned, now derived from one shared service instead
+      // of a second, divergent implementation of activation.
+      if (result.message === "Already active.") {
+        return NextResponse.json(
+          { success: false, error: result.message, message: result.message },
+          { status: 409 }
+        );
+      }
+      if (result.message === "Lead not found") {
+        return NextResponse.json(
+          { success: false, error: result.message, message: result.message },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json(
+        { success: false, error: result.message, message: result.message },
+        { status: 422 }
       );
-    } catch (linkErr) {
-      // Account linking failed — that's OK, lead is still ACTIVE
-      console.error("[bypass-activate] account link failed (non-fatal):", linkErr);
     }
 
-    // 4. Revalidate (non-blocking)
-    try {
-      const { revalidatePath } = await import("next/cache");
-      revalidatePath("/coach/leads");
-      revalidatePath("/coach/dashboard");
-    } catch {}
-
-    const message = getActivationMessage(
-      lead.prospectName,
-      linkResult ?? { linked: false, inviteToken: "", email: "" },
-    );
-
-    return NextResponse.json({ success: true, message });
+    const { success: _s, ...rest } = result;
+    return NextResponse.json({ success: true, ...rest });
   } catch (err: unknown) {
     console.error("[bypass-activate]", err instanceof Error ? err.message : String(err));
     return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
   }
 }
-

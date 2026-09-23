@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
-import { markContacted, scheduleConsultation, updateConsultationStage, bypassPipelineAndActivate, activateClient, goBackStage, declineRequest } from "@/app/actions/coaching-requests";
+import { markContacted, scheduleConsultation, bypassPipelineAndActivate, activateClient, goBackStage, declineRequest } from "@/app/actions/coaching-requests";
 import { sendIntakePacket, sendFormsForSignature } from "@/app/actions/intake";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -421,7 +421,15 @@ function ActivateButton({ requestId, prospectName, prospectEmailAddr, formsSigne
 }) {
     const [pending, startTransition] = useTransition();
     const [step, setStep] = useState<"idle" | "confirm" | "success" | "error">("idle");
-    const [result, setResult] = useState<{ path?: string; email?: string; clientId?: string } | null>(null);
+    // T-978: activateClient's return shape. onRoster/clientId/outcome replace
+    // the old path union ("existing_account" | "invite_sent"), which no
+    // longer exists.
+    const [result, setResult] = useState<{
+        outcome?: string;
+        onRoster?: boolean;
+        clientId?: string | null;
+        email?: string | null;
+    } | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const router = useRouter();
 
@@ -431,11 +439,11 @@ function ActivateButton({ requestId, prospectName, prospectEmailAddr, formsSigne
             try {
                 const res = await activateClient({ requestId });
                 if (res.success) {
-                    setResult(res as { path?: string; email?: string; clientId?: string });
+                    setResult(res);
                     setStep("success");
                     router.refresh();
                 } else {
-                    setErrorMsg((res as { message?: string }).message ?? "Something went wrong.");
+                    setErrorMsg(res.message ?? "Something went wrong.");
                     setStep("error");
                 }
             } catch (e) {
@@ -452,12 +460,12 @@ function ActivateButton({ requestId, prospectName, prospectEmailAddr, formsSigne
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                     {prospectName} is now an active client!
                 </p>
-                {result.path === "existing_account" && result.clientId && (
+                {result.onRoster && result.clientId && (
                     <Link href={`/coach/clients/${result.clientId}`} className="block text-sm text-blue-400 hover:underline">
                         View {prospectName}&apos;s dashboard →
                     </Link>
                 )}
-                {result.path === "invite_sent" && result.email && (
+                {(result.outcome === "invite_emailed" || result.outcome === "invite_created_email_failed") && result.email && (
                     <p className="text-sm text-zinc-400">
                         Invite sent to <strong className="text-zinc-200">{result.email}</strong> — they&apos;ll appear once they sign up.
                     </p>

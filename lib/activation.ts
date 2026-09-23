@@ -1,11 +1,14 @@
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email/sendEmail";
 import type { ClientInvite, Prisma } from "@/app/generated/prisma/client";
-import { z } from "zod";
+import {
+  establishRelationshipOrInvite,
+  ensureInviteForRequest,
+  getActivationMessage as getLeadActivationMessage,
+  type LeadIdentity,
+} from "@/lib/leads/activate-lead";
 
 type DbClient = typeof db | Prisma.TransactionClient;
-
-const inviteEmailFormat = z.string().trim().toLowerCase().email().max(100);
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,6 +17,12 @@ export interface ProspectInfo {
   prospectEmail: string;
   prospectPhone: string | null;
   prospectEmailAddr: string | null;
+  /** Optional so existing callers that construct this by hand keep
+   *  compiling. Every real caller already selects and passes this field
+   *  through (it is part of the CoachingRequest row); T-978's
+   *  establishRelationshipOrInvite uses it as a candidate id alongside an
+   *  exact email match. */
+  prospectId?: string | null;
 }
 
 export interface CoachInfo {
@@ -34,14 +43,22 @@ export type AcceptInviteResult =
 // ── Core helper: issue an invitation ──────────────────────────────────────────
 
 /**
- * Single source of truth for activating a lead into a coach/client relationship.
+ * Single source of truth for issuing (or reusing) an invite, or recognising
+ * an already-accepted relationship, for a lead. This MUST be used by every
+ * non-activating code path (approveCoachingRequest, resendInvite,
+ * acceptClient). Coach-supplied contact details (email/phone typed into a
+ * form by the coach) can never by themselves grant access to an existing
+ * account (CB01) — they can only result in an invitation that the *intended
+ * client's own signed-in session* must explicitly accept via
+ * acceptClientInviteForUser/redeemInvite. This function never creates a
+ * CoachClient row itself.
  *
- * This MUST be used by every code path that activates a lead. Coach-supplied
- * contact details (email/phone typed into a form by the coach) can never by
- * themselves grant access to an existing account (CB01) — they can only
- * result in an invitation that the *intended client's own signed-in session*
- * must explicitly accept via acceptClientInviteForUser/redeemInvite. This
- * function never creates a CoachClient row itself.
+ * T-978: rewritten to open its own transaction and take the same
+ * CoachingRequest `FOR UPDATE` lock `establishRelationshipOrInvite`'s other
+ * caller (`activateLead`) takes, so the two can no longer interleave into a
+ * duplicate-invite race. The candidate-resolution and reissue rules live in
+ * `lib/leads/activate-lead.ts` now — this function is a thin wrapper that
+ * calls them and then sends the same email it always sent, after commit.
  *
  * Matching is by exact, case-insensitive email only. Partial phone-number
  * matching against other users' accounts has been removed: a coach entering
@@ -59,86 +76,97 @@ export async function linkOrInviteProspect(
   /** Note to store on the eventual CoachClient row (e.g. "Activated via pipeline bypass.") */
   coachNote: string = "Activated from coaching request."
 ): Promise<LinkResult> {
-  const dedicatedEmail = inviteEmailFormat.safeParse(prospect.prospectEmailAddr);
-  const legacyInviteEmail = inviteEmailFormat.safeParse(prospect.prospectEmail);
-  // Decision H1: a valid address found only in the legacy contact column may
-  // receive an invite, but it is never an identity signal for selecting or
-  // linking an existing account. CB01 still requires acceptance before a
-  // CoachClient row can be created.
-  const identityEmail = dedicatedEmail.success ? dedicatedEmail.data : null;
-  const email = identityEmail ?? (legacyInviteEmail.success ? legacyInviteEmail.data : null);
-  const coachName =
-    [coach.coachFirstName, coach.coachLastName].filter(Boolean).join(" ") || "Your coach";
-  const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+  void coachNote; // reserved — unused today, matching pre-existing behaviour.
 
-  if (!email) {
-    // No verifiable email to invite — coach-supplied phone digits alone
-    // are not enough to identify or contact anyone. The pipeline lead
-    // stays ACTIVE; the coach must collect an email before a client
-    // relationship can be established.
+  type Outcome =
+    | { kind: "linked"; clientId: string; email: string }
+    | { kind: "invite"; invite: ClientInvite; email: string }
+    | { kind: "no_email" };
+
+  const outcome: Outcome = await db.$transaction(async (tx) => {
+    // Same lock order and same row as activateLead: serialises against a
+    // concurrent activation or another non-activating invite writer, which
+    // is what used to race into a P2002 on ClientInvite.requestId.
+    await tx.$queryRaw`SELECT "id" FROM "CoachingRequest" WHERE "id" = ${requestId} FOR UPDATE`;
+    const coachUser = await tx.user.findUniqueOrThrow({
+      where: { id: coach.coachId },
+      select: { email: true },
+    });
+
+    const lead: LeadIdentity = {
+      id: requestId,
+      prospectName: prospect.prospectName,
+      prospectId: prospect.prospectId ?? null,
+      prospectEmail: prospect.prospectEmail,
+      prospectEmailAddr: prospect.prospectEmailAddr,
+      prospectPhone: prospect.prospectPhone,
+    };
+
+    const established = await establishRelationshipOrInvite(tx, lead, {
+      coachId: coach.coachId,
+      coachEmail: coachUser.email,
+    });
+
+    if (established.kind === "roster") {
+      const clientUser = await tx.user.findUniqueOrThrow({
+        where: { id: established.clientId },
+        select: { email: true },
+      });
+      await tx.coachingRequest.update({
+        where: { id: requestId },
+        data: { prospectId: established.clientId },
+      });
+      return { kind: "linked", clientId: established.clientId, email: clientUser.email };
+    }
+    if (established.kind === "no_email") {
+      return { kind: "no_email" };
+    }
+    if (established.kind === "invite") {
+      return { kind: "invite", invite: established.invite, email: established.invite.email };
+    }
+    // established.kind === "self_addressed" — T-973 is not fixed by this
+    // ticket. activateLead treats this as a refusal because I1 needs a
+    // REDEEMABLE invite; this non-activating caller has no such invariant to
+    // protect, so it preserves today's behaviour and still issues the
+    // invite (acceptClientInviteForUser refuses a self-addressed acceptance
+    // permanently regardless).
+    const { invite } = await ensureInviteForRequest(tx, {
+      requestId,
+      coachId: coach.coachId,
+      email: established.email,
+      prospectName: prospect.prospectName,
+    });
+    return { kind: "invite", invite, email: established.email };
+  });
+
+  if (outcome.kind === "linked") {
+    return {
+      linked: true,
+      clientId: outcome.clientId,
+      email: outcome.email,
+      alreadyConnected: true,
+    };
+  }
+  if (outcome.kind === "no_email") {
     return { linked: false, inviteToken: null, email: null, noEmailOnFile: true };
   }
 
-  // Idempotency only: if this coach and this verified email are already
-  // connected via a real, previously-accepted relationship, report that
-  // rather than re-inviting. This performs no authorization decision by
-  // itself — it only short-circuits re-sending an invite that would be
-  // immediately redundant.
-  const existingUser = identityEmail
-    ? await db.user.findUnique({
-        where: { email: identityEmail },
-        select: { id: true, email: true },
-      })
-    : null;
-  if (existingUser) {
-    const existingConn = await db.coachClient.findUnique({
-      where: { coachId_clientId: { coachId: coach.coachId, clientId: existingUser.id } },
-    });
-    if (existingConn) {
-      await db.coachingRequest
-        .update({ where: { id: requestId }, data: { prospectId: existingUser.id } })
-        .catch(() => {});
-      return {
-        linked: true,
-        clientId: existingUser.id,
-        email: existingUser.email,
-        alreadyConnected: true,
-      };
-    }
-  }
-
-  // Reuse an existing pending invite for this request rather than creating
-  // a duplicate (requestId is unique on ClientInvite).
-  let invite = await db.clientInvite.findUnique({ where: { requestId } });
-  if (invite && invite.status !== "PENDING") invite = null; // superseded — issue a fresh one below
-  if (!invite) {
-    invite = await db.clientInvite.create({
-      data: {
-        coachId: coach.coachId,
-        email,
-        name: prospect.prospectName,
-        requestId,
-        expiresAt: sevenDaysFromNow(),
-      },
-    });
-  }
-
+  // outcome.kind === "invite" — send the email after commit, exactly as
+  // before: its failure must never block the invite row that already
+  // exists from mattering.
   try {
     const { clientActivatedInviteEmail } = await import("@/lib/email/templates");
-    const inviteUrl = `${appUrl}/invite/${invite.inviteToken}`;
+    const coachName =
+      [coach.coachFirstName, coach.coachLastName].filter(Boolean).join(" ") || "Your coach";
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+    const inviteUrl = `${appUrl}/invite/${outcome.invite.inviteToken}`;
     const emailContent = clientActivatedInviteEmail(prospect.prospectName, coachName, inviteUrl);
-    await sendEmail({ to: email, ...emailContent });
+    await sendEmail({ to: outcome.email, ...emailContent });
   } catch {
     /* email failure must never block activation — the invite row is what matters */
   }
 
-  return { linked: false, inviteToken: invite.inviteToken, email };
-}
-
-function sevenDaysFromNow(): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return d;
+  return { linked: false, inviteToken: outcome.invite.inviteToken, email: outcome.email };
 }
 
 // ── Core helper: accept an invitation ─────────────────────────────────────────
@@ -162,6 +190,17 @@ export async function acceptClientInviteForUser(
     // Shared serialization point with managed AI commands and deactivation.
     // Never authorize from the invite or user snapshots passed by a caller.
     await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${user.id} FOR UPDATE`;
+    // T-978 funnel-wide lock order: User → CoachingRequest → ClientInvite.
+    // Activation locks CoachingRequest then writes ClientInvite; without
+    // this line this function locks User then ClientInvite and only later
+    // writes CoachingRequest — a genuine deadlock cycle. `invite.requestId`
+    // is the caller's snapshot and is used ONLY to choose which row to lock;
+    // authority still comes from the re-read below, and no code path ever
+    // updates ClientInvite.requestId, so a stale snapshot cannot select the
+    // wrong row.
+    if (invite.requestId) {
+      await tx.$queryRaw`SELECT "id" FROM "CoachingRequest" WHERE "id" = ${invite.requestId} FOR UPDATE`;
+    }
     const owner = await tx.user.findUnique({
       where: { id: user.id },
       select: { email: true, isDeactivated: true, isClient: true },
@@ -302,15 +341,19 @@ export async function enrollInAiCoaching(clientId: string): Promise<EnrollInAiCo
 /**
  * Determines the activation result type given the link outcome.
  * Used by callers to construct appropriate response messages.
+ *
+ * T-978: a `LinkResult -> ActivationOutcome/ActivationRefusal` adapter over
+ * `lib/leads/activate-lead.ts#getActivationMessage`, so one sentence table
+ * exists for both this function's three branches and activateLead's nine.
  */
 export function getActivationMessage(prospectName: string, result: LinkResult): string {
   if (result.linked) {
-    return `${prospectName} is already connected to your roster.`;
+    return getLeadActivationMessage(prospectName, "already_on_roster");
   }
   if ("noEmailOnFile" in result && result.noEmailOnFile) {
-    return `${prospectName} needs an email on file before they can be activated — nothing was sent.`;
+    return getLeadActivationMessage(prospectName, "no_email_on_file");
   }
-  return `An invite has been sent to ${prospectName}. They'll appear on your roster once they accept it.`;
+  return getLeadActivationMessage(prospectName, "invite_emailed", { email: result.email });
 }
 
 /**

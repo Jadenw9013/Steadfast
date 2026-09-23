@@ -75,7 +75,18 @@ export function ReviewSession({
     const [saveState, setSaveState] = useState<SaveState>("idle");
     const [error, setError] = useState<string | null>(null);
     const [activateStep, setActivateStep] = useState<"idle" | "confirm" | "success" | "error">("idle");
-    const [activateResult, setActivateResult] = useState<{ path?: string; email?: string; clientId?: string } | null>(null);
+    // T-978: activateClient's return shape. onRoster/clientId/outcome replace
+    // the old path union ("existing_account" | "invite_sent"), which no
+    // longer exists. A second reader of the pre-T-978 shape the frozen spec's
+    // file list did not name (lead-actions.tsx was the only one listed) —
+    // fixed identically here so this screen does not silently stop showing
+    // the dashboard link / invite-sent line for every successful activation.
+    const [activateResult, setActivateResult] = useState<{
+        outcome?: string;
+        onRoster?: boolean;
+        clientId?: string | null;
+        email?: string | null;
+    } | null>(null);
     const [missingFields, setMissingFields] = useState<{ questionId: string; label: string; sectionTitle: string }[]>([]);
     const [highlightedField, setHighlightedField] = useState<string | null>(null);
     const [editingField, setEditingField] = useState<string | null>(null);
@@ -172,7 +183,7 @@ export function ReviewSession({
             try {
                 const res = await activateClient({ requestId });
                 if (res.success) {
-                    setActivateResult(res as { path?: string; email?: string; clientId?: string });
+                    setActivateResult(res);
                     setActivateStep("success");
                     router.refresh();
                 } else {
@@ -235,12 +246,12 @@ export function ReviewSession({
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                     {prospectName} is now an active client!
                 </p>
-                {activateResult.path === "existing_account" && activateResult.clientId && (
+                {activateResult.onRoster && activateResult.clientId && (
                     <Link href={`/coach/clients/${activateResult.clientId}`} className="block text-sm text-blue-400 hover:underline">
                         View {prospectName}&apos;s dashboard →
                     </Link>
                 )}
-                {activateResult.path === "invite_sent" && activateResult.email && (
+                {(activateResult.outcome === "invite_emailed" || activateResult.outcome === "invite_created_email_failed") && activateResult.email && (
                     <p className="text-sm text-zinc-400">
                         Invite sent to <strong className="text-zinc-200">{activateResult.email}</strong> — they&apos;ll appear on your dashboard once they sign up.
                     </p>
