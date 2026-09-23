@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { sendEmail } from "@/lib/email/sendEmail";
 import type { ClientInvite, Prisma } from "@/app/generated/prisma/client";
+import { resolveEmailCandidate } from "@/lib/leads/resolve-invite-recipient";
 
 /**
  * T-978 — the single activation service.
@@ -134,15 +135,17 @@ const inviteEmailFormat = z.string().trim().toLowerCase().email().max(100);
  * column may still receive an invite, but — see the separate, dedicated-only
  * lookup below — never identifies an account). T-980 replaces this body with
  * T-961's `resolveProspectEmail`. T-978 changes no resolution rule.
+ *
+ * Delegates to `lib/leads/resolve-invite-recipient.ts#resolveEmailCandidate`
+ * — the one implementation of this rule, also imported by the web bypass
+ * confirm dialog so it can gate itself on the same answer this function
+ * commits inside the transaction (T-978 review round 1, gap 1).
  */
 async function resolveInviteRecipient(
   _tx: Prisma.TransactionClient,
   lead: Pick<LeadIdentity, "prospectEmailAddr" | "prospectEmail">
 ): Promise<string | null> {
-  const dedicated = inviteEmailFormat.safeParse(lead.prospectEmailAddr);
-  if (dedicated.success) return dedicated.data;
-  const legacy = inviteEmailFormat.safeParse(lead.prospectEmail);
-  return legacy.success ? legacy.data : null;
+  return resolveEmailCandidate(lead.prospectEmailAddr, lead.prospectEmail);
 }
 
 /** cuid-shaped, matching app/actions/coaching-requests.ts:101. @default(cuid()) only fires on insert. */

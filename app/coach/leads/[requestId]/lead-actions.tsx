@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { markContacted, scheduleConsultation, bypassPipelineAndActivate, activateClient, goBackStage, declineRequest } from "@/app/actions/coaching-requests";
 import { sendIntakePacket, sendFormsForSignature } from "@/app/actions/intake";
+import { resolveEmailCandidate } from "@/lib/leads/resolve-invite-recipient";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -15,6 +16,12 @@ type LeadActionsProps = {
     consultationDate: string | null;
     formsSignedAt: string | null;
     prospectEmailAddr: string | null;
+    /** Legacy contact column (usually a phone number). Combined with
+     *  prospectEmailAddr through the same resolveEmailCandidate rule the
+     *  backend uses, so the bypass confirm dialog can tell, before
+     *  submitting, whether activation will have anywhere to send an invite
+     *  (T-978 review round 1, gap 1). */
+    prospectEmail: string;
     existingMeeting?: { meetingLink: string | null; scheduledTime: string | null; notes: string | null } | null;
     activeDocuments?: { id: string; title: string; type: string }[];
     intakePacketSentAt?: string | null;
@@ -48,7 +55,7 @@ function stageName(stage: string): string {
 
 export function LeadActions({
     requestId, status, prospectId, prospectName, consultationStage,
-    consultationDate, formsSignedAt, prospectEmailAddr, existingMeeting,
+    consultationDate, formsSignedAt, prospectEmailAddr, prospectEmail, existingMeeting,
     activeDocuments, intakePacketSentAt, coachNotes,
 }: LeadActionsProps) {
     const [pending, startTransition] = useTransition();
@@ -93,8 +100,14 @@ export function LeadActions({
         startTransition(async () => {
             try {
                 const result = await action();
-                if (onSuccess) setSuccessMsg(onSuccess);
-                // Handle result.message for bypass
+                // T-978 review round 1, BLOCKER: this used to set the success banner
+                // unconditionally before checking result.success, and the failure
+                // branch below never cleared it — a refusal (e.g. no email on file)
+                // rendered the green "Client activated." banner AND the red error at
+                // the same time. Only set it once we know the call actually
+                // succeeded, or (for actions that return no result shape at all,
+                // e.g. the mark-contacted + send-intake pair below) fall through to
+                // the plain onSuccess text.
                 if (result && typeof result === "object" && "success" in result) {
                     const r = result as { success: boolean; message?: string };
                     if (r.success) {
@@ -103,6 +116,8 @@ export function LeadActions({
                         setError(r.message ?? "Something went wrong.");
                         return;
                     }
+                } else if (onSuccess) {
+                    setSuccessMsg(onSuccess);
                 }
                 router.refresh();
             } catch (e) {
@@ -117,6 +132,10 @@ export function LeadActions({
     const isDeclined = stage === "DECLINED" || status === "DECLINED" || status === "REJECTED";
     // Bypass is available from any non-terminal stage — the whole point is to skip remaining steps
     const bypassEligible = !isActive && !isDeclined;
+    // T-978 review round 1, gap 1: the same rule activateLead applies inside
+    // the transaction, so the confirm dialog cannot promise an activation
+    // the backend is about to refuse.
+    const hasResolvableAddress = resolveEmailCandidate(prospectEmailAddr, prospectEmail) !== null;
 
     return (
         <div className="space-y-4">
@@ -339,12 +358,22 @@ export function LeadActions({
                         </button>
                     ) : (
                         <div className="space-y-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-4">
-                            <p className="text-sm text-amber-300">
-                                Are you sure? This will skip intake forms and add <strong>{prospectName}</strong> directly to your active client roster.
-                            </p>
+                            {hasResolvableAddress ? (
+                                <p className="text-sm text-amber-300">
+                                    Are you sure? This will skip intake forms and add <strong>{prospectName}</strong> directly to your active client roster.
+                                </p>
+                            ) : (
+                                // T-978 review round 1, gap 1: the backend refuses activation
+                                // with no email on file (no_email_on_file). Say so here instead
+                                // of promising the action will work.
+                                <p className="text-sm text-amber-300">
+                                    <strong>{prospectName}</strong> has no email address on file, so nothing can be
+                                    sent and activation will be refused. Add an email on this lead, then activate.
+                                </p>
+                            )}
                             <div className="flex gap-2">
                                 <button
-                                    disabled={pending}
+                                    disabled={pending || !hasResolvableAddress}
                                     onClick={() => {
                                         run(() => bypassPipelineAndActivate({ requestId }), "Client activated.");
                                         setConfirmBypass(false);
@@ -429,6 +458,7 @@ function ActivateButton({ requestId, prospectName, prospectEmailAddr, formsSigne
         onRoster?: boolean;
         clientId?: string | null;
         email?: string | null;
+        message?: string;
     } | null>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const router = useRouter();
@@ -465,10 +495,12 @@ function ActivateButton({ requestId, prospectName, prospectEmailAddr, formsSigne
                         View {prospectName}&apos;s dashboard →
                     </Link>
                 )}
-                {(result.outcome === "invite_emailed" || result.outcome === "invite_created_email_failed") && result.email && (
-                    <p className="text-sm text-zinc-400">
-                        Invite sent to <strong className="text-zinc-200">{result.email}</strong> — they&apos;ll appear once they sign up.
-                    </p>
+                {(result.outcome === "invite_emailed" || result.outcome === "invite_created_email_failed") && result.message && (
+                    // T-978 review round 1, parity gap 3: this used to be a hard-coded
+                    // "Invite sent to X" regardless of outcome, so a post-commit email
+                    // failure was reported as a success. Render the service's own
+                    // message, which distinguishes the two.
+                    <p className="text-sm text-zinc-400">{result.message}</p>
                 )}
                 <Link href="/coach/leads" className="block text-sm text-zinc-400 hover:text-zinc-200">← Back to all leads</Link>
             </div>

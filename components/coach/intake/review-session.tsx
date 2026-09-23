@@ -86,6 +86,7 @@ export function ReviewSession({
         onRoster?: boolean;
         clientId?: string | null;
         email?: string | null;
+        message?: string;
     } | null>(null);
     const [missingFields, setMissingFields] = useState<{ questionId: string; label: string; sectionTitle: string }[]>([]);
     const [highlightedField, setHighlightedField] = useState<string | null>(null);
@@ -251,10 +252,12 @@ export function ReviewSession({
                         View {prospectName}&apos;s dashboard →
                     </Link>
                 )}
-                {(activateResult.outcome === "invite_emailed" || activateResult.outcome === "invite_created_email_failed") && activateResult.email && (
-                    <p className="text-sm text-zinc-400">
-                        Invite sent to <strong className="text-zinc-200">{activateResult.email}</strong> — they&apos;ll appear on your dashboard once they sign up.
-                    </p>
+                {(activateResult.outcome === "invite_emailed" || activateResult.outcome === "invite_created_email_failed") && activateResult.message && (
+                    // T-978 review round 1, parity gap 3: this used to be a hard-coded
+                    // "Invite sent to X" regardless of outcome, so a post-commit email
+                    // failure was reported as a success. Render the service's own
+                    // message, which distinguishes the two.
+                    <p className="text-sm text-zinc-400">{activateResult.message}</p>
                 )}
                 <Link href="/coach/leads" className="block text-sm text-zinc-500 hover:text-zinc-300">
                     ← Back to all leads
