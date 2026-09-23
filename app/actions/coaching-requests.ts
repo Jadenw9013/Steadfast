@@ -17,19 +17,12 @@ import {
     activateLead,
     getActivationMessage,
     COACH_SETTABLE_STAGES,
+    ACTIVATE_NOT_FOUND_ERROR,
     type ActivateLeadResult,
     type ActivationOutcome,
     type ActivationRefusal,
     type CoachSettableStage,
 } from "@/lib/leads/activate-lead";
-
-/** The exact string activateClient throws for a not-found/wrong-owner lead
- *  (pre-existing behaviour, preserved by T-978). Exported so
- *  activate/route.ts matches it by reference rather than duplicating the
- *  literal — a rename here is then a compile-visible change on both sides,
- *  not two independent strings that happen to agree (T-978 review round 1,
- *  CR-3). */
-export const ACTIVATE_NOT_FOUND_ERROR = "Request not found";
 
 type ActivateActionResult =
     | {

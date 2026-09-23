@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
-import { activateClient, ACTIVATE_NOT_FOUND_ERROR } from "@/app/actions/coaching-requests";
+import { activateClient } from "@/app/actions/coaching-requests";
+import { ACTIVATE_NOT_FOUND_ERROR } from "@/lib/leads/activate-lead";
 
 type Params = { params: Promise<{ leadId: string }> };
 

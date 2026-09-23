@@ -73,6 +73,22 @@ export type ActivationRefusal =
   | "self_addressed" // the resolved address is the coach's own; the invite could never be redeemed
   | "failed"; // the transaction rolled back (DB error, deadlock loser)
 
+/** The exact string activateClient throws for a not-found/wrong-owner lead
+ *  (pre-existing behaviour, preserved by T-978). Exported so
+ *  activate/route.ts matches it by reference rather than duplicating the
+ *  literal — a rename here is then a compile-visible change on both sides,
+ *  not two independent strings that happen to agree (T-978 review round 1,
+ *  CR-3).
+ *
+ *  Lives here rather than in app/actions/coaching-requests.ts (T-978 QA
+ *  fix): that file carries `"use server"`, and Next.js/Turbopack only
+ *  permits async-function exports from a `"use server"` module — a plain
+ *  `export const` there fails the production build with the whole module
+ *  reading as having no exports at all. This file has no such directive,
+ *  so it's the correct home for a non-function constant both a Server
+ *  Action and a route need. */
+export const ACTIVATE_NOT_FOUND_ERROR = "Request not found";
+
 export interface ActivateLeadInput {
   requestId: string;
   /** The signed-in coach's User.id. Authority. Never taken from a request body. */
