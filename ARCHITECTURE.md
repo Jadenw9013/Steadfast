@@ -582,6 +582,34 @@ only writer of that value anywhere in the repo; a static guard
 | `Message` | Coach↔Client DM messages (keyed by clientId + weekOf) |
 | `AccountDeletionRequest` | GDPR-compliant deletion with 30-day grace period |
 
+### AI Coach — live-launch and governance (T-989)
+
+27 models across 7 migrations (`20260921000000`…`20260922010000`), all behind
+`lib/flags/ai-coach.ts` (`FEATURE_AI_COACH_ENROLLMENT/GENERATION/PUBLICATION`,
+default OFF) **and** a governed `AiCoachLiveActivation` row — both gates must
+be true for any surface to be reachable in production. No route can activate
+a release; only `pnpm ai-coach:activate` under a signed governance grant can.
+`docs/ai-coach/04-Architecture-and-Data.md` and
+`docs/ai-coach/14-Handoff-Status.md` are the authoritative, kept-current
+source for the full model list; the groups are:
+
+| Group | Models | Purpose |
+|---|---|---|
+| Intake, profile, safety | `AiIntakeDraft`, `AiCoachProfile`, `AiCoachEntitlement`, `AiSafetyDisclosureEvent`, `AiNutritionSafetyDecision` | Client-facing AI Coach identity and the pre-generation safety gate |
+| Autonomy gate & provider boundary | `AiAutonomyGateDecision`, `AiProviderBoundaryAudit`, `AiAutomaticPlanApproval` | The fixed-order gate that must approve a candidate plan automatically before it can activate, and the audit of the constrained-provider call that fed it |
+| Plans, sessions, review | `AiPlanVersion`, `AiPlanReviewerApproval`, `AiCoachReviewerGrant`, `AiPlanAcceptanceReceipt`, `AiPlanAcceptanceOutbox`, `AiAdjustmentSlot`, `AiWorkoutSession`, `AiCoachRun`, `AiPlanActivationAttempt` | Plan lifecycle, human-reviewer grants, and idempotent acceptance |
+| Provider transition | `AiCoachProviderTransitionReceipt`, `ClientCoachingContext` (mode/origin, not new) | Immutable record of a client's HUMAN↔AI provider switch |
+| Reviewed artifacts | `AiCoachArtifactVersion`, `AiCoachArtifactLifecycleEvent` | Versioned, append-only policy/catalog artifacts and their publish/revoke history |
+| Live-launch governance | `AiCoachLiveLaunchPacket`, `AiCoachLiveLaunchLifecycleEvent`, `AiCoachGovernanceGrant`, `AiCoachOperationalControl`, `AiCoachOperationalEvent` | The approval packet for a release and the kill-switch/grant infrastructure that gates it |
+| Live activation | `AiCoachLiveActivation`, `AiCoachLiveActivationEvent` | The single server-selected active release (partial-unique "only one ACTIVE row") and its append-only activate/deactivate history |
+
+Every model above with a `User` foreign key has a purge line in
+`lib/account-deletion/purge.ts` and a case in
+`tests/integration/account-deletion.test.ts`.
+`AiCoachOperationalControl` is global control state (one row per
+`AiCoachOperationalScope`), not user data — it has no purge line by design
+(see the schema comment on `updatedByGrantId`).
+
 ---
 
 ## API Surface (REST — iOS & external consumption)
@@ -639,6 +667,23 @@ only writer of that value anywhere in the repo; a static guard
 | GET/POST/PUT/DELETE | `/api/coach/templates/*` | Template CRUD |
 | POST | `/api/coach/templates/[id]/apply` | Apply template to client |
 | GET/POST | `/api/coach/documents/*` | Document library CRUD |
+
+### AI Coach (`/api/client/ai-coach/`, `/api/ops/ai-coach/`, `/ai-coach`)
+
+Behind `lib/flags/ai-coach.ts` and, for the public discovery surface, also
+the governed `AiCoachLiveActivation` row (see the AI Coach data-model section
+above). The full route inventory lives in `docs/ai-coach/`; two of the
+routes this ticket's fold adds:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/client/ai-coach/plans/[id]/finalize` | Finalizes the client's current AI-generated plan version, via `lib/ai-coach/finalization.ts` |
+| GET/POST | `/api/ops/ai-coach/governance` | Governance-grant-gated kill-switch and reviewed-artifact publish/revoke operations, via `lib/ai-coach/operations.ts` and `lib/ai-coach/artifacts/repository.ts` — no route can activate a live release (see the data-model section above) |
+
+`/ai-coach` (`app/ai-coach/page.tsx`, added to `proxy.ts`'s public routes) is
+the public, unauthenticated discovery page — `notFound()` unless both gates
+above are satisfied. The `/coaches` directory also renders a promo aside
+under the same two-gate condition (`lib/ai-coach/discovery.ts`).
 
 ### Shared & Public
 
