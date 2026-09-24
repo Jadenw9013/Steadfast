@@ -11,6 +11,7 @@ export const PUBLIC_ROUTE_PATTERNS = [
   "/about",
   "/coaches",
   "/coaches/:slug",
+  "/ai-coach",
   "/api/webhooks(.*)",
   "/api/cron(.*)",
   "/api/public(.*)",

@@ -8,14 +8,14 @@
 
 `AiCoachProfile(clientId UNIQUE)` contains confirmed intake/preferences, `profileRevision`, `observationRevision`, `safetyRevision`, fixed review timezone/schedule and `activePlanVersionId`. Use an allowlisted, versioned intake schema; raw form JSON is not a clinical profile.
 
-| Field | Meaning and invalidation rule |
-|---|---|
-| `contextRevision` | Increments on authority changes. Any mismatch invalidates a pending activation. |
-| `profileRevision` | Confirmed intake, goal or relevant preference changes. A new allergy cannot remain only in a pending draft. |
-| `observationRevision` | Correction/invalidation epoch for edited, deleted or late evidence affecting the frozen review. Ordinary new logs after the snapshot cutoff do not increment it solely because they exist. |
-| `safetyRevision` | Current reviewed safety assessment and per-domain permissions. Relevant new concerns immediately invalidate affected availability and proposals. |
-| `sourceRefs[]` | Exact source ID/revision, source kind, unit, observation time and reporting completeness for evidence actually used. Corrections/deletions must be detectable at acceptance even if an aggregate epoch is accidentally unchanged. |
-| `inputSnapshotHash` | Hash of minimized immutable input, source references, lookback, policy and catalog versions. A hash does not replace retaining enough authorized evidence to reproduce the decision. |
+| Field                 | Meaning and invalidation rule                                                                                                                                                                                                     |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `contextRevision`     | Increments on authority changes. Any mismatch invalidates a pending activation.                                                                                                                                                   |
+| `profileRevision`     | Confirmed intake, goal or relevant preference changes. A new allergy cannot remain only in a pending draft.                                                                                                                       |
+| `observationRevision` | Correction/invalidation epoch for edited, deleted or late evidence affecting the frozen review. Ordinary new logs after the snapshot cutoff do not increment it solely because they exist.                                        |
+| `safetyRevision`      | Current reviewed safety assessment and per-domain permissions. Relevant new concerns immediately invalidate affected availability and proposals.                                                                                  |
+| `sourceRefs[]`        | Exact source ID/revision, source kind, unit, observation time and reporting completeness for evidence actually used. Corrections/deletions must be detectable at acceptance even if an aggregate epoch is accidentally unchanged. |
+| `inputSnapshotHash`   | Hash of minimized immutable input, source references, lookback, policy and catalog versions. A hash does not replace retaining enough authorized evidence to reproduce the decision.                                              |
 
 Do not reinterpret a missing field as zero, a missing workout as a failure, a subjective rating as measured intake, or user-confirmed visual food estimation as weighed food. Known values can be incorrect; record their provenance and allow correction.
 
@@ -39,24 +39,24 @@ The approved policy separately limits cumulative changes across windows and doma
 ```ts
 type CoachingMode = "NONE" | "HUMAN" | "AI";
 type RunKind = "INITIAL" | "WEEKLY_REVIEW" | "REPRESENTATION";
-type RunStatus = "QUEUED" | "RUNNING" | "RETRY_WAIT" |
-  "COMPLETED" | "FAILED" | "CANCELED";
-type ReviewAction = "HOLD" | "SIMPLIFY" | "ADJUST" |
-  "CLARIFY" | "PAUSE_REFER";
-type ChangeClass = "INITIAL" | "ROUTINE" |
-  "TARGET_PRESERVING" | "PROTECTIVE";
-type PlanStatus = "PROPOSED" | "ACCEPTED" | "DECLINED" |
-  "SUPERSEDED" | "INVALIDATED";
-type ReviewerStatus = "NOT_REQUIRED" | "PENDING" |
-  "APPROVED" | "REJECTED";
-type SafetyDisposition = "CLEAR" | "CLARIFY" | "RESTRICTED" |
-  "REFER" | "URGENT";
+type RunStatus = "QUEUED" | "RUNNING" | "RETRY_WAIT" | "COMPLETED" | "FAILED" | "CANCELED";
+type ReviewAction = "HOLD" | "SIMPLIFY" | "ADJUST" | "CLARIFY" | "PAUSE_REFER";
+type ChangeClass = "INITIAL" | "ROUTINE" | "TARGET_PRESERVING" | "PROTECTIVE";
+type PlanStatus = "PROPOSED" | "ACCEPTED" | "DECLINED" | "SUPERSEDED" | "INVALIDATED";
+type AutonomyOutcome = "APPROVE_AUTOMATICALLY" | "HOLD" | "FOCUSED_CLARIFICATION" | "PAUSE_REFER";
+// ReviewerStatus remains an audit/exception workflow, never a universal runtime gate.
+type ReviewerStatus = "NOT_REQUIRED" | "PENDING" | "APPROVED" | "REJECTED";
+type SafetyDisposition = "CLEAR" | "CLARIFY" | "RESTRICTED" | "REFER" | "URGENT";
 type DomainPermission = "ALLOW" | "HOLD_ONLY" | "PAUSED";
-type ObservationStatus = "NOT_REPORTED" | "REPORTED_COMPLETE" |
-  "REPORTED_PARTIAL" | "REPORTED_NOT_DONE" | "NOT_SCHEDULED";
+type ObservationStatus =
+  | "NOT_REPORTED"
+  | "REPORTED_COMPLETE"
+  | "REPORTED_PARTIAL"
+  | "REPORTED_NOT_DONE"
+  | "NOT_SCHEDULED";
 ```
 
-Run success does not mean eligibility, reviewer approval or user acceptance. A validated HOLD result needs no new plan or acceptance click. Material planned changes, including SIMPLIFY that alters the prescription, are ROUTINE. A presentation change or prevalidated equivalent food swap is TARGET_PRESERVING only when numerical and relevant safety constraints truly remain satisfied. PROTECTIVE is assigned by reviewed deterministic policy and cannot intensify restriction or exertion. Safety restrictions take effect immediately; a newly composed material replacement still follows the applicable validation/reviewer/acceptance requirements.
+Run success does not mean eligibility, deterministic autonomy approval or user acceptance. A validated HOLD result needs no new plan or acceptance click. Material planned changes, including SIMPLIFY that alters the prescription, are ROUTINE. A presentation change or prevalidated equivalent food swap is TARGET_PRESERVING only when numerical and relevant safety constraints truly remain satisfied. PROTECTIVE is assigned by reviewed deterministic policy and cannot intensify restriction or exertion. Safety restrictions take effect immediately; a newly composed material replacement follows the applicable validation/autonomy/acceptance requirements.
 
 Run transitions: QUEUED→RUNNING on a valid claim; RUNNING→QUEUED only after a persisted stage checkpoint; RUNNING→COMPLETED on a validated final result; RUNNING→RETRY_WAIT for a retryable failure within budget; RETRY_WAIT→RUNNING when due; RUNNING/RETRY_WAIT→FAILED after terminal error or exhausted budget. Reconciliation moves expired RUNNING leases to RETRY_WAIT or FAILED with fencing. Any nonterminal run can become CANCELED after authority/safety invalidation. Terminal rows are never reopened. A manual retry after terminal failure requires a server-authorized, audited retry generation and remaining client-period budget; it creates a linked new run, never a client-chosen random business-key escape. Retry-generation counters do not reset adjustment slots, clinical limits or spending counters.
 
@@ -95,7 +95,7 @@ Implement nested definitions with bounded arrays, finite numeric ranges, explici
 - Cardio: typed modality, duration, frequency, reviewed intensity description and allowed progression. No `__CARDIO__` sentinel.
 - Session results: unique session instance/client event ID, plan version, exercise ID, actual set index, reps, load value/unit and load kind (`EXTERNAL`, `BODYWEIGHT`, `ASSISTED`), timestamps and pain/effort fields. Zero external load is valid for bodyweight; missing is different. A second workout in the same week does not overwrite the first.
 
-`AiPlanVersion` stores immutable payload/hash, owner, base version, all relevant revisions, activation window, change class, validation report and lifecycle. `acceptedAt` never resets. Corrections create a new version. Approved reviewer decisions bind to the exact payload hash, policy and evidence revisions; a modified candidate needs a new decision. Reviewer authorization is an explicit capability grant with appropriate verified qualifications and scope, never simply `isCoach`.
+`AiPlanVersion` stores immutable payload/hash, owner, base version, all relevant revisions, activation window, change class, validation report and lifecycle. The validation report includes the policy/catalog/evidence-registry versions, deterministic gate inputs, reason codes and `AutonomyOutcome`; `acceptedAt` never resets. Corrections create a new version. Any optional reviewer decision binds to the exact payload hash, policy and evidence revisions; a modified candidate needs a new decision. Reviewer authorization is an explicit capability grant with appropriate verified qualifications and scope, never simply `isCoach`.
 
 ## Shared read contract
 
@@ -107,21 +107,21 @@ Active, proposed and historical material are clearly distinguishable. A paused d
 
 Web actions in `app/actions/` and API route handlers call the same services in proposed `lib/ai-coach/` and `lib/coaching/`. Reuse existing APIs through adapters where practical; retain native compatibility and version responses. New paths below are proposals, not existing routes.
 
-| Endpoint | Contract |
-|---|---|
-| `GET /api/client/coaching-context` | Current provider, allowed capabilities, resolution requirement and revisions. |
-| `POST /api/client/ai-coach/enroll` | Confirmed intake revision, explicit consent receipt and expected context revision; establishes entitlement-checked AI context. |
-| `PUT /api/client/ai-coach/intake` | Versioned structured input and expected profile revision; drafts separate from confirmed values; safety disclosures applied immediately. |
-| `POST /api/client/ai-coach/runs` | Requested run kind and client idempotency key; server derives window, owner and applicable source snapshot. Returns 202 after durable persistence. |
-| `GET /api/client/ai-coach/runs/[runId]` | Owner-scoped status, safe error, poll delay and permitted result reference. |
-| `GET /api/client/plan/current` | `ClientPlanViewV1`; existing meal/training current endpoints become compatible projections of the same reader. |
-| `POST /api/client/ai-coach/check-ins` | Shared structured check-in command, explicit completeness, source revisions and idempotency; does not require a fabricated human assignment. |
-| `POST /api/client/ai-coach/sessions` | Versioned session event/upsert with expected event revision. |
-| `POST /api/client/ai-coach/plans/[id]/accept` | Expected base version, current revisions and request key; server verifies all values against stored truth. |
-| `POST /api/client/ai-coach/plans/[id]/decline` | Idempotent decline of owned proposal, optional bounded reason. |
-| `POST /api/client/coaching-transition` | Explicit destination, scoped consent/token and expected context revision; one shared transition service. |
-| `POST /api/ops/ai-coach/plans/[id]/review` | Restricted reviewer capability; hash-bound decision and structured rationale. Require authenticated same-origin/CSRF protection for cookie-based mutation. |
-| `GET /api/cron/ai-coach` | Machine-authenticated bounded sweep; no client identity from query parameters. |
+| Endpoint                                       | Contract                                                                                                                                                   |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/client/coaching-context`             | Current provider, allowed capabilities, resolution requirement and revisions.                                                                              |
+| `POST /api/client/ai-coach/enroll`             | Confirmed intake revision, explicit consent receipt and expected context revision; establishes entitlement-checked AI context.                             |
+| `PUT /api/client/ai-coach/intake`              | Versioned structured input and expected profile revision; drafts separate from confirmed values; safety disclosures applied immediately.                   |
+| `POST /api/client/ai-coach/runs`               | Requested run kind and client idempotency key; server derives window, owner and applicable source snapshot. Returns 202 after durable persistence.         |
+| `GET /api/client/ai-coach/runs/[runId]`        | Owner-scoped status, safe error, poll delay and permitted result reference.                                                                                |
+| `GET /api/client/plan/current`                 | `ClientPlanViewV1`; existing meal/training current endpoints become compatible projections of the same reader.                                             |
+| `POST /api/client/ai-coach/check-ins`          | Shared structured check-in command, explicit completeness, source revisions and idempotency; does not require a fabricated human assignment.               |
+| `POST /api/client/ai-coach/sessions`           | Versioned session event/upsert with expected event revision.                                                                                               |
+| `POST /api/client/ai-coach/plans/[id]/accept`  | Expected base version, current revisions and request key; server verifies all values against stored truth.                                                 |
+| `POST /api/client/ai-coach/plans/[id]/decline` | Idempotent decline of owned proposal, optional bounded reason.                                                                                             |
+| `POST /api/client/coaching-transition`         | Explicit destination, scoped consent/token and expected context revision; one shared transition service.                                                   |
+| `POST /api/ops/ai-coach/plans/[id]/review`     | Restricted reviewer capability; hash-bound decision and structured rationale. Require authenticated same-origin/CSRF protection for cookie-based mutation. |
+| `GET /api/cron/ai-coach`                       | Machine-authenticated bounded sweep; no client identity from query parameters.                                                                             |
 
 Use verified Clerk server identity, active-account checks, schema/body-size limits and rate limits. Never rely on a page layout to authorize an action/API. Cookie-authenticated mutations need same-origin/CSRF controls; bearer-native requests need verified tokens, not a public CORS wildcard with credentials. Implement against current official framework/auth documentation.
 
@@ -137,7 +137,7 @@ In one short transaction, always lock the persistent client User row first, then
 
 1. Verify active authenticated account, candidate ownership and authorized access to its receipt. If the operation/version was already accepted, return the permanent receipt and freshly resolved **current** active ID without changing state. Do this before stale-base/revision/window checks; valid retries remain valid after supersession or a permitted provider transition. History access does not grant new activation authority.
 2. For first acceptance, require candidate status `PROPOSED`, AI authority, unambiguous context, valid entitlement, publication flag and expected revisions. DECLINED, INVALIDATED and unaccepted SUPERSEDED candidates cannot activate.
-3. Recheck current policy availability, safety/domain permission, source correction/deletion status, validation and required exact-hash reviewer approval. Confirm exact base active version and non-expired activation window.
+3. Recheck current policy availability, catalog/evidence-registry compatibility, safety/domain permission, source correction/deletion status, validation and the persisted deterministic `APPROVE_AUTOMATICALLY` outcome. Confirm exact base active version and non-expired activation window. A reviewer approval may be required only by an explicit future exception policy, never by a default universal gate.
 4. For ROUTINE, insert the unique adjustment slot and verify cumulative policy bounds. No model or user can label a change exempt.
 5. Accept candidate, retain accepted timestamp, supersede the old active lifecycle, update active pointer and insert a deduplicated outbox event atomically.
 6. Commit before network notifications; revalidate web reads. Any failed condition leaves no partial plan, slot or notification.

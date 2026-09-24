@@ -9,6 +9,7 @@ import { SaveCoachButton } from "@/components/public/save-coach-button";
 import { getSavedCoachIds } from "@/lib/queries/saved-coaches";
 import { Suspense } from "react";
 import { TeamBadge } from "@/components/ui/TeamBadge";
+import { getAiCoachPublicDiscoveryOffer } from "@/lib/ai-coach/discovery";
 
 export const metadata: Metadata = {
     title: "Find a Coach | Steadfast",
@@ -122,6 +123,7 @@ function EmptyState({ params, hasFilters }: { params: { [key: string]: string | 
 
 export default async function CoachesDirectoryPage({ searchParams }: PageProps) {
     const params = await searchParams;
+    const aiCoachOffer = await getAiCoachPublicDiscoveryOffer();
 
     // Resolve zip code → city/state (server-side, cached 24h)
     let resolvedZip: { city: string; state: string; zip: string } | null = null;
@@ -278,6 +280,19 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                         <span className="text-xs text-zinc-500 uppercase tracking-wider">accepting now</span>
                     </div>
                 </div>
+
+                {aiCoachOffer && (
+                    <aside aria-labelledby="ai-coach-option-heading" className="mb-10 rounded-2xl border border-blue-500/25 bg-blue-950/20 p-5 sm:flex sm:items-center sm:justify-between sm:gap-6">
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-blue-400">{aiCoachOffer.serviceLabel}</p>
+                            <h2 id="ai-coach-option-heading" className="mt-2 text-xl font-semibold text-white">{aiCoachOffer.headline}</h2>
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-zinc-300">{aiCoachOffer.summary}</p>
+                        </div>
+                        <Link href="/ai-coach" className="mt-4 inline-flex min-h-12 shrink-0 items-center justify-center rounded-xl border border-blue-400/40 px-5 text-sm font-semibold text-blue-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 sm:mt-0">
+                            {aiCoachOffer.continueLabel}
+                        </Link>
+                    </aside>
+                )}
 
                 {/* ── Mobile Filters ── */}
                 <div className="lg:hidden mb-4">

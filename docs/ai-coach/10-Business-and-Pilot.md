@@ -14,12 +14,12 @@ The first supported audience must match reviewed population, food-content, langu
 
 These are current published capabilities checked September 13, 2026, not independent benchmarks or hands-on app findings.
 
-| Product | Published capability | Implication |
-|---|---|---|
-| Cal AI | Photo, barcode, and text food logging. | A meal camera alone is not differentiation. [Official site](https://www.calai.app/) |
-| Fitbod | Personalized strength workouts incorporating goals, equipment, progression, and recovery. | Workout generation and beginner guidance are established expectations. [Official site](https://fitbod.me/) |
-| MacroFactor Nutrition | Adaptive macro guidance and food logging, including photos. | Weekly nutrition adjustments already exist. [Official nutrition page](https://macrofactor.com/macrofactor/) |
-| MacroFactor Workouts | Structured programs, training logs, rule-based progression, and connection with its nutrition app. | Neither rules-based coaching nor a nutrition/workout ecosystem is unique. [Official workouts page](https://macrofactor.com/workouts/) |
+| Product               | Published capability                                                                               | Implication                                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Cal AI                | Photo, barcode, and text food logging.                                                             | A meal camera alone is not differentiation. [Official site](https://www.calai.app/)                                                   |
+| Fitbod                | Personalized strength workouts incorporating goals, equipment, progression, and recovery.          | Workout generation and beginner guidance are established expectations. [Official site](https://fitbod.me/)                            |
+| MacroFactor Nutrition | Adaptive macro guidance and food logging, including photos.                                        | Weekly nutrition adjustments already exist. [Official nutrition page](https://macrofactor.com/macrofactor/)                           |
+| MacroFactor Workouts  | Structured programs, training logs, rule-based progression, and connection with its nutrition app. | Neither rules-based coaching nor a nutrition/workout ecosystem is unique. [Official workouts page](https://macrofactor.com/workouts/) |
 
 Steadfast's differentiation hypothesis is beginner execution: affordable familiar meals, manageable preparation, understandable exercise instruction, coordinated weekly decisions, and user-controlled continuity into human coaching. Demonstrate these benefits through task completion and longitudinal use. Curated content, tested policies, reliable history, and consented outcome learning can become advantages; their existence alone does not establish a competitive moat.
 
@@ -39,7 +39,7 @@ Defer photo logging, wearables, general health chat, supplements, competition pr
 
 Begin with invited or sponsored access through server-owned AI entitlements. Existing code bills coaches through `CoachSubscription`; that is not an AI-client subscription. Paid client checkout is a later slice, **P01**, after feasibility learning and commercial terms are specified.
 
-**L01 requires actual qualified reviewers and operating capacity.** Review policy/catalog versions before use. During the supervised pilot, every initial numerical plan and proposed intensifying change needs qualified approval before participant visibility. Approval binds to the exact payload and relevant revisions. Sample holds/protective cases and handle flagged cases under the defined policy. Implement the reviewer queue in **A11**; a generic `isCoach` flag does not grant review authority.
+**L01 requires actual qualified policy governance and operating capacity.** Review and publish policy/catalog/evidence versions before use. During the bounded-autonomy pilot, deterministic server gates decide automatic approval, hold, focused clarification or pause/refer before participant visibility; any changed payload or relevant revision invalidates automatic approval. Sample all outcomes and handle flagged cases under the defined policy. Implement governance/audit operations in **A11**; a generic `isCoach` flag does not grant governance authority or override a failed gate.
 
 A possible feasibility cohort is 20–30 participants over eight weeks, subject to staffing. This is a planning example, not a statistically powered efficacy study. Set enrollment capacity from review workload:
 
@@ -47,17 +47,17 @@ A possible feasibility cohort is 20–30 participants over eight weeks, subject 
 
 Reserve capacity for flagged cases, revisions, support, and absence coverage. Pause enrollment when queues exceed the service's declared response window. Distinguish app support, protocol review, and individual clinical care. If appropriate care is not staffed, use the approved outside-referral pathway; do not imply someone is monitoring the case or automatically share it with marketplace coaches.
 
-Removing routine human review for broader self-service requires a separate evidence and release decision. It must not happen through an undocumented staffing cut.
+Expanding the bounded autonomous scope requires a separate evidence and release decision. It must not happen through an undocumented policy, staffing or guardrail change.
 
 ## Measurement and stop conditions
 
-| Question | Measure and denominator | Owner |
-|---|---|---|
-| Can beginners start? | Intake completion, plan acceptance, first useful action; report all invited and eligible starters separately. | Product lead |
-| Is the plan usable? | Observed task success, comprehension, burden, and reasons for abandonment. | UX/research lead |
-| Does review help? | Perceived feasibility, understanding of decisions, and completion of user-chosen actions among all enrolled and responding participants. | Product/evaluation leads |
-| Is guidance appropriate? | Adjudicated unsafe output, inappropriate refusal, distress/recovery concerns, and policy violations per reviewed recommendation and participant. | Qualified policy reviewer |
-| Can it operate? | Review delay, failed runs, support/review minutes, cost per participant-week, and cancellation friction. | Engineering/operations lead |
+| Question                 | Measure and denominator                                                                                                                          | Owner                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- |
+| Can beginners start?     | Intake completion, plan acceptance, first useful action; report all invited and eligible starters separately.                                    | Product lead                |
+| Is the plan usable?      | Observed task success, comprehension, burden, and reasons for abandonment.                                                                       | UX/research lead            |
+| Does review help?        | Perceived feasibility, understanding of decisions, and completion of user-chosen actions among all enrolled and responding participants.         | Product/evaluation leads    |
+| Is guidance appropriate? | Adjudicated unsafe output, inappropriate refusal, distress/recovery concerns, and policy violations per reviewed recommendation and participant. | Qualified policy reviewer   |
+| Can it operate?          | Review delay, failed runs, support/review minutes, cost per participant-week, and cancellation friction.                                         | Engineering/operations lead |
 
 Report missing responses and loss to follow-up; do not turn missing logs into nonadherence. Track safety separately from retention and goal outcomes. Compare the agent experience with a strong static starter plan and ordinary reminders before claiming added benefit.
 

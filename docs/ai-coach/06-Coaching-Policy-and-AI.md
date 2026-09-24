@@ -10,11 +10,11 @@ NIDDK limits its Body Weight Planner to adults outside pregnancy/breastfeeding; 
 
 Keep three decisions separate:
 
-| Layer | Contract | Purpose |
-|---|---|---|
-| Safety disposition | `CLEAR / CLARIFY / RESTRICTED / REFER / URGENT` | Determines the appropriate response and support pathway. |
-| Domain permission | Nutrition, strength and cardio: `ALLOW / HOLD_ONLY / PAUSED` | Determines which recommendations may remain actionable. |
-| Evidence sufficiency | Rule-specific required observations and reasons | Determines whether a particular change is justified. |
+| Layer                | Contract                                                     | Purpose                                                  |
+| -------------------- | ------------------------------------------------------------ | -------------------------------------------------------- |
+| Safety disposition   | `CLEAR / CLARIFY / RESTRICTED / REFER / URGENT`              | Determines the appropriate response and support pathway. |
+| Domain permission    | Nutrition, strength and cardio: `ALLOW / HOLD_ONLY / PAUSED` | Determines which recommendations may remain actionable.  |
+| Evidence sufficiency | Rule-specific required observations and reasons              | Determines whether a particular change is justified.     |
 
 An unchanged plan can remain available after a technical failure only while current domain permissions allow it. New safety information can invalidate a proposal and pause affected daily recommendations immediately. Do not wait for a weekly model job. History remains distinguishable from current advice. Urgent responses use reviewed location-appropriate guidance and never imply continuous monitoring.
 
@@ -22,28 +22,28 @@ An unchanged plan can remain available after a technical failure only while curr
 
 Build the loader, validators and synthetic fixtures before real policy content is ready. An approved bundle must contain:
 
-| Group | Required fields or equivalent validated content |
-|---|---|
-| Identity | ID, version, schema/engine compatibility, content digest, effective date, publication/revocation state. |
-| Accountability | Named owner, reviewer identity and domain qualifications, review date, actual review record, signoff scope. A model-generated signature is invalid. |
-| Applicability | Supported population, goals, geography/language, required inputs, exclusions, unknown-answer behavior and permitted alternatives. |
-| Nutrition | Estimation method and limitations; physiological inputs; activity assumptions; target constraints; nutrient coverage; portion and catalog feasibility rules. |
-| Adaptation | Required evidence, trend method, permitted directions and amounts, cooldowns, cumulative limits, reason codes and uncertainty behavior. |
-| Exercise | Reviewed template/exercise IDs, starting-dose rules, progression evidence, equipment increments, recovery and combined workload constraints. |
-| Safety/content | Screen and urgency rules, domain pause/restart mapping, ingredient/allergen checks, source compatibility and prohibited claims. |
-| Validation/lifecycle | Boundary and multiweek fixtures, required evaluation version, re-review triggers, revocation effects and accountable operational owner. |
+| Group                | Required fields or equivalent validated content                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Identity             | ID, version, schema/engine compatibility, content digest, effective date, publication/revocation state.                                                      |
+| Accountability       | Named owner, reviewer identity and domain qualifications, review date, actual review record, signoff scope. A model-generated signature is invalid.          |
+| Applicability        | Supported population, goals, geography/language, required inputs, exclusions, unknown-answer behavior and permitted alternatives.                            |
+| Nutrition            | Estimation method and limitations; physiological inputs; activity assumptions; target constraints; nutrient coverage; portion and catalog feasibility rules. |
+| Adaptation           | Required evidence, trend method, permitted directions and amounts, cooldowns, cumulative limits, reason codes and uncertainty behavior.                      |
+| Exercise             | Reviewed template/exercise IDs, starting-dose rules, progression evidence, equipment increments, recovery and combined workload constraints.                 |
+| Safety/content       | Screen and urgency rules, domain pause/restart mapping, ingredient/allergen checks, source compatibility and prohibited claims.                              |
+| Validation/lifecycle | Boundary and multiweek fixtures, required evaluation version, re-review triggers, revocation effects and accountable operational owner.                      |
 
 Clinical owners must specify the actual numerical values with units and population rationale. Missing values are not filled from model recall. A review date alone does not define expiry: the bundle explicitly defines when new recommendations stop and when existing domains require reassessment.
 
 Synthetic policies are restricted to synthetic subjects in test environments. A feature flag or invitation cannot authorize real recommendations from them. Real publication requires a valid approved bundle and compatible reviewed catalogs. Policy revocation is rechecked before activation.
 
-For the supervised pilot, **every initial numerical plan and every proposed intensifying change requires qualified review before participant visibility**. Reviewer approval is bound to the exact payload hash and relevant revisions. An `isCoach` flag does not establish professional qualification or case access. The pilot needs real authorized staff, consented review access, capacity and response expectations. Holds, protective actions and flagged cases follow the sampling/escalation protocol in [operations](09-Validation-Release-Operations.md). Removing routine human review later requires a separate evidence gate.
+V1 uses **bounded autonomous coaching**, not mandatory per-client human review. A professionally reviewed and versioned policy bundle, curated food/exercise catalogs, contraindication/escalation rules and compact evidence registry are prerequisites for live use. For an in-scope client, deterministic server gates calculate targets, enforce restrictions and limits, establish evidence sufficiency, validate the complete result and choose exactly one outcome: `APPROVE_AUTOMATICALLY`, `HOLD`, `FOCUSED_CLARIFICATION`, or `PAUSE_REFER`. Higher-risk, out-of-scope, safety-ambiguous or insufficiently evidenced cases never activate a plan and receive the applicable hold, focused clarification or pause/refer path with a full audit record. Reviewer operations remain available for policy governance, incident review and any future explicit exception policy; they are not a default visibility gate.
 
 ## 3. Deterministic controller and bounded model
 
-The service validates intake, evaluates safety, selects applicable rules, computes permitted options, checks the combined plan and records the decision. The model may extract preferences, identify concerns, rank eligible catalog choices and explain validated results. It cannot waive a structured concern, invent food facts, choose clinical constants, alter authorizations or activate a plan.
+The service validates intake, evaluates safety, selects applicable rules, computes permitted options, checks the combined plan and records the decision. The model may interpret current-client language, extract preferences or concerns, rank already-eligible catalog choices, ask a focused clarification and explain validated results. It cannot decide authority, access across clients, policy applicability, clinical constants, food facts, contraindications, escalation, evidence sufficiency, constraint bypasses, plan activation or urgent-health/clinical disposition. It has no browser, scraper, arbitrary retrieval, shell, SQL or cross-client memory capability.
 
-Use a small versioned evidence registry: source URL, relevant claim, population, limitations, reviewer, applicable rule IDs and review date. Retrieval is optional; a vector database is not required for the MVP. Retrieved text and client notes remain untrusted input. A source citation must support the particular claim and population. Hallucination controls reduce risk without eliminating it. [Anthropic guidance](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations)
+Use a compact, versioned evidence registry: source URL, relevant claim, population, limitations, professional reviewer, applicable rule IDs and review date. V1 has no RAG/vector database, live web research, browsing or scraping. Client notes and model output remain untrusted input. A source citation must support the particular claim and population. Hallucination controls reduce risk without eliminating it. [Anthropic guidance](https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations)
 
 Pin model/prompt/tool configuration and evaluate upgrades on held-out cases. Give the provider no arbitrary SQL, shell, browsing or cross-user memory. Supply minimum necessary context. Record validated facts and reason codes rather than relying on hidden model reasoning. Render numerical explanations from validated fields; use approved template wording when generated wording conflicts.
 
