@@ -8,6 +8,14 @@ export const metadata: Metadata = { title: "Accept Invite | Steadfast" };
 
 export default async function InviteRedemptionPage({ params }: { params: Promise<{ token: string }> }) {
     const { token } = await params;
+
+    // T-1012: confirmation path for an invite addressed to something other than a
+    // verified address on this account (Apple relay, an alias, or a mistyped address).
+    async function acceptAnyway() {
+        "use server";
+        await redeemInvite(token, { confirmDifferentEmail: true });
+        redirect("/client?welcomed=1");
+    }
     const { userId } = await auth();
 
     const invite = await getInviteDetails(token);
@@ -21,7 +29,14 @@ export default async function InviteRedemptionPage({ params }: { params: Promise
 
     // If signed in, attempt redemption server-side
     if (userId && !isExpired && !isAlreadyUsed) {
-        let result: { success?: boolean; error?: string; coachName?: string } = {};
+        let result: {
+            success?: boolean;
+            error?: string;
+            coachName?: string;
+            mismatch?: boolean;
+            invitedEmailHint?: string;
+            signedInAs?: string;
+        } = {};
         try {
             result = await redeemInvite(token) as typeof result;
         } catch (e) {
@@ -30,6 +45,44 @@ export default async function InviteRedemptionPage({ params }: { params: Promise
 
         if (result.success) {
             redirect("/client?welcomed=1");
+        }
+
+        // T-1012: the invited address is not one of the verified addresses on this
+        // account. That is routine — Apple "Hide My Email" relays never match, and a
+        // coach may simply have typed a different address for the same person. The
+        // token already proves possession of the invite, so confirm rather than refuse.
+        if (result.mismatch) {
+            return (
+                <div className="flex min-h-[100dvh] items-center justify-center bg-black px-5">
+                    <div className="w-full max-w-md sf-glass-card p-8 text-center space-y-5">
+                        <h1 className="text-xl font-bold text-zinc-100">Confirm your invite</h1>
+                        <p className="text-sm text-zinc-400">
+                            {coachName} sent this invite to{" "}
+                            <span className="text-zinc-200">{result.invitedEmailHint}</span>.
+                            {result.signedInAs ? (
+                                <>
+                                    {" "}You&apos;re signed in as{" "}
+                                    <span className="text-zinc-200">{result.signedInAs}</span>.
+                                </>
+                            ) : null}
+                        </p>
+                        <p className="text-sm text-zinc-500">
+                            If that&apos;s you, go ahead. Using a different address is fine.
+                        </p>
+                        <form action={acceptAnyway}>
+                            <button
+                                type="submit"
+                                className="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 min-h-[48px]"
+                            >
+                                Join {coachName}
+                            </button>
+                        </form>
+                        <Link href="/client" className="inline-block text-sm text-zinc-500 hover:text-zinc-300">
+                            Not me, go to my dashboard →
+                        </Link>
+                    </div>
+                </div>
+            );
         }
 
         // If there was an error (wrong email, etc.) — show it
