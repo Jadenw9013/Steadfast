@@ -159,6 +159,12 @@ suite("CB01 — consent-bound coach/client linking with real PostgreSQL constrai
     // OWN account, from the coach's roster point of view, not the victim's.
     const victimConnAfter = await db.coachClient.findUnique({ where: { coachId_clientId: { coachId: coach.id, clientId: victim.id } } });
     expect(victimConnAfter).toBeNull();
+    // T-987 review round 1, MAJOR 2: the attacker's confirmation must not
+    // rebind the victim's own lead to the attacker's account — that would
+    // point the coach's client page at the victim's submitted intake under
+    // the attacker's clientId. The lead's prospectId is untouched.
+    const requestAfter = await db.coachingRequest.findUniqueOrThrow({ where: { id: request.id } });
+    expect(requestAfter.prospectId).toBeNull();
   });
 
   it("an expired invite cannot be redeemed", async () => {

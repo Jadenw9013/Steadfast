@@ -276,6 +276,10 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
 
   afterAll(async () => {
     if (!created.length) return;
+    // Case 3 (MAJOR 2 regression test) creates a CoachProfile/CoachingRequest/
+    // IntakePacket chain; IntakePacket->CoachingRequest is ON DELETE RESTRICT,
+    // so it must go before the cascade from deleting the coach's User row.
+    await db.intakePacket.deleteMany({ where: { coachingRequest: { coachProfile: { userId: { in: created } } } } });
     await db.clientCoachingContext.deleteMany({ where: { clientId: { in: created } } });
     await db.clientInvite.deleteMany({ where: { coachId: { in: created } } });
     await db.coachClient.deleteMany({ where: { OR: [{ coachId: { in: created } }, { clientId: { in: created } }] } });
@@ -315,7 +319,7 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     expect(afterSecond.mismatchSeenAt?.getTime()).toBe(afterFirst.mismatchSeenAt?.getTime());
   });
 
-  it("3. confirmed acceptance: acceptedWithMismatch true, one CoachClient, note and request updated, mode HUMAN", async () => {
+  it("3. confirmed acceptance: acceptedWithMismatch true, one CoachClient, mode HUMAN, and the originating lead (and its intake) is NOT reassigned to the confirming user", async () => {
     const u = randomUUID().slice(0, 8);
     const relay = `${u}@privaterelay.appleid.com`;
     const invitedEmail = `${u}@icloud.com`;
@@ -334,6 +338,18 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
         prospectEmailAddr: invitedEmail,
         intakeAnswers: {},
         status: "PENDING",
+      },
+    });
+    // The invited person's own submitted intake — clinical data (bodyweight,
+    // health answers) that must never render under the confirming user's
+    // name (T-987 review round 1, MAJOR 2).
+    await db.intakePacket.create({
+      data: {
+        coachingRequestId: request.id,
+        token: randomUUID(),
+        tokenExpiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+        submittedAt: new Date(),
+        formAnswers: { bodyweight: 190, goal: "STRENGTH" },
       },
     });
     const invite = await db.clientInvite.create({
@@ -362,9 +378,18 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     expect(rows[0].coachNotes).toContain(relay);
     expect(rows[0].coachNotes).toContain(invitedEmail);
 
+    // The roster row (just asserted above) IS the relationship. The
+    // originating lead stays the invited person's record: neither its
+    // prospectId nor its status may move to the confirming user.
     const requestAfter = await db.coachingRequest.findUniqueOrThrow({ where: { id: request.id } });
-    expect(requestAfter.prospectId).toBe(client.id);
-    expect(requestAfter.status).toBe("ACCEPTED");
+    expect(requestAfter.prospectId).toBeNull();
+    expect(requestAfter.status).toBe("PENDING");
+
+    // What the coach's client page actually shows: no intake for this
+    // client, because they never submitted one. Before the fix this
+    // returned person A's submitted answers under person B's clientId.
+    const { getIntakePacketForClient } = await import("@/lib/queries/intake");
+    expect(await getIntakePacketForClient(coach.id, client.id)).toBeNull();
 
     const context = await db.clientCoachingContext.findUniqueOrThrow({ where: { clientId: client.id } });
     expect(context.mode).toBe("HUMAN");

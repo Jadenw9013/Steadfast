@@ -347,7 +347,21 @@ export async function acceptClientInviteForUser(
       where: { id: current.id },
       data: { status: "ACCEPTED", ...(owns ? {} : { acceptedWithMismatch: true }) },
     });
-    if (current.requestId)
+    // T-987 review round 1, MAJOR 2: only rebind the originating lead to
+    // THIS user when they actually own the invited address. On the
+    // confirmed-mismatch path the roster row (CoachClient, just created
+    // above) is the whole relationship — the CoachingRequest keeps
+    // belonging to whoever it always did (prospectName/prospectEmail/the
+    // submitted IntakePacket are that person's, not the confirming user's).
+    // Rebinding prospectId here would point getIntakePacketForClient
+    // (lib/queries/intake.ts), lib/queries/signature.ts and
+    // lib/queries/marketplace.ts — all of which key purely on prospectId —
+    // at the confirming user, so the coach's client page would render a
+    // stranger's submitted intake (bodyweight, health answers) under this
+    // user's name. Leaving the lead alone is the smaller fix: it is still
+    // whatever it was before this acceptance (T-979/T-988 own resolving an
+    // invite that was answered by someone other than its addressee).
+    if (current.requestId && owns)
       await tx.coachingRequest.updateMany({
         where: { id: current.requestId },
         data: { prospectId: user.id, status: "ACCEPTED" },
