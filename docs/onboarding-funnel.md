@@ -90,6 +90,16 @@ step. **The sprint branch** never does: only the client accepting an invite crea
 That is CB01 — an address a coach types into a form must never by itself grant access to someone's
 existing account.
 
+**T-987 (2026-09-24) ends the one part of this split that was a bug, not a design choice.** Deployed
+(`7ce26a4`, T-1012) redeems a `ClientInvite` from any VERIFIED address on the signed-in account, confirming
+once on a mismatch, because the invite token — not the address — is the credential. The sprint branch's
+`acceptClientInviteForUser` still refused on exact address equality, so deploying sprint as-is would have
+silently reverted T-1012 and reopened the mismatch dead end that stranded a real client (T-976). T-987
+moves the confirm-on-mismatch rule into `acceptClientInviteForUser` itself, so it is no longer a
+lineage difference: both now accept from any verified address and confirm on a mismatch, and both record
+that confirmation. CB01 remains the real, permanent difference — the sprint branch still requires the
+client's own acceptance to create the row; deployed still does not.
+
 T-978 is specced against the sprint branch. The deployed line is deliberately left alone, because its
 invariant cannot even be evaluated there: `ClientInvite.requestId` exists in the schema but **no deployed
 code ever populates it**, so a lead cannot be joined to its own invite at all. The deployed line's work is

@@ -91,6 +91,34 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(await db.accountDeletionRequest.findUnique({ where: { id: receipt.id } })).toMatchObject({ status: "COMPLETED", userId: null });
     expect(mocks.remove).toHaveBeenCalledWith("check-in-photos", expect.arrayContaining([`${user.clerkId}/web-batch/photo.jpg`, "ios-checkin/photo.jpg"]));
   });
+  it("T-987: purge scrubs a departing client's address out of another coach's ClientInvite.mismatchEmail, leaving the row otherwise intact", async () => {
+    const { user, other } = await fixture();
+    // `other` is a coach unrelated to `user`'s own coach relationships; the
+    // invite below is addressed to a third prospect but was accepted from a
+    // different address that happens to belong to the departing `user`. The
+    // coach-side delete only fires for invites the departing user SENT (as
+    // a coach) — this row is a second person's address stored on someone
+    // else's row, and must be scrubbed, not deleted wholesale.
+    const invite = await db.clientInvite.create({
+      data: {
+        coachId: other.id,
+        email: "prospect@example.test",
+        name: "Prospect",
+        expiresAt: new Date(Date.now() + 86_400_000),
+        status: "ACCEPTED",
+        acceptedWithMismatch: true,
+        mismatchSeenAt: new Date(),
+        mismatchEmail: user.email.toLowerCase(),
+      },
+    });
+    await purgeUserAccount(user.id);
+    const after = await db.clientInvite.findUniqueOrThrow({ where: { id: invite.id } });
+    expect(after.mismatchEmail).toBeNull();
+    // Everything else on the row is untouched — this is a scrub, not a delete.
+    expect(after.acceptedWithMismatch).toBe(true);
+    expect(after.status).toBe("ACCEPTED");
+    expect(after.coachId).toBe(other.id);
+  });
   it("purges AI Coach records (A02/A03) on account deletion", async () => {
     const { user } = await fixture();
     await db.clientCoachingContext.create({ data: { clientId: user.id, mode: "AI", revision: 1 } });

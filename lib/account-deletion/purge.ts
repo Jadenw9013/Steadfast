@@ -181,6 +181,10 @@ export async function purgeUserAccount(userId: string): Promise<void> {
   await tx.$executeRaw`DELETE FROM "NotificationLog" WHERE "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "Testimonial" WHERE "coachId" = ${userId} OR "clientId" = ${userId}`;
   await tx.$executeRaw`DELETE FROM "CoachClient" WHERE "coachId" = ${userId} OR "clientId" = ${userId}`;
+  // T-987: mismatchEmail is a *second* user's address stored on a *coach's*
+  // ClientInvite row (the coach-side delete above already removes the whole
+  // row when the coach leaves); scrub the departing client's address here.
+  await tx.$executeRaw`UPDATE "ClientInvite" SET "mismatchEmail" = NULL WHERE lower("mismatchEmail") = lower(${user.email})`;
   await tx.$executeRaw`DELETE FROM "MealPlanUpload" WHERE "clientId" = ${userId}`;
 
   // Coach marketplace (cascade: PortfolioItem, SavedCoach)

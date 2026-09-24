@@ -1424,6 +1424,14 @@ model ClientInvite {
   requestId String?           @unique
   request   CoachingRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
 
+  /// T-987. Set once, the first time an authenticated client holding this token
+  /// was shown the "confirm a different address" step. Never cleared.
+  mismatchSeenAt       DateTime?
+  /// The account address that triggered or completed that confirmation, lowercased.
+  mismatchEmail        String?
+  /// True only when this invite was accepted through the confirm path.
+  acceptedWithMismatch Boolean  @default(false)
+
   coach User @relation("CoachInvites", fields: [coachId], references: [id])
 
   @@index([coachId])

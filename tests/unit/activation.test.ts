@@ -180,3 +180,43 @@ describe("lib/leads/activate-lead.ts getActivationMessage", () => {
         }
     });
 });
+
+/**
+ * T-987 — the ownership rule (does this signed-in account own the invited
+ * address?) must live in exactly one place: lib/auth/invite-email-match.ts,
+ * called from lib/activation.ts. A second normalizer or a second
+ * `toLowerCase() ===` comparison in either product caller is the "wrong
+ * implementation" the spec warns about: it would put the rule back in a
+ * caller and leave the shared service (or one surface) out of sync.
+ */
+describe("T-987 — one ownership rule, reused not reimplemented", () => {
+    async function read(relPath: string): Promise<string> {
+        const fs = await import("node:fs/promises");
+        return fs.readFile(new URL(`../../${relPath}`, import.meta.url), "utf8");
+    }
+
+    it("lib/activation.ts imports the shared matcher from lib/auth/invite-email-match", async () => {
+        const source = await read("lib/activation.ts");
+        expect(source).toContain('from "@/lib/auth/invite-email-match"');
+    });
+
+    it("no second email normalizer exists outside lib/auth/invite-email-match.ts", async () => {
+        for (const file of [
+            "lib/activation.ts",
+            "app/actions/client-invites.ts",
+            "app/api/client/connect-coach/route.ts",
+        ]) {
+            const source = await read(file);
+            expect(source, `${file} must not reimplement Gmail dot-stripping`).not.toMatch(/replace\(\/\\\.\/g/);
+            expect(source, `${file} must not reimplement Apple relay handling`).not.toMatch(/privaterelay/);
+            expect(source, `${file} must not reimplement +-tag stripping`).not.toMatch(/indexOf\("\+"\)/);
+        }
+    });
+
+    it("app/actions/client-invites.ts and the connect-coach route never compare emails directly", async () => {
+        for (const file of ["app/actions/client-invites.ts", "app/api/client/connect-coach/route.ts"]) {
+            const source = await read(file);
+            expect(source, `${file} must not gate on toLowerCase() ===`).not.toMatch(/toLowerCase\(\)\s*===/);
+        }
+    });
+});
