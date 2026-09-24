@@ -493,6 +493,17 @@ suite("account deletion with real PostgreSQL constraints", () => {
     // per-user data; see the schema comment). Purge must not touch it, and
     // must not throw when the grant it references belongs to the user being
     // deleted.
+    //
+    // T-989 review round 2 MINOR 5: this is a global singleton keyed by a
+    // fixed enum value, and other files in this suite
+    // (ai-coach-release-drills.test.ts, ai-coach-live-launch-readiness.test.ts)
+    // write the same table. Capture whatever was here before this test ran
+    // and restore it in `finally`, regardless of how this test exits, so a
+    // failure here can never leave a real kill switch disabled for every
+    // later run against this database.
+    const priorControl = await db.aiCoachOperationalControl.findUnique({
+      where: { scope: "ARTIFACT_PUBLICATION" },
+    });
     await db.aiCoachOperationalControl.upsert({
       where: { scope: "ARTIFACT_PUBLICATION" },
       create: {
@@ -504,9 +515,10 @@ suite("account deletion with real PostgreSQL constraints", () => {
       update: { updatedByGrantId: governanceGrant.id, reasonCode: "SYNTHETIC_PURGE_CONTROL" },
     });
 
-    await purgeUserAccount(user.id);
+    try {
+      await purgeUserAccount(user.id);
 
-    expect(await db.clientCoachingContext.findUnique({ where: { clientId: user.id } })).toBeNull();
+      expect(await db.clientCoachingContext.findUnique({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiCoachEntitlement.findUnique({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiIntakeDraft.findUnique({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiCoachReviewerGrant.findUnique({ where: { userId: user.id } })).toBeNull();
@@ -572,7 +584,27 @@ suite("account deletion with real PostgreSQL constraints", () => {
     });
     expect(survivingControl).not.toBeNull();
     expect(survivingControl?.updatedByGrantId).toBe(governanceGrant.id);
-    await db.aiCoachOperationalControl.delete({ where: { scope: "ARTIFACT_PUBLICATION" } });
+    } finally {
+      // Restore whatever this test found, so a failure above (or a
+      // concurrent writer) never leaves a real kill switch stuck disabled
+      // for every subsequent run against this database.
+      if (priorControl) {
+        await db.aiCoachOperationalControl.update({
+          where: { scope: "ARTIFACT_PUBLICATION" },
+          data: {
+            disabled: priorControl.disabled,
+            reasonCode: priorControl.reasonCode,
+            incidentReference: priorControl.incidentReference,
+            updatedByGrantId: priorControl.updatedByGrantId,
+            revision: priorControl.revision,
+          },
+        });
+      } else {
+        await db.aiCoachOperationalControl.deleteMany({
+          where: { scope: "ARTIFACT_PUBLICATION" },
+        });
+      }
+    }
   });
   it("keeps all DB records and identity when storage cleanup fails", async () => {
     const { user, receipt, checkIn } = await fixture();
