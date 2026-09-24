@@ -367,6 +367,15 @@ suite.sequential("AI Coach live-launch persistence and production gate", () => {
       activationId: activation.id,
       packetId: packet.packetId,
     });
+    // T-989 review finding 1: discovery is gated on the enrollment flag in
+    // *addition* to the activation row, not instead of it. With a fully
+    // governed active release and no env var set (this suite's default —
+    // nothing here has stubbed it yet), the offer must still be null. The
+    // `/ai-coach` route (`if (!offer) notFound()`) and the `/coaches` promo
+    // aside (`{aiCoachOffer && (...)}`) have no other gate between them and
+    // this exact function, so this proves both surfaces go dark too.
+    await expect(getAiCoachPublicDiscoveryOffer()).resolves.toBeNull();
+    vi.stubEnv("FEATURE_AI_COACH_ENROLLMENT", "true");
     await expect(getAiCoachPublicDiscoveryOffer()).resolves.toMatchObject({
       releaseId: packet.releaseId,
       configurationId: "synthetic-discovery-v1",

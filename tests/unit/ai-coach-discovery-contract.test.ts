@@ -40,4 +40,16 @@ describe("T-1011 hidden discovery and onboarding contract", () => {
     expect(onboarding).toContain('view.experience.mode === "LIVE" && !liveDisclosure');
     expect(onboarding).toContain("No enrollment or coaching action");
   });
+
+  it("T-989: also requires the enrollment flag, independently of the activation row", () => {
+    const discovery = source("lib/ai-coach/discovery.ts");
+    // Two independent gates on the single discovery choke point every
+    // user-facing surface (`/ai-coach`, the `/coaches` promo, and
+    // `getClientProvider`'s in-transaction offer) reads through: the
+    // activation row stays the CLI-only source of truth, and this env flag
+    // is a second, instantly-revertible off-switch on top of it, per the
+    // standing "AI Coach flags stay OFF" rule.
+    expect(discovery).toContain("isAiCoachEnrollmentEnabled()");
+    expect(discovery.match(/if \(!isAiCoachEnrollmentEnabled\(\)\) return null;/g)?.length).toBe(2);
+  });
 });
