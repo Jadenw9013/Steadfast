@@ -7,9 +7,13 @@ import { approvalStateHash, grantCoversPlan, validatedManagedPayload } from "./v
 import { requireFixtureRuntime } from "./access";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
-import type { AiDomainPermission } from "@/app/generated/prisma/client";
+import { Prisma, type AiDomainPermission } from "@/app/generated/prisma/client";
 import { isAiCoachPublicationEnabled } from "@/lib/flags/ai-coach";
 import { checkPolicyVersionUsable } from "./policy/policy-version";
+import { contentHash } from "./canonical-json";
+import { evaluateCurrentClientAutonomyGate, serverAutonomyGateInputSchema } from "./autonomy/gate";
+import { syntheticRuntimeArtifactRequest } from "./finalization";
+import { assertAiCoachOperationEnabled } from "./operations";
 
 /**
  * A10 acceptance boundary. All reads and writes run in one short transaction.
@@ -19,14 +23,16 @@ import { checkPolicyVersionUsable } from "./policy/policy-version";
  * adopted the common User-first order. No network I/O belongs here.
  */
 
-export const acceptPlanVersionInputSchema = z.object({
-  requestKey: z.string().min(1).max(200),
-  expectedBaseVersionId: z.string().nullable(),
-  expectedContextRevision: z.number().int(),
-  expectedProfileRevision: z.number().int(),
-  expectedObservationRevision: z.number().int(),
-  expectedSafetyRevision: z.number().int(),
-}).strict();
+export const acceptPlanVersionInputSchema = z
+  .object({
+    requestKey: z.string().min(1).max(200),
+    expectedBaseVersionId: z.string().nullable(),
+    expectedContextRevision: z.number().int(),
+    expectedProfileRevision: z.number().int(),
+    expectedObservationRevision: z.number().int(),
+    expectedSafetyRevision: z.number().int(),
+  })
+  .strict();
 export type AcceptPlanVersionInput = z.infer<typeof acceptPlanVersionInputSchema>;
 
 export type AcceptPlanVersionErrorCode =
@@ -47,11 +53,20 @@ export type AcceptPlanVersionAtomicResult =
   | { success: true; alreadyAccepted: boolean; activeVersionId: string | null }
   | { success: false; code: AcceptPlanVersionErrorCode; error: string };
 
-function computeAcceptanceInputDigest(planVersionId: string, input: AcceptPlanVersionInput): string {
-  return createHash("sha256").update(JSON.stringify({ planVersionId, ...input })).digest("hex");
+function computeAcceptanceInputDigest(
+  planVersionId: string,
+  input: AcceptPlanVersionInput
+): string {
+  return createHash("sha256")
+    .update(JSON.stringify({ planVersionId, ...input }))
+    .digest("hex");
 }
 
-function domainsTouchedByPayload(payload: unknown): { nutrition: boolean; strength: boolean; cardio: boolean } {
+function domainsTouchedByPayload(payload: unknown): {
+  nutrition: boolean;
+  strength: boolean;
+  cardio: boolean;
+} {
   const p = payload as { nutrition?: unknown; strength?: unknown[]; cardio?: unknown[] } | null;
   return {
     nutrition: !!p?.nutrition,
@@ -61,7 +76,14 @@ function domainsTouchedByPayload(payload: unknown): { nutrition: boolean; streng
 }
 
 /** Every domain the candidate actually touches must currently be ALLOW — never HOLD_ONLY or PAUSED. */
-function checkSafetyPermitsCandidate(payload: unknown, permissions: { nutrition: AiDomainPermission; strength: AiDomainPermission; cardio: AiDomainPermission }): boolean {
+function checkSafetyPermitsCandidate(
+  payload: unknown,
+  permissions: {
+    nutrition: AiDomainPermission;
+    strength: AiDomainPermission;
+    cardio: AiDomainPermission;
+  }
+): boolean {
   const touched = domainsTouchedByPayload(payload);
   if (touched.nutrition && permissions.nutrition !== "ALLOW") return false;
   if (touched.strength && permissions.strength !== "ALLOW") return false;
@@ -85,13 +107,104 @@ export async function acceptPlanVersionAtomic(
   }
   const input = parsed.data;
   const inputDigest = computeAcceptanceInputDigest(planVersionId, input);
+  const requestKeyDigest = contentHash(input.requestKey);
+  let freshGateDecisionId: string | null = null;
+  let automaticApprovalId: string | null = null;
+
+  const priorReceipt = await db.aiPlanAcceptanceReceipt.findUnique({
+    where: { clientId_requestKey: { clientId, requestKey: input.requestKey } },
+  });
+  if (!priorReceipt) {
+    const managed = await db.aiPlanVersion.findFirst({
+      where: { id: planVersionId, clientId, validationReport: { not: Prisma.DbNull } },
+      select: { id: true },
+    });
+    if (managed) {
+      try {
+        requireFixtureRuntime();
+        await assertAiCoachOperationEnabled("ACCEPTANCE");
+        const approval = await db.aiAutomaticPlanApproval.findUnique({
+          where: { planVersionId },
+        });
+        if (!approval || approval.clientId !== clientId) {
+          await db.aiPlanActivationAttempt.create({
+            data: {
+              clientId,
+              planVersionId,
+              requestKeyDigest,
+              outcome: "REJECTED",
+              reasonCode: "AUTOMATIC_APPROVAL_REQUIRED",
+            },
+          });
+          return {
+            success: false,
+            code: "REVIEWER_APPROVAL_REQUIRED",
+            error: "This managed proposal has not passed automatic finalization.",
+          };
+        }
+        const gateInput = serverAutonomyGateInputSchema.parse(approval.gateInput);
+        const freshGate = await evaluateCurrentClientAutonomyGate(
+          syntheticRuntimeArtifactRequest(),
+          gateInput
+        );
+        if (
+          freshGate.outcome !== "APPROVE_AUTOMATICALLY" ||
+          freshGate.approvedCandidatePlanVersionId !== planVersionId ||
+          freshGate.evaluationKey !== approval.evaluationKey
+        ) {
+          await db.aiPlanActivationAttempt.create({
+            data: {
+              clientId,
+              planVersionId,
+              requestKeyDigest,
+              outcome: "REJECTED",
+              reasonCode: freshGate.orderedReasonCodes[0] ?? "AUTOMATIC_GATE_REJECTED",
+              automaticApprovalId: approval.id,
+              freshGateDecisionId: freshGate.decisionId,
+            },
+          });
+          return {
+            success: false,
+            code: "SAFETY_RESTRICTED",
+            error: "The current deterministic safety gate does not authorize this proposal.",
+          };
+        }
+        freshGateDecisionId = freshGate.decisionId;
+        automaticApprovalId = approval.id;
+      } catch {
+        await db.aiPlanActivationAttempt.create({
+          data: {
+            clientId,
+            planVersionId,
+            requestKeyDigest,
+            outcome: "REJECTED",
+            reasonCode: "AUTOMATIC_GATE_UNAVAILABLE",
+            automaticApprovalId,
+            freshGateDecisionId,
+          },
+        });
+        return {
+          success: false,
+          code: "POLICY_UNAVAILABLE",
+          error: "The current reviewed policy could not be verified.",
+        };
+      }
+    }
+  }
 
   try {
     return await db.$transaction(async (tx): Promise<AcceptPlanVersionAtomicResult> => {
       await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${clientId} FOR UPDATE`;
-      const user = await tx.user.findUnique({ where: { id: clientId }, select: { isDeactivated: true, isClient: true } });
+      const user = await tx.user.findUnique({
+        where: { id: clientId },
+        select: { isDeactivated: true, isClient: true },
+      });
       if (!user || user.isDeactivated || !user.isClient) {
-        return { success: false, code: "FORBIDDEN", error: "An active client account is required." };
+        return {
+          success: false,
+          code: "FORBIDDEN",
+          error: "An active client account is required.",
+        };
       }
       await tx.$queryRaw`SELECT "id" FROM "ClientCoachingContext" WHERE "clientId" = ${clientId} FOR UPDATE`;
       await tx.$queryRaw`SELECT "id" FROM "AiCoachProfile" WHERE "clientId" = ${clientId} FOR UPDATE`;
@@ -100,23 +213,39 @@ export async function acceptPlanVersionAtomic(
       // original receipt with a freshly resolved current active id. A
       // different payload under the same key is a conflict, never a
       // silent re-execution.
-      const existingReceipt = await tx.aiPlanAcceptanceReceipt.findUnique({ where: { clientId_requestKey: { clientId, requestKey: input.requestKey } } });
+      const existingReceipt = await tx.aiPlanAcceptanceReceipt.findUnique({
+        where: { clientId_requestKey: { clientId, requestKey: input.requestKey } },
+      });
       if (existingReceipt) {
         if (existingReceipt.inputDigest !== inputDigest) {
-          return { success: false, code: "REVISION_CONFLICT", error: "This request key was already used for a different acceptance request." };
+          return {
+            success: false,
+            code: "REVISION_CONFLICT",
+            error: "This request key was already used for a different acceptance request.",
+          };
         }
         // This exact request already completed at some point in the past —
         // from this caller's perspective that is inherently "already accepted,"
         // regardless of whether the original call was the one that performed
         // the acceptance or itself observed a prior acceptance.
         const profile = await tx.aiCoachProfile.findUnique({ where: { clientId } });
-        return { success: true, alreadyAccepted: true, activeVersionId: profile?.activePlanVersionId ?? null };
+        return {
+          success: true,
+          alreadyAccepted: true,
+          activeVersionId: profile?.activePlanVersionId ?? null,
+        };
       }
 
-      const owned = await tx.$queryRaw<{ id: string }[]>`SELECT "id" FROM "AiPlanVersion" WHERE "id" = ${planVersionId} AND "clientId" = ${clientId} FOR UPDATE`;
-      if (owned.length === 0) return { success: false, code: "NOT_FOUND", error: "Plan version not found." };
+      const owned = await tx.$queryRaw<
+        { id: string }[]
+      >`SELECT "id" FROM "AiPlanVersion" WHERE "id" = ${planVersionId} AND "clientId" = ${clientId} FOR UPDATE`;
+      if (owned.length === 0)
+        return { success: false, code: "NOT_FOUND", error: "Plan version not found." };
       await tx.$queryRaw`SELECT "id" FROM "AiPlanReviewerApproval" WHERE "planVersionId" = ${planVersionId} FOR UPDATE`;
-      const candidate = await tx.aiPlanVersion.findUnique({ where: { id: planVersionId }, include: { approval: true } });
+      const candidate = await tx.aiPlanVersion.findUnique({
+        where: { id: planVersionId },
+        include: { approval: true },
+      });
       if (!candidate || candidate.clientId !== clientId) {
         return { success: false, code: "NOT_FOUND", error: "Plan version not found." };
       }
@@ -128,14 +257,25 @@ export async function acceptPlanVersionAtomic(
         const activeVersionId = profile?.activePlanVersionId ?? null;
         await tx.aiPlanAcceptanceReceipt.upsert({
           where: { clientId_requestKey: { clientId, requestKey: input.requestKey } },
-          create: { clientId, requestKey: input.requestKey, inputDigest, planVersionId: candidate.id, alreadyAccepted: true, activeVersionIdAtReceiptTime: activeVersionId },
+          create: {
+            clientId,
+            requestKey: input.requestKey,
+            inputDigest,
+            planVersionId: candidate.id,
+            alreadyAccepted: true,
+            activeVersionIdAtReceiptTime: activeVersionId,
+          },
           update: {},
         });
         return { success: true, alreadyAccepted: true, activeVersionId };
       }
 
       if (candidate.status !== "PROPOSED") {
-        return { success: false, code: "STALE_PROPOSAL", error: `Cannot accept a plan version with status ${candidate.status}.` };
+        return {
+          success: false,
+          code: "STALE_PROPOSAL",
+          error: `Cannot accept a plan version with status ${candidate.status}.`,
+        };
       }
 
       await tx.$queryRaw`SELECT "id" FROM "AiCoachEntitlement" WHERE "clientId" = ${clientId} FOR UPDATE`;
@@ -145,49 +285,161 @@ export async function acceptPlanVersionAtomic(
       // Step 2: authority, context, entitlement, publication flag, revisions.
       const context = await tx.clientCoachingContext.findUnique({ where: { clientId } });
       if (!context || context.mode !== "AI" || context.resolutionRequired) {
-        return { success: false, code: "ENTITLEMENT_REQUIRED", error: "AI is not the current, unambiguous coaching authority for this client." };
+        return {
+          success: false,
+          code: "ENTITLEMENT_REQUIRED",
+          error: "AI is not the current, unambiguous coaching authority for this client.",
+        };
       }
       const entitlement = await tx.aiCoachEntitlement.findUnique({ where: { clientId } });
       const now = new Date();
-      if (!entitlement || entitlement.revokedAt || (entitlement.expiresAt && entitlement.expiresAt <= now)) {
-        return { success: false, code: "ENTITLEMENT_REQUIRED", error: "No valid AI coaching entitlement." };
+      if (
+        !entitlement ||
+        entitlement.revokedAt ||
+        (entitlement.expiresAt && entitlement.expiresAt <= now)
+      ) {
+        return {
+          success: false,
+          code: "ENTITLEMENT_REQUIRED",
+          error: "No valid AI coaching entitlement.",
+        };
       }
       if (!isAiCoachPublicationEnabled()) {
-        return { success: false, code: "TEMPORARILY_UNAVAILABLE", error: "AI plan publication is currently disabled." };
+        return {
+          success: false,
+          code: "TEMPORARILY_UNAVAILABLE",
+          error: "AI plan publication is currently disabled.",
+        };
       }
       const profile = await tx.aiCoachProfile.findUnique({ where: { clientId } });
-      if (!profile
-        || candidate.contextRevision !== context.revision
-        || candidate.profileRevision !== profile.profileRevision
-        || candidate.observationRevision !== profile.observationRevision
-        || candidate.safetyRevision !== profile.safetyRevision
-        || input.expectedContextRevision !== context.revision
-        || input.expectedProfileRevision !== profile.profileRevision
-        || input.expectedObservationRevision !== profile.observationRevision
-        || input.expectedSafetyRevision !== profile.safetyRevision
+      if (
+        !profile ||
+        candidate.contextRevision !== context.revision ||
+        candidate.profileRevision !== profile.profileRevision ||
+        candidate.observationRevision !== profile.observationRevision ||
+        candidate.safetyRevision !== profile.safetyRevision ||
+        input.expectedContextRevision !== context.revision ||
+        input.expectedProfileRevision !== profile.profileRevision ||
+        input.expectedObservationRevision !== profile.observationRevision ||
+        input.expectedSafetyRevision !== profile.safetyRevision
       ) {
-        return { success: false, code: "REVISION_CONFLICT", error: "The client's coaching state has changed since this proposal was computed." };
+        return {
+          success: false,
+          code: "REVISION_CONFLICT",
+          error: "The client's coaching state has changed since this proposal was computed.",
+        };
       }
 
       if (candidate.validationReport !== null) {
-        try { requireFixtureRuntime(); } catch {
-          return { success: false, code: "TEMPORARILY_UNAVAILABLE", error: "This plan is only available in the synthetic test environment." };
+        try {
+          requireFixtureRuntime();
+        } catch {
+          return {
+            success: false,
+            code: "TEMPORARILY_UNAVAILABLE",
+            error: "This plan is only available in the synthetic test environment.",
+          };
         }
-        if (!await evidenceIsCurrent(tx, clientId, candidate.sourceRefs)) return { success: false, code: "REVISION_CONFLICT", error: "Source evidence changed. Prepare a new review." };
+        if (!(await evidenceIsCurrent(tx, clientId, candidate.sourceRefs)))
+          return {
+            success: false,
+            code: "REVISION_CONFLICT",
+            error: "Source evidence changed. Prepare a new review.",
+          };
         if (!profile.isSynthetic || !validatedManagedPayload(candidate)) {
-          return { success: false, code: "VALIDATION_ERROR", error: "This proposal did not pass content validation." };
+          return {
+            success: false,
+            code: "VALIDATION_ERROR",
+            error: "This proposal did not pass content validation.",
+          };
         }
         if (candidate.changeClass === "TARGET_PRESERVING") {
-          const base = candidate.baseVersionId ? await tx.aiPlanVersion.findFirst({ where: { id: candidate.baseVersionId, clientId } }) : null;
+          const base = candidate.baseVersionId
+            ? await tx.aiPlanVersion.findFirst({ where: { id: candidate.baseVersionId, clientId } })
+            : null;
           const basePayload = base && validatedManagedPayload(base);
           const intake = intakeAnswersSchema.safeParse(profile.confirmedIntake);
-          if (!basePayload || !intake.success || !isTargetPreserving(basePayload, validatedManagedPayload(candidate)!, intake.data)) {
-            return { success: false, code: "VALIDATION_ERROR", error: "This presentation change does not preserve the current prescription." };
+          if (
+            !basePayload ||
+            !intake.success ||
+            !isTargetPreserving(basePayload, validatedManagedPayload(candidate)!, intake.data)
+          ) {
+            return {
+              success: false,
+              code: "VALIDATION_ERROR",
+              error: "This presentation change does not preserve the current prescription.",
+            };
           }
         }
-        if (!await weeklyCandidateIsValid(tx, candidate)) return { success: false, code: "VALIDATION_ERROR", error: "The weekly proposal no longer satisfies its evidence and cumulative policy." };
-        if (candidate.changeClass !== "TARGET_PRESERVING" && candidate.reviewerStatus !== "APPROVED") {
-          return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The initial proposal requires qualified review." };
+        if (!(await weeklyCandidateIsValid(tx, candidate)))
+          return {
+            success: false,
+            code: "VALIDATION_ERROR",
+            error: "The weekly proposal no longer satisfies its evidence and cumulative policy.",
+          };
+        await tx.$queryRaw`SELECT "id" FROM "AiAutomaticPlanApproval" WHERE "planVersionId" = ${planVersionId} FOR SHARE`;
+        const automaticApproval = await tx.aiAutomaticPlanApproval.findUnique({
+          where: { planVersionId },
+        });
+        const freshGate = freshGateDecisionId
+          ? await tx.aiAutonomyGateDecision.findUnique({ where: { id: freshGateDecisionId } })
+          : null;
+        const providerAudit = automaticApproval
+          ? await tx.aiProviderBoundaryAudit.findUnique({
+              where: { id: automaticApproval.providerBoundaryAuditId },
+            })
+          : null;
+        const approvalState = automaticApproval
+          ? {
+              clientId: automaticApproval.clientId,
+              planVersionId: automaticApproval.planVersionId,
+              gateDecisionId: automaticApproval.gateDecisionId,
+              providerBoundaryAuditId: automaticApproval.providerBoundaryAuditId,
+              evaluationKey: automaticApproval.evaluationKey,
+              candidatePayloadHash: automaticApproval.candidatePayloadHash,
+              artifactRequest: automaticApproval.artifactRequest,
+              artifactRefs: automaticApproval.artifactRefs,
+              sourceRefs: automaticApproval.sourceRefs,
+              gateInput: automaticApproval.gateInput,
+              providerSelection: automaticApproval.providerSelection,
+            }
+          : null;
+        if (
+          !automaticApproval ||
+          automaticApproval.id !== automaticApprovalId ||
+          !freshGate ||
+          freshGate.clientId !== clientId ||
+          freshGate.outcome !== "APPROVE_AUTOMATICALLY" ||
+          freshGate.evaluationKey !== automaticApproval.evaluationKey ||
+          freshGate.approvedPlanVersionId !== candidate.id ||
+          freshGate.candidatePayloadHash !== candidate.payloadHash ||
+          contentHash(freshGate.artifactRefs) !== contentHash(automaticApproval.artifactRefs) ||
+          contentHash(freshGate.sourceRefs) !== contentHash(automaticApproval.sourceRefs) ||
+          !providerAudit ||
+          providerAudit.clientId !== clientId ||
+          providerAudit.boundaryOutcome !== "VALIDATED" ||
+          providerAudit.resultOutcome !== "APPROVE_AUTOMATICALLY" ||
+          providerAudit.finalGateDecisionId !== automaticApproval.gateDecisionId ||
+          automaticApproval.candidatePayloadHash !== candidate.payloadHash ||
+          !approvalState ||
+          contentHash(approvalState) !== automaticApproval.stateDigest
+        ) {
+          await tx.aiPlanActivationAttempt.create({
+            data: {
+              clientId,
+              planVersionId,
+              requestKeyDigest,
+              outcome: "REJECTED",
+              reasonCode: "AUTOMATIC_APPROVAL_MISMATCH",
+              automaticApprovalId: automaticApproval?.id,
+              freshGateDecisionId,
+            },
+          });
+          return {
+            success: false,
+            code: "REVISION_CONFLICT",
+            error: "Automatic approval no longer matches the current proposal and gate state.",
+          };
         }
       }
 
@@ -195,39 +447,106 @@ export async function acceptPlanVersionAtomic(
       // approval, exact base version, activation window.
       const policyCheck = checkPolicyVersionUsable(candidate.policyVersion);
       if (!policyCheck.usable) {
-        return { success: false, code: "POLICY_UNAVAILABLE", error: "The policy this proposal was built against is no longer usable." };
+        return {
+          success: false,
+          code: "POLICY_UNAVAILABLE",
+          error: "The policy this proposal was built against is no longer usable.",
+        };
       }
-      if (!checkSafetyPermitsCandidate(candidate.payload, { nutrition: profile.nutritionPermission, strength: profile.strengthPermission, cardio: profile.cardioPermission })) {
-        return { success: false, code: "SAFETY_RESTRICTED", error: "A current safety restriction blocks a domain this proposal touches." };
+      if (
+        !checkSafetyPermitsCandidate(candidate.payload, {
+          nutrition: profile.nutritionPermission,
+          strength: profile.strengthPermission,
+          cardio: profile.cardioPermission,
+        })
+      ) {
+        return {
+          success: false,
+          code: "SAFETY_RESTRICTED",
+          error: "A current safety restriction blocks a domain this proposal touches.",
+        };
       }
-      if (candidate.reviewerStatus === "PENDING" || candidate.reviewerStatus === "REJECTED") {
-        return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "This proposal has not been approved by a qualified reviewer." };
+      if (
+        candidate.validationReport === null &&
+        (candidate.reviewerStatus === "PENDING" || candidate.reviewerStatus === "REJECTED")
+      ) {
+        return {
+          success: false,
+          code: "REVIEWER_APPROVAL_REQUIRED",
+          error: "This proposal has not been approved by a qualified reviewer.",
+        };
       }
-      if (candidate.reviewerStatus === "APPROVED") {
-        if (!candidate.approval || !candidate.approval.approved || candidate.approval.approvedHash !== candidate.payloadHash) {
-          return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The recorded reviewer approval no longer matches this proposal's exact content." };
+      if (candidate.validationReport === null && candidate.reviewerStatus === "APPROVED") {
+        if (
+          !candidate.approval ||
+          !candidate.approval.approved ||
+          candidate.approval.approvedHash !== candidate.payloadHash
+        ) {
+          return {
+            success: false,
+            code: "REVIEWER_APPROVAL_REQUIRED",
+            error:
+              "The recorded reviewer approval no longer matches this proposal's exact content.",
+          };
         }
-        const reviewerGrant = await tx.aiCoachReviewerGrant.findUnique({ where: { id: candidate.approval.reviewerGrantId }, include: { user: { select: { isDeactivated: true } } } });
-        if (!reviewerGrant || reviewerGrant.revokedAt || reviewerGrant.user.isDeactivated || (candidate.validationReport !== null && (!grantCoversPlan(reviewerGrant, clientId, candidate.payload) || candidate.approval.stateHash !== approvalStateHash(candidate)))) {
-          return { success: false, code: "REVIEWER_APPROVAL_REQUIRED", error: "The reviewer who approved this proposal no longer holds an active grant." };
+        const reviewerGrant = await tx.aiCoachReviewerGrant.findUnique({
+          where: { id: candidate.approval.reviewerGrantId },
+          include: { user: { select: { isDeactivated: true } } },
+        });
+        if (
+          !reviewerGrant ||
+          reviewerGrant.revokedAt ||
+          reviewerGrant.user.isDeactivated ||
+          (candidate.validationReport !== null &&
+            (!grantCoversPlan(reviewerGrant, clientId, candidate.payload) ||
+              candidate.approval.stateHash !== approvalStateHash(candidate)))
+        ) {
+          return {
+            success: false,
+            code: "REVIEWER_APPROVAL_REQUIRED",
+            error: "The reviewer who approved this proposal no longer holds an active grant.",
+          };
         }
       }
       const expectedBase = profile.activePlanVersionId ?? null;
-      if (candidate.baseVersionId !== expectedBase || input.expectedBaseVersionId !== expectedBase) {
-        return { success: false, code: "STALE_PROPOSAL", error: "This proposal was built against a base plan that is no longer the active one." };
+      if (
+        candidate.baseVersionId !== expectedBase ||
+        input.expectedBaseVersionId !== expectedBase
+      ) {
+        return {
+          success: false,
+          code: "STALE_PROPOSAL",
+          error: "This proposal was built against a base plan that is no longer the active one.",
+        };
       }
       if (candidate.activationStartsAt && candidate.activationStartsAt > now) {
-        return { success: false, code: "WINDOW_CLOSED", error: "This proposal's activation window has not started yet." };
+        return {
+          success: false,
+          code: "WINDOW_CLOSED",
+          error: "This proposal's activation window has not started yet.",
+        };
       }
       if (candidate.activationEndsAt && candidate.activationEndsAt <= now) {
-        return { success: false, code: "WINDOW_CLOSED", error: "This proposal's activation window has closed." };
+        return {
+          success: false,
+          code: "WINDOW_CLOSED",
+          error: "This proposal's activation window has closed.",
+        };
       }
 
-
       if (candidate.changeClass === "ROUTINE") {
-        const reviewWindowKey = candidate.reviewWindowKey ?? reviewWindowKeyFor(candidate.activationStartsAt ?? candidate.createdAt);
-        const slot = await tx.aiAdjustmentSlot.findUnique({ where: { clientId_reviewWindowKey: { clientId, reviewWindowKey } } });
-        if (slot) return { success: false, code: "ADJUSTMENT_LIMIT_REACHED", error: "A routine change was already accepted for this review window." };
+        const reviewWindowKey =
+          candidate.reviewWindowKey ??
+          reviewWindowKeyFor(candidate.activationStartsAt ?? candidate.createdAt);
+        const slot = await tx.aiAdjustmentSlot.findUnique({
+          where: { clientId_reviewWindowKey: { clientId, reviewWindowKey } },
+        });
+        if (slot)
+          return {
+            success: false,
+            code: "ADJUSTMENT_LIMIT_REACHED",
+            error: "A routine change was already accepted for this review window.",
+          };
         await tx.aiAdjustmentSlot.create({
           data: { clientId, reviewWindowKey, acceptedPlanVersionId: candidate.id },
         });
@@ -246,7 +565,8 @@ export async function acceptPlanVersionAtomic(
 
       const pointer = await tx.aiCoachProfile.updateMany({
         where: {
-          clientId, activePlanVersionId: expectedBase,
+          clientId,
+          activePlanVersionId: expectedBase,
           profileRevision: candidate.profileRevision,
           observationRevision: candidate.observationRevision,
           safetyRevision: candidate.safetyRevision,
@@ -262,26 +582,60 @@ export async function acceptPlanVersionAtomic(
       });
 
       await tx.aiPlanAcceptanceReceipt.create({
-        data: { clientId, requestKey: input.requestKey, inputDigest, planVersionId: candidate.id, alreadyAccepted: false, activeVersionIdAtReceiptTime: candidate.id },
+        data: {
+          clientId,
+          requestKey: input.requestKey,
+          inputDigest,
+          planVersionId: candidate.id,
+          alreadyAccepted: false,
+          activeVersionIdAtReceiptTime: candidate.id,
+        },
       });
+      if (candidate.validationReport !== null) {
+        await tx.aiPlanActivationAttempt.create({
+          data: {
+            clientId,
+            planVersionId,
+            requestKeyDigest,
+            outcome: "ACCEPTED",
+            reasonCode: "AUTOMATIC_GATE_APPROVED",
+            automaticApprovalId,
+            freshGateDecisionId,
+          },
+        });
+      }
       return { success: true, alreadyAccepted: false, activeVersionId: candidate.id };
     });
   } catch (err) {
     if (err instanceof AcceptanceRaceError) {
-      return { success: false, code: err.code, error: "The proposal changed. Refresh and try again." };
+      return {
+        success: false,
+        code: err.code,
+        error: "The proposal changed. Refresh and try again.",
+      };
     }
     // A legacy writer may use a different lock order. A deadlock/transaction
     // conflict must roll back completely and give a safe, retryable response.
-    if (typeof err === "object" && err !== null && "code" in err &&
-        ["P2034", "P2028"].includes(String(err.code))) {
-      return { success: false, code: "TEMPORARILY_UNAVAILABLE", error: "The coaching state is being updated. Please try again." };
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      ["P2034", "P2028"].includes(String(err.code))
+    ) {
+      return {
+        success: false,
+        code: "TEMPORARILY_UNAVAILABLE",
+        error: "The coaching state is being updated. Please try again.",
+      };
     }
     throw err;
   }
 }
 
 class AcceptanceRaceError extends Error {
-  constructor(public readonly code: AcceptPlanVersionErrorCode) { super(code); }
+  constructor(public readonly code: AcceptPlanVersionErrorCode) {
+    super(code);
+  }
 }
 
 /** ISO week key, e.g. "2026-W12" — a placeholder review-window derivation until A09 owns server-derived activation windows. */
@@ -290,7 +644,14 @@ function reviewWindowKeyFor(date: Date): string {
   const dayNumber = (target.getUTCDay() + 6) % 7;
   target.setUTCDate(target.getUTCDate() - dayNumber + 3);
   const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
-  const week = 1 + Math.round(((target.getTime() - firstThursday.getTime()) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
+  const week =
+    1 +
+    Math.round(
+      ((target.getTime() - firstThursday.getTime()) / 86400000 -
+        3 +
+        ((firstThursday.getUTCDay() + 6) % 7)) /
+        7
+    );
   return `${target.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
@@ -299,7 +660,11 @@ export type DeclinePlanVersionResult = { success: true } | { success: false; err
 const declineReasonSchema = z.string().max(500).optional();
 
 /** Idempotent decline of an owned PROPOSED candidate. */
-export async function declinePlanVersion(clientId: string, planVersionId: string, rawReason?: unknown): Promise<DeclinePlanVersionResult> {
+export async function declinePlanVersion(
+  clientId: string,
+  planVersionId: string,
+  rawReason?: unknown
+): Promise<DeclinePlanVersionResult> {
   const reasonParsed = declineReasonSchema.safeParse(rawReason);
   if (!reasonParsed.success) {
     return { success: false, error: "Decline reason is too long." };
@@ -313,7 +678,10 @@ export async function declinePlanVersion(clientId: string, planVersionId: string
     return { success: true };
   }
   if (candidate.status !== "PROPOSED") {
-    return { success: false, error: `Cannot decline a plan version with status ${candidate.status}.` };
+    return {
+      success: false,
+      error: `Cannot decline a plan version with status ${candidate.status}.`,
+    };
   }
 
   const updated = await db.aiPlanVersion.updateMany({
@@ -323,7 +691,9 @@ export async function declinePlanVersion(clientId: string, planVersionId: string
   if (updated.count === 0) {
     // Raced with another status change between the read and the write — reread to give an accurate idempotent-vs-error answer.
     const recheck = await db.aiPlanVersion.findUniqueOrThrow({ where: { id: planVersionId } });
-    return recheck.status === "DECLINED" ? { success: true } : { success: false, error: `Cannot decline a plan version with status ${recheck.status}.` };
+    return recheck.status === "DECLINED"
+      ? { success: true }
+      : { success: false, error: `Cannot decline a plan version with status ${recheck.status}.` };
   }
   return { success: true };
 }

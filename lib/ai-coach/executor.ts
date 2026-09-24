@@ -2,10 +2,23 @@ import { processManagedRun } from "./managed-executor";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
-import { claimQueuedRun, checkpointAndRequeue, completeRun, failRunAttempt, reconcileExpiredRuns, type ClaimResult } from "./runs";
-import { callProviderWithTimeout, ProviderTimeoutError, type ModelProvider } from "./provider/adapter";
+import {
+  claimQueuedRun,
+  checkpointAndRequeue,
+  completeRun,
+  failRunAttempt,
+  reconcileExpiredRuns,
+  type ClaimResult,
+} from "./runs";
+import {
+  callProviderWithTimeout,
+  legacySyntheticStageInput,
+  ProviderTimeoutError,
+  type ModelProvider,
+} from "./provider/adapter";
 import { SyntheticFixtureProvider } from "./provider/synthetic-provider";
 import { checkProviderRateLimit, isWithinTokenCeiling } from "./provider/spend-limits";
+import { assertAiCoachOperationEnabled } from "./operations";
 
 /**
  * A05 — durable job executor.
@@ -33,19 +46,31 @@ export type ProcessedOutcome = "completed" | "requeued" | "failed" | "rateLimite
  * provider call, token ceiling, checkpoint/complete/fail) can be tested
  * independently of what else happens to be QUEUED at the moment.
  */
-export async function processClaimedRun(claim: Extract<ClaimResult, { claimed: true }>, provider: ModelProvider): Promise<ProcessedOutcome> {
+export async function processClaimedRun(
+  claim: Extract<ClaimResult, { claimed: true }>,
+  provider: ModelProvider
+): Promise<ProcessedOutcome> {
   if (claim.run.inputSnapshot !== null) return processManagedRun(claim, provider);
   const withinRate = await checkProviderRateLimit(claim.run.clientId, claim.run.kind);
   if (!withinRate) {
-    await failRunAttempt(claim.run.id, claim.fencingToken, "Client model-call rate limit exceeded for this period.");
+    await failRunAttempt(
+      claim.run.id,
+      claim.fencingToken,
+      "Client model-call rate limit exceeded for this period."
+    );
     return "rateLimited";
   }
 
   let result;
   try {
-    result = await callProviderWithTimeout(provider, { run: claim.run });
+    result = await callProviderWithTimeout(provider, legacySyntheticStageInput(claim.run.kind));
   } catch (err) {
-    const message = err instanceof ProviderTimeoutError ? err.message : err instanceof Error ? err.message : "Unknown provider error";
+    const message =
+      err instanceof ProviderTimeoutError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : "Unknown provider error";
     await failRunAttempt(claim.run.id, claim.fencingToken, message);
     return "failed";
   }
@@ -56,16 +81,26 @@ export async function processClaimedRun(claim: Extract<ClaimResult, { claimed: t
   }
 
   if (!isWithinTokenCeiling(result.tokensUsed)) {
-    await failRunAttempt(claim.run.id, claim.fencingToken, `Stage reported ${result.tokensUsed} tokens, exceeding the per-call safety ceiling.`);
+    await failRunAttempt(
+      claim.run.id,
+      claim.fencingToken,
+      `Stage reported ${result.tokensUsed} tokens, exceeding the per-call safety ceiling.`
+    );
     return "failed";
   }
 
   if (result.isFinal) {
-    await completeRun(claim.run.id, claim.fencingToken, { resultReviewAction: result.reviewAction, resultPlanVersionId: result.resultPlanVersionId });
+    await completeRun(claim.run.id, claim.fencingToken, {
+      resultReviewAction: result.reviewAction,
+    });
     return "completed";
   }
 
-  await checkpointAndRequeue(claim.run.id, claim.fencingToken, result.stageOutput as Prisma.InputJsonValue);
+  await checkpointAndRequeue(
+    claim.run.id,
+    claim.fencingToken,
+    result.stageOutput as Prisma.InputJsonValue
+  );
   return "requeued";
 }
 
@@ -79,10 +114,25 @@ export interface ExecutorSweepSummary {
   rateLimited: number;
 }
 
-export async function runExecutorSweep(provider: ModelProvider = new SyntheticFixtureProvider()): Promise<ExecutorSweepSummary> {
+export async function runExecutorSweep(
+  provider: ModelProvider = new SyntheticFixtureProvider()
+): Promise<ExecutorSweepSummary> {
   if (!isAiCoachGenerationEnabled()) {
-    return { disabled: true, reconciled: { requeued: 0, failed: 0, resumed: 0 }, claimed: 0, completed: 0, requeuedForNextStage: 0, failed: 0, rateLimited: 0 };
+    return {
+      disabled: true,
+      reconciled: { requeued: 0, failed: 0, resumed: 0 },
+      claimed: 0,
+      completed: 0,
+      requeuedForNextStage: 0,
+      failed: 0,
+      rateLimited: 0,
+    };
   }
+
+  // Future production executors must bind an exact live-launch packet. The
+  // current executor is synthetic-only and deliberately has no such context.
+  await assertAiCoachOperationEnabled("GENERATION");
+  await assertAiCoachOperationEnabled("PROVIDER");
 
   const reconciled = await reconcileExpiredRuns();
 
@@ -93,7 +143,11 @@ export async function runExecutorSweep(provider: ModelProvider = new SyntheticFi
     select: { id: true },
   });
 
-  let claimed = 0, completed = 0, requeuedForNextStage = 0, failed = 0, rateLimited = 0;
+  let claimed = 0,
+    completed = 0,
+    requeuedForNextStage = 0,
+    failed = 0,
+    rateLimited = 0;
 
   for (const candidate of candidates) {
     const claim = await claimQueuedRun(candidate.id);
@@ -107,5 +161,13 @@ export async function runExecutorSweep(provider: ModelProvider = new SyntheticFi
     else rateLimited++;
   }
 
-  return { disabled: false, reconciled, claimed, completed, requeuedForNextStage, failed, rateLimited };
+  return {
+    disabled: false,
+    reconciled,
+    claimed,
+    completed,
+    requeuedForNextStage,
+    failed,
+    rateLimited,
+  };
 }

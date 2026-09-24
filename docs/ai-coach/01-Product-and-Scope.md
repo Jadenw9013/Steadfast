@@ -6,26 +6,26 @@ Status: proposed implementation specification after cross-functional review. Thi
 
 Help an eligible beginner complete a realistic week of eating and training, then understand whether to keep, simplify or adjust the plan. The useful product is the continuing coaching process: feasible actions, trustworthy records, measured adaptation and understandable reasons.
 
-The initial audience is adults starting or returning to general fitness, within the reviewed eligibility policy and supported launch geography. Do not infer suitability from age alone. A qualified reviewer must define the supported population; no arbitrary universal upper-age cutoff is specified here. Users needing clinical nutrition, rehabilitation or unsupported care receive a scoped explanation and appropriate next step.
+The initial audience is generally healthy adults starting or returning to general fitness, basic nutrition and beginner training, within the reviewed eligibility policy and supported launch geography. A professionally reviewed policy bundle defines the supported population and exclusions; no arbitrary universal upper-age cutoff is specified here. Users needing clinical nutrition, rehabilitation or unsupported care receive a scoped explanation and a pause/refer next step. The runtime does not make clinical or urgent-health determinations.
 
 The first complete MVP includes **both macro and curated full-meal planning**, plus training, cardio and weekly review. Build macro mode first internally, but do not describe that intermediate milestone as completion of the user's full request.
 
 ## Requirements
 
-| ID | Requirement | Observable completion |
-|---|---|---|
-| PR-01 | Explicit AI enrollment and confirmed intake | An eligible client chooses AI, understands its limits and confirms structured answers before generation. No fabricated human coach account. |
-| PR-02 | One coordinated starting plan | Nutrition, strength and cardio fit the user's supported goal, schedule, experience and resources; conflicting recommendations are rejected. |
-| PR-03 | Macro mode | A clear target/range presentation and practical guidance; one source of truth for all nutritional values. |
-| PR-04 | Curated meal mode | A usable week with portions, preparation guidance, checked totals, grocery quantities and allowed substitutions from a versioned catalog. |
-| PR-05 | Beginner training | Stable exercises, demonstrated instructions, prescribed sets/repetitions/effort or duration, rest and equipment alternatives from reviewed templates. |
-| PR-06 | Low-burden evidence collection | A brief weekly check-in and simple session results; missing and uncertain observations remain explicit. Photos and detailed food logging are optional later modules. |
-| PR-07 | Responsible weekly adaptation | HOLD, SIMPLIFY, ADJUST, CLARIFY or PAUSE_REFER with an understandable reason. At most one accepted ROUTINE prescription change per canonical review window; target-preserving exceptions are validated and safety restrictions apply immediately. |
-| PR-08 | Deliberate activation | The user sees changes and accepts a valid proposal; stale, unsafe, duplicate or unauthorized proposals cannot activate. |
-| PR-09 | Honest failure handling | Saved intake survives retries; pending/failed/paused states explain what happens next. An older plan is offered only where still allowed by the current safety disposition. |
-| PR-10 | Human-coach continuity | A client can request an explicit provider transition; private history is shared only within a valid relationship and its consent scope. |
-| PR-11 | Privacy and control | Pause, export, withdraw optional processing permission and delete without losing control of sensitive records. New processing stops on deactivation. |
-| PR-12 | Accessible web and shared contracts | Existing web styling is preserved; accessible UI and versioned backend contracts support a separate native client without duplicating decision logic. |
+| ID    | Requirement                                 | Observable completion                                                                                                                                                                                                                             |
+| ----- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PR-01 | Explicit AI enrollment and confirmed intake | An eligible client chooses AI, understands its limits and confirms structured answers before generation. No fabricated human coach account.                                                                                                       |
+| PR-02 | One coordinated starting plan               | Nutrition, strength and cardio fit the user's supported goal, schedule, experience and resources; conflicting recommendations are rejected.                                                                                                       |
+| PR-03 | Macro mode                                  | A clear target/range presentation and practical guidance; one source of truth for all nutritional values.                                                                                                                                         |
+| PR-04 | Curated meal mode                           | A usable week with portions, preparation guidance, checked totals, grocery quantities and allowed substitutions from a versioned catalog.                                                                                                         |
+| PR-05 | Beginner training                           | Stable exercises, demonstrated instructions, prescribed sets/repetitions/effort or duration, rest and equipment alternatives from reviewed templates.                                                                                             |
+| PR-06 | Low-burden evidence collection              | A brief weekly check-in and simple session results; missing and uncertain observations remain explicit. Photos and detailed food logging are optional later modules.                                                                              |
+| PR-07 | Responsible weekly adaptation               | HOLD, SIMPLIFY, ADJUST, CLARIFY or PAUSE_REFER with an understandable reason. At most one accepted ROUTINE prescription change per canonical review window; target-preserving exceptions are validated and safety restrictions apply immediately. |
+| PR-08 | Deliberate activation                       | The user sees changes and accepts a valid proposal; stale, unsafe, duplicate or unauthorized proposals cannot activate. A deterministic autonomy gate, not the model, determines automatic approval, hold, focused clarification, or pause/refer. |
+| PR-09 | Honest failure handling                     | Saved intake survives retries; pending/failed/paused states explain what happens next. An older plan is offered only where still allowed by the current safety disposition.                                                                       |
+| PR-10 | Human-coach continuity                      | A client can request an explicit provider transition; private history is shared only within a valid relationship and its consent scope.                                                                                                           |
+| PR-11 | Privacy and control                         | Pause, export, withdraw optional processing permission and delete without losing control of sensitive records. New processing stops on deactivation.                                                                                              |
+| PR-12 | Accessible web and shared contracts         | Existing web styling is preserved; accessible UI and versioned backend contracts support a separate native client without duplicating decision logic.                                                                                             |
 
 ## What the plan adapts to
 

@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
 import { Prisma } from "@/app/generated/prisma/client";
-import { AiCoachError } from "@/lib/ai-coach/access";
+import { AiCoachError } from "@/lib/ai-coach/error";
 
 /**
  * T-920 — the whole redaction contract lives in this file. Nothing outside it
@@ -129,7 +129,8 @@ function isIdSegment(segment: string): boolean {
   if (/^[a-z0-9]{20,}$/i.test(segment)) return true;
   // shorter alphanumeric token that mixes letters and digits — e.g. a short
   // cuid-shaped fixture id like "clx123abc"
-  if (/^[a-z0-9]{6,}$/i.test(segment) && /[0-9]/.test(segment) && /[a-z]/i.test(segment)) return true;
+  if (/^[a-z0-9]{6,}$/i.test(segment) && /[0-9]/.test(segment) && /[a-z]/i.test(segment))
+    return true;
   return false;
 }
 
