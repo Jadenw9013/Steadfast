@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getActivationMessage, validateActivationPreconditions } from "@/lib/activation";
+import { getActivationMessage } from "@/lib/activation";
 
 /**
  * Activation safety tests.
@@ -52,76 +52,6 @@ describe("getActivationMessage", () => {
     });
 });
 
-describe("validateActivationPreconditions", () => {
-    it("returns error for ACTIVE leads (idempotency guard)", () => {
-        const err = validateActivationPreconditions({ consultationStage: "ACTIVE" });
-        expect(err).toBe("Already active.");
-    });
-
-    // ── Normal pipeline (allowAnyStage = false) ──────────────────────────
-    describe("normal pipeline (strict stage check)", () => {
-        it("allows FORMS_SIGNED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "FORMS_SIGNED" });
-            expect(err).toBeNull();
-        });
-
-        it("allows INTAKE_SUBMITTED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "INTAKE_SUBMITTED" });
-            expect(err).toBeNull();
-        });
-
-        it("blocks PENDING", () => {
-            const err = validateActivationPreconditions({ consultationStage: "PENDING" });
-            expect(err).toContain("complete intake");
-        });
-
-        it("blocks CONSULTATION_SCHEDULED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "CONSULTATION_SCHEDULED" });
-            expect(err).toContain("complete intake");
-        });
-
-        it("blocks FORMS_SENT", () => {
-            const err = validateActivationPreconditions({ consultationStage: "FORMS_SENT" });
-            expect(err).toContain("complete intake");
-        });
-    });
-
-    // ── Bypass pipeline (allowAnyStage = true) ───────────────────────────
-    describe("bypass pipeline (any stage allowed)", () => {
-        it("allows PENDING when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "PENDING",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("allows CONSULTATION_SCHEDULED when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "CONSULTATION_SCHEDULED",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("allows FORMS_SENT when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "FORMS_SENT",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("still blocks ACTIVE even with bypass (idempotency)", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "ACTIVE",
-                allowAnyStage: true,
-            });
-            expect(err).toBe("Already active.");
-        });
-    });
-});
-
 /**
  * ARCHITECTURAL INVARIANT TEST
  *
@@ -139,11 +69,6 @@ describe("activation helper contract", () => {
     it("exports getActivationMessage", async () => {
         const mod = await import("@/lib/activation");
         expect(typeof mod.getActivationMessage).toBe("function");
-    });
-
-    it("exports validateActivationPreconditions", async () => {
-        const mod = await import("@/lib/activation");
-        expect(typeof mod.validateActivationPreconditions).toBe("function");
     });
 
     it("exports acceptClientInviteForUser", async () => {
@@ -179,5 +104,79 @@ describe("CB01 — no phone-match authorization", () => {
         // callers construct it), but activation.ts itself must never use it
         // to resolve which User account to act on.
         expect(source).not.toMatch(/phoneNumber/);
+    });
+
+    // T-978: the sibling of the guard above. establishRelationshipOrInvite's
+    // candidate set is exact email equality plus prospectId — never a phone
+    // lookup. This is the shared primitive activateLead and
+    // linkOrInviteProspect both call, so it is the one place CB01 must hold
+    // for the whole funnel, not just the pre-existing file.
+    it("lib/leads/activate-lead.ts never queries User by phoneNumber", async () => {
+        const fs = await import("node:fs/promises");
+        const source = await fs.readFile(new URL("../../lib/leads/activate-lead.ts", import.meta.url), "utf8");
+        expect(source).not.toMatch(/phoneNumber/);
+    });
+});
+
+/**
+ * T-978 — the message table in lib/leads/activate-lead.ts. All four
+ * outcomes and all five refusals: distinct, non-empty. Every one that has a
+ * real prospect name available interpolates it (not_found is the deliberate
+ * exception — the transaction refuses before any lead is ever read, so
+ * there is no name to interpolate; its sentence is a fixed, safe "Lead not
+ * found"). No refusal sentence claims anything happened: none may contain
+ * "activated", "active client", "roster" or "invite sent" — the pure-function
+ * form of "a refusal never claims anything happened".
+ */
+describe("lib/leads/activate-lead.ts getActivationMessage", () => {
+    const FORBIDDEN_IN_REFUSALS = ["activated", "active client", "roster", "invite sent"];
+
+    it("produces nine distinct, non-empty sentences", async () => {
+        const { getActivationMessage } = await import("@/lib/leads/activate-lead");
+        const states = [
+            "already_active",
+            "already_on_roster",
+            "invite_emailed",
+            "invite_created_email_failed",
+            "not_found",
+            "wrong_stage",
+            "no_email_on_file",
+            "self_addressed",
+            "failed",
+        ] as const;
+        const messages = states.map((s) => getActivationMessage("Sam", s, { email: "sam@example.test" }));
+        for (const m of messages) expect(m.length).toBeGreaterThan(0);
+        expect(new Set(messages).size).toBe(messages.length);
+    });
+
+    it("interpolates the prospect name in every state except not_found", async () => {
+        const { getActivationMessage } = await import("@/lib/leads/activate-lead");
+        const states = [
+            "already_active",
+            "already_on_roster",
+            "invite_emailed",
+            "invite_created_email_failed",
+            "wrong_stage",
+            "no_email_on_file",
+            "self_addressed",
+            "failed",
+        ] as const;
+        for (const s of states) {
+            expect(getActivationMessage("Zaleria", s)).toContain("Zaleria");
+        }
+        // The deliberate exception: no lead was ever read, so there is
+        // nothing to name.
+        expect(getActivationMessage("", "not_found")).toBe("Lead not found");
+    });
+
+    it("no refusal sentence claims anything happened", async () => {
+        const { getActivationMessage } = await import("@/lib/leads/activate-lead");
+        const refusals = ["not_found", "wrong_stage", "no_email_on_file", "self_addressed", "failed"] as const;
+        for (const r of refusals) {
+            const msg = getActivationMessage("Sam", r, { email: "sam@example.test" }).toLowerCase();
+            for (const bad of FORBIDDEN_IN_REFUSALS) {
+                expect(msg, `refusal "${r}" message "${msg}" must not contain "${bad}"`).not.toContain(bad);
+            }
+        }
     });
 });

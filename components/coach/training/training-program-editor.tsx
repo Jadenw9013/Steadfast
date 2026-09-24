@@ -4,10 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TrainingDayCard } from "./training-day-card";
-import {
-  saveTrainingProgram,
-  publishTrainingProgram,
-} from "@/app/actions/training-programs";
+import { saveTrainingProgram, publishTrainingProgram } from "@/app/actions/training-programs";
 import type { TrainingDayGroup, BlockType } from "@/types/training";
 
 type TemplateOption = {
@@ -82,6 +79,16 @@ type InitialProgram = {
 type Mode = "empty" | "assign" | "edit";
 type ViewMode = "editor" | "preview";
 
+function formatCarriedOverWeek(weekOf: string): string {
+  const date = new Date(`${weekOf}T00:00:00Z`);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 const BLOCK_TYPE_LABELS: Record<BlockType, string> = {
   EXERCISE: "Exercise",
   ACTIVATION: "Activation",
@@ -119,9 +126,7 @@ function ProgramPreview({
               <span className="text-zinc-500">per week</span>
             </p>
           )}
-          {clientNotes && (
-            <p className="mt-1 text-sm text-zinc-500">{clientNotes}</p>
-          )}
+          {clientNotes && <p className="mt-1 text-sm text-zinc-500">{clientNotes}</p>}
         </div>
       )}
       {days.map((day, i) => (
@@ -146,9 +151,7 @@ function ProgramPreview({
                         {BLOCK_TYPE_LABELS[block.type]}
                       </span>
                     )}
-                    {block.title && (
-                      <span className="text-sm font-medium">{block.title}</span>
-                    )}
+                    {block.title && <span className="text-sm font-medium">{block.title}</span>}
                   </div>
                   {block.content && (
                     <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-zinc-400">
@@ -173,11 +176,13 @@ export function TrainingProgramEditor({
   weekStartDate,
   initialProgram,
   templates = [],
+  carriedOverFromWeek = null,
 }: {
   clientId: string;
   weekStartDate: string;
   initialProgram: InitialProgram;
   templates?: TemplateOption[];
+  carriedOverFromWeek?: string | null;
 }) {
   const router = useRouter();
 
@@ -198,9 +203,11 @@ export function TrainingProgramEditor({
 
   const [mode, setMode] = useState<Mode>(initialProgram ? "edit" : "empty");
   const [viewMode, setViewMode] = useState<ViewMode>("editor");
-  const [programId, setProgramId] = useState<string | null>(initialProgram?.id ?? null);
+  const [programId, setProgramId] = useState<string | null>(
+    carriedOverFromWeek ? null : (initialProgram?.id ?? null)
+  );
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED" | "SUPERSEDED" | null>(
-    initialProgram?.status ?? null
+    carriedOverFromWeek ? null : (initialProgram?.status ?? null)
   );
   const [days, setDays] = useState<TrainingDayGroup[]>(_extracted.trainingDays);
 
@@ -245,8 +252,16 @@ export function TrainingProgramEditor({
 
   function getDaysPayload(overrideDays?: TrainingDayGroup[]): TrainingDayGroup[] {
     const allDays = [...(overrideDays ?? days)];
-    const hasCardioData = cardioModality || cardioFrequency || cardioDuration || cardioIntensity || cardioNotes;
-    console.log("[getDaysPayload] showCardio:", showCardio, "hasCardioData:", hasCardioData, "modality:", cardioModality);
+    const hasCardioData =
+      cardioModality || cardioFrequency || cardioDuration || cardioIntensity || cardioNotes;
+    console.log(
+      "[getDaysPayload] showCardio:",
+      showCardio,
+      "hasCardioData:",
+      hasCardioData,
+      "modality:",
+      cardioModality
+    );
     if (showCardio && hasCardioData) {
       allDays.push(
         buildCardioDayBlock({
@@ -258,7 +273,12 @@ export function TrainingProgramEditor({
         })
       );
     }
-    console.log("[getDaysPayload] total days:", allDays.length, "names:", allDays.map(d => d.dayName));
+    console.log(
+      "[getDaysPayload] total days:",
+      allDays.length,
+      "names:",
+      allDays.map((d) => d.dayName)
+    );
     return allDays;
   }
 
@@ -416,7 +436,10 @@ export function TrainingProgramEditor({
             <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => { setDays([]); setMode("edit"); }}
+                onClick={() => {
+                  setDays([]);
+                  setMode("edit");
+                }}
                 className="flex-1 rounded-xl border border-white/[0.12] py-2.5 text-sm font-semibold text-zinc-300 transition-all hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
               >
                 Custom Plan
@@ -441,7 +464,7 @@ export function TrainingProgramEditor({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => setMode(programId ? "edit" : "empty")}
+            onClick={() => setMode(initialProgram ? "edit" : "empty")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
             aria-label="Back"
           >
@@ -453,9 +476,7 @@ export function TrainingProgramEditor({
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04]">
           {/* Template picker — card list */}
           <div className="border-b border-white/[0.06]">
-            <p className="px-5 pt-4 pb-2 text-xs font-semibold text-zinc-500">
-              Choose a template
-            </p>
+            <p className="px-5 pt-4 pb-2 text-xs font-semibold text-zinc-500">Choose a template</p>
             {templates.length === 0 ? (
               <p className="px-5 pb-4 text-sm text-zinc-400">
                 No templates yet.{" "}
@@ -477,10 +498,9 @@ export function TrainingProgramEditor({
                       type="button"
                       onClick={() => setSelectedTemplateId(t.id)}
                       aria-pressed={isSelected}
-                      className={`w-full px-5 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-500 ${isSelected
-                        ? "bg-white/[0.04]"
-                        : "hover:bg-white/[0.04]/60"
-                        }`}
+                      className={`w-full px-5 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-zinc-500 ${
+                        isSelected ? "bg-white/[0.04]" : "hover:bg-white/[0.04]/60"
+                      }`}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="truncate text-sm font-semibold">{t.name}</span>
@@ -489,9 +509,7 @@ export function TrainingProgramEditor({
                             {t.days.length} {t.days.length === 1 ? "day" : "days"}
                           </span>
                           {isSelected && (
-                            <span className="text-xs font-semibold text-emerald-400">
-                              ✓
-                            </span>
+                            <span className="text-xs font-semibold text-emerald-400">✓</span>
                           )}
                         </div>
                       </div>
@@ -506,8 +524,7 @@ export function TrainingProgramEditor({
           {selectedTemplateId && (
             <div className="px-5 py-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                Client adjustments{" "}
-                <span className="font-normal normal-case">(optional)</span>
+                Client adjustments <span className="font-normal normal-case">(optional)</span>
               </p>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="flex flex-col gap-1.5">
@@ -607,10 +624,11 @@ export function TrainingProgramEditor({
           {status && (
             <span
               aria-live="polite"
-              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${status === "PUBLISHED"
-                ? "bg-emerald-500/10 text-emerald-400"
-                : "bg-amber-500/10 text-amber-400"
-                }`}
+              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                status === "PUBLISHED"
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : "bg-amber-500/10 text-amber-400"
+              }`}
             >
               {status === "PUBLISHED" ? "Published" : "Draft"}
             </span>
@@ -625,20 +643,22 @@ export function TrainingProgramEditor({
             <button
               type="button"
               onClick={() => setViewMode("editor")}
-              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "editor"
-                ? "bg-zinc-100 text-zinc-900"
-                : "text-zinc-500 hover:text-zinc-300"
-                }`}
+              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
+                viewMode === "editor"
+                  ? "bg-zinc-100 text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
             >
               Editor
             </button>
             <button
               type="button"
               onClick={() => setViewMode("preview")}
-              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${viewMode === "preview"
-                ? "bg-zinc-100 text-zinc-900"
-                : "text-zinc-500 hover:text-zinc-300"
-                }`}
+              className={`rounded-md px-2.5 py-1 font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 ${
+                viewMode === "preview"
+                  ? "bg-zinc-100 text-zinc-900"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
             >
               Preview
             </button>
@@ -672,13 +692,16 @@ export function TrainingProgramEditor({
         </div>
       </div>
 
+      {carriedOverFromWeek && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-200">
+          Carried over from the week of {formatCarriedOverWeek(carriedOverFromWeek)}. This week has
+          no program of its own yet — Save or Publish to make this the program for this week.
+        </div>
+      )}
+
       {/* Preview mode */}
       {viewMode === "preview" ? (
-        <ProgramPreview
-          days={days}
-          weeklyFrequency={weeklyFrequency}
-          clientNotes={clientNotes}
-        />
+        <ProgramPreview days={days} weeklyFrequency={weeklyFrequency} clientNotes={clientNotes} />
       ) : (
         <>
           {/* Cardio section — collapsible */}
@@ -688,7 +711,13 @@ export function TrainingProgramEditor({
               onClick={() => setShowCardio(true)}
               className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-green-500/40 py-4 text-sm font-semibold text-green-400 transition-colors hover:border-green-500/60 hover:bg-green-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
             >
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
               </svg>
               Add Cardio
@@ -717,7 +746,10 @@ export function TrainingProgramEditor({
               <div className="px-5 py-4 space-y-3">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="cardio-modality" className="text-xs font-semibold text-zinc-500">
+                    <label
+                      htmlFor="cardio-modality"
+                      className="text-xs font-semibold text-zinc-500"
+                    >
                       Type / Machine
                     </label>
                     <input
@@ -730,7 +762,10 @@ export function TrainingProgramEditor({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="cardio-frequency" className="text-xs font-semibold text-zinc-500">
+                    <label
+                      htmlFor="cardio-frequency"
+                      className="text-xs font-semibold text-zinc-500"
+                    >
                       Frequency
                     </label>
                     <input
@@ -743,7 +778,10 @@ export function TrainingProgramEditor({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="cardio-duration" className="text-xs font-semibold text-zinc-500">
+                    <label
+                      htmlFor="cardio-duration"
+                      className="text-xs font-semibold text-zinc-500"
+                    >
                       Duration
                     </label>
                     <input
@@ -756,7 +794,10 @@ export function TrainingProgramEditor({
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label htmlFor="cardio-intensity" className="text-xs font-semibold text-zinc-500">
+                    <label
+                      htmlFor="cardio-intensity"
+                      className="text-xs font-semibold text-zinc-500"
+                    >
                       Intensity
                     </label>
                     <input
@@ -828,8 +869,6 @@ export function TrainingProgramEditor({
           </div>
         </>
       )}
-
-
 
       {/* Actions */}
       {error && (

@@ -5,10 +5,9 @@ import { randomUUID } from "crypto";
  * T-920 — the three degradation beacons, tested against the exact row shapes
  * of the three production incidents that motivated this ticket:
  *
- *  - T-803 (still live on `main` at the time of writing): a per-week training
- *    read with no cross-week fallback. `getTrainingProgramForReview` must
- *    still return `{ source: "empty", program: null }` unchanged — this
- *    ticket only reports the defect, it does not fix it.
+ *  - T-803: a per-week training read now carries the latest earlier published
+ *    program forward. The old empty-week beacon remains only for unresolved
+ *    shapes such as draft-only history; a successful carry-over is silent.
  *  - T-800 (already fixed): a MACROS plan publish rejected as empty while the
  *    row's `items` array has content — the exact shape that let a foods plan
  *    publish and read back as "macros with zero targets".
@@ -30,7 +29,11 @@ import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { publishTrainingProgramTarget } from "@/lib/training-programs/publish";
 import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
 import { getMealPlanSaveTarget, saveMealPlanDraftContent } from "@/lib/meal-plans/drafts";
-import { TRAINING_WEEK_EMPTY, MEALPLAN_MODE_DISAGREEMENT, MEALPLAN_SAVE_DROPPED_KEYS } from "@/lib/observability/events";
+import {
+  TRAINING_WEEK_EMPTY,
+  MEALPLAN_MODE_DISAGREEMENT,
+  MEALPLAN_SAVE_DROPPED_KEYS,
+} from "@/lib/observability/events";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
@@ -83,7 +86,10 @@ suite("observability beacons (T-920) — the three production incidents as code"
           return null;
         }
       })
-      .filter((parsed: Record<string, unknown> | null): parsed is Record<string, unknown> => parsed !== null);
+      .filter(
+        (parsed: Record<string, unknown> | null): parsed is Record<string, unknown> =>
+          parsed !== null
+      );
   }
 
   function eventsNamed(evt: string): Array<Record<string, unknown>> {
@@ -106,7 +112,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
   // ── Training beacon (T-803) ────────────────────────────────────────────────
 
   describe("sf.training.week_empty_with_history", () => {
-    it("fires when the read week is empty but the client has a program in another week (T-803 reproduction)", async () => {
+    it("resolves an earlier published program through T-803 carry-over without firing the old empty-week beacon", async () => {
       const client = await makeClient();
       await db.trainingProgram.create({
         data: { clientId: client.id, weekOf: WEEK_A, status: "PUBLISHED", publishedAt: new Date() },
@@ -114,18 +120,10 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_B);
 
-      // Unchanged behaviour — this ticket reports the defect, T-803 fixes it.
-      expect(result).toEqual({ source: "empty", program: null });
-
-      const fired = eventsNamed(TRAINING_WEEK_EMPTY.evt);
-      expect(fired).toHaveLength(1);
-      expect(fired[0].level).toBe("warning");
-      expect(fired[0].ids).toMatchObject({ clientId: client.id });
-      expect(fired[0].context).toEqual({
-        weeksWithPrograms: 1,
-        hasPublished: true,
-        hasDraft: false,
-      });
+      expect(result.source).toBe("carried-over");
+      expect(result.program?.clientId).toBe(client.id);
+      expect(result.carriedOverFrom).toEqual(WEEK_A);
+      expect(eventsNamed(TRAINING_WEEK_EMPTY.evt)).toHaveLength(0);
     });
 
     it("reports hasDraft/hasPublished truthfully instead of hardcoded false", async () => {
@@ -136,7 +134,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_B);
 
-      expect(result).toEqual({ source: "empty", program: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
       const fired = eventsNamed(TRAINING_WEEK_EMPTY.evt);
       expect(fired).toHaveLength(1);
       expect(fired[0].context).toEqual({
@@ -183,7 +181,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_A);
 
-      expect(result).toEqual({ source: "empty", program: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
       expect(eventsNamed(TRAINING_WEEK_EMPTY.evt)).toHaveLength(0);
     });
 
@@ -202,7 +200,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_A);
 
-      expect(result).toEqual({ source: "empty", program: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
       expect(eventsNamed(TRAINING_WEEK_EMPTY.evt)).toHaveLength(0);
     });
 
@@ -213,7 +211,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_A);
 
-      expect(result).toEqual({ source: "empty", program: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
       expect(eventsNamed(TRAINING_WEEK_EMPTY.evt)).toHaveLength(0);
       expect(countSpy.mock.calls.length).toBeLessThanOrEqual(1);
     });
@@ -257,9 +255,27 @@ suite("observability beacons (T-920) — the three production incidents as code"
           planMode: "MACROS",
           items: {
             create: [
-              { mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz" },
-              { mealName: "Meal 2", sortOrder: 1, foodName: "White rice", quantity: "1", unit: "cup" },
-              { mealName: "Meal 3", sortOrder: 2, foodName: "Broccoli", quantity: "1", unit: "cup" },
+              {
+                mealName: "Meal 1",
+                sortOrder: 0,
+                foodName: "Chicken breast",
+                quantity: "6",
+                unit: "oz",
+              },
+              {
+                mealName: "Meal 2",
+                sortOrder: 1,
+                foodName: "White rice",
+                quantity: "1",
+                unit: "cup",
+              },
+              {
+                mealName: "Meal 3",
+                sortOrder: 2,
+                foodName: "Broccoli",
+                quantity: "1",
+                unit: "cup",
+              },
             ],
           },
         },
@@ -279,7 +295,13 @@ suite("observability beacons (T-920) — the three production incidents as code"
     it("does not fire for a genuinely blank plan (noise floor)", async () => {
       const client = await makeClient();
       const plan = await db.mealPlan.create({
-        data: { clientId: client.id, weekOf: WEEK_A, version: 1, status: "DRAFT", planMode: "MEAL_PLAN" },
+        data: {
+          clientId: client.id,
+          weekOf: WEEK_A,
+          version: 1,
+          status: "DRAFT",
+          planMode: "MEAL_PLAN",
+        },
       });
 
       const target = await getMealPlanPublishTarget(plan.id);
@@ -294,7 +316,9 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
   describe("sf.mealplan.save_dropped_keys", () => {
     const storedPlanExtras = {
-      metadata: { coachNotes: "Contact the client directly at alice@example.com re: cutting phase" },
+      metadata: {
+        coachNotes: "Contact the client directly at alice@example.com re: cutting phase",
+      },
       confidence: { meals: 0.9 },
     };
 
@@ -308,7 +332,11 @@ suite("observability beacons (T-920) — the three production incidents as code"
           status: "DRAFT",
           planMode: "MEAL_PLAN",
           planExtras: storedPlanExtras,
-          items: { create: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Eggs", quantity: "3", unit: "each" }] },
+          items: {
+            create: [
+              { mealName: "Meal 1", sortOrder: 0, foodName: "Eggs", quantity: "3", unit: "each" },
+            ],
+          },
         },
       });
 
@@ -325,10 +353,10 @@ suite("observability beacons (T-920) — the three production incidents as code"
         targetStatus: "DRAFT",
       });
 
-      // Save behaviour itself is unchanged — the row now holds exactly the
-      // submitted planExtras.
+      // T-841 now preserves omitted top-level keys while retaining the beacon
+      // as evidence that an older partial client payload was received.
       const saved = await db.mealPlan.findUniqueOrThrow({ where: { id: plan.id } });
-      expect(saved.planExtras).toEqual(savedPlanExtras);
+      expect(saved.planExtras).toEqual(storedPlanExtras);
 
       // PII proof — the dropped key's own content (a coach note + an email)
       // must never appear anywhere in ANY captured event line, only its name.
@@ -381,7 +409,9 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const fired = eventsNamed(MEALPLAN_SAVE_DROPPED_KEYS.evt);
       expect(fired).toHaveLength(1);
-      const droppedKeys = String(fired[0].context && (fired[0].context as Record<string, unknown>).droppedKeys);
+      const droppedKeys = String(
+        fired[0].context && (fired[0].context as Record<string, unknown>).droppedKeys
+      );
       expect(droppedKeys.split(",").sort()).toEqual(["[unknown]", "metadata"]);
       expect(droppedKeys).not.toContain("secretInternalNote");
 
@@ -400,12 +430,18 @@ suite("observability beacons (T-920) — the three production incidents as code"
           publishedAt: new Date(),
           planMode: "MEAL_PLAN",
           planExtras: storedPlanExtras,
-          items: { create: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Eggs", quantity: "3", unit: "each" }] },
+          items: {
+            create: [
+              { mealName: "Meal 1", sortOrder: 0, foodName: "Eggs", quantity: "3", unit: "each" },
+            ],
+          },
         },
       });
 
       const target = await getMealPlanSaveTarget(plan.id);
-      const result = await saveMealPlanDraftContent(target!, { planExtras: { confidence: { meals: 0.9 } } });
+      const result = await saveMealPlanDraftContent(target!, {
+        planExtras: { confidence: { meals: 0.9 } },
+      });
 
       // The fork happened — the published row itself is untouched (CB04).
       expect(result.forkedNewDraftId).toBeDefined();

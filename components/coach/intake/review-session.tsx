@@ -75,7 +75,19 @@ export function ReviewSession({
     const [saveState, setSaveState] = useState<SaveState>("idle");
     const [error, setError] = useState<string | null>(null);
     const [activateStep, setActivateStep] = useState<"idle" | "confirm" | "success" | "error">("idle");
-    const [activateResult, setActivateResult] = useState<{ path?: string; email?: string; clientId?: string } | null>(null);
+    // T-978: activateClient's return shape. onRoster/clientId/outcome replace
+    // the old path union ("existing_account" | "invite_sent"), which no
+    // longer exists. A second reader of the pre-T-978 shape the frozen spec's
+    // file list did not name (lead-actions.tsx was the only one listed) —
+    // fixed identically here so this screen does not silently stop showing
+    // the dashboard link / invite-sent line for every successful activation.
+    const [activateResult, setActivateResult] = useState<{
+        outcome?: string;
+        onRoster?: boolean;
+        clientId?: string | null;
+        email?: string | null;
+        message?: string;
+    } | null>(null);
     const [missingFields, setMissingFields] = useState<{ questionId: string; label: string; sectionTitle: string }[]>([]);
     const [highlightedField, setHighlightedField] = useState<string | null>(null);
     const [editingField, setEditingField] = useState<string | null>(null);
@@ -172,7 +184,7 @@ export function ReviewSession({
             try {
                 const res = await activateClient({ requestId });
                 if (res.success) {
-                    setActivateResult(res as { path?: string; email?: string; clientId?: string });
+                    setActivateResult(res);
                     setActivateStep("success");
                     router.refresh();
                 } else {
@@ -235,15 +247,17 @@ export function ReviewSession({
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
                     {prospectName} is now an active client!
                 </p>
-                {activateResult.path === "existing_account" && activateResult.clientId && (
+                {activateResult.onRoster && activateResult.clientId && (
                     <Link href={`/coach/clients/${activateResult.clientId}`} className="block text-sm text-blue-400 hover:underline">
                         View {prospectName}&apos;s dashboard →
                     </Link>
                 )}
-                {activateResult.path === "invite_sent" && activateResult.email && (
-                    <p className="text-sm text-zinc-400">
-                        Invite sent to <strong className="text-zinc-200">{activateResult.email}</strong> — they&apos;ll appear on your dashboard once they sign up.
-                    </p>
+                {(activateResult.outcome === "invite_emailed" || activateResult.outcome === "invite_created_email_failed") && activateResult.message && (
+                    // T-978 review round 1, parity gap 3: this used to be a hard-coded
+                    // "Invite sent to X" regardless of outcome, so a post-commit email
+                    // failure was reported as a success. Render the service's own
+                    // message, which distinguishes the two.
+                    <p className="text-sm text-zinc-400">{activateResult.message}</p>
                 )}
                 <Link href="/coach/leads" className="block text-sm text-zinc-500 hover:text-zinc-300">
                     ← Back to all leads
@@ -251,6 +265,25 @@ export function ReviewSession({
             </div>
         );
     }
+
+    // --- Activation error content (T-978 review round 3, m-2): shared by
+    // the desktop sidebar and the mobile fixed bottom bar below, so the two
+    // structurally cannot drift the way review round 3 found a hand-copied
+    // version already had (a canFinalize guard, w-full, minHeight — three
+    // differences a comment claiming "never drift apart" did not prevent).
+    // One implementation, same principle as sidebarContent below.
+    const activationErrorContent = error && (
+        <div className="space-y-2">
+            <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</p>
+            <button
+                onClick={() => { setActivateStep("idle"); setError(null); }}
+                className="w-full rounded-xl border border-zinc-700 px-4 py-3 text-sm font-semibold text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-all"
+                style={{ minHeight: "48px" }}
+            >
+                Try Again
+            </button>
+        </div>
+    );
 
     // --- Sidebar content (reused in desktop sidebar + mobile inline) ---
     const sidebarContent = (
@@ -347,17 +380,7 @@ export function ReviewSession({
             )}
 
             {/* Error in sidebar */}
-            {activateStep === "error" && error && (
-                <div className="space-y-2">
-                    <p role="alert" className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">{error}</p>
-                    <button
-                        onClick={() => { setActivateStep("idle"); setError(null); }}
-                        className="rounded-xl border border-zinc-700 px-4 py-2.5 text-sm font-semibold text-zinc-400 hover:border-zinc-500 hover:text-zinc-200 transition-all"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            )}
+            {activateStep === "error" && activationErrorContent}
         </>
     );
 
@@ -696,6 +719,23 @@ export function ReviewSession({
                             </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Mobile: error — T-978 review round 2, ui-qa MAJOR. Before this
+                ticket, activateStep === "error" was reached almost only via a
+                thrown exception (network/auth failure) — rare. T-978 makes a
+                refusal (no_email_on_file, wrong_stage, self_addressed, failed)
+                a normal, everyday outcome of this exact screen, and this
+                block did not exist: on any viewport narrower than `lg`, the
+                whole activation UI (button, confirm, error, retry) simply
+                disappeared, leaving a coach with no message and no way
+                forward. Renders the same `activationErrorContent` the
+                desktop sidebar uses (T-978 review round 3, m-2) — a hoisted
+                const, not a hand copy, so the two cannot drift apart. */}
+            {canFinalize && activateStep === "error" && (
+                <div className="lg:hidden fixed bottom-0 left-0 right-0 z-20 border-t border-white/[0.08] bg-zinc-950/95 backdrop-blur px-4 py-4" role="region" aria-label="Actions">
+                    {activationErrorContent}
                 </div>
             )}
 

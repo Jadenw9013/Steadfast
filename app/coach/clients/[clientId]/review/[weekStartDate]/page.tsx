@@ -94,22 +94,22 @@ export default async function ReviewWorkspacePage({
 
   const initialProgram = trainingData.program
     ? {
-      id: trainingData.program.id,
-      status: trainingData.program.status,
-      templateSourceId: trainingData.program.templateSourceId,
-      weeklyFrequency: trainingData.program.weeklyFrequency,
-      clientNotes: trainingData.program.clientNotes,
-      injuries: trainingData.program.injuries,
-      equipment: trainingData.program.equipment,
-      days: trainingData.program.days.map((d) => ({
-        dayName: d.dayName,
-        blocks: d.blocks.map((b) => ({
-          type: b.type,
-          title: b.title,
-          content: b.content,
+        id: trainingData.program.id,
+        status: trainingData.program.status,
+        templateSourceId: trainingData.program.templateSourceId,
+        weeklyFrequency: trainingData.program.weeklyFrequency,
+        clientNotes: trainingData.program.clientNotes,
+        injuries: trainingData.program.injuries,
+        equipment: trainingData.program.equipment,
+        days: trainingData.program.days.map((d) => ({
+          dayName: d.dayName,
+          blocks: d.blocks.map((b) => ({
+            type: b.type,
+            title: b.title,
+            content: b.content,
+          })),
         })),
-      })),
-    }
+      }
     : null;
 
   return (
@@ -169,6 +169,9 @@ export default async function ReviewWorkspacePage({
               weekStartDate: formatDateUTC(weekOf),
               templates: mappedTemplates,
               initialProgram,
+              carriedOverFromWeek: trainingData.carriedOverFrom
+                ? formatDateUTC(trainingData.carriedOverFrom)
+                : null,
             }}
           />
         </div>

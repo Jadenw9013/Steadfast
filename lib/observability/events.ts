@@ -23,6 +23,17 @@ export const MEALPLAN_SAVE_DROPPED_KEYS = {
   allow: ["droppedKeys", "droppedCount", "targetStatus"],
 } as const;
 
+/** T-978 review round 1, CR-8 (ratified by the lead): the post-commit
+ *  invite-email failure in lib/leads/activate-lead.ts#activateLead. The
+ *  authority (ACTIVE + a live invite) is already committed when this fires
+ *  — it is a degraded delivery, not a failed activation. Never put email,
+ *  prospect name or invite token in the allow-list; `errorKind` is a class
+ *  name / "unknown", never the raw error message. */
+export const LEAD_INVITE_EMAIL_FAILED = {
+  evt: "sf.leads.invite_email_failed",
+  allow: ["requestId", "coachId", "errorKind"],
+} as const;
+
 const IOS_API_CONTEXT = [
   "appVersion",
   "build",

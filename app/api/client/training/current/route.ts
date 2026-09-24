@@ -2,6 +2,7 @@ import { getClientProvider, isClientProviderCurrent } from "@/lib/queries/client
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
+import { PUBLISHED_TRAINING_ORDER_BY } from "@/lib/queries/training-programs";
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -18,12 +19,28 @@ export async function GET() {
 
   try {
     const provider = await getClientProvider(user.id);
-    if (provider.resolutionRequired || provider.origin === "AI") return NextResponse.json({ error: provider.resolutionRequired ? "Your coaching provider needs resolution." : "Update Steadfast to use the AI Coach workspace." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
-    if (provider.origin === "NONE") return NextResponse.json({ trainingProgram: null }, { headers: { "Cache-Control": "private, no-store" } });
+    if (provider.resolutionRequired || provider.origin === "AI")
+      return NextResponse.json(
+        {
+          error: provider.resolutionRequired
+            ? "Your coaching provider needs resolution."
+            : "Update Steadfast to use the AI Coach workspace.",
+        },
+        { status: 409, headers: { "Cache-Control": "private, no-store" } }
+      );
+    if (provider.origin === "NONE")
+      return NextResponse.json(
+        { trainingProgram: null },
+        { headers: { "Cache-Control": "private, no-store" } }
+      );
     // ── Most recent published program — explicit select (no select *) ─────
     const program = await db.trainingProgram.findFirst({
-      where: { clientId: user.id, status: "PUBLISHED", publishedAt: { gte: provider.relationshipStartedAt! } },
-      orderBy: { publishedAt: "desc" },
+      where: {
+        clientId: user.id,
+        status: "PUBLISHED",
+        publishedAt: { gte: provider.relationshipStartedAt! },
+      },
+      orderBy: PUBLISHED_TRAINING_ORDER_BY,
       select: {
         id: true,
         weekOf: true,
@@ -65,57 +82,57 @@ export async function GET() {
       },
     });
 
-    if (!await isClientProviderCurrent(user.id, provider)) return NextResponse.json({ error: "Your provider changed. Refresh to continue." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
+    if (!(await isClientProviderCurrent(user.id, provider)))
+      return NextResponse.json(
+        { error: "Your provider changed. Refresh to continue." },
+        { status: 409, headers: { "Cache-Control": "private, no-store" } }
+      );
 
     if (!program) {
       return NextResponse.json({ trainingProgram: null });
     }
 
-    return NextResponse.json({
-      trainingProgram: {
-        id: program.id,
-        weekOf: program.weekOf.toISOString(),
-        status: program.status,
-        clientNotes: program.clientNotes,
-        // __CARDIO__ sentinel day is intentionally preserved — not stripped
-        days: program.days.map((day) => {
-          // Build exercise lookup by sortOrder to augment EXERCISE-type blocks
-          const exerciseByOrder = new Map(
-            day.exercises.map((e) => [e.sortOrder, e])
-          );
+    return NextResponse.json(
+      {
+        trainingProgram: {
+          id: program.id,
+          weekOf: program.weekOf.toISOString(),
+          status: program.status,
+          clientNotes: program.clientNotes,
+          // __CARDIO__ sentinel day is intentionally preserved — not stripped
+          days: program.days.map((day) => {
+            // Build exercise lookup by sortOrder to augment EXERCISE-type blocks
+            const exerciseByOrder = new Map(day.exercises.map((e) => [e.sortOrder, e]));
 
-          return {
-            id: day.id,
-            dayName: day.dayName,
-            sortOrder: day.sortOrder,
-            blocks: day.blocks.map((block) => {
-              // For EXERCISE blocks: try to find a matching TrainingExercise
-              // at the same sortOrder to get structured sets/reps/intensity
-              const exercise =
-                block.type === "EXERCISE"
-                  ? (exerciseByOrder.get(block.sortOrder) ?? null)
-                  : null;
+            return {
+              id: day.id,
+              dayName: day.dayName,
+              sortOrder: day.sortOrder,
+              blocks: day.blocks.map((block) => {
+                // For EXERCISE blocks: try to find a matching TrainingExercise
+                // at the same sortOrder to get structured sets/reps/intensity
+                const exercise =
+                  block.type === "EXERCISE" ? (exerciseByOrder.get(block.sortOrder) ?? null) : null;
 
-              return {
-                id: block.id,
-                blockType: block.type,
-                exerciseName: block.title || null,
-                sets: exercise ? String(exercise.sets) : null,
-                reps: exercise?.reps || null,
-                intensity: exercise?.intensityText || null,
-                notes: block.content || null,
-                sortOrder: block.sortOrder,
-              };
-            }),
-          };
-        }),
+                return {
+                  id: block.id,
+                  blockType: block.type,
+                  exerciseName: block.title || null,
+                  sets: exercise ? String(exercise.sets) : null,
+                  reps: exercise?.reps || null,
+                  intensity: exercise?.intensityText || null,
+                  notes: block.content || null,
+                  sortOrder: block.sortOrder,
+                };
+              }),
+            };
+          }),
+        },
       },
-    }, { headers: { "Cache-Control": "private, no-store" } });
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (err) {
     console.error("[GET /api/client/training/current]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

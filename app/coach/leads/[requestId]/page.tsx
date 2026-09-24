@@ -269,6 +269,7 @@ export default async function LeadProfilePage({ params }: { params: Promise<{ re
                     consultationDate={lead.consultationDate?.toISOString() ?? consultationMeeting?.scheduledTime?.toISOString() ?? null}
                     formsSignedAt={lead.formsSignedAt?.toISOString() ?? null}
                     prospectEmailAddr={lead.prospectEmailAddr ?? null}
+                    prospectEmail={lead.prospectEmail}
                     existingMeeting={consultationMeeting ? {
                         meetingLink: consultationMeeting.meetingLink,
                         scheduledTime: consultationMeeting.scheduledTime?.toISOString() ?? null,

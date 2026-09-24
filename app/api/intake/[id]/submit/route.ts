@@ -150,8 +150,8 @@ export async function POST(
         // DECLINED — which is not the same as "forward": FORMS_SIGNED (set by
         // `app/actions/signature.ts` from the separate /onboarding/sign flow) is
         // a later column and can still be walked back to INTAKE_SUBMITTED here.
-        // That is cosmetic; `validateActivationPreconditions` accepts both
-        // stages. The terminal pair is what matters: a lead the coach
+        // That is cosmetic; `PIPELINE_ACTIVATION_STAGES` (lib/leads/activate-lead.ts)
+        // accepts both stages. The terminal pair is what matters: a lead the coach
         // bypass-activated (or declined) can still be handed this un-submitted
         // packet by `GET /api/intake/current`, and an unconditional write would
         // drag an ACTIVE client back into the coach's intake column and re-open

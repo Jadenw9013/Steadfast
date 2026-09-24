@@ -22,8 +22,20 @@ export async function GET() {
 
   try {
     const provider = await getClientProvider(user.id);
-    if (provider.resolutionRequired || provider.origin === "AI") return NextResponse.json({ error: provider.resolutionRequired ? "Your coaching provider needs resolution." : "Update Steadfast to use the AI Coach workspace." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
-    if (provider.origin === "NONE") return NextResponse.json({ mealPlan: null }, { headers: { "Cache-Control": "private, no-store" } });
+    if (provider.resolutionRequired || provider.origin === "AI")
+      return NextResponse.json(
+        {
+          error: provider.resolutionRequired
+            ? "Your coaching provider needs resolution."
+            : "Update Steadfast to use the AI Coach workspace.",
+        },
+        { status: 409, headers: { "Cache-Control": "private, no-store" } }
+      );
+    if (provider.origin === "NONE")
+      return NextResponse.json(
+        { mealPlan: null },
+        { headers: { "Cache-Control": "private, no-store" } }
+      );
     // ── Active published plan — one shared rule (T-105), explicit select ──
     // `!` is safe: AI / resolutionRequired returned above, and so did NONE, so
     // `origin` is HUMAN here and `relationshipStartedAt` is non-null.
@@ -56,13 +68,24 @@ export async function GET() {
             },
             macroTargets: {
               orderBy: { sortOrder: "asc" },
-              select: { id: true, mealName: true, calories: true, protein: true, carbs: true, fats: true },
+              select: {
+                id: true,
+                mealName: true,
+                calories: true,
+                protein: true,
+                carbs: true,
+                fats: true,
+              },
             },
           },
         })
       : null;
 
-    if (!await isClientProviderCurrent(user.id, provider)) return NextResponse.json({ error: "Your provider changed. Refresh to continue." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
+    if (!(await isClientProviderCurrent(user.id, provider)))
+      return NextResponse.json(
+        { error: "Your provider changed. Refresh to continue." },
+        { status: 409, headers: { "Cache-Control": "private, no-store" } }
+      );
 
     if (!plan) {
       return NextResponse.json({ mealPlan: null });
@@ -100,51 +123,54 @@ export async function GET() {
         }
       : null;
 
-    return NextResponse.json({
-      mealPlan: {
-        id: plan.id,
-        weekOf: plan.weekOf.toISOString(),
-        status: plan.status,
-        planMode: plan.planMode,
-        publishedAt: plan.publishedAt?.toISOString() ?? null,
-        planExtras: planExtrasOut,
-        planNotes: plan.supportContent,
-        supportContent: plan.supportContent,
-        items: plan.items.map((item) => ({
-          id: item.id,
-          mealName: item.mealName,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          unit: item.unit || null,
-          servingDescription: item.servingDescription || null,
-          calories: item.calories,
-          protein: item.protein,
-          carbs: item.carbs,
-          fats: item.fats,
-        })),
-        macroTargets: plan.macroTargets.map((t) => ({
-          id: t.id,
-          mealName: t.mealName,
-          calories: t.calories,
-          protein: t.protein,
-          carbs: t.carbs,
-          fats: t.fats,
-        })),
-        macroTarget: macro
-          ? {
-              calories: macro.calories,
-              protein: macro.protein,
-              carbs: macro.carbs,
-              fats: macro.fats,
-            }
-          : null,
+    return NextResponse.json(
+      {
+        mealPlan: {
+          id: plan.id,
+          weekOf: plan.weekOf.toISOString(),
+          status: plan.status,
+          // Keep the declared value over the wire. T-802 clients use the mode
+          // plus both content counts to render a safe, read-only degraded state;
+          // rewriting it here would erase that signal and re-enable check-offs.
+          planMode: plan.planMode,
+          publishedAt: plan.publishedAt?.toISOString() ?? null,
+          planExtras: planExtrasOut,
+          planNotes: plan.supportContent,
+          supportContent: plan.supportContent,
+          items: plan.items.map((item) => ({
+            id: item.id,
+            mealName: item.mealName,
+            foodName: item.foodName,
+            quantity: item.quantity,
+            unit: item.unit || null,
+            servingDescription: item.servingDescription || null,
+            calories: item.calories,
+            protein: item.protein,
+            carbs: item.carbs,
+            fats: item.fats,
+          })),
+          macroTargets: plan.macroTargets.map((t) => ({
+            id: t.id,
+            mealName: t.mealName,
+            calories: t.calories,
+            protein: t.protein,
+            carbs: t.carbs,
+            fats: t.fats,
+          })),
+          macroTarget: macro
+            ? {
+                calories: macro.calories,
+                protein: macro.protein,
+                carbs: macro.carbs,
+                fats: macro.fats,
+              }
+            : null,
+        },
       },
-    }, { headers: { "Cache-Control": "private, no-store" } });
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (err) {
     console.error("[GET /api/client/meal-plan/current]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

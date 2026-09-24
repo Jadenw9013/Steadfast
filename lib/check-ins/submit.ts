@@ -4,6 +4,7 @@ import { isOwnedUploadPath } from "@/lib/validations/storage-path";
 import { normalizeToMonday, getLocalDate } from "@/lib/utils/date";
 import { enqueueStorageCleanupOps } from "@/lib/storage/cleanup-outbox";
 import type { Prisma } from "@/app/generated/prisma/client";
+import { MAX_CHECKIN_PHOTOS, MAX_PHOTO_LIMIT_MESSAGE } from "@/lib/validations/check-in";
 
 /** Serialize Zod-validated data to Prisma-compatible JSON. */
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
@@ -34,7 +35,10 @@ export const submitCheckInSchema = z.object({
   dietCompliance: z.coerce.number().int().min(1).max(10).optional().or(z.literal("")),
   energyLevel: z.coerce.number().int().min(1).max(10).optional().or(z.literal("")),
   notes: z.string().max(5000).optional(),
-  photoPaths: z.array(z.string()).max(3).optional(),
+  photoPaths: z
+    .array(z.string())
+    .max(MAX_CHECKIN_PHOTOS, { message: MAX_PHOTO_LIMIT_MESSAGE })
+    .optional(),
   overwriteToday: z.boolean().optional(),
   templateId: z.string().optional(),
   customResponses: z.record(z.string(), z.unknown()).optional(),
@@ -55,7 +59,17 @@ export async function submitCheckIn(
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors };
   }
-  const { weight, bodyFatPct, dietCompliance, energyLevel, notes, photoPaths, overwriteToday, templateId, customResponses } = parsed.data;
+  const {
+    weight,
+    bodyFatPct,
+    dietCompliance,
+    energyLevel,
+    notes,
+    photoPaths,
+    overwriteToday,
+    templateId,
+    customResponses,
+  } = parsed.data;
 
   const coachAssignment = await db.coachClient.findFirst({
     where: { clientId: user.id },
@@ -70,7 +84,11 @@ export async function submitCheckIn(
   }
 
   if (photoPaths?.some((path) => !isOwnedUploadPath(path, user.clerkId))) {
-    return { error: { photoPaths: ["One or more photos do not belong to your account. Please upload them again."] } };
+    return {
+      error: {
+        photoPaths: ["One or more photos do not belong to your account. Please upload them again."],
+      },
+    };
   }
 
   // CB07: a template snapshot may only come from the client's own assigned
@@ -87,7 +105,11 @@ export async function submitCheckIn(
     if (!template || template.coachId !== coachAssignment.coachId) {
       return { error: { templateId: ["This check-in template is not available."] } };
     }
-    templateSnapshot = { version: template.version, name: template.name, questions: template.questions };
+    templateSnapshot = {
+      version: template.version,
+      name: template.name,
+      questions: template.questions,
+    };
   }
 
   const now = new Date();
@@ -131,10 +153,17 @@ export async function submitCheckIn(
       // transaction as unlinking them, or they're orphaned forever (and
       // survive even a later full account-deletion purge, which only
       // enumerates currently-linked rows).
-      const replacedPhotos = await db.checkInPhoto.findMany({ where: { checkInId: existingToday.id }, select: { storagePath: true } });
+      const replacedPhotos = await db.checkInPhoto.findMany({
+        where: { checkInId: existingToday.id },
+        select: { storagePath: true },
+      });
       ops.push(
         ...enqueueStorageCleanupOps(
-          replacedPhotos.map((p) => ({ bucket: "check-in-photos", storagePath: p.storagePath, reason: "check-in-photo-replaced" }))
+          replacedPhotos.map((p) => ({
+            bucket: "check-in-photos",
+            storagePath: p.storagePath,
+            reason: "check-in-photo-replaced",
+          }))
         )
       );
       ops.push(db.checkInPhoto.deleteMany({ where: { checkInId: existingToday.id } }));
@@ -183,14 +212,23 @@ export async function submitCheckIn(
   return { checkInId: checkIn.id, overwritten: false };
 }
 
-async function postCheckInMessage(clientId: string, coachId: string, weekOf: Date, checkInId: string, now: Date, notes: string | undefined) {
+async function postCheckInMessage(
+  clientId: string,
+  coachId: string,
+  weekOf: Date,
+  checkInId: string,
+  now: Date,
+  notes: string | undefined
+) {
   try {
     const checkinDate = now.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const msgBody = `[CHECKIN:${checkInId}:${checkinDate}]${notes || "Check-in submitted"}`;
     await db.message.create({
       data: { clientId, coachId, weekOf, senderId: clientId, body: msgBody },
     });
-  } catch { /* message creation must not break check-in */ }
+  } catch {
+    /* message creation must not break check-in */
+  }
 }
 
 // Provider-specific storage preserves privacy; both web and native AI clients
