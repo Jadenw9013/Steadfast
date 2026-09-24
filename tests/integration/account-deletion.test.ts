@@ -351,6 +351,159 @@ suite("account deletion with real PostgreSQL constraints", () => {
       },
     });
 
+    // T-989 review MAJOR 4 — four purge lines (purge.ts:259,267,274,275) had
+    // no coverage. All four are `ON DELETE RESTRICT` to User: a dropped or
+    // reordered line wedges the account in PURGING after the Clerk identity
+    // is already gone.
+    //
+    // AiAutomaticPlanApproval has a DB-trigger insert guard
+    // ("validate_ai_automatic_plan_approval_insert") requiring an exact,
+    // matching PROPOSED plan / APPROVE_AUTOMATICALLY gate / VALIDATED
+    // provider audit trio, so it needs its own fixtures rather than reusing
+    // this test's HOLD-outcome ones above.
+    const autoApprovedPlan = await db.aiPlanVersion.create({
+      data: {
+        clientId: user.id,
+        version: 2,
+        status: "PROPOSED",
+        payload: {},
+        payloadHash: "1".repeat(64),
+        contextRevision: 1,
+        profileRevision: 1,
+        observationRevision: 1,
+        safetyRevision: 1,
+        policyVersion: "p1",
+        catalogVersions: {},
+      },
+    });
+    const autoApproveGateDecision = await db.aiAutonomyGateDecision.create({
+      data: {
+        clientId: user.id,
+        evaluationKey: "2".repeat(64),
+        outcome: "APPROVE_AUTOMATICALLY",
+        orderedReasonCodes: ["SYNTHETIC_PURGE_AUTO_APPROVE"],
+        ruleIds: [],
+        nextActionTemplateId: "synthetic-purge-auto-template",
+        artifactRefs: [],
+        sourceRefs: [],
+        inputSnapshot: { synthetic: true },
+        inputDigest: "3".repeat(64),
+        validationReport: { schemaVersion: 1, checks: [] },
+        contextRevision: 1,
+        profileRevision: 1,
+        observationRevision: 1,
+        safetyRevision: 1,
+        evaluatedPlanVersionId: autoApprovedPlan.id,
+        approvedPlanVersionId: autoApprovedPlan.id,
+        candidatePayloadHash: autoApprovedPlan.payloadHash,
+      },
+    });
+    const validatedProviderAudit = await db.aiProviderBoundaryAudit.create({
+      data: {
+        clientId: user.id,
+        operationId: randomUUID(),
+        promptContractVersion: "t1007-synthetic-v1",
+        providerConfiguration: "SYNTHETIC_CONSTRAINED_PROVIDER_ONLY",
+        boundaryOutcome: "VALIDATED",
+        resultOutcome: "APPROVE_AUTOMATICALLY",
+        attempts: 1,
+        preGateDecisionId: autoApproveGateDecision.id,
+        finalGateDecisionId: autoApproveGateDecision.id,
+        inputSnapshot: { synthetic: true },
+        inputDigest: "4".repeat(64),
+      },
+    });
+    const automaticApproval = await db.aiAutomaticPlanApproval.create({
+      data: {
+        clientId: user.id,
+        planVersionId: autoApprovedPlan.id,
+        gateDecisionId: autoApproveGateDecision.id,
+        providerBoundaryAuditId: validatedProviderAudit.id,
+        evaluationKey: autoApproveGateDecision.evaluationKey,
+        candidatePayloadHash: autoApprovedPlan.payloadHash,
+        artifactRequest: {},
+        artifactRefs: [],
+        sourceRefs: [],
+        gateInput: {},
+        providerSelection: {},
+        stateDigest: "5".repeat(64),
+      },
+    });
+    const providerTransitionReceipt = await db.aiCoachProviderTransitionReceipt.create({
+      data: {
+        clientId: user.id,
+        fromMode: "HUMAN",
+        fromContextRevision: 1,
+        toMode: "AI",
+        toContextRevision: 2,
+        releaseId: `synthetic-purge-release-${user.id}`,
+        runtimeConfigurationDigest: "6".repeat(64),
+        discoveryConfigurationId: "synthetic-purge-discovery-v1",
+        discoveryConfigurationVersion: 1,
+        privacyNoticeVersion: "v1",
+        consentTextDigest: "7".repeat(64),
+      },
+    });
+    // AiCoachLiveLaunchPacket rows are DB-trigger append-only — never
+    // deletable, even by this test — so this is a plain metadata-free DRAFT
+    // insert (the one shape the packet lifecycle guard permits directly) and
+    // is left on the test database afterward, same as other suites' packet
+    // fixtures (e.g. tests/integration/ai-coach-live-launch-readiness.test.ts).
+    const purgeTestPacket = await db.aiCoachLiveLaunchPacket.create({
+      data: {
+        id: `synthetic-purge-packet-${user.id}`,
+        packetKey: `synthetic-purge-packet-key-${user.id}`,
+        version: 1,
+        schemaVersion: 1,
+        releaseId: `synthetic-purge-packet-release-${user.id}`,
+        engineVersion: "ai-coach-artifact-engine-v1",
+        jurisdictions: ["US"],
+        packet: { synthetic: true },
+        contentDigest: "8".repeat(64),
+        testOnly: true,
+      },
+    });
+    const liveLaunchLifecycleEvent = await db.aiCoachLiveLaunchLifecycleEvent.create({
+      data: {
+        actorUserId: user.id,
+        governanceGrantId: governanceGrant.id,
+        packetId: purgeTestPacket.id,
+        action: "APPROVE",
+        reasonCode: "SYNTHETIC_PURGE_EVENT",
+        packetDigest: purgeTestPacket.contentDigest,
+        signedApprovalIndexRef: "synthetic-purge-signed-approval-index",
+      },
+    });
+    const liveActivationEvent = await db.aiCoachLiveActivationEvent.create({
+      data: {
+        actorUserId: user.id,
+        governanceGrantId: governanceGrant.id,
+        activationId: `synthetic-purge-activation-${user.id}`,
+        packetId: purgeTestPacket.id,
+        action: "ACTIVATE",
+        packetDigest: purgeTestPacket.contentDigest,
+        runtimeConfigurationDigest: "9".repeat(64),
+        signedActivationRef: "synthetic-purge-signed-activation",
+        reasonCode: "SYNTHETIC_PURGE_EVENT",
+      },
+    });
+
+    // MINOR 5 — AiCoachOperationalControl.updatedByGrantId has no FK and no
+    // purge line by design (it is one global kill-switch row per scope, not
+    // per-user data; see the schema comment). Purge must not touch it, and
+    // must not throw when the grant it references belongs to the user being
+    // deleted.
+    await db.aiCoachOperationalControl.upsert({
+      where: { scope: "ARTIFACT_PUBLICATION" },
+      create: {
+        scope: "ARTIFACT_PUBLICATION",
+        disabled: true,
+        reasonCode: "SYNTHETIC_PURGE_CONTROL",
+        updatedByGrantId: governanceGrant.id,
+      },
+      update: { updatedByGrantId: governanceGrant.id, reasonCode: "SYNTHETIC_PURGE_CONTROL" },
+    });
+
     await purgeUserAccount(user.id);
 
     expect(await db.clientCoachingContext.findUnique({ where: { clientId: user.id } })).toBeNull();
@@ -386,6 +539,40 @@ suite("account deletion with real PostgreSQL constraints", () => {
     ).toBeNull();
     expect(await db.aiPlanAcceptanceOutbox.findFirst({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiPlanAcceptanceReceipt.findFirst({ where: { clientId: user.id } })).toBeNull();
+
+    expect(
+      await db.aiAutomaticPlanApproval.findUnique({ where: { id: automaticApproval.id } })
+    ).toBeNull();
+    expect(
+      await db.aiCoachProviderTransitionReceipt.findUnique({
+        where: { id: providerTransitionReceipt.id },
+      })
+    ).toBeNull();
+    expect(
+      await db.aiCoachLiveLaunchLifecycleEvent.findUnique({
+        where: { id: liveLaunchLifecycleEvent.id },
+      })
+    ).toBeNull();
+    expect(
+      await db.aiCoachLiveActivationEvent.findUnique({ where: { id: liveActivationEvent.id } })
+    ).toBeNull();
+
+    // The packet itself is not user data — it must survive (append-only,
+    // globally shared release evidence).
+    expect(
+      await db.aiCoachLiveLaunchPacket.findUnique({ where: { id: purgeTestPacket.id } })
+    ).not.toBeNull();
+
+    // MINOR 5 — the kill-switch row is global control state, not user data:
+    // it must survive purge, unmodified, even though the grant it points at
+    // (`updatedByGrantId`) has just been deleted along with its user. This is
+    // the documented historical-pointer behaviour, not a bug.
+    const survivingControl = await db.aiCoachOperationalControl.findUnique({
+      where: { scope: "ARTIFACT_PUBLICATION" },
+    });
+    expect(survivingControl).not.toBeNull();
+    expect(survivingControl?.updatedByGrantId).toBe(governanceGrant.id);
+    await db.aiCoachOperationalControl.delete({ where: { scope: "ARTIFACT_PUBLICATION" } });
   });
   it("keeps all DB records and identity when storage cleanup fails", async () => {
     const { user, receipt, checkIn } = await fixture();

@@ -542,6 +542,17 @@ model AiCoachOperationalControl {
   disabled          Boolean                 @default(true)
   reasonCode        String
   incidentReference String?
+  // Deliberately no FK to AiCoachGovernanceGrant and no purge line (T-989
+  // review MINOR 5): this is one global kill-switch row per scope, not
+  // per-user data, so account deletion must never delete or block on it.
+  // If the grant that last flipped this switch is later purged with its
+  // user, this id becomes a historical, unresolvable reference — accepted,
+  // accountability-record-only staleness, not a functional dependency
+  // (nothing reads this column to authorize anything; only
+  // AiCoachOperationalEvent/AiCoachLiveLaunchLifecycleEvent/
+  // AiCoachLiveActivationEvent rows recording that same grant's other
+  // actions get deleted, by actorUserId, same as this decision applies to
+  // AiCoachArtifactLifecycleEvent.governanceGrantId).
   updatedByGrantId  String
   revision          Int                     @default(0)
   updatedAt         DateTime                @updatedAt
