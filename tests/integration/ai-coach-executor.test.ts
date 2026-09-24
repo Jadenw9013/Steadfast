@@ -4,10 +4,7 @@ vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: mocks.auth
 const mocks = vi.hoisted(() => ({ authUserId: "" }));
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 import { NextRequest } from "next/server";
@@ -20,6 +17,7 @@ import { GET as executorCronRoute } from "@/app/api/cron/ai-coach-executor/route
 import type { ModelProvider, ModelStageResult } from "@/lib/ai-coach/provider/adapter";
 import { checkProviderRateLimit, MAX_TOKENS_PER_STAGE_CALL } from "@/lib/ai-coach/provider/spend-limits";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 suite("A05 — durable job executor with real PostgreSQL constraints", () => {
   const originalGenerationFlag = process.env.FEATURE_AI_COACH_GENERATION;
   const originalCronSecret = process.env.CRON_SECRET;

@@ -13,16 +13,14 @@ import { randomUUID } from "crypto";
  */
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 import { db } from "@/lib/db";
 import { saveIntakeDraft, getIntakeDraft, confirmIntake } from "@/lib/ai-coach/intake";
 import { submitSafetyDisclosure, clearSafetyRestriction } from "@/lib/ai-coach/safety";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 suite("A03 — intake draft/confirm with real PostgreSQL constraints", () => {
   beforeEach(() => vi.clearAllMocks());
   afterAll(async () => { await db.$disconnect(); });

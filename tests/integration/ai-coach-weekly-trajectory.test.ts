@@ -14,8 +14,9 @@ import { reviewAiPlan } from "@/lib/ai-coach/reviewer";
 import { approvalStateHash } from "@/lib/ai-coach/validated-plan";
 import { acceptPlanVersionAtomic } from "@/lib/ai-coach/plan-acceptance";
 import { getAiWorkspace } from "@/lib/queries/ai-coach";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) { const u = new URL(process.env.DATABASE_URL ?? ""); if (u.hostname !== "127.0.0.1" || u.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required"); }
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 suite("weekly review through real evidence, worker, reviewer and acceptance", () => {
   beforeEach(() => { vi.stubEnv("AI_COACH_FIXTURE_MODE", "true"); vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true"); vi.stubEnv("FEATURE_AI_COACH_PUBLICATION", "true"); }); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());

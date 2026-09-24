@@ -29,6 +29,7 @@ import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { publishTrainingProgramTarget } from "@/lib/training-programs/publish";
 import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
 import { getMealPlanSaveTarget, saveMealPlanDraftContent } from "@/lib/meal-plans/drafts";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import {
   TRAINING_WEEK_EMPTY,
   MEALPLAN_MODE_DISAGREEMENT,
@@ -37,12 +38,7 @@ import {
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 const WEEK_A = new Date("2026-03-02T00:00:00Z");
