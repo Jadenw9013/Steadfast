@@ -1,4 +1,5 @@
 import { getInviteDetails, redeemInvite } from "@/app/actions/client-invites";
+import { acceptAnywayRedirectTarget } from "@/lib/activation";
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -6,15 +7,37 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Accept Invite | Steadfast" };
 
-export default async function InviteRedemptionPage({ params }: { params: Promise<{ token: string }> }) {
+export default async function InviteRedemptionPage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ token: string }>;
+    searchParams: Promise<{ confirmError?: string }>;
+}) {
     const { token } = await params;
+    const { confirmError } = await searchParams;
 
     // T-1012: confirmation path for an invite addressed to something other than a
     // verified address on this account (Apple relay, an alias, or a mistyped address).
+    //
+    // T-987 review: this MUST branch on the result. Between the confirm card
+    // rendering and this submission, another holder of the token may have
+    // redeemed it, the invite may have expired, or the client may have
+    // enrolled in AI coaching / joined another coach in another tab — every
+    // one of those is a real, service-level refusal that writes nothing.
+    // Redirecting to the welcome dashboard regardless would be the exact
+    // lie fixed in lib/activation.ts, one layer up (release-safety §4).
     async function acceptAnyway() {
         "use server";
-        await redeemInvite(token, { confirmDifferentEmail: true });
-        redirect("/client?welcomed=1");
+        const result = await redeemInvite(token, { confirmDifferentEmail: true });
+        redirect(
+            acceptAnywayRedirectTarget(
+                token,
+                "success" in result && result.success
+                    ? { success: true }
+                    : { success: false, error: "error" in result ? result.error : "Something went wrong. Please try again." }
+            )
+        );
     }
     const { userId } = await auth();
 
@@ -26,6 +49,23 @@ export default async function InviteRedemptionPage({ params }: { params: Promise
     const isAlreadyUsed = invite.status === "ACCEPTED";
 
     const coachName = [invite.coach.firstName, invite.coach.lastName].filter(Boolean).join(" ") || "Your coach";
+
+    // A confirm submission just refused: show the real reason, not a stale
+    // "already used"/"expired" landing derived from the invite row alone,
+    // and not another silent "welcomed" redirect.
+    if (confirmError) {
+        return (
+            <div className="flex min-h-[100dvh] items-center justify-center bg-black px-5">
+                <div className="w-full max-w-md sf-glass-card !border-red-500/20 p-8 text-center space-y-4">
+                    <p className="text-lg font-semibold text-zinc-100">Invite Error</p>
+                    <p className="text-sm text-red-400">{confirmError}</p>
+                    <Link href="/client" className="inline-block text-sm text-zinc-500 hover:text-zinc-300">
+                        Go to your dashboard →
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     // If signed in, attempt redemption server-side
     if (userId && !isExpired && !isAlreadyUsed) {

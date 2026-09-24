@@ -68,6 +68,25 @@ export function inviteConfirmationMessage(input: {
   }.`;
 }
 
+/**
+ * Pure. Where `/invite/[token]`'s "acceptAnyway" confirm submission sends the
+ * client next, given `redeemInvite`'s result.
+ *
+ * T-987 review round 1, MAJOR 1: the page used to discard this result and
+ * redirect to the welcome dashboard unconditionally, so a refusal reached
+ * after the confirm card rendered — the token already redeemed by someone
+ * else, an expired invite, AI enrollment in another tab, another coach,
+ * a deactivated account — read as success. Extracted so the branch is
+ * unit-testable without rendering the page.
+ */
+export function acceptAnywayRedirectTarget(
+  token: string,
+  result: { success: true } | { success?: false; error: string }
+): string {
+  if (result.success) return "/client?welcomed=1";
+  return `/invite/${token}?confirmError=${encodeURIComponent(result.error)}`;
+}
+
 // ── Core helper: issue an invitation ──────────────────────────────────────────
 
 /**
