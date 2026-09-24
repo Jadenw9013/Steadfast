@@ -18,11 +18,18 @@ export async function getClientProvider(clientId: string) {
     const profile = await tx.aiCoachProfile.findUnique({ where: { clientId }, select: { isSynthetic: true } });
     const entitlement = await tx.aiCoachEntitlement.findUnique({ where: { clientId }, select: { revokedAt: true, expiresAt: true } });
     const syntheticPreviewAvailable = !resolutionRequired && origin !== "HUMAN" && process.env.NODE_ENV !== "production" && process.env.AI_COACH_FIXTURE_MODE === "true" && profile?.isSynthetic === true && !!entitlement && !entitlement.revokedAt && (!entitlement.expiresAt || entitlement.expiresAt > new Date());
-    // Read inside this same transaction, from the same origin/profile/
-    // entitlement this call already resolved, so the offer cannot disagree
-    // with `origin` on a later, separately-snapshotted read (see T-989 review
-    // finding 2). `origin` stays the single provider authority; this only
-    // ever adds an *offer* alongside a NONE result.
+    // T-989 review MINOR 3: the guarantee below is NOT transaction isolation
+    // — this `db.$transaction` sets no `isolationLevel`, so Postgres READ
+    // COMMITTED applies and each statement still takes its own fresh
+    // snapshot. The actual guarantee is that `getAiCoachClientDiscoveryInTransaction`
+    // is handed these exact `origin`/`resolutionRequired`/`profile`/
+    // `entitlement` values as arguments and never re-reads them itself (see
+    // discovery.ts), so the offer cannot disagree with `origin` no matter
+    // what any other row looks like by the time this runs. `origin` stays
+    // the single provider authority; this only ever adds an *offer*
+    // alongside a NONE result. Do not rely on "same transaction" for
+    // consistency here — a future re-read of ClientCoachingContext.mode
+    // inside this block would NOT be protected by it.
     const aiDiscovery = syntheticPreviewAvailable
       ? null
       : await getAiCoachClientDiscoveryInTransaction(tx, clientId, { origin, resolutionRequired, profile, entitlement });
@@ -45,18 +52,22 @@ export async function getClientProvider(clientId: string) {
 /** Recheck after dependent reads so a provider transition cannot return stale
  * instructions as a successful current-plan response.
  *
- * Deliberately does not compare `aiPreviewAvailable`/`aiDiscovery`: those are
- * an *offer*, derived every call strictly from that same call's freshly
- * resolved `origin`/`resolutionRequired` (see `getAiCoachClientDiscoveryInTransaction`),
- * never from an independent read. Any change to what the offer would be is
- * only possible via a change to `origin`, `activeCoachClientId` or
- * `resolutionRequired` first — a HUMAN-to-something-else transition already
- * flips `activeCoachClientId` to null and usually `origin` itself — so those
- * three fields already catch every case where the offer could differ. The
- * offer never gates access to actual plan/instruction data (only real
- * enrollment, via `ClientCoachingContext.mode`, does that), so a same-request
- * flicker in entitlement/release state between two calls is not a fencing
- * hazard the way a provider-identity change is. */
+ * Deliberately does not compare `aiPreviewAvailable`/`aiDiscovery`. T-989
+ * review MINOR 4: it is NOT true that those fields can only change alongside
+ * `origin`/`activeCoachClientId`/`resolutionRequired` — an entitlement
+ * revoked or expiring, an `AiCoachProfile` created or deleted,
+ * `deactivateAiCoachLiveRelease` running, `User.isDeactivated`/`isClient`
+ * flipping, or a `CoachClient` row inserted without a context update can all
+ * flip the offer while those three compared fields stay identical. The
+ * actual reason it is safe to leave out: the offer is display-only and is
+ * not present in any REST payload today (`rg 'aiDiscovery|aiPreviewAvailable'
+ * app/api/` is empty) — none of this function's three callers
+ * (`/api/client/home`, `/api/client/meal-plan/current`,
+ * `/api/client/training/current`) serialise it, so a same-request flicker in
+ * it cannot leak stale data. Revisit this the day `aiDiscovery` enters a REST
+ * response — comparing it today would also be actively worse, since an
+ * entitlement expiring mid-request would then spuriously 409 an unrelated
+ * meal-plan read. */
 export async function isClientProviderCurrent(clientId: string, expected: Awaited<ReturnType<typeof getClientProvider>>) {
   const current = await getClientProvider(clientId);
   return !current.resolutionRequired && current.origin === expected.origin && current.revision === expected.revision && current.activeCoachClientId === expected.activeCoachClientId;
