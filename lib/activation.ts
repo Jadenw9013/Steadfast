@@ -312,7 +312,12 @@ export async function acceptClientInviteForUser(
     // expiry, delivered to the invited inbox). Every VERIFIED address on the
     // signed-in Clerk account is accepted; a mismatch is recorded and asks
     // for one explicit confirmation instead of refusing outright.
-    const owns = options?.accountEmailAddresses
+    // T-987 review round 1, MINOR: `options?.accountEmailAddresses` alone
+    // treats an empty array as "Clerk answered with a real address list",
+    // so an account with zero Clerk addresses would be sent to confirm
+    // even when its own stored email matches exactly. `?.length` restores
+    // the documented fallback: no usable Clerk data compares the primary.
+    const owns = options?.accountEmailAddresses?.length
       ? accountOwnsEmail(options.accountEmailAddresses, current.email)
       : normalizeEmailForMatch(owner.email) === normalizeEmailForMatch(current.email);
 

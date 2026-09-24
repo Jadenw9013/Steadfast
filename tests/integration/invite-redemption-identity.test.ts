@@ -240,7 +240,17 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
   async function fixture(clientDbEmail: string, invitedEmail: string, expiresAt?: Date) {
     const coachClerkId = randomUUID();
     const coach = await db.user.create({
-      data: { clerkId: coachClerkId, email: `coach-${coachClerkId}@example.test`, isCoach: true, activeRole: "COACH" },
+      // T-987 review round 1, MINOR: a nameless fixture coach makes the
+      // coachName assertions below self-satisfying (null in, null out).
+      // Naming it exercises the frozen contract's actual non-null shape.
+      data: {
+        clerkId: coachClerkId,
+        email: `coach-${coachClerkId}@example.test`,
+        isCoach: true,
+        activeRole: "COACH",
+        firstName: "Jane",
+        lastName: "Doe",
+      },
     });
     const clientClerkId = randomUUID();
     const client = await db.user.create({
@@ -419,6 +429,10 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     expect(json.invitedEmailHint).not.toBe(`${u}@icloud.com`);
     expect(json.invitedEmailHint).toBe(`${u.slice(0, 1)}***@icloud.com`);
     expect(json.signedInAs).toBe(relay);
+    // The frozen contract's real shape: a named coach, not the null the
+    // fixture used to always produce (which made the check below true for
+    // either value — T-987 review round 1, MINOR).
+    expect(json.coachName).toBe("Jane Doe");
     const { inviteConfirmationMessage } = await import("@/lib/activation");
     expect(json.message).toBe(
       inviteConfirmationMessage({
@@ -427,6 +441,7 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
         coachName: json.coachName,
       })
     );
+    expect(json.message).toContain("Jane Doe");
     expect(await db.coachClient.count({ where: { coachId: coach.id, clientId: client.id } })).toBe(0);
   });
 
@@ -506,5 +521,56 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     expect(result).toMatchObject({ error: "This coach is unavailable." });
     const row = await db.clientInvite.findUniqueOrThrow({ where: { id: invite.id } });
     expect(row.mismatchSeenAt).toBeNull();
+  });
+
+  it("9b. a mismatched account already coaching with a different coach: refused before the ownership gate, mismatchSeenAt still NULL", async () => {
+    const u = randomUUID().slice(0, 8);
+    const relay = `${u}@privaterelay.appleid.com`;
+    const { client, invite } = await fixture(relay, `${u}@icloud.com`);
+    const otherCoach = await db.user.create({
+      data: { clerkId: randomUUID(), email: `other-coach-${u}@example.test`, isCoach: true },
+    });
+    created.push(otherCoach.id);
+    await db.coachClient.create({ data: { coachId: otherCoach.id, clientId: client.id } });
+    clerkAccount(relay);
+
+    const { status, json } = await callConnectCoach({ coachCode: invite.inviteToken });
+    expect(status).toBe(403);
+    expect(json).toMatchObject({ success: false, error: "invalid_code" });
+    const row = await db.clientInvite.findUniqueOrThrow({ where: { id: invite.id } });
+    expect(row.mismatchSeenAt).toBeNull();
+    // Refused, not offered a confirmation — no second CoachClient appears.
+    expect(await db.coachClient.count({ where: { clientId: client.id } })).toBe(1);
+  });
+
+  it("two different accounts confirming the same forwarded invite concurrently: exactly one wins, the loser is refused, one CoachClient total", async () => {
+    const u = randomUUID().slice(0, 8);
+    const relay = `${u}@privaterelay.appleid.com`;
+    const { coach, client, invite } = await fixture(relay, `${u}@icloud.com`);
+    const second = await db.user.create({
+      data: { clerkId: randomUUID(), email: `${u}-second@example.test`, isClient: true },
+    });
+    created.push(second.id);
+
+    const { acceptClientInviteForUser } = await import("@/lib/activation");
+    // Serialized by the ClientInvite FOR UPDATE lock (lib/activation.ts),
+    // not by test ordering — both are issued together.
+    const [a, b] = await Promise.allSettled([
+      acceptClientInviteForUser(invite, { id: client.id, email: relay }, { confirmDifferentEmail: true }),
+      acceptClientInviteForUser(
+        invite,
+        { id: second.id, email: `${u}-second@example.test` },
+        { confirmDifferentEmail: true }
+      ),
+    ]);
+    expect(a.status).toBe("fulfilled");
+    expect(b.status).toBe("fulfilled");
+    const results = [a, b].map((r) => (r.status === "fulfilled" ? r.value : null));
+    const winners = results.filter((r) => r?.success);
+    const losers = results.filter((r) => !r?.success);
+    expect(winners).toHaveLength(1);
+    expect(losers).toHaveLength(1);
+    expect((losers[0] as { error?: string })?.error).toBe("This invite has already been used.");
+    expect(await db.coachClient.count({ where: { coachId: coach.id } })).toBe(1);
   });
 });
