@@ -340,6 +340,14 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     const clientClerkId = randomUUID();
     const client = await db.user.create({ data: { clerkId: clientClerkId, email: relay, isClient: true } });
     created.push(coach.id, client.id);
+    // T-987 review round 2, MINOR 7: built the way production actually
+    // reaches this state. The invite only has a requestId because
+    // activateLead's "invite" branch put it there, and that branch writes
+    // consultationStage: "ACTIVE", status: "ACCEPTED" in the SAME
+    // transaction as issuing the invite (lib/leads/activate-lead.ts) — a
+    // lead can never have a redeemable invite while still PENDING. Building
+    // this as PENDING proved the status half of the gate on a state that
+    // cannot occur in production.
     const request = await db.coachingRequest.create({
       data: {
         coachProfile: { create: { userId: coach.id, slug: `coach-${coachClerkId}` } },
@@ -347,7 +355,8 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
         prospectEmail: invitedEmail,
         prospectEmailAddr: invitedEmail,
         intakeAnswers: {},
-        status: "PENDING",
+        consultationStage: "ACTIVE",
+        status: "ACCEPTED",
       },
     });
     // The invited person's own submitted intake — clinical data (bodyweight,
@@ -389,11 +398,14 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     expect(rows[0].coachNotes).toContain(invitedEmail);
 
     // The roster row (just asserted above) IS the relationship. The
-    // originating lead stays the invited person's record: neither its
-    // prospectId nor its status may move to the confirming user.
+    // originating lead stays the invited person's record, exactly as
+    // activateLead left it (consultationStage ACTIVE, status ACCEPTED,
+    // prospectId null): neither its prospectId nor its status may move to
+    // the confirming user.
     const requestAfter = await db.coachingRequest.findUniqueOrThrow({ where: { id: request.id } });
     expect(requestAfter.prospectId).toBeNull();
-    expect(requestAfter.status).toBe("PENDING");
+    expect(requestAfter.status).toBe("ACCEPTED");
+    expect(requestAfter.consultationStage).toBe("ACTIVE");
 
     // What the coach's client page actually shows: no intake for this
     // client, because they never submitted one. Before the fix this
