@@ -193,6 +193,41 @@ suite("T-978 — transaction properties the matrix cannot express", () => {
     ).toBe(1);
   });
 
+  it("R1b — reissue clears the previous holder's mismatch columns (T-987 review round 2, MINOR 4)", async () => {
+    const { coach, profile } = await makeCoach();
+    const email = `prospect-${randomUUID()}@example.test`;
+    const leadId = await createLead(profile.id, "R1b Person", email);
+
+    auth.user = coach;
+    await approveCoachingRequest(leadId);
+    const firstInvite = await db.clientInvite.findUniqueOrThrow({ where: { requestId: leadId } });
+    // Simulate a previous holder reaching (or completing) the confirm
+    // prompt against the FIRST invite before it expired and got reissued.
+    // One row per requestId forever (ensureInviteForRequest) — without a
+    // reset, this holder's mismatch would survive onto whoever redeems the
+    // reissued row next, and the set-once guard (WHERE "mismatchSeenAt" IS
+    // NULL) would never record THEIR mismatch.
+    await db.clientInvite.update({
+      where: { id: firstInvite.id },
+      data: {
+        status: "EXPIRED",
+        mismatchSeenAt: new Date(),
+        mismatchEmail: "someone-else@example.test",
+        acceptedWithMismatch: true,
+      },
+    });
+
+    await walkToStage(coach, leadId, "INTAKE_SUBMITTED");
+    const result = await activateLead({ requestId: leadId, coachUserId: coach.id, mode: "PIPELINE" });
+    expect(result.ok).toBe(true);
+
+    const reissued = await db.clientInvite.findUniqueOrThrow({ where: { requestId: leadId } });
+    expect(reissued.status).toBe("PENDING");
+    expect(reissued.mismatchSeenAt).toBeNull();
+    expect(reissued.mismatchEmail).toBeNull();
+    expect(reissued.acceptedWithMismatch).toBe(false);
+  });
+
   it("R2 — same-address reissue keeps inviteToken, createdAt and expiresAt untouched (reusable, no write at all)", async () => {
     const { coach, profile } = await makeCoach();
     const email = `prospect-${randomUUID()}@example.test`;

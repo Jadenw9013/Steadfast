@@ -215,6 +215,19 @@ export async function ensureInviteForRequest(
         // previous recipient never sees the new prospect's details via
         // getInviteDetails.
         ...(tokenRotated ? { inviteToken: newInviteToken() } : {}),
+        // T-987 review round 2 (parity MINOR 4, code review finding A): a
+        // reissued row is a DIFFERENT redemption attempt on a row that gets
+        // reused forever (requestId is @unique). Without this reset, a
+        // mismatch recorded against the PREVIOUS recipient (set-once at
+        // lib/activation.ts, WHERE "mismatchSeenAt" IS NULL) survives onto
+        // the reissued invite — the next holder's confirmation is never
+        // recorded (the guard sees a non-null mismatchSeenAt and no-ops),
+        // and T-962/T-988's getLeadRelationships would report "accepted
+        // from a different address" for an acceptance that matched, or
+        // show a stranger's address for the wrong invite entirely.
+        mismatchSeenAt: null,
+        mismatchEmail: null,
+        acceptedWithMismatch: false,
       },
     });
   } else {
@@ -376,8 +389,15 @@ export async function activateLead(input: ActivateLeadInput): Promise<ActivateLe
 
       if (lead.consultationStage === "ACTIVE") {
         // I1(a) is evaluated here rather than assumed false — a lead can be
-        // ACTIVE via an accepted invite (prospectId set on acceptance) with
-        // no further write from this call.
+        // ACTIVE via an accepted invite with no further write from this
+        // call. T-987: prospectId is set on acceptance only when the
+        // accepting account owns the invited address; a confirmed-mismatch
+        // acceptance (lib/activation.ts) leaves prospectId null even though
+        // the invite is consumed and a CoachClient row exists for whoever
+        // confirmed. `roster` below is therefore null in that case too —
+        // this lead reads as "not on roster" even though someone did join
+        // from this invite, just not as this lead's prospect. Known gap,
+        // owned by T-979/T-988 (see board/tickets/T-987.md).
         const roster = lead.prospectId
           ? await trx.coachClient.findFirst({
               where: { coachId: coachUserId, clientId: lead.prospectId },
