@@ -750,9 +750,17 @@ incident responder acts on:**
   run via `pnpm ai-coach:deactivate` under a signed governance grant, no HTTP
   route). That is the only lever that stops every surface at once; the three
   flags each stop one narrower thing.
-- `POST /api/client/ai-coach/plans/[id]/finalize` additionally calls
-  `requireFixtureRuntime()` (`lib/ai-coach/finalization.ts:50`) — it 503s
-  outside fixture/dev mode regardless of any flag or release state.
+- `POST /api/client/ai-coach/plans/[id]/finalize` and
+  `POST /api/client/ai-coach/plans/[id]/accept` resolve FIXTURE vs LIVE from
+  the account's profile and the sole ACTIVE release
+  (`lib/ai-coach/runtime-binding.ts#resolveAiCoachRuntimeBinding`, T-2000) —
+  a synthetic profile still requires fixture/dev mode
+  (`AI_COACH_FIXTURE_MODE=true`, non-production); a real profile requires an
+  ACTIVE governed live release. Either branch failing closed 503s regardless
+  of the three flags above. Per-client human review (`AiCoachReviewerGrant`,
+  reviewer status) is not consulted by either route for a managed candidate —
+  the T-1006 deterministic gate is the sole approver; the reviewer queue
+  remains synthetic-only governance/exception tooling.
 
 **AI Coach live-provider egress (T-996):** the only outbound network call the AI
 Coach code can make is `lib/ai-coach/provider/anthropic-provider.ts` calling
@@ -838,7 +846,7 @@ adds:
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| POST | `/api/client/ai-coach/plans/[id]/finalize` | Finalizes the client's current AI-generated plan version, via `lib/ai-coach/finalization.ts` — additionally gated by `requireFixtureRuntime()`, so it 503s outside fixture/dev mode regardless of flags |
+| POST | `/api/client/ai-coach/plans/[id]/finalize` | Finalizes the client's current AI-generated plan version, via `lib/ai-coach/finalization.ts` — resolves FIXTURE vs LIVE from the account and the sole ACTIVE release (T-2000), 503s when neither applies regardless of flags |
 | GET/POST | `/api/ops/ai-coach/governance` | Governance-grant-gated kill-switch and reviewed-artifact publish/revoke operations, via `lib/ai-coach/operations.ts` and `lib/ai-coach/artifacts/repository.ts` — no route can activate a live release (see the data-model section above) |
 
 `/ai-coach` (`app/ai-coach/page.tsx`, added to `proxy.ts`'s public routes) is

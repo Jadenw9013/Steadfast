@@ -108,6 +108,115 @@ Final build results are recorded in the evidence report. Heavy Xcode compilation
 and backend verification should run sequentially to avoid resource-driven
 5-second test timeouts; use `--maxWorkers=4` for the integration suite.
 
+### T-2000 — bounded autonomy is the only real-client path (2026-09-24)
+
+The mandatory-review model that coexisted alongside the T-1006 deterministic
+gate is removed from the run, retry and enrollment paths. What changed:
+`requireReviewerCapacity` is no longer called anywhere at runtime (deleted
+from `run-command.ts`, `retry-command.ts`, the non-synthetic `ENROLL` branch
+of `client-commands.ts`); `requireFixtureRuntime()` is deleted from
+`run-command.ts` (already covered by `lockAiClient` + `assertAiCoachOperationEnabled("GENERATION")`)
+and from `finalization.ts`'s and `plan-acceptance.ts`'s managed paths; and the
+`finalization.ts` synthetic-only fence ("Automatic finalization is limited to
+persisted synthetic accounts") is replaced by a new shared resolver,
+`lib/ai-coach/runtime-binding.ts`: `resolveAiCoachRuntimeBinding` branches on
+`profile.isSynthetic` to either the locked fixture artifact set (`FIXTURE`)
+or the sole ACTIVE live release's exact artifact references (`LIVE`), failing
+closed to `TEMPORARILY_UNAVAILABLE` (503) when neither applies. Finalization,
+acceptance and the constrained-provider boundary (`runRuntimeConstrainedProviderBoundary`)
+all consult this one binding instead of branching on `isSynthetic` themselves.
+
+**`reviewerStatus` is inert, not retired.** `managed-executor.ts` keeps
+writing `PENDING`/`NOT_REQUIRED` exactly as before; no historical row changes
+meaning. What changed is that nothing reads it to authorize a managed
+(`validationReport !== null`) row: `plan-acceptance.ts`'s reviewer branch
+stays guarded by `candidate.validationReport === null`, and `lib/queries/ai-coach.ts`'s
+`automaticApproved` now additionally requires the **current** gate decision
+(compared by `evaluationKey`, not `currentGate.id`, since acceptance writes a
+fresh gate row on every attempt) to have `outcome === "APPROVE_AUTOMATICALLY"`
+and to match the persisted automatic approval's `candidatePayloadHash`. A
+reviewer `APPROVED` row on a managed candidate whose fresh gate is HOLD does
+not activate it — proven by an isolated-Postgres test. The reviewer queue
+(`reviewer.ts`) is unchanged: still fenced to `aiCoachProfile.isSynthetic: true`
+plus `requireFixtureRuntime()`, so a reviewer can never see or act on a real
+client's candidate.
+
+**Generation binding is a separate ticket (T-2022/T-2039/T-2041).**
+`runSnapshotSchema` and `buildInitialFixturePlan` still hard-code the
+synthetic literals (`synthetic: true`, the fixture policy/catalog keys), so a
+real client's *generated* candidate cannot satisfy the live-bound
+`bindingsMatch` check in `autonomy/gate.ts` yet. `requestAiRun` creates a
+QUEUED run row for a real client under an ACTIVE release (proven), but the
+composer that later turns that row into a candidate —
+`processManagedRun`/`buildInitialFixturePlan`/`representFixturePlan`/
+`buildWeeklyFixtureReview` — is explicitly fenced: it fails closed with the
+terminal reason code `LIVE_COMPOSITION_UNAVAILABLE` for any non-synthetic
+profile, before composing anything or writing an `AiPlanVersion` row, until
+T-2022/T-2039/T-2041 bind real composition to a live release's reviewed
+catalog. Round-1 review of this ticket found the fence missing (generation
+was open but composition wasn't fenced, so a real client's run would have
+written fixture doses/foods into their own plan history and
+`exportAiData`/`/api/client/ai-coach/export` would have paged it back to
+them) — fixed and tested
+(`tests/integration/ai-coach-live-autonomy.test.ts`, "processManagedRun
+fails closed for a real client"). This ticket proves finalize→accept on a
+live-bound candidate **seeded directly by the test**, not one that traveled
+through generation, exactly as the T-1006 gate's own integration test
+already seeds candidates.
+
+**The live-bound proof is a control-flow proof, not a content proof.** The
+seeded candidate's one strength exercise still resolves through the
+compile-time `EXERCISE_CATALOG_VERSION` catalog module
+(`lib/ai-coach/catalog/exercise-catalog.ts`), and `payload.contentKind` stays
+the literal `"SYNTHETIC_FIXTURE"` (`plan-contract.ts` pins it) — neither can
+be anything else until a real signed catalog can parse (T-2040) and
+generation binds to it (T-2022/T-2039/T-2041). Round-1 review also found the
+server was stamping every reviewed bundle's required-input and evidence-rule
+ids `CONFIRMED`/`SUFFICIENT` unconditionally, which was invisible because the
+test bundle only ever declared the two ids the fixture code already
+recognizes — fixed: `finalization.ts` now maps any id it cannot actually
+verify to `UNKNOWN`, failing closed to `FOCUSED_CLARIFICATION`, and
+`tests/integration/ai-coach-live-autonomy.test.ts` covers a bundle with
+genuinely non-synthetic ids (not the synthetic set with a flag flipped).
+
+**A live nutrition plan is blocked on T-2003/G01, by design.** The only
+honest live happy path this ticket can prove is a **training-only** candidate
+(`payload.nutrition === null`): `evaluateNutritionSafety` HOLDs whenever
+`projectedWeeklyWeightChangeKg` is null, and inventing that number for a real
+person is not something any agent may do. `finalization.ts`'s `LIVE` branch
+passes `projectedWeeklyWeightChangeKg: null` (never the synthetic `0`
+literal), which fails closed to HOLD the moment a live candidate actually
+touches nutrition — T-2003 (prescription engine) plus G01 (signed bundle)
+are what supply a real projected rate later. In short: live training and
+live nutrition both stay impossible in production until
+T-2040/T-2041/T-2039 (generation/catalog binding) and T-2003+G01 (a real
+projected rate) land — this ticket only proves the *authorization* control
+flow that those tickets will run through.
+
+**Contract:** no REST shape change; `GET /api/client/ai-coach/workspace`
+keeps `schemaVersion: 1`, the same five `status` values and the same four
+`authorization` fields. `checkPolicyVersionUsable` gained one optional,
+backward-compatible parameter (`runtimePolicyArtifactKey`) — omitted, it is
+byte-identical to before. iOS needs no change.
+
+Gate evidence: `pnpm exec vitest run tests/unit/ai-coach-runtime-binding.test.ts
+tests/unit/ai-coach-catalog.test.ts` (26/26); `SECURITY_INTEGRATION=1 pnpm exec
+vitest run tests/integration/ai-coach-live-autonomy.test.ts
+tests/integration/ai-coach-plan-acceptance.test.ts
+tests/integration/ai-coach-end-to-end-governance.test.ts
+tests/integration/ai-coach-run-command.test.ts
+tests/integration/ai-coach-retry-command.test.ts
+tests/integration/ai-coach-client-commands.test.ts
+tests/integration/ai-coach-managed-executor.test.ts
+tests/integration/ai-coach-weekly-trajectory.test.ts
+tests/integration/ai-coach-beginner-workflow.test.ts
+tests/integration/ai-coach-live-launch-readiness.test.ts
+tests/integration/ai-coach-autonomy-gate.test.ts --maxWorkers=1
+--no-file-parallelism` (109/109, round-2 review fixes above included);
+`pnpm run type-check` and `pnpm exec eslint` on every changed file. No flag
+is enabled by this change; every real-client call still fails closed at
+`lockAiClient` while no live release is ACTIVE.
+
 ## Codex takeover correction — A10 acceptance boundary (2026-09-13)
 
 Before starting A06 UI, direct PostgreSQL regressions disproved the previous

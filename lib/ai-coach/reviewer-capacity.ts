@@ -1,8 +1,16 @@
 import type { Prisma } from "@/app/generated/prisma/client";
 import { AiCoachError } from "./access";
 export const FIXTURE_REVIEW_CAPACITY = 50;
-/** Caller holds client authority lock. Grant locks serialize capacity reservation
- * across assigned clients; queued jobs count before they produce proposals. */
+/**
+ * T-2000: governance-only. Nothing on the run, retry or enrollment path calls
+ * this anymore — the deterministic gate (T-1006) is the sole approver of a
+ * managed candidate, and reviewer status cannot approve, block or bypass its
+ * outcome. This function and the numbers it reports remain for the ops
+ * monitoring/reviewer-queue surfaces (doc 16), which stay synthetic-only.
+ *
+ * Caller holds client authority lock. Grant locks serialize capacity reservation
+ * across assigned clients; queued jobs count before they produce proposals.
+ */
 export async function requireReviewerCapacity(tx: Prisma.TransactionClient, clientId: string, enrollment = false) {
   await tx.$queryRaw`SELECT g."id" FROM "AiCoachReviewerGrant" g JOIN "User" u ON u."id" = g."userId" WHERE ${clientId} = ANY(g."clientIds") ORDER BY g."id" FOR UPDATE OF g, u`;
   const grants = await tx.aiCoachReviewerGrant.findMany({ where: { clientIds: { has: clientId }, revokedAt: null, userId: { not: clientId }, user: { isDeactivated: false } }, orderBy: { id: "asc" } });

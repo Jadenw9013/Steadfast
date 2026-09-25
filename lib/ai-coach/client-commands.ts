@@ -1,4 +1,3 @@
-import { requireReviewerCapacity } from "./reviewer-capacity";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { lockAiClient, AiCoachError, jsonValue, requireFixtureRuntime } from "./access";
@@ -186,7 +185,6 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
             "REVISION_CONFLICT",
             "The approved consent changed. Review it again before choosing AI Coach."
           );
-        await requireReviewerCapacity(tx, clientId, true);
       }
       if ((context?.revision ?? 0) !== input.expectedContextRevision || context?.mode === "HUMAN")
         throw new AiCoachError(

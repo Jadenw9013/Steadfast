@@ -28,6 +28,28 @@ export async function processManagedRun(
   try {
     await assertAiCoachOperationEnabled("GENERATION");
     await assertAiCoachOperationEnabled("PROVIDER");
+    // T-2000 review finding 2: removing the run-command.ts non-synthetic 503
+    // opened generation to a real client, but the composer below
+    // (buildInitialFixturePlan / representFixturePlan /
+    // buildWeeklyFixtureReview) unconditionally stamps hard-coded fixture
+    // doses, foods and `contentKind: "SYNTHETIC_FIXTURE"` into whatever
+    // AiPlanVersion it writes — content that is only ever correct for a
+    // synthetic test account. Binding real composition to a live release's
+    // reviewed catalog is T-2022/T-2039/T-2041; until then, a real client's
+    // run must fail closed here, before any composition or write, rather
+    // than silently writing fixture clinical content into a real person's
+    // plan history.
+    const executingProfile = await db.aiCoachProfile.findUnique({
+      where: { clientId: claim.run.clientId },
+      select: { isSynthetic: true },
+    });
+    if (!executingProfile?.isSynthetic) {
+      throw new AiCoachError(
+        "LIVE_COMPOSITION_UNAVAILABLE",
+        "Plan composition for a real account is not available yet.",
+        503
+      );
+    }
     const snapshot = runSnapshotSchema.parse(claim.run.inputSnapshot);
     const generated =
       claim.run.kind === "INITIAL"

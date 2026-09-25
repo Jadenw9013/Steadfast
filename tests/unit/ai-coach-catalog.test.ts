@@ -80,6 +80,26 @@ describe("A04 — policy version compatibility/revocation", () => {
     expect(checkPolicyVersionUsable("policy-fixture-v0")).toMatchObject({ usable: false, error: "POLICY_REVOKED" });
     expect(checkPolicyVersionUsable("policy-that-never-existed")).toMatchObject({ usable: false, error: "UNKNOWN_POLICY_VERSION" });
   });
+
+  it("T-2000: accepts a candidate whose policyVersion matches the supplied runtime policy artifact key", () => {
+    expect(checkPolicyVersionUsable("live-release-policy-key", "live-release-policy-key")).toEqual({
+      usable: true,
+    });
+  });
+
+  it("T-2000: rejects a candidate whose policyVersion does not match the supplied runtime policy artifact key", () => {
+    expect(checkPolicyVersionUsable("other", "live-release-policy-key")).toMatchObject({
+      usable: false,
+      error: "UNKNOWN_POLICY_VERSION",
+    });
+  });
+
+  it("T-2000: revocation wins over a matching runtime policy artifact key", () => {
+    expect(checkPolicyVersionUsable("policy-fixture-v0", "policy-fixture-v0")).toMatchObject({
+      usable: false,
+      error: "POLICY_REVOKED",
+    });
+  });
 });
 
 describe("A04 — feasible composition", () => {

@@ -15,6 +15,18 @@ import { ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { POST as acceptRoute } from "@/app/api/client/ai-coach/plans/[id]/accept/route";
 import { POST as declineRoute } from "@/app/api/client/ai-coach/plans/[id]/decline/route";
 import type { Prisma } from "@/app/generated/prisma/client";
+import {
+  publishArtifactVersion,
+  registerArtifactVersion,
+} from "@/lib/ai-coach/artifacts/repository";
+import {
+  buildSyntheticArtifactSet,
+  SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+} from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { finalizeCurrentClientPlan } from "@/lib/ai-coach/finalization";
+import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
+import { submitSafetyDisclosure } from "@/lib/ai-coach/safety";
 
 suite("A10 — atomic proposal lifecycle and acceptance with real PostgreSQL constraints", () => {
   const originalPublicationFlag = process.env.FEATURE_AI_COACH_PUBLICATION;
@@ -385,6 +397,129 @@ suite("A10 — atomic proposal lifecycle and acceptance with real PostgreSQL con
       const replay = await acceptPlanVersionAtomic(client.id, first.id, firstInput);
       expect(replay).toMatchObject({ success: true, alreadyAccepted: true, activeVersionId: second.id });
       expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: first.id } })).status).toBe("SUPERSEDED");
+    });
+  });
+
+  describe("T-2000 — reviewer status is inert for a managed candidate", () => {
+    const intake = {
+      goal: "GENERAL_FITNESS" as const,
+      experienceLevel: "NEW" as const,
+      trainingDaysPerWeek: 2,
+      equipmentAccess: ["NONE" as const],
+      dietaryRestrictions: [],
+      allergies: [],
+      foodBudgetLevel: "LOW" as const,
+      trackingPreference: "NUMBERS_VISIBLE" as const,
+      unitsPreference: "METRIC" as const,
+      heightCm: 170,
+      weightKg: 70,
+    };
+    const clearSafety = {
+      chestPainDuringExercise: "NO" as const,
+      dizzinessOrFainting: "NO" as const,
+      heartCondition: "NO" as const,
+      pregnantOrPostpartum: "NO" as const,
+      recentInjuryOrSurgery: "NO" as const,
+      ageEligibilityConcern: "NO" as const,
+      eatingDisorderHistoryOrConcern: "NO" as const,
+      type1Diabetes: "NO" as const,
+    };
+    const originalFixtureMode = process.env.AI_COACH_FIXTURE_MODE;
+    beforeEach(() => {
+      process.env.AI_COACH_FIXTURE_MODE = "true";
+    });
+    afterEach(() => {
+      process.env.AI_COACH_FIXTURE_MODE = originalFixtureMode;
+    });
+
+    async function ensureRuntimeArtifacts() {
+      const set = buildSyntheticArtifactSet("t1008-runtime");
+      const effectiveAt = new Date(Date.now() - 60_000);
+      const expiresAt = new Date(Date.now() + 86_400_000);
+      for (const artifact of [
+        set.foodCatalog,
+        set.exerciseCatalog,
+        set.evidenceRegistry,
+        set.escalationTemplates,
+        set.policyBundle,
+      ]) {
+        const existing = await db.aiCoachArtifactVersion.findUnique({ where: { id: artifact.id } });
+        if (!existing) await registerArtifactVersion(artifact);
+        const current = await db.aiCoachArtifactVersion.findUniqueOrThrow({
+          where: { id: artifact.id },
+        });
+        if (current.state === "DRAFT") {
+          await publishArtifactVersion({
+            id: artifact.id,
+            effectiveAt,
+            expiresAt,
+            engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+          });
+        }
+      }
+    }
+
+    it("accepts a REJECTED-by-reviewer managed candidate that has a valid automatic approval and a fresh APPROVE_AUTOMATICALLY gate", async () => {
+      await ensureRuntimeArtifacts();
+      const id = randomUUID();
+      const user = await db.user.create({
+        data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+      });
+      await db.clientCoachingContext.create({ data: { clientId: user.id, mode: "AI" } });
+      await db.aiCoachEntitlement.create({ data: { clientId: user.id } });
+      await db.aiCoachProfile.create({
+        data: {
+          clientId: user.id,
+          isSynthetic: true,
+          confirmedIntake: intake,
+          consentedAt: new Date(),
+          reviewTimezone: "America/Los_Angeles",
+        },
+      });
+      await submitSafetyDisclosure(user.id, clearSafety);
+      mocks.authUserId = id;
+      const context = await db.clientCoachingContext.findUniqueOrThrow({
+        where: { clientId: user.id },
+      });
+      const profile = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: user.id } });
+      const { payload } = buildInitialFixturePlan(intake, "synthetic-rx", "MEALS");
+      const candidate = await db.aiPlanVersion.create({
+        data: {
+          clientId: user.id,
+          version: 1,
+          payload,
+          payloadHash: contentHash(payload),
+          contextRevision: context.revision,
+          profileRevision: profile.profileRevision,
+          observationRevision: profile.observationRevision,
+          safetyRevision: profile.safetyRevision,
+          policyVersion: payload.policyVersion,
+          catalogVersions: payload.catalogVersions,
+          changeClass: "INITIAL",
+          // A reviewer explicitly rejected this candidate. Per T-2000 that
+          // status is inert for a managed row: only the gate/approval below
+          // determine the outcome.
+          reviewerStatus: "REJECTED",
+          validationReport: { engine: "managed-v1", passed: true, inputHash: "a".repeat(64) },
+          sourceRefs: [],
+        },
+      });
+      await expect(finalizeCurrentClientPlan(candidate.id)).resolves.toMatchObject({
+        outcome: "APPROVE_AUTOMATICALLY",
+      });
+      // finalizeCurrentClientPlan never writes reviewerStatus; confirm it is
+      // still REJECTED going into acceptance.
+      expect(
+        (await db.aiPlanVersion.findUniqueOrThrow({ where: { id: candidate.id } })).reviewerStatus
+      ).toBe("REJECTED");
+
+      const acceptInput = acceptInputFor(candidate);
+      const result = await acceptPlanVersionAtomic(user.id, candidate.id, acceptInput);
+      expect(result).toMatchObject({ success: true, alreadyAccepted: false, activeVersionId: candidate.id });
+      expect(
+        (await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: user.id } }))
+          .activePlanVersionId
+      ).toBe(candidate.id);
     });
   });
 

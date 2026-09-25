@@ -1,4 +1,3 @@
-import { assignFixtureReviewer } from "../helpers/ai-reviewer";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { NextRequest } from "next/server";
@@ -8,6 +7,13 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { db } from "@/lib/db";
 import { applyAiClientCommand } from "@/lib/ai-coach/client-commands";
 import { POST } from "@/app/api/client/ai-coach/commands/route";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
+import {
+  activateTestLiveRelease,
+  createTestGovernanceActor,
+  deactivateTestLiveRelease,
+  TEST_RUNTIME_CONFIGURATION,
+} from "../helpers/ai-live-launch";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
@@ -19,7 +25,6 @@ suite("client intake, consent and HTTP boundaries", () => {
   afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() {
     const id = randomUUID(); const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } });
-    await assignFixtureReviewer(client.id);
     await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true } });
     await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
     mocks.clerkId = id; return client;
@@ -68,5 +73,86 @@ suite("client intake, consent and HTTP boundaries", () => {
     const res = await POST(req(JSON.stringify({ ...base(), operation: "SAVE_INTAKE", answers: { goal: "GENERAL_FITNESS" } })));
     expect(res.status).toBe(200); expect(res.headers.get("cache-control")).toContain("no-store"); expect(await res.json()).toMatchObject({ data: { saved: true } });
     expect((await POST(req("x".repeat(33000)))).status).toBe(422);
+  });
+  it("T-2000: enrolls a non-synthetic profile under an ACTIVE live release with zero reviewer grants", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } });
+    await db.aiCoachProfile.create({
+      data: { clientId: client.id, isSynthetic: false, confirmedIntake: answers },
+    });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    mocks.clerkId = id;
+    const actor = await createTestGovernanceActor(
+      ["APPROVE_LIVE_LAUNCH", "ACTIVATE_LIVE_LAUNCH", "DEACTIVATE_LIVE_LAUNCH"],
+      "T-2000-client-commands-live-test"
+    );
+    await activateTestLiveRelease({
+      namespace: `client-commands-live-${randomUUID()}`,
+      actorUserId: actor.id,
+    });
+    try {
+      expect(
+        await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })
+      ).toBe(0);
+      const discovery = TEST_RUNTIME_CONFIGURATION.discovery;
+      const enroll = {
+        ...base(),
+        operation: "ENROLL",
+        consent: true,
+        expectedContextRevision: 0,
+        reviewTimezone: "America/Los_Angeles",
+        consentConfigurationId: discovery.configurationId,
+        consentConfigurationVersion: discovery.version,
+        privacyNoticeVersion: discovery.privacyNoticeVersion,
+        consentTextDigest: contentHash(discovery),
+      } as const;
+      await expect(applyAiClientCommand(client.id, enroll)).resolves.toMatchObject({
+        saved: true,
+      });
+      expect(
+        (await db.clientCoachingContext.findUniqueOrThrow({ where: { clientId: client.id } }))
+          .mode
+      ).toBe("AI");
+      expect(
+        await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })
+      ).toBe(0);
+    } finally {
+      await deactivateTestLiveRelease(actor.id);
+    }
+  });
+  it("T-2000: keeps the consent-digest-mismatch rejection for a non-synthetic ENROLL", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } });
+    await db.aiCoachProfile.create({
+      data: { clientId: client.id, isSynthetic: false, confirmedIntake: answers },
+    });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    mocks.clerkId = id;
+    const actor = await createTestGovernanceActor(
+      ["APPROVE_LIVE_LAUNCH", "ACTIVATE_LIVE_LAUNCH", "DEACTIVATE_LIVE_LAUNCH"],
+      "T-2000-client-commands-mismatch-test"
+    );
+    await activateTestLiveRelease({
+      namespace: `client-commands-mismatch-${randomUUID()}`,
+      actorUserId: actor.id,
+    });
+    try {
+      const enroll = {
+        ...base(),
+        operation: "ENROLL",
+        consent: true,
+        expectedContextRevision: 0,
+        reviewTimezone: "America/Los_Angeles",
+        consentConfigurationId: TEST_RUNTIME_CONFIGURATION.discovery.configurationId,
+        consentConfigurationVersion: TEST_RUNTIME_CONFIGURATION.discovery.version,
+        privacyNoticeVersion: TEST_RUNTIME_CONFIGURATION.discovery.privacyNoticeVersion,
+        consentTextDigest: "0".repeat(64),
+      } as const;
+      await expect(applyAiClientCommand(client.id, enroll)).rejects.toMatchObject({
+        code: "REVISION_CONFLICT",
+      });
+    } finally {
+      await deactivateTestLiveRelease(actor.id);
+    }
   });
 });

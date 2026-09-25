@@ -64,6 +64,13 @@ suite("T-1008 through T-1010 synthetic end-to-end and governance controls", () =
     process.env.AI_COACH_FIXTURE_MODE = "true";
     process.env.FEATURE_AI_COACH_PUBLICATION = "true";
     await db.aiCoachOperationalControl.deleteMany();
+    // T-2000: this suite's happy path asserts a global zero-reviewer-grant
+    // count. This local test DB is never truncated between files/runs, so
+    // without this reset the assertion would see leftover rows other
+    // synthetic-fixture suites intentionally seed and never delete. Delete
+    // the referencing approvals first (FK-required, no cascade).
+    await db.aiPlanReviewerApproval.deleteMany();
+    await db.aiCoachReviewerGrant.deleteMany();
   });
   afterEach(async () => {
     process.env.AI_COACH_FIXTURE_MODE = originalFixtureMode;
@@ -157,9 +164,13 @@ suite("T-1008 through T-1010 synthetic end-to-end and governance controls", () =
 
   it("runs draft candidate → deterministic finalization → atomic acceptance without reviewer authority", async () => {
     const { user, candidate, acceptInput } = await clientFixture();
+    // T-2000: review is no longer a runtime dependency on the synthetic
+    // fixture path either — zero AiCoachReviewerGrant rows exist throughout.
+    expect(await db.aiCoachReviewerGrant.count()).toBe(0);
     await expect(finalizeCurrentClientPlan(candidate.id)).resolves.toMatchObject({
       outcome: "APPROVE_AUTOMATICALLY",
     });
+    expect(await db.aiCoachReviewerGrant.count()).toBe(0);
     const approval = await db.aiAutomaticPlanApproval.findUniqueOrThrow({
       where: { planVersionId: candidate.id },
     });
@@ -179,6 +190,7 @@ suite("T-1008 through T-1010 synthetic end-to-end and governance controls", () =
       outcome: "ACCEPTED",
       reasonCode: "AUTOMATIC_GATE_APPROVED",
     });
+    expect(await db.aiCoachReviewerGrant.count()).toBe(0);
   });
 
   it("does not let reviewer state bypass automatic finalization", async () => {
