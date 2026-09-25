@@ -751,6 +751,7 @@ condition (`lib/ai-coach/discovery.ts`).
 | POST | `/api/public/coaching-request` | Submit coaching request (no auth required) |
 | POST | `/api/webhooks/clerk` | Clerk user sync webhook |
 | GET | `/api/cron/checkin-reminders` | Cron: daily reminder dispatch |
+| GET | `/api/cron/ai-coach-executor` | Cron: AI Coach durable job executor sweep (A05, T-503) |
 | GET | `/api/cron/purge-deleted-accounts` | Cron: account purge execution |
 
 ### Import Pipeline
@@ -900,8 +901,16 @@ error tracker would have caught none of them.
 
 | Schedule | Endpoint | Purpose |
 |---|---|---|
-| Daily 19:00 UTC | `/api/cron/checkin-reminders` | Sends check-in reminders (email, SMS, push) based on cadence config |
-| On-demand | `/api/cron/purge-deleted-accounts` | Purges accounts past 30-day grace period (FK-safe deletion order) |
+| Daily 19:00 UTC | `/api/cron/checkin-reminders` | Sends check-in reminders (email, SMS, push) based on cadence config; also runs the account-purge and storage-cleanup sweeps piggybacked in the same invocation (F08) |
+| Hourly :05 UTC | `/api/cron/ai-coach-executor` | AI Coach durable job executor (A05) — reconciles expired leases/due retries and claims up to 3 QUEUED runs per sweep; inert (zero database access) while `FEATURE_AI_COACH_GENERATION` is unset (T-503) |
+| Daily 04:00 UTC | `/api/cron/purge-deleted-accounts` | Purges accounts past 30-day grace period (FK-safe deletion order) — a second, independent daily drain pass alongside the 19:00 piggyback above (T-503) |
+
+A fourth entry, `/api/cron/ai-coach-alerts` at `:35` hourly, is reserved for T-998 (alert evaluator);
+it must not renumber or reorder the three entries above.
+
+The executor route always returns 200. A healthy inert sweep body has no `paused` key
+(`{"disabled":true,...}`); `{"paused":true,"reason":"TEMPORARILY_UNAVAILABLE"}` means generation is
+blocked (kill switch or no ready live release) and needs investigating despite the 200 status.
 
 ---
 
