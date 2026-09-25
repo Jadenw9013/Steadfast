@@ -29,6 +29,7 @@ export async function* exportAiData(clientId: string, signal?: AbortSignal) {
         "Reviewer qualification records",
         "Global reviewed policy, catalog, evidence and escalation artifacts",
         "Internal model traces and execution errors",
+        "Internal grant provisioning and authorization records",
       ],
       completion: "A complete export ends with an end record.",
     },

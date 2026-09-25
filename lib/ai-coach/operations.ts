@@ -4,15 +4,17 @@ import { db } from "@/lib/db";
 import { AiCoachError } from "./access";
 import type { ActiveAiCoachLiveRelease } from "./live-launch/repository";
 
-export type GovernanceScope =
-  | "CONTROL_OPERATIONS"
-  | "PUBLISH_ARTIFACTS"
-  | "REVOKE_ARTIFACTS"
-  | "VIEW_AGGREGATE_MONITORING"
-  | "APPROVE_LIVE_LAUNCH"
-  | "REVOKE_LIVE_LAUNCH"
-  | "ACTIVATE_LIVE_LAUNCH"
-  | "DEACTIVATE_LIVE_LAUNCH";
+export const GOVERNANCE_SCOPES = [
+  "CONTROL_OPERATIONS",
+  "PUBLISH_ARTIFACTS",
+  "REVOKE_ARTIFACTS",
+  "VIEW_AGGREGATE_MONITORING",
+  "APPROVE_LIVE_LAUNCH",
+  "REVOKE_LIVE_LAUNCH",
+  "ACTIVATE_LIVE_LAUNCH",
+  "DEACTIVATE_LIVE_LAUNCH",
+] as const;
+export type GovernanceScope = (typeof GOVERNANCE_SCOPES)[number];
 
 export async function requireGovernanceGrant(
   userId: string,

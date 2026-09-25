@@ -827,3 +827,128 @@ activity/check-in and an early weekly clarification without losing the current
 plan or writing human coaching tables. Unit tests cover feasible/unsupported
 offers and UI scope; browser form regression remains passing. Current full suite:
 219 integration and 428 unit tests. Final logs: `/private/tmp/steadfast-final-*`.
+
+### T-995 — grant provisioning (2026-09-25)
+
+Before this ticket, no production code path could create any of the three
+permission rows that gate the whole feature (`AiCoachGovernanceGrant`,
+`AiCoachReviewerGrant`, `AiCoachEntitlement`) — only test factories against
+the disposable local database wrote them. `lib/ai-coach/grants.ts` is now the
+single shared writer for all three, called from two CLI-only scripts (no HTTP
+route, mirroring `ai-coach:activate`/`ai-coach:deactivate`):
+
+```sh
+pnpm run ai-coach:bootstrap-governance -- --confirm-bootstrap --user-id '<id>' \
+  --grant-ref '<signed record id>' --actor-ref '<named human>' --reason-code 'GOVERNANCE_BOOTSTRAP'
+pnpm run ai-coach:grant -- grant-governance   --actor-user-id '<id>' --user-id '<id>' --scopes '...' --grant-ref '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+pnpm run ai-coach:grant -- grant-reviewer     --actor-user-id '<id>' --user-id '<id>' --client-ids '<id>,<id>' --domains '...' --qualification-note '<note>' --actor-ref '<name>' --reason-code '<CODE>'
+pnpm run ai-coach:grant -- grant-entitlement  --actor-user-id '<id>' --client-id '<id>' [--expires-at '<ISO>'] --actor-ref '<name>' --reason-code '<CODE>'
+```
+(plus the symmetric `revoke-governance`/`revoke-reviewer`/`revoke-entitlement`).
+
+Bootstrap is a once-ever-per-database command: it refuses (`ALREADY_BOOTSTRAPPED`)
+if any `AiCoachGovernanceGrant` row exists at all, revoked included, checked
+under `pg_advisory_xact_lock('steadfast.ai_coach.governance_grants')`, and
+always grants all eight `GOVERNANCE_SCOPES` (no `--scopes` argument). Every
+later grant requires an existing `CONTROL_OPERATIONS` holder.
+`revoke-governance` additionally refuses (`LAST_CONTROL_GRANT`) if it would
+leave zero non-revoked `CONTROL_OPERATIONS` grants. A new append-only table,
+`AiCoachAccessGrantEvent` (migration `20260925000000`), records one audit row
+per successful create/revoke, purged on both `actorUserId`/`subjectUserId`
+and scrubbed (`array_remove`) out of any other row's `clientIds`. The
+append-only guard on this table needed one deviation from the original
+design: a session-scoped flag (`steadfast.ai_coach_access_grant_purge`,
+set only by `lib/account-deletion/purge.ts`) permits the purge path's own
+`clientIds`-only scrub UPDATE through the trigger while still rejecting
+every other mutation — the shared `prevent_ai_coach_append_only_update()`
+function used by every other append-only table blocks *all* updates
+unconditionally, which would otherwise have made the required purge scrub
+line impossible (caught by a failing integration test before it shipped).
+
+Per T-2000 (Jaden, 2026-09-24), the entitlement path reads no
+`AiCoachReviewerGrant` row and calls no reviewer function — the reviewer-grant
+CLI stays in scope only for safety-resolution and governance/exception
+tooling; `client-commands.ts`, `run-command.ts` and `retry-command.ts` are
+untouched and still call `requireReviewerCapacity` for non-synthetic profiles
+until T-2000 lands. Nothing here changes web/iOS response shapes — no route,
+Server Action or UI was added.
+
+Gates: `pnpm run type-check` (twice), `pnpm exec eslint` on every changed
+file, `pnpm exec prisma validate`, `tests/unit/ai-coach-grant-input.test.ts`
+(20 tests), `tests/integration/ai-coach-grants.test.ts` plus the
+extended `tests/integration/account-deletion.test.ts`, and the named
+regression set (`ai-coach-live-launch-readiness`, `ai-coach-end-to-end-governance`,
+`ai-coach-provider-boundary`, `ai-coach-reviewer`, `ai-coach-plan-acceptance`,
+`ai-coach-context`) all pass. Full unit suite passes (after bumping
+`EXPECTED_MIGRATIONS` to 75 for the new migration). No feature flag was
+touched; the change is inert until an operator runs a command.
+
+**Round 2 (review + parity fixes, 2026-09-25):**
+
+- **`LAST_CONTROL_GRANT` now also requires the remaining holder to be
+  active.** The count previously only checked `revokedAt: null`, matching
+  `requireGovernanceGrant`'s revoked-check but not its
+  `user.isDeactivated`-check — a revoke could leave the platform's only
+  standing `CONTROL_OPERATIONS` grant on a deactivated account, which
+  `requireGovernanceGrant` then refuses for every caller (the kill switch
+  included), with no repair path but hand-written SQL. Fixed by adding
+  `user: { isDeactivated: false }` to the count.
+- **`grant-reviewer`'s context refusal (row 13) relaxed.** It refused any
+  client whose `ClientCoachingContext.mode !== "AI"` — but no real client can
+  reach `mode: "AI"` before T-2000 (ENROLL still calls
+  `requireReviewerCapacity`, which itself needs a reviewer grant to already
+  exist), a deadlock for the exact "first real client" case this ticket
+  exists to unblock. Now refuses only `mode === "HUMAN"` or
+  `resolutionRequired`; a `NONE`-mode / no-context (pre-enrollment) client can
+  be named.
+- **TOCTOU on actor authority closed.** `requireGovernanceGrant(actor, ...)`
+  previously ran as an unlocked read before any serializing lock on four of
+  the six operations. Governance paths now take the advisory lock before
+  reading actor authority; reviewer/entitlement paths now take
+  `SELECT ... FROM "AiCoachGovernanceGrant" WHERE "userId" = $actor FOR UPDATE`
+  first. A concurrent revoke of the actor's own grant can no longer commit
+  between the authority read and this transaction's commit.
+- **`lockAiClientRows` extraction fully restored to zero behaviour change.**
+  Round 1 moved the client's `isClient`/`isDeactivated` check to after all
+  four row locks instead of between lock 1 and lock 2. `lib/ai-coach/access.ts`
+  now exposes `lockAiClientUserRow` and `lockAiClientDependentRows`
+  separately; `lockAiClient` composes them with the check back in its
+  original position, and `lockAiClientRows` (used by `grants.ts`) composes
+  the same two helpers with no interleaved check.
+- **Recorded, not code-changed:** `grant-entitlement`/`grant-reviewer`/`grant-governance`
+  silently re-activate an **expired-but-not-revoked** row in place rather than
+  refusing it (a deliberate narrowing of refusal row 9's "any non-revoked row"
+  wording for the entitlement path specifically, matching how `access.ts` and
+  `client-provider.ts` already treat an expired entitlement as inactive).
+- **Purge can still delete the last `CONTROL_OPERATIONS` holder's grant with
+  no guard**, and once any grant row has ever existed, bootstrap refuses
+  forever. Not a code fix in this ticket — the recovery procedure is a manual
+  SQL insert, to be run only as a named incident:
+  ```sql
+  INSERT INTO "AiCoachGovernanceGrant" ("id","userId","scopes","grantRef")
+  VALUES (
+    gen_random_uuid()::text,
+    '<recovery user id>',
+    ARRAY['CONTROL_OPERATIONS','PUBLISH_ARTIFACTS','REVOKE_ARTIFACTS','VIEW_AGGREGATE_MONITORING',
+          'APPROVE_LIVE_LAUNCH','REVOKE_LIVE_LAUNCH','ACTIVATE_LIVE_LAUNCH','DEACTIVATE_LIVE_LAUNCH'],
+    '<incident reference>'
+  );
+  ```
+  This belongs in the release packet as a named recovery procedure.
+- **Deploy ordering (bold, read before pushing): apply migration
+  `20260925000000_ai_coach_access_grant_events` to the target database
+  BEFORE this commit is deployed.** `purge.ts` references
+  `AiCoachAccessGrantEvent` unconditionally; without the migration applied,
+  every account-deletion purge run throws, `sweep.ts` resets the request to
+  `PENDING` and every pending deletion (web- and iOS-initiated) silently
+  stalls with the statutory clock still running. `GET /api/health`
+  (`migrationsApplied === migrationsExpected`, expected is **75**) is the
+  pre-deploy check.
+- New regression tests: `revoke-governance refuses when the only other
+  CONTROL_OPERATIONS holder is deactivated`; `grant-reviewer succeeds for a
+  NONE-mode / no-context client, refuses a HUMAN-mode client`; a
+  revoke-governance-vs-grant-entitlement concurrency race proving no
+  entitlement is ever created attributed to a governance grant that is
+  revoked at commit time; the non-synthetic + ACTIVE-release writer/reader
+  agreement case for `entitlement written by the CLI passes lockAiClient
+  unchanged`; `grant-entitlement after expiry re-activates in place`.

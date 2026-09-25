@@ -277,6 +277,11 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       await tx.$executeRaw`DELETE FROM "AiCoachArtifactLifecycleEvent" WHERE "actorUserId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiCoachLiveLaunchLifecycleEvent" WHERE "actorUserId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiCoachLiveActivationEvent" WHERE "actorUserId" = ${userId}`;
+      // The append-only guard on this table (prisma/migrations/20260925000000_ai_coach_access_grant_events)
+      // only permits a `clientIds`-only UPDATE while this session flag is set — see the migration comment.
+      await tx.$executeRaw`SELECT set_config('steadfast.ai_coach_access_grant_purge', 'true', true)`;
+      await tx.$executeRaw`UPDATE "AiCoachAccessGrantEvent" SET "clientIds" = array_remove("clientIds", ${userId}) WHERE ${userId} = ANY("clientIds")`;
+      await tx.$executeRaw`DELETE FROM "AiCoachAccessGrantEvent" WHERE "actorUserId" = ${userId} OR "subjectUserId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiCoachGovernanceGrant" WHERE "userId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiSafetyDisclosureEvent" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiIntakeDraft" WHERE "clientId" = ${userId}`;
