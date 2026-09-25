@@ -40,3 +40,16 @@ No live provider call, production/staging deployment, feature enablement, live a
 Every item in [`LAUNCH_REQUIRED_INPUTS.md`](../../../LAUNCH_REQUIRED_INPUTS.md) remains mandatory. In particular, the current evidence does not supply or imply qualified nutrition approval, legal approval, provider/vendor privacy or security approval, an operational owner or approved SLO, emergency/referral wording, witnessed staging evidence, real-provider evaluation, full-Xcode evidence, product governance, production infrastructure approval, or signatures. The working trees must first become immutable release revisions and all approvals/evidence must bind those exact revisions, the five live artifact digests, and the runtime-configuration digest.
 
 The only future activation mechanism is the CLI command in `LAUNCH_REQUIRED_INPUTS.md`. It cannot author, approve, repair, or infer a missing record. Any missing, stale, unsigned, expired, revoked, incompatible, test-only, or digest-mismatched input leaves discovery hidden and operations blocked.
+
+## T-996 update (2026-09-25)
+
+The "Provider boundary" row above still reads "public-HTTPS gateway validation" as evidence — that
+control no longer exists. T-996 deleted `isApprovedProviderGatewayUrl` and the
+`STEADFAST_CONSTRAINED_JSON_V1`/`gatewayUrl` provider shape, replacing the live provider with a direct
+Anthropic Messages API call (`lib/ai-coach/provider/anthropic-provider.ts`). The historical row above is
+left unedited as a record of what passed on 2026-09-23; as of T-996 the equivalent control is: pinned
+vendor (`provider.vendor === "ANTHROPIC"`) and pinned `apiBaseUrl` literal
+(`https://api.anthropic.com`), a pinned credential-environment-variable literal
+(`AI_COACH_PROVIDER_CREDENTIAL`), and an organization-level zero-data-retention/no-training attestation
+record (`organizationDataControlsRecordId`) rather than per-request flags. No provider I/O was
+performed by T-996; the first real call remains T-997.

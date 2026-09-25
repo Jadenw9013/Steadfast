@@ -191,7 +191,13 @@ export const constrainedProviderEnvelopeSchema = z
 
 export type ConstrainedProviderEnvelope = z.infer<typeof constrainedProviderEnvelopeSchema>;
 
-export const constrainedProviderOutputSchema = z
+/**
+ * The refinement-free base exists only because a JSON-Schema translation (T-996's
+ * `zodOutputFormat`) cannot carry `superRefine`. `constrainedProviderOutputSchema`
+ * below stays the authority — `validateConstrainedProviderOutput` re-validates
+ * every provider response against the refined schema server-side.
+ */
+export const constrainedProviderOutputObjectSchema = z
   .object({
     schemaVersion: z.literal(1),
     preferenceIds: z.array(identifierSchema).max(20),
@@ -211,8 +217,10 @@ export const constrainedProviderOutputSchema = z
       })
       .strict(),
   })
-  .strict()
-  .superRefine((output, ctx) => {
+  .strict();
+
+export const constrainedProviderOutputSchema = constrainedProviderOutputObjectSchema.superRefine(
+  (output, ctx) => {
     for (const [field, values] of [
       ["preferenceIds", output.preferenceIds],
       ["rankedOptionIds", output.rankedOptionIds],
@@ -238,7 +246,8 @@ export const constrainedProviderOutputSchema = z
         message: "Only a clarification disposition may select one allowed clarification.",
       });
     }
-  });
+  }
+);
 
 export type ConstrainedProviderOutput = z.infer<typeof constrainedProviderOutputSchema>;
 

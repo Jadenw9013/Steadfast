@@ -20,14 +20,21 @@ const RUNTIME_CONFIGURATION = {
   provider: {
     configurationId: "synthetic-final-provider-v1",
     version: 1,
-    protocol: "STEADFAST_CONSTRAINED_JSON_V1" as const,
-    gatewayUrl: "https://provider.invalid/v1/constrained",
+    vendor: "ANTHROPIC" as const,
+    apiBaseUrl: "https://api.anthropic.com" as const,
     credentialEnvironmentVariable: "AI_COACH_PROVIDER_CREDENTIAL" as const,
     providerName: "Synthetic final-provider test double",
     modelIdentifier: "synthetic-model-v1",
+    effort: "low" as const,
+    pricing: {
+      currency: "USD",
+      inputMinorUnitsPerMillionTokens: 300,
+      outputMinorUnitsPerMillionTokens: 1_500,
+    },
     processingRegion: "SYNTHETIC_TEST_REGION",
     requestStorage: "DISABLED" as const,
     trainingUse: "DISABLED" as const,
+    organizationDataControlsRecordId: "synthetic-org-data-controls-record",
     sendsDirectIdentifiers: false as const,
     sendsCrossClientContext: false as const,
     rawPromptOrTraceLogging: false as const,
@@ -248,9 +255,24 @@ describe("AI Coach live-launch packet readiness", () => {
       "EVIDENCE_NOT_CURRENT:T1005_ARTIFACT_INTEGRITY"
     );
 
-    const privateGateway = completeTestPacket();
-    privateGateway.runtimeConfiguration!.provider.gatewayUrl = "https://127.0.0.1/provider";
-    expect(reasonCodes(privateGateway, expectation(privateGateway))).toEqual([
+    const legacyGatewayShape = completeTestPacket();
+    (legacyGatewayShape.runtimeConfiguration!.provider as unknown as Record<string, unknown>)
+      .protocol = "STEADFAST_CONSTRAINED_JSON_V1";
+    (legacyGatewayShape.runtimeConfiguration!.provider as unknown as Record<string, unknown>)
+      .gatewayUrl = "https://provider.invalid/v1/constrained";
+    expect(reasonCodes(legacyGatewayShape, expectation(legacyGatewayShape))).toEqual([
+      "PACKET_SCHEMA_INVALID:packet",
+    ]);
+
+    const mismatchedCurrency = completeTestPacket();
+    mismatchedCurrency.runtimeConfiguration!.provider.pricing.currency = "EUR";
+    expect(reasonCodes(mismatchedCurrency, expectation(mismatchedCurrency))).toEqual([
+      "PACKET_SCHEMA_INVALID:packet",
+    ]);
+
+    const overStreamingCap = completeTestPacket();
+    overStreamingCap.runtimeConfiguration!.provider.maxOutputTokens = 16_001;
+    expect(reasonCodes(overStreamingCap, expectation(overStreamingCap))).toEqual([
       "PACKET_SCHEMA_INVALID:packet",
     ]);
   });

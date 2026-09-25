@@ -33,6 +33,7 @@ pnpm exec vitest run \
   tests/unit/ai-coach-live-provider.test.ts \
   tests/unit/ai-coach-nutrition-safety.test.ts \
   tests/unit/ai-coach-provider-evaluation.test.ts \
+  tests/unit/ai-coach-spend-estimate.test.ts \
   --reporter=dot
 
 bash scripts/ai-coach-kill-switch-drill.sh
@@ -53,7 +54,7 @@ pnpm exec eslint \
   lib/ai-coach/provider/adapter.ts \
   lib/ai-coach/provider/constrained-boundary.ts \
   lib/ai-coach/provider/live-boundary.ts \
-  lib/ai-coach/provider/live-gateway.ts \
+  lib/ai-coach/provider/anthropic-provider.ts \
   lib/ai-coach/discovery.ts \
   lib/ai-coach/live-launch/schema.ts \
   lib/ai-coach/live-launch/repository.ts \
@@ -82,7 +83,7 @@ pnpm exec prettier --check \
   lib/ai-coach/provider/adapter.ts \
   lib/ai-coach/provider/constrained-boundary.ts \
   lib/ai-coach/provider/live-boundary.ts \
-  lib/ai-coach/provider/live-gateway.ts \
+  lib/ai-coach/provider/anthropic-provider.ts \
   lib/ai-coach/discovery.ts \
   lib/ai-coach/live-launch/schema.ts \
   lib/ai-coach/live-launch/repository.ts \

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
 import {
   publishArtifactVersion,
   registerArtifactVersion,
@@ -403,5 +404,97 @@ suite.sequential("AI Coach live-launch persistence and production gate", () => {
         reasonCode: "SYNTHETIC_ISOLATED_REACTIVATION",
       })
     ).rejects.toMatchObject({ code: "LIVE_LAUNCH_PACKET_NOT_READY" });
+  });
+
+  // T-996: the DB-side `guard_ai_coach_live_launch_runtime_configuration`
+  // trigger is a second, independent check of the runtime-configuration
+  // shape, on top of the Zod schema in `live-launch/schema.ts`. Going
+  // through `approveLiveLaunchPacket` would hit the app-level Zod check
+  // first (PACKET_SCHEMA_INVALID) and never reach the DB trigger, so these
+  // two cases insert an otherwise-complete, signed, non-test DRAFT packet
+  // directly with `db.aiCoachLiveLaunchPacket.create` (bypassing
+  // `registerLiveLaunchPacket`'s Zod parse) and then drive the DRAFT ->
+  // APPROVED transition with the same raw `set_config` + `.update()` the
+  // "rejects direct lifecycle changes" case above uses, so only the DB
+  // triggers are exercised.
+  it("DB trigger rejects a legacy STEADFAST_CONSTRAINED_JSON_V1/gatewayUrl provider shape on approval", async () => {
+    const suffix = randomUUID();
+    const artifacts = buildNonSyntheticLaunchTestArtifacts(suffix);
+    const packet = completeNonTestLaunchPacket({ suffix, artifactBindings: artifacts.references });
+    const legacyShapedPacket = structuredClone(packet) as unknown as Record<string, unknown>;
+    const provider = (legacyShapedPacket.runtimeConfiguration as Record<string, unknown>)
+      .provider as Record<string, unknown>;
+    provider.protocol = "STEADFAST_CONSTRAINED_JSON_V1";
+    provider.gatewayUrl = "https://provider.invalid/v1/constrained";
+
+    await db.aiCoachLiveLaunchPacket.create({
+      data: {
+        id: packet.packetId,
+        packetKey: packet.packetKey,
+        version: packet.version,
+        schemaVersion: packet.schemaVersion,
+        releaseId: packet.releaseId,
+        engineVersion: packet.engineVersion,
+        jurisdictions: packet.jurisdictions,
+        packet: JSON.parse(JSON.stringify(legacyShapedPacket)),
+        contentDigest: contentHash(legacyShapedPacket),
+        testOnly: false,
+      },
+    });
+
+    await expect(
+      db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT set_config('steadfast.ai_coach_live_launch_action', 'APPROVE', true)`;
+        return tx.aiCoachLiveLaunchPacket.update({
+          where: { id: packet.packetId },
+          data: {
+            state: "APPROVED",
+            effectiveAt: new Date(Date.now() - 60_000),
+            expiresAt: new Date(Date.now() + 3_600_000),
+            approvedAt: new Date(),
+          },
+        });
+      })
+    ).rejects.toThrow("AI Coach live launch requires an approved constrained runtime configuration");
+  });
+
+  it("DB trigger rejects a provider configuration missing organizationDataControlsRecordId on approval", async () => {
+    const suffix = randomUUID();
+    const artifacts = buildNonSyntheticLaunchTestArtifacts(suffix);
+    const packet = completeNonTestLaunchPacket({ suffix, artifactBindings: artifacts.references });
+    const missingAttestationPacket = structuredClone(packet) as unknown as Record<string, unknown>;
+    const provider = (missingAttestationPacket.runtimeConfiguration as Record<string, unknown>)
+      .provider as Record<string, unknown>;
+    delete provider.organizationDataControlsRecordId;
+
+    await db.aiCoachLiveLaunchPacket.create({
+      data: {
+        id: packet.packetId,
+        packetKey: packet.packetKey,
+        version: packet.version,
+        schemaVersion: packet.schemaVersion,
+        releaseId: packet.releaseId,
+        engineVersion: packet.engineVersion,
+        jurisdictions: packet.jurisdictions,
+        packet: JSON.parse(JSON.stringify(missingAttestationPacket)),
+        contentDigest: contentHash(missingAttestationPacket),
+        testOnly: false,
+      },
+    });
+
+    await expect(
+      db.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT set_config('steadfast.ai_coach_live_launch_action', 'APPROVE', true)`;
+        return tx.aiCoachLiveLaunchPacket.update({
+          where: { id: packet.packetId },
+          data: {
+            state: "APPROVED",
+            effectiveAt: new Date(Date.now() - 60_000),
+            expiresAt: new Date(Date.now() + 3_600_000),
+            approvedAt: new Date(),
+          },
+        });
+      })
+    ).rejects.toThrow("AI Coach live launch requires an approved constrained runtime configuration");
   });
 });
