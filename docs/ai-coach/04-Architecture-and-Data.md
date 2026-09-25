@@ -12,32 +12,32 @@ The AI controller is finite: capture evidence, screen scope, compute permitted c
 
 ## 2. Domain boundaries and impact map
 
-| Responsibility | Proposed location / existing integration | Boundary |
-| --- | --- | --- |
-| Active identity and provider | `lib/auth/roles.ts`; shared `lib/coaching/` services | One current plan authority; consented human linking and active-account checks. |
-| Intake and safety | `lib/ai-coach/intake.ts`, `safety.ts` | Confirmed structured inputs; immediate scoped restrictions before asynchronous work. |
-| Policies and catalogs | `lib/ai-coach/policy/`, `catalog/` | Versioned reviewed rules, foods, recipes, exercise IDs and templates. |
-| Calculations and decisions | `nutrition.ts`, `training.ts`, `review.ts`, `validate.ts` | Deterministic amounts, data sufficiency, feasibility and cumulative constraints. |
-| Model integration | `lib/ai-coach/providers/` | Minimized context, evaluated configuration, bounded requests, validated output. |
-| Durable execution | `runs.ts`; protected cron route | Persistent jobs, leases, retries, stage outputs and reconciliation. |
-| Review and acceptance | `acceptance.ts`; shared application services | Qualified pilot approval when required, then atomic user activation. |
-| Read presentation | `lib/queries/` and DTO adapters | Explicit origin, availability and domain restrictions; no timestamp-based AI selection. |
-| Check-ins and sessions | Shared check-in service plus typed session service | Equivalent web/API semantics, revisioned evidence, stable session/exercise identity. |
+| Responsibility               | Proposed location / existing integration                  | Boundary                                                                                |
+| ---------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Active identity and provider | `lib/auth/roles.ts`; shared `lib/coaching/` services      | One current plan authority; consented human linking and active-account checks.          |
+| Intake and safety            | `lib/ai-coach/intake.ts`, `safety.ts`                     | Confirmed structured inputs; immediate scoped restrictions before asynchronous work.    |
+| Policies and catalogs        | `lib/ai-coach/policy/`, `catalog/`                        | Versioned reviewed rules, foods, recipes, exercise IDs and templates.                   |
+| Calculations and decisions   | `nutrition.ts`, `training.ts`, `review.ts`, `validate.ts` | Deterministic amounts, data sufficiency, feasibility and cumulative constraints.        |
+| Model integration            | `lib/ai-coach/providers/`                                 | Minimized context, evaluated configuration, bounded requests, validated output.         |
+| Durable execution            | `runs.ts`; protected cron route                           | Persistent jobs, leases, retries, stage outputs and reconciliation.                     |
+| Review and acceptance        | `acceptance.ts`; shared application services              | Qualified pilot approval when required, then atomic user activation.                    |
+| Read presentation            | `lib/queries/` and DTO adapters                           | Explicit origin, availability and domain restrictions; no timestamp-based AI selection. |
+| Check-ins and sessions       | Shared check-in service plus typed session service        | Equivalent web/API semantics, revisioned evidence, stable session/exercise identity.    |
 
 These are proposed responsibilities, not permission to scaffold empty files or add dependencies. The existing `lib/llm/parse-meal-plan.ts` imports documents; its extraction prompt is not a coaching policy.
 
 ## 3. Persistent records and constraints
 
-| Record | Essential data | Required invariant |
-| --- | --- | --- |
-| `ClientCoachingContext` | Unique client; mode; active human relationship; revision; resolutionRequired. | Sole current provider authority. HUMAN references the matching authorized relationship; AI/NONE have no active human plan owner. No duplicate `User.coachingMode`. |
-| `AiCoachProfile` | Unique persistent client; confirmed intake/schema; profile/observation/safety revisions; consent; fixed review timezone; activePlanVersionId. | Retained across pause and re-enrollment. Scope and domain permissions are separate from enrollment state. |
-| `AiCoachRun` | Owner/kind; server-derived business key; frozen input and digest; source revisions/cutoff; activation window; stage/state; lease/retry metadata; version hashes; cost; result/proposal ID. | Duplicate requests resolve the same business operation. Inputs and completed results are immutable; execution metadata can change. |
-| `AiPlanVersion` | Owner/version; base plan; canonical payload/hash; provenance; change class; lifecycle; permanent acceptedAt; reviewer status and approval evidence. | Content never changes. Qualified approval binds to exact payload/revisions. An ordinary coach flag is not reviewer authorization. |
-| `AiAdjustmentSlot` | Persistent client; reviewWindowKey; accepted plan ID; timestamp. | Unique client/window, inserted with routine acceptance. Retained after supersession, pausing and re-enrollment. |
-| `AiWorkoutSession` | Owner/session key; originating plan; occurredAt/timezone; stable exercise IDs; typed sets, units and explicit unknowns; revision. | Multiple same-exercise sessions in one week remain distinct. Bodyweight and zero added load require no invented positive weight. |
-| Pilot entitlement and reviewer grants | Client allowlist/expiry/revocation; explicit reviewer scope/qualification verification. | Separate from coach subscriptions and provider authority; grants cannot be self-asserted by model or client. |
-| Durable side-effect work | Deduplicated notification/channel attempts and owned storage-removal references. | Database commit does not pretend an email was delivered or a storage object deleted. Failed work remains discoverable. |
+| Record                                | Essential data                                                                                                                                                                             | Required invariant                                                                                                                                                 |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ClientCoachingContext`               | Unique client; mode; active human relationship; revision; resolutionRequired.                                                                                                              | Sole current provider authority. HUMAN references the matching authorized relationship; AI/NONE have no active human plan owner. No duplicate `User.coachingMode`. |
+| `AiCoachProfile`                      | Unique persistent client; confirmed intake/schema; profile/observation/safety revisions; consent; fixed review timezone; activePlanVersionId.                                              | Retained across pause and re-enrollment. Scope and domain permissions are separate from enrollment state.                                                          |
+| `AiCoachRun`                          | Owner/kind; server-derived business key; frozen input and digest; source revisions/cutoff; activation window; stage/state; lease/retry metadata; version hashes; cost; result/proposal ID. | Duplicate requests resolve the same business operation. Inputs and completed results are immutable; execution metadata can change.                                 |
+| `AiPlanVersion`                       | Owner/version; base plan; canonical payload/hash; provenance; change class; lifecycle; permanent acceptedAt; reviewer status and approval evidence.                                        | Content never changes. Qualified approval binds to exact payload/revisions. An ordinary coach flag is not reviewer authorization.                                  |
+| `AiAdjustmentSlot`                    | Persistent client; reviewWindowKey; accepted plan ID; timestamp.                                                                                                                           | Unique client/window, inserted with routine acceptance. Retained after supersession, pausing and re-enrollment.                                                    |
+| `AiWorkoutSession`                    | Owner/session key; originating plan; occurredAt/timezone; stable exercise IDs; typed sets, units and explicit unknowns; revision.                                                          | Multiple same-exercise sessions in one week remain distinct. Bodyweight and zero added load require no invented positive weight.                                   |
+| Pilot entitlement and reviewer grants | Client allowlist/expiry/revocation; explicit reviewer scope/qualification verification.                                                                                                    | Separate from coach subscriptions and provider authority; grants cannot be self-asserted by model or client.                                                       |
+| Durable side-effect work              | Deduplicated notification/channel attempts and owned storage-removal references.                                                                                                           | Database commit does not pretend an email was delivered or a storage object deleted. Failed work remains discoverable.                                             |
 
 Start small reviewed catalogs as schema-validated versioned data where practical. Nutrient records retain source identity/version, raw/cooked state, grams/serving conversions, energy method, precision and unknown values. Ingredient/allergen review is distinct from nutrient completeness. Do not duplicate every ingredient into a new relational subsystem before catalog scale requires it.
 
@@ -57,7 +57,7 @@ Expire proposals when their activation window ends; prepare a fresh review rathe
 
 All provider transitions and acceptance use the same lock order: persistent client User row, then context/profile. This also protects first creation. Every legacy assignment writer must use the transition service; adding a lock only to AI enrollment leaves old bypasses open.
 
-Acceptance performs a short transaction: authenticate/recheck active account; inspect entitlement, consent, provider/profile/observation/safety revisions, current policy and required reviewer approval; verify exact base plan and window; insert a routine adjustment slot if required; record acceptance, supersede prior lifecycle metadata and swap the active pointer. Record any notification intent before committing. No model or other network request occurs inside this transaction.
+Acceptance performs a short transaction: authenticate/recheck active account; inspect entitlement, consent, provider/profile/observation/safety revisions, current compatible reviewed artifacts and persisted deterministic automatic-approval outcome; verify exact base plan and window; insert a routine adjustment slot if required; record acceptance, supersede prior lifecycle metadata and swap the active pointer. Record any notification intent before committing. An optional governance review cannot override a failed deterministic gate. No model or other network request occurs inside this transaction.
 
 A repeated acceptance returns the existing outcome. Replaying a historical accepted version never reactivates it. Two tabs, a provider switch, deletion, source correction or a competing proposal cannot both win incompatible updates. Generation finalization performs equivalent freshness checks before exposing a proposal, and acceptance checks again later.
 

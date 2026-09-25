@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
-import type { AiSafetyDisposition, AiDomainPermission, Prisma } from "@/app/generated/prisma/client";
+import type {
+  AiSafetyDisposition,
+  AiDomainPermission,
+  Prisma,
+} from "@/app/generated/prisma/client";
 
 /**
  * A03 — safety disclosure processing.
@@ -19,19 +23,35 @@ import type { AiSafetyDisposition, AiDomainPermission, Prisma } from "@/app/gene
 export const triStateSchema = z.enum(["YES", "NO", "UNSURE"]);
 export type TriState = z.infer<typeof triStateSchema>;
 
-export const safetyDisclosureSchema = z.object({
-  chestPainDuringExercise: triStateSchema,
-  dizzinessOrFainting: triStateSchema,
-  heartCondition: triStateSchema,
-  pregnantOrPostpartum: triStateSchema,
-  recentInjuryOrSurgery: triStateSchema,
-}).strict();
+export const safetyDisclosureSchema = z
+  .object({
+    chestPainDuringExercise: triStateSchema,
+    dizzinessOrFainting: triStateSchema,
+    heartCondition: triStateSchema,
+    pregnantOrPostpartum: triStateSchema,
+    recentInjuryOrSurgery: triStateSchema,
+    // T-1008 synthetic screening hooks. Optional only so retained pre-T-1008
+    // events parse; absence is treated as UNKNOWN by finalization, never clear.
+    ageEligibilityConcern: triStateSchema.optional(),
+    eatingDisorderHistoryOrConcern: triStateSchema.optional(),
+    type1Diabetes: triStateSchema.optional(),
+  })
+  .strict();
 export type SafetyDisclosureInput = z.infer<typeof safetyDisclosureSchema>;
 
-const DISPOSITION_ORDER: AiSafetyDisposition[] = ["CLEAR", "CLARIFY", "RESTRICTED", "REFER", "URGENT"];
+const DISPOSITION_ORDER: AiSafetyDisposition[] = [
+  "CLEAR",
+  "CLARIFY",
+  "RESTRICTED",
+  "REFER",
+  "URGENT",
+];
 const DOMAIN_ORDER: AiDomainPermission[] = ["ALLOW", "HOLD_ONLY", "PAUSED"];
 
-function moreRestrictiveDisposition(a: AiSafetyDisposition, b: AiSafetyDisposition): AiSafetyDisposition {
+function moreRestrictiveDisposition(
+  a: AiSafetyDisposition,
+  b: AiSafetyDisposition
+): AiSafetyDisposition {
   return DISPOSITION_ORDER.indexOf(a) >= DISPOSITION_ORDER.indexOf(b) ? a : b;
 }
 function moreRestrictiveDomain(a: AiDomainPermission, b: AiDomainPermission): AiDomainPermission {
@@ -52,9 +72,15 @@ function evaluateSyntheticSafetyRules(answers: SafetyDisclosureInput): ComputedR
   let strength: AiDomainPermission = "ALLOW";
   let cardio: AiDomainPermission = "ALLOW";
 
-  const escalate = (d: AiSafetyDisposition) => { disposition = moreRestrictiveDisposition(disposition, d); };
+  const escalate = (d: AiSafetyDisposition) => {
+    disposition = moreRestrictiveDisposition(disposition, d);
+  };
 
-  if (answers.chestPainDuringExercise === "YES" || answers.dizzinessOrFainting === "YES" || answers.heartCondition === "YES") {
+  if (
+    answers.chestPainDuringExercise === "YES" ||
+    answers.dizzinessOrFainting === "YES" ||
+    answers.heartCondition === "YES"
+  ) {
     escalate("URGENT");
     nutrition = moreRestrictiveDomain(nutrition, "PAUSED");
     strength = moreRestrictiveDomain(strength, "PAUSED");
@@ -66,6 +92,14 @@ function evaluateSyntheticSafetyRules(answers: SafetyDisclosureInput): ComputedR
     strength = moreRestrictiveDomain(strength, "HOLD_ONLY");
     cardio = moreRestrictiveDomain(cardio, "HOLD_ONLY");
   }
+  if (
+    answers.ageEligibilityConcern === "YES" ||
+    answers.eatingDisorderHistoryOrConcern === "YES" ||
+    answers.type1Diabetes === "YES"
+  ) {
+    escalate("REFER");
+    nutrition = moreRestrictiveDomain(nutrition, "PAUSED");
+  }
   if (answers.recentInjuryOrSurgery === "YES") {
     escalate("RESTRICTED");
     strength = moreRestrictiveDomain(strength, "HOLD_ONLY");
@@ -74,12 +108,18 @@ function evaluateSyntheticSafetyRules(answers: SafetyDisclosureInput): ComputedR
   // "Failure to classify a possible material concern conservatively
   // restricts the affected domain pending clarification" — an "unsure"
   // answer is never treated as equivalent to "no."
-  const unsureDomains: { field: keyof SafetyDisclosureInput; domains: ("nutrition" | "strength" | "cardio")[] }[] = [
+  const unsureDomains: {
+    field: keyof SafetyDisclosureInput;
+    domains: ("nutrition" | "strength" | "cardio")[];
+  }[] = [
     { field: "chestPainDuringExercise", domains: ["strength", "cardio"] },
     { field: "dizzinessOrFainting", domains: ["strength", "cardio"] },
     { field: "heartCondition", domains: ["strength", "cardio"] },
     { field: "pregnantOrPostpartum", domains: ["nutrition", "strength", "cardio"] },
     { field: "recentInjuryOrSurgery", domains: ["strength"] },
+    { field: "ageEligibilityConcern", domains: ["nutrition", "strength", "cardio"] },
+    { field: "eatingDisorderHistoryOrConcern", domains: ["nutrition"] },
+    { field: "type1Diabetes", domains: ["nutrition"] },
   ];
   for (const { field, domains } of unsureDomains) {
     if (answers[field] === "UNSURE") {
@@ -109,10 +149,17 @@ export type SubmitSafetyDisclosureResult =
  * existing restriction (that's clearSafetyRestriction's job, a distinct,
  * deliberate action never reachable from this function).
  */
-export async function submitSafetyDisclosure(clientId: string, rawAnswers: unknown, transaction?: Prisma.TransactionClient): Promise<SubmitSafetyDisclosureResult> {
+export async function submitSafetyDisclosure(
+  clientId: string,
+  rawAnswers: unknown,
+  transaction?: Prisma.TransactionClient
+): Promise<SubmitSafetyDisclosureResult> {
   const parsed = safetyDisclosureSchema.safeParse(rawAnswers);
   if (!parsed.success) {
-    return { success: false, error: "Invalid safety disclosure — every question requires yes, no, or unsure." };
+    return {
+      success: false,
+      error: "Invalid safety disclosure — every question requires yes, no, or unsure.",
+    };
   }
 
   const computed = evaluateSyntheticSafetyRules(parsed.data);
@@ -120,10 +167,18 @@ export async function submitSafetyDisclosure(clientId: string, rawAnswers: unkno
   const apply = async (tx: Prisma.TransactionClient) => {
     const existing = await tx.aiCoachProfile.findUnique({ where: { clientId } });
 
-    const nextDisposition = existing ? moreRestrictiveDisposition(existing.safetyDisposition, computed.disposition) : computed.disposition;
-    const nextNutrition = existing ? moreRestrictiveDomain(existing.nutritionPermission, computed.nutrition) : computed.nutrition;
-    const nextStrength = existing ? moreRestrictiveDomain(existing.strengthPermission, computed.strength) : computed.strength;
-    const nextCardio = existing ? moreRestrictiveDomain(existing.cardioPermission, computed.cardio) : computed.cardio;
+    const nextDisposition = existing
+      ? moreRestrictiveDisposition(existing.safetyDisposition, computed.disposition)
+      : computed.disposition;
+    const nextNutrition = existing
+      ? moreRestrictiveDomain(existing.nutritionPermission, computed.nutrition)
+      : computed.nutrition;
+    const nextStrength = existing
+      ? moreRestrictiveDomain(existing.strengthPermission, computed.strength)
+      : computed.strength;
+    const nextCardio = existing
+      ? moreRestrictiveDomain(existing.cardioPermission, computed.cardio)
+      : computed.cardio;
 
     const profile = await tx.aiCoachProfile.upsert({
       where: { clientId },
@@ -159,7 +214,11 @@ export async function submitSafetyDisclosure(clientId: string, rawAnswers: unkno
     return profile;
   };
   const result = transaction ? await apply(transaction) : await db.$transaction(apply);
-  return { success: true, disposition: result.safetyDisposition, safetyRevision: result.safetyRevision };
+  return {
+    success: true,
+    disposition: result.safetyDisposition,
+    safetyRevision: result.safetyRevision,
+  };
 }
 
 export type ClearSafetyRestrictionResult = { success: true } | { success: false; error: string };
@@ -170,7 +229,12 @@ export type ClearSafetyRestrictionResult = { success: true } | { success: false;
 export async function clearSafetyRestriction(
   _clientId: string,
   _resolverUserId: string,
-  _next: { disposition: AiSafetyDisposition; nutrition: AiDomainPermission; strength: AiDomainPermission; cardio: AiDomainPermission }
+  _next: {
+    disposition: AiSafetyDisposition;
+    nutrition: AiDomainPermission;
+    strength: AiDomainPermission;
+    cardio: AiDomainPermission;
+  }
 ): Promise<ClearSafetyRestrictionResult> {
   void [_clientId, _resolverUserId, _next];
   return { success: false, error: "Use the scoped, revisioned safety-resolution workflow." };

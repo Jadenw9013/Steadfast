@@ -14,16 +14,51 @@ const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 suite("managed execution and permitted reads", () => {
-  beforeEach(() => { vi.stubEnv("AI_COACH_FIXTURE_MODE", "true"); vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true"); vi.stubEnv("FEATURE_AI_COACH_PUBLICATION", "true"); });
-  afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
+  beforeEach(() => {
+    vi.stubEnv("AI_COACH_FIXTURE_MODE", "true");
+    vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true");
+    vi.stubEnv("FEATURE_AI_COACH_PUBLICATION", "true");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+  afterAll(() => db.$disconnect());
   async function fixture() {
-    const id = randomUUID(); const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test`, isClient: true } });
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+    });
     await assignFixtureReviewer(client.id);
     await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
     await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
-    await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true, consentedAt: new Date(), reviewTimezone: "America/Los_Angeles", confirmedIntake: { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 } } });
-    const { runId } = await requestAiRun(client.id, { requestKey: randomUUID(), kind: "INITIAL", representation: "MACROS", expectedContextRevision: 0, expectedProfileRevision: 0 });
-    const claim = await claimQueuedRun(runId); if (!claim.claimed) throw new Error("Fixture claim failed");
+    await db.aiCoachProfile.create({
+      data: {
+        clientId: client.id,
+        isSynthetic: true,
+        consentedAt: new Date(),
+        reviewTimezone: "America/Los_Angeles",
+        confirmedIntake: {
+          goal: "GENERAL_FITNESS",
+          experienceLevel: "NEW",
+          trainingDaysPerWeek: 3,
+          equipmentAccess: ["NONE"],
+          allergies: [],
+          dietaryRestrictions: [],
+          foodBudgetLevel: "LOW",
+          trackingPreference: "NUMBERS_VISIBLE",
+          unitsPreference: "METRIC",
+          heightCm: 170,
+          weightKg: 70,
+        },
+      },
+    });
+    const { runId } = await requestAiRun(client.id, {
+      requestKey: randomUUID(),
+      kind: "INITIAL",
+      representation: "MACROS",
+      expectedContextRevision: 0,
+      expectedProfileRevision: 0,
+    });
+    const claim = await claimQueuedRun(runId);
+    if (!claim.claimed) throw new Error("Fixture claim failed");
     return { client, claim };
   }
   it("saves exactly one pending candidate, without creating a human plan or exposing instructions", async () => {
@@ -31,57 +66,138 @@ suite("managed execution and permitted reads", () => {
     expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("completed");
     const view = await getAiWorkspace(client.id);
     expect(view.activePlan).toBeNull();
-    expect(view.proposals).toHaveLength(1); expect(view.proposals[0]).toMatchObject({ status: "PENDING_REVIEW", payload: null });
+    expect(view.proposals).toHaveLength(1);
+    expect(view.proposals[0]).toMatchObject({ status: "PENDING_FINALIZATION", payload: null });
     expect(await db.mealPlan.count({ where: { clientId: client.id } })).toBe(0);
     expect(await db.coachClient.count({ where: { clientId: client.id } })).toBe(0);
     expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("failed");
     expect(await db.aiPlanVersion.count({ where: { clientId: client.id } })).toBe(1);
   });
-  it.each(["safety", "authority", "lease"])("rejects late provider output after %s changes", async reason => {
-    const { client, claim } = await fixture();
-    const provider = { async runStage() {
-      if (reason === "safety") await db.aiCoachProfile.update({ where: { clientId: client.id }, data: { safetyRevision: { increment: 1 }, strengthPermission: "PAUSED" } });
-      if (reason === "authority") await db.clientCoachingContext.update({ where: { clientId: client.id }, data: { mode: "HUMAN", revision: { increment: 1 } } });
-      if (reason === "lease") await db.aiCoachRun.update({ where: { id: claim.run.id }, data: { fencingToken: { increment: 1 } } });
-      return new SyntheticFixtureProvider().runStage();
-    } };
-    expect(await processClaimedRun(claim, provider)).toBe("failed");
-    expect(await db.aiPlanVersion.count({ where: { clientId: client.id } })).toBe(0);
-  });
-  it("changes macro to meal representation with one prescription and no routine slot", async () => {
+  it.each(["safety", "authority", "lease"])(
+    "rejects late provider output after %s changes",
+    async (reason) => {
+      const { client, claim } = await fixture();
+      const provider = {
+        async runStage() {
+          if (reason === "safety")
+            await db.aiCoachProfile.update({
+              where: { clientId: client.id },
+              data: { safetyRevision: { increment: 1 }, strengthPermission: "PAUSED" },
+            });
+          if (reason === "authority")
+            await db.clientCoachingContext.update({
+              where: { clientId: client.id },
+              data: { mode: "HUMAN", revision: { increment: 1 } },
+            });
+          if (reason === "lease")
+            await db.aiCoachRun.update({
+              where: { id: claim.run.id },
+              data: { fencingToken: { increment: 1 } },
+            });
+          return new SyntheticFixtureProvider().runStage();
+        },
+      };
+      expect(await processClaimedRun(claim, provider)).toBe("failed");
+      expect(await db.aiPlanVersion.count({ where: { clientId: client.id } })).toBe(0);
+    }
+  );
+  it("does not let reviewer approval activate a managed initial plan", async () => {
     const { client, claim } = await fixture();
     await processClaimedRun(claim, new SyntheticFixtureProvider());
     const initial = await db.aiPlanVersion.findFirstOrThrow({ where: { clientId: client.id } });
     const reviewerId = randomUUID();
-    const reviewer = await db.user.create({ data: { clerkId: reviewerId, email: `${reviewerId}@example.test` } });
-    const grant = await db.aiCoachReviewerGrant.create({ data: { userId: reviewer.id, qualificationNote: "SYNTHETIC", clientIds: [client.id], domains: ["NUTRITION", "STRENGTH", "CARDIO"] } });
-    await db.aiPlanReviewerApproval.create({ data: { planVersionId: initial.id, reviewerGrantId: grant.id, approvedHash: initial.payloadHash, stateHash: approvalStateHash(initial), approved: true, rationale: "fixture" } });
-    await db.aiPlanVersion.update({ where: { id: initial.id }, data: { reviewerStatus: "APPROVED" } });
-    const acceptance = { requestKey: randomUUID(), expectedBaseVersionId: null, expectedContextRevision: 0, expectedProfileRevision: 0, expectedObservationRevision: 0, expectedSafetyRevision: 0 };
-    expect(await acceptPlanVersionAtomic(client.id, initial.id, acceptance)).toMatchObject({ success: true });
-    const { runId } = await requestAiRun(client.id, { requestKey: randomUUID(), kind: "REPRESENTATION", representation: "MEALS", expectedContextRevision: 0, expectedProfileRevision: 0 });
-    const next = await claimQueuedRun(runId); if (!next.claimed) throw new Error("Expected claim");
-    expect(await processClaimedRun(next, new SyntheticFixtureProvider())).toBe("completed");
-    const view = await getAiWorkspace(client.id); const proposal = view.proposals[0];
-    expect(proposal.status).toBe("READY"); expect(proposal.payload?.meals?.days).toHaveLength(7);
-    expect(proposal.payload?.nutrition).toEqual(view.activePlan?.payload.nutrition);
-    expect(await acceptPlanVersionAtomic(client.id, proposal.id, { ...acceptance, requestKey: randomUUID(), expectedBaseVersionId: initial.id })).toMatchObject({ success: true });
+    const reviewer = await db.user.create({
+      data: { clerkId: reviewerId, email: `${reviewerId}@example.test` },
+    });
+    const grant = await db.aiCoachReviewerGrant.create({
+      data: {
+        userId: reviewer.id,
+        qualificationNote: "SYNTHETIC",
+        clientIds: [client.id],
+        domains: ["NUTRITION", "STRENGTH", "CARDIO"],
+      },
+    });
+    await db.aiPlanReviewerApproval.create({
+      data: {
+        planVersionId: initial.id,
+        reviewerGrantId: grant.id,
+        approvedHash: initial.payloadHash,
+        stateHash: approvalStateHash(initial),
+        approved: true,
+        rationale: "fixture",
+      },
+    });
+    await db.aiPlanVersion.update({
+      where: { id: initial.id },
+      data: { reviewerStatus: "APPROVED" },
+    });
+    const acceptance = {
+      requestKey: randomUUID(),
+      expectedBaseVersionId: null,
+      expectedContextRevision: 0,
+      expectedProfileRevision: 0,
+      expectedObservationRevision: 0,
+      expectedSafetyRevision: 0,
+    };
+    expect(await acceptPlanVersionAtomic(client.id, initial.id, acceptance)).toMatchObject({
+      success: false,
+      code: "REVIEWER_APPROVAL_REQUIRED",
+    });
+    const view = await getAiWorkspace(client.id);
+    const proposal = view.proposals[0];
+    expect(proposal.status).toBe("PENDING_FINALIZATION");
+    expect(proposal.payload).toBeNull();
     expect(await db.aiAdjustmentSlot.count({ where: { clientId: client.id } })).toBe(0);
-    expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: initial.id } })).status).toBe("SUPERSEDED");
+    expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: initial.id } })).status).toBe(
+      "PROPOSED"
+    );
   });
   it("requires exact reviewed content for both proposal visibility and acceptance", async () => {
-    const { client, claim } = await fixture(); await processClaimedRun(claim, new SyntheticFixtureProvider());
+    const { client, claim } = await fixture();
+    await processClaimedRun(claim, new SyntheticFixtureProvider());
     const candidate = await db.aiPlanVersion.findFirstOrThrow({ where: { clientId: client.id } });
-    const input = { requestKey: randomUUID(), expectedBaseVersionId: null, expectedContextRevision: 0, expectedProfileRevision: 0, expectedObservationRevision: 0, expectedSafetyRevision: 0 };
-    expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({ success: false, code: "REVIEWER_APPROVAL_REQUIRED" });
-    const reviewerId = randomUUID(); const reviewer = await db.user.create({ data: { clerkId: reviewerId, email: `${reviewerId}@example.test` } });
-    const grant = await db.aiCoachReviewerGrant.create({ data: { userId: reviewer.id, qualificationNote: "SYNTHETIC TEST REVIEWER", clientIds: [client.id], domains: ["NUTRITION", "STRENGTH", "CARDIO"] } });
-    await db.aiPlanReviewerApproval.create({ data: { planVersionId: candidate.id, reviewerGrantId: grant.id, approvedHash: candidate.payloadHash, stateHash: approvalStateHash(candidate), approved: true, rationale: "fixture" } });
-    await db.aiPlanVersion.update({ where: { id: candidate.id }, data: { reviewerStatus: "APPROVED" } });
-    expect((await getAiWorkspace(client.id)).proposals[0].status).toBe("READY");
-    expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({ success: true });
-    await db.aiCoachProfile.update({ where: { clientId: client.id }, data: { nutritionPermission: "PAUSED", strengthPermission: "PAUSED" } });
-    const view = await getAiWorkspace(client.id);
-    expect(view.activePlan?.payload.nutrition).toBeNull(); expect(view.activePlan?.payload.strength).toEqual([]); expect(view.activePlan?.payload.cardio).toHaveLength(1);
+    const input = {
+      requestKey: randomUUID(),
+      expectedBaseVersionId: null,
+      expectedContextRevision: 0,
+      expectedProfileRevision: 0,
+      expectedObservationRevision: 0,
+      expectedSafetyRevision: 0,
+    };
+    expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({
+      success: false,
+      code: "REVIEWER_APPROVAL_REQUIRED",
+    });
+    const reviewerId = randomUUID();
+    const reviewer = await db.user.create({
+      data: { clerkId: reviewerId, email: `${reviewerId}@example.test` },
+    });
+    const grant = await db.aiCoachReviewerGrant.create({
+      data: {
+        userId: reviewer.id,
+        qualificationNote: "SYNTHETIC TEST REVIEWER",
+        clientIds: [client.id],
+        domains: ["NUTRITION", "STRENGTH", "CARDIO"],
+      },
+    });
+    await db.aiPlanReviewerApproval.create({
+      data: {
+        planVersionId: candidate.id,
+        reviewerGrantId: grant.id,
+        approvedHash: candidate.payloadHash,
+        stateHash: approvalStateHash(candidate),
+        approved: true,
+        rationale: "fixture",
+      },
+    });
+    await db.aiPlanVersion.update({
+      where: { id: candidate.id },
+      data: { reviewerStatus: "APPROVED" },
+    });
+    expect((await getAiWorkspace(client.id)).proposals[0].status).toBe("PENDING_FINALIZATION");
+    expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({
+      success: false,
+      code: "REVIEWER_APPROVAL_REQUIRED",
+    });
   });
 });

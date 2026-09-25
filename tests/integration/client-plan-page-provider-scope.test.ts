@@ -149,6 +149,15 @@ suite("client meal-plan and training pages are provider-aware (T-665)", () => {
     // would be caught here.
     const iosBody = await (await mealCurrentRoute()).json();
     expect(iosBody.mealPlan?.id ?? null).toBe(plan.id);
+
+    // T-989 finding 1/2: a normal, non-enrolled coach-client pair sees no AI
+    // Coach surface at all, with no env var set and no active release in
+    // this test database — both independent gates are closed. Also proves
+    // the offer never disagrees with `origin` here: HUMAN origin with a real
+    // relationship must yield no offer.
+    const provider = await getClientProvider(client.id);
+    expect(provider.aiPreviewAvailable).toBe(false);
+    expect(provider.aiDiscovery).toBeNull();
   });
 
   it("case 4 — regression: a client with no coach at all sees the empty state, not a stale plan on disk", async () => {
