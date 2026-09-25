@@ -61,12 +61,10 @@ import {
 } from "@/lib/training-programs/publish";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 const CURRENT_WEEK = getCurrentWeekMonday();
@@ -97,7 +95,7 @@ suite("training-program publish parity (action vs REST vs workout import) with r
   // Self-heal the raw-SQL partial index (see the file header for why neither
   // `db push` nor `migrate deploy` can be relied on to put it here). Guarded by
   // the local-database check above, so this can only ever run against
-  // 127.0.0.1/steadfast_security_test.
+  // the dedicated local test database (see tests/helpers/require-local-test-db.ts).
   beforeAll(async () => {
     await db.$executeRawUnsafe(
       `CREATE UNIQUE INDEX IF NOT EXISTS "${PUBLISHED_TRAINING_PROGRAM_INDEX}" ON "TrainingProgram"("clientId") WHERE (status = 'PUBLISHED')`

@@ -52,6 +52,7 @@ import { createDraftMealPlan, publishMealPlan } from "@/app/actions/meal-plans";
 import { POST as publishRest } from "@/app/api/coach/clients/[clientId]/meal-plan/publish/route";
 // T-102b — the third publish transport, which inherits the same guard.
 import { POST as importPlanRoute } from "@/app/api/mealplans/import-plan/route";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import {
   PUBLISHED_MEAL_PLAN_INDEX,
   isDuplicatePublishedPlanError,
@@ -60,17 +61,14 @@ import {
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraints", () => {
   // Self-heal the raw-SQL partial index (see the file header for why neither
   // `db push` nor `migrate deploy` can be relied on to put it here). Guarded by
   // the local-database check above, so this can only ever run against
-  // 127.0.0.1/steadfast_security_test.
+  // the dedicated local test database (see tests/helpers/require-local-test-db.ts).
   beforeAll(async () => {
     await db.$executeRawUnsafe(
       `CREATE UNIQUE INDEX IF NOT EXISTS "${PUBLISHED_MEAL_PLAN_INDEX}" ON "MealPlan"("clientId","weekOf") WHERE (status = 'PUBLISHED')`

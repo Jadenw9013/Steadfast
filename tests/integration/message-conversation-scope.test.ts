@@ -35,6 +35,7 @@ import CoachClientMessagesPage from "@/app/coach/clients/[clientId]/messages/pag
 import { MessageThread } from "@/components/messages/message-thread";
 import { NextRequest } from "next/server";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 /**
  * The coach DM page is an async Server Component: awaiting it yields a React
  * element tree without rendering it, so the assertion is made on the props the
@@ -61,10 +62,7 @@ async function coachPageBodies(clientId: string) {
 }
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("CB03 — messages are scoped to a specific coach conversation with real PostgreSQL constraints", () => {

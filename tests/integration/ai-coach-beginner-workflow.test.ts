@@ -11,12 +11,9 @@ import { getAiWorkspace } from "@/lib/queries/ai-coach";
 import { reviewAiPlan } from "@/lib/ai-coach/reviewer";
 import { approvalStateHash } from "@/lib/ai-coach/validated-plan";
 import { acceptPlanVersionAtomic } from "@/lib/ai-coach/plan-acceptance";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const u = new URL(process.env.DATABASE_URL ?? "");
-  if (u.hostname !== "127.0.0.1" || u.pathname !== "/steadfast_security_test")
-    throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 suite("beginner shared-command journey with real persistence", () => {
   beforeEach(() => {

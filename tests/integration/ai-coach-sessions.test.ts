@@ -5,8 +5,9 @@ import { submitAiSession } from "@/lib/workouts/ai-session";
 import { getAiSessions } from "@/lib/queries/ai-sessions";
 import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) { const u = new URL(process.env.DATABASE_URL ?? ""); if (u.hostname !== "127.0.0.1" || u.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required"); }
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 suite("typed AI activity evidence", () => {
   beforeEach(() => vi.stubEnv("AI_COACH_FIXTURE_MODE", "true")); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
