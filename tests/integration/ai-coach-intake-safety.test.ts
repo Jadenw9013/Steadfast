@@ -12,6 +12,7 @@ import { randomUUID } from "crypto";
  * an explicit reviewed-resolution grant.
  */
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
@@ -20,7 +21,6 @@ import { db } from "@/lib/db";
 import { saveIntakeDraft, getIntakeDraft, confirmIntake } from "@/lib/ai-coach/intake";
 import { submitSafetyDisclosure, clearSafetyRestriction } from "@/lib/ai-coach/safety";
 
-import { requireLocalTestDb } from "../helpers/require-local-test-db";
 suite("A03 — intake draft/confirm with real PostgreSQL constraints", () => {
   beforeEach(() => vi.clearAllMocks());
   afterAll(async () => { await db.$disconnect(); });

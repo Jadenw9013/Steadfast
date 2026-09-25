@@ -13,6 +13,7 @@ import { randomUUID } from "crypto";
  * old advice or create a duplicate active pointer.
  */
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
@@ -30,7 +31,6 @@ import {
 } from "@/lib/ai-coach/runs";
 import { createProposedPlanVersion, acceptPlanVersion, hashPlanPayload } from "@/lib/ai-coach/plan-lifecycle";
 
-import { requireLocalTestDb } from "../helpers/require-local-test-db";
 suite("A02 — AiCoachRun lifecycle with real PostgreSQL constraints", () => {
   beforeEach(() => vi.clearAllMocks());
   afterAll(async () => { await db.$disconnect(); });

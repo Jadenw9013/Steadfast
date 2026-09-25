@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: mocks.authUserId }), currentUser: vi.fn() }));
 const mocks = vi.hoisted(() => ({ authUserId: "" }));
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
@@ -15,7 +16,6 @@ import { POST as acceptRoute } from "@/app/api/client/ai-coach/plans/[id]/accept
 import { POST as declineRoute } from "@/app/api/client/ai-coach/plans/[id]/decline/route";
 import type { Prisma } from "@/app/generated/prisma/client";
 
-import { requireLocalTestDb } from "../helpers/require-local-test-db";
 suite("A10 — atomic proposal lifecycle and acceptance with real PostgreSQL constraints", () => {
   const originalPublicationFlag = process.env.FEATURE_AI_COACH_PUBLICATION;
   beforeEach(() => { vi.clearAllMocks(); process.env.FEATURE_AI_COACH_PUBLICATION = "true"; });

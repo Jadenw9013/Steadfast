@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: mocks.authUserId }), currentUser: vi.fn() }));
 const mocks = vi.hoisted(() => ({ authUserId: "" }));
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
@@ -17,7 +18,6 @@ import { GET as executorCronRoute } from "@/app/api/cron/ai-coach-executor/route
 import type { ModelProvider, ModelStageResult } from "@/lib/ai-coach/provider/adapter";
 import { checkProviderRateLimit, MAX_TOKENS_PER_STAGE_CALL } from "@/lib/ai-coach/provider/spend-limits";
 
-import { requireLocalTestDb } from "../helpers/require-local-test-db";
 suite("A05 — durable job executor with real PostgreSQL constraints", () => {
   const originalGenerationFlag = process.env.FEATURE_AI_COACH_GENERATION;
   const originalCronSecret = process.env.CRON_SECRET;
