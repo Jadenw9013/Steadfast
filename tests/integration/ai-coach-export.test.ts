@@ -90,4 +90,41 @@ suite("bounded owner-only AI export", () => {
     controller.abort();
     await expect(exportAiData(a.id, controller.signal).next()).rejects.toThrow("cancelled");
   });
+  it("T-502 — a terminal outbox row appears in notificationIntents with deliveryOutcome set and a closed-set lastErrorCode", async () => {
+    const a = await user();
+    const plan = await db.aiPlanVersion.create({
+      data: {
+        clientId: a.id,
+        version: 1,
+        status: "ACCEPTED",
+        acceptedAt: new Date(),
+        payload: {},
+        payloadHash: "hash",
+        contextRevision: 1,
+        profileRevision: 1,
+        observationRevision: 1,
+        safetyRevision: 1,
+        policyVersion: "p1",
+        catalogVersions: {},
+      },
+    });
+    await db.aiPlanAcceptanceOutbox.create({
+      data: {
+        clientId: a.id,
+        planVersionId: plan.id,
+        attempts: 5,
+        processedAt: new Date(),
+        deliveryOutcome: "ABANDONED",
+        lastErrorCode: "APNS_UNAVAILABLE",
+      },
+    });
+    const records = [];
+    for await (const row of exportAiData(a.id)) records.push(row);
+    const intents = records.filter((r) => r.dataset === "notificationIntents");
+    expect(intents).toHaveLength(1);
+    const closedErrorCodes = new Set(["APNS_REJECTED", "APNS_UNAVAILABLE", "PUSH_CONFIG_MISSING", "UNKNOWN"]);
+    const record = intents[0].record as unknown as { deliveryOutcome: string | null; lastErrorCode: string | null };
+    expect(record.deliveryOutcome).toBe("ABANDONED");
+    expect(record.lastErrorCode === null || closedErrorCodes.has(record.lastErrorCode)).toBe(true);
+  });
 });

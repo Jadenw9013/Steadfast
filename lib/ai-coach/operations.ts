@@ -3,6 +3,9 @@ import { Prisma, type AiCoachOperationalScope } from "@/app/generated/prisma/cli
 import { db } from "@/lib/db";
 import { AiCoachError } from "./access";
 import type { ActiveAiCoachLiveRelease } from "./live-launch/repository";
+import { isAiCoachPublicationEnabled } from "@/lib/flags/ai-coach";
+import { reportServerError } from "@/lib/observability/report";
+import { CRON_FAILED } from "@/lib/observability/events";
 
 export type GovernanceScope =
   | "CONTROL_OPERATIONS"
@@ -40,6 +43,43 @@ export async function assertAiCoachOperationEnabled(scope: AiCoachOperationalSco
   if (process.env.NODE_ENV === "production") {
     const { assertActiveAiCoachLiveReleaseReady } = await import("./live-launch/repository");
     await assertActiveAiCoachLiveReleaseReady();
+  }
+}
+
+export type AcceptanceDeliveryState = "ENABLED" | "DISABLED_BY_FLAG" | "PAUSED" | "ERRORED";
+
+/**
+ * Single source of truth for "is the T-502 acceptance-notification drain
+ * allowed to deliver right now" — the ONLY function either the real gate
+ * (`runAcceptanceNotificationPhase`, `lib/ai-coach/executor.ts`) or the
+ * reviewer panel's readout (`getReviewerOperations`) may use to answer that
+ * question. `runAcceptanceNotificationPhase` now literally calls this
+ * function to decide whether to run the drain at all, rather than
+ * re-running its own copy of the flag/gate check next to it — the two
+ * cannot structurally disagree the way they did before (T-502 review round
+ * 1, MAJOR 1; round 2, MINOR 1). A production environment with no
+ * `ACCEPTANCE` control row yet, or one whose live-launch release check
+ * fails, reads `PAUSED` everywhere, never a false `ENABLED`.
+ *
+ * `ERRORED` distinguishes an unexpected gate failure (anything that is not
+ * the ordinary `AiCoachError` pause signal — e.g. a thrown `LiveLaunchError`
+ * from the live-launch check, or an infra error) from a deliberate pause,
+ * and is reported via `reportServerError` right here, once, regardless of
+ * which caller triggered the check — not duplicated at each call site.
+ */
+export async function getAcceptanceDeliveryState(): Promise<AcceptanceDeliveryState> {
+  if (!isAiCoachPublicationEnabled()) return "DISABLED_BY_FLAG";
+  try {
+    await assertAiCoachOperationEnabled("ACCEPTANCE");
+    return "ENABLED";
+  } catch (error) {
+    if (error instanceof AiCoachError) return "PAUSED";
+    reportServerError(CRON_FAILED.evt, error, {
+      context: { job: "ai-coach-acceptance-gate", phase: "acceptance-delivery-state" },
+      allow: CRON_FAILED.allow,
+    });
+    console.error("[ai-coach] acceptance-notification gate faulted", error);
+    return "ERRORED";
   }
 }
 
