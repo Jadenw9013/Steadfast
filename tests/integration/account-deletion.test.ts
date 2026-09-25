@@ -523,6 +523,13 @@ suite("account deletion with real PostgreSQL constraints", () => {
         candidatePayloadHash: autoApprovedPlan.payloadHash,
       },
     });
+    // T-2030 — this row and `automaticApproval` below also carry validated
+    // bounded-prose content (`explanationValidation`,
+    // `providerSelection.explanation.text`), so the existing "zero rows
+    // remain" assertions on these two ids (below) double as the purge
+    // regression for T-2006's prose feature: a client with validated prose
+    // leaves zero AiProviderBoundaryAudit and zero AiAutomaticPlanApproval
+    // rows, same as any other client.
     const validatedProviderAudit = await db.aiProviderBoundaryAudit.create({
       data: {
         clientId: user.id,
@@ -536,6 +543,12 @@ suite("account deletion with real PostgreSQL constraints", () => {
         finalGateDecisionId: autoApproveGateDecision.id,
         inputSnapshot: { synthetic: true },
         inputDigest: "4".repeat(64),
+        explanationValidation: {
+          schemaVersion: 1,
+          contractVersion: "t2006-prose-v1",
+          explanation: { outcome: "ACCEPTED", reasonCodes: [], characters: 64 },
+          clarification: { outcome: "ABSENT", reasonCodes: [], characters: 0 },
+        },
       },
     });
     const automaticApproval = await db.aiAutomaticPlanApproval.create({
@@ -550,7 +563,19 @@ suite("account deletion with real PostgreSQL constraints", () => {
         artifactRefs: [],
         sourceRefs: [],
         gateInput: {},
-        providerSelection: {},
+        providerSelection: {
+          preferenceIds: [],
+          rankedOptionIds: [],
+          explanation: {
+            templateId: "synthetic-purge-auto-template",
+            locale: "en-US",
+            reasonCodes: [],
+            nextStepText: "SYNTHETIC PURGE FIXTURE.",
+            numericFields: [],
+            limitations: [],
+            text: "SYNTHETIC PURGE FIXTURE: validated explanation text that must not survive purge.",
+          },
+        },
         stateDigest: "5".repeat(64),
       },
     });

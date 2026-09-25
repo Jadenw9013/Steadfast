@@ -2,6 +2,12 @@ import type { Substitution } from "@/lib/ai-coach/representation";
 import { useId } from "react";
 import type { PlanPayload } from "@/lib/ai-coach/plan-contract";
 import { getExerciseItem, getFoodItem } from "@/lib/ai-coach/catalog/loader";
+// T-2030 review r1 MINOR 5 — the same formatter the bounded-prose validator
+// uses for its `displayValue` tokens, so this card and the validated prose
+// beside it can never disagree on how a number renders. Dependency-free
+// (no db/fetch/env/Date), so it is safe to import here even though this
+// component is reachable from a "use client" tree.
+import { formatNumericDisplayValue } from "@/lib/ai-coach/numeric-display";
 
 export function PlanDisplay({ plan, onSubstitute, substitutions = [], busy = false, portionsOnly = false }: { plan: PlanPayload; portionsOnly?: boolean; onSubstitute?: (input: Substitution) => void; substitutions?: Substitution[]; busy?: boolean }) {
   const nutritionHeading = useId();
@@ -16,7 +22,7 @@ export function PlanDisplay({ plan, onSubstitute, substitutions = [], busy = fal
       <h2 id={nutritionHeading} className="text-xl font-semibold text-zinc-100">Nutrition</h2>
       {plan.nutrition ? <>
         {portionsOnly && plan.meals ? <p className="mt-3 text-zinc-300">Follow the meal portions below. Your nutrition prescription is represented by these portions.</p> : <><dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {Object.entries(plan.nutrition.targets).map(([key, value]) => <div key={key}><dt className="text-sm text-zinc-400">{{ energyKcal: "Energy", proteinG: "Protein", carbsG: "Carbohydrates", fatG: "Fat" }[key]}</dt><dd className="mt-1 text-xl text-zinc-100">{value} <span className="text-sm text-zinc-400">{key === "energyKcal" ? "kcal/day" : "g/day"}</span></dd></div>)}
+          {Object.entries(plan.nutrition.targets).map(([key, value]) => <div key={key}><dt className="text-sm text-zinc-400">{{ energyKcal: "Energy", proteinG: "Protein", carbsG: "Carbohydrates", fatG: "Fat" }[key]}</dt><dd className="mt-1 text-xl text-zinc-100">{formatNumericDisplayValue(value)} <span className="text-sm text-zinc-400">{key === "energyKcal" ? "kcal/day" : "g/day"}</span></dd></div>)}
         </dl><p className="mt-3 text-sm text-zinc-400">Fixture tolerance: ±{plan.nutrition.tolerancePercent}%. These values are not live dietary advice.</p></>}
         {plan.nutrition.assumptions.map(text => <p key={text} className="mt-2 text-sm text-zinc-400">{text}</p>)}
       </> : <p className="mt-3 text-zinc-400">Nutrition is unavailable or paused. No target has been assigned.</p>}

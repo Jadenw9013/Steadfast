@@ -278,6 +278,20 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
   });
   const stateDigest = contentHash(state);
   if (existing) {
+    // T-2030 review r1 MINOR 6 — `state.providerSelection` now potentially
+    // contains model-authored explanation text (`constrained-boundary.ts`'s
+    // `validatedExplanation`). A live (non-synthetic) provider is not
+    // pinned to return byte-identical prose on a retried/duplicated call
+    // for the same candidate, so once a live packet is ACTIVE, a
+    // re-finalize of the same `planVersionId` will very likely hit this
+    // `REVISION_CONFLICT` even though nothing about the *deterministic*
+    // approval changed — this pre-existing class of false conflict
+    // (ranked option order can already vary) goes from rare to expected.
+    // Not reachable today (no ACTIVE live packet exists; this synthetic
+    // path always calls the same deterministic `SyntheticConstrainedProvider`
+    // twice-identically). Tracked for the live-provider rollout alongside
+    // T-997, not fixed here — deciding whether prose belongs inside the
+    // digest at all is a design call for that ticket, not this one.
     if (existing.stateDigest !== stateDigest) {
       throw new AiCoachError(
         "REVISION_CONFLICT",

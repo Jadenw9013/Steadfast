@@ -16,6 +16,52 @@ its source file and is not fit to show a real user.
 
 ## Current takeover status — read before the historical log
 
+**T-2030 bounded explanation prose (web), 2026-09-25:** the constrained
+provider may now also return `explanationText`/`clarificationText` — two
+short, bounded sentences — alongside the existing IDs-only output
+(`provider/adapter.ts`). A new pure module,
+`provider/explanation-prose.ts` (`validateExplanationProse`), is the sole
+authority on whether any of that text ever reaches a client: it checks
+every digit against the server-rendered `displayValue` of a validated
+numeric field (no tolerance), every named food/exercise against the
+candidate plan's own display names, a closed prohibited-claim term list,
+and structural outcome consistency (an explanation only survives on
+`APPROVE_AUTOMATICALLY`, a clarification only on `FOCUSED_CLARIFICATION`
+with an allowed clarification ID — enforced in `constrained-boundary.ts`,
+not the pure validator). A rejection never blocks the deterministic
+approval; it only drops the text and the template renders, exactly as
+before this ticket. The accepted text is stored inside the existing
+`AiAutomaticPlanApproval.providerSelection.explanation` object — a `text`
+key is added **only when accepted**, so every pre-existing approval row's
+`stateDigest` is unchanged. `AiProviderBoundaryAudit` gains one additive
+nullable column, `explanationValidation` (reason codes and a character
+count only, never the text). Web renders the validated text in place of
+the run's deterministic explanation sentence on the proposal screen,
+falling back to that sentence (never an empty paragraph) when no
+validated prose exists — this also closes a pre-existing web/iOS parity
+gap (iOS already rendered the run's explanation sentence on this screen;
+web did not). iOS decoding/rendering is T-2031. No live coach or client
+can reach a model-authored word yet: the AI Coach flags are off and no
+`AiCoachLiveLaunchPacket` is ACTIVE — see the T-996 entry below.
+
+**Deploy order (review r1 MINOR 7):** migration `20260925000300_ai_coach_explanation_validation`
+(`AiProviderBoundaryAudit.explanationValidation`) must apply to Neon
+**before** this code deploys. `persistAudit` (`constrained-boundary.ts`)
+writes that column unconditionally on every boundary run that calls a
+provider — not just prose-bearing ones — and `getAiWorkspace`
+(`lib/queries/ai-coach.ts`) selects it unconditionally on every workspace
+read, so deploying the code first makes every such write and read throw on
+an unknown column, which fail-closes finalization for every client, not
+just AI Coach ones reachable today. web `main` auto-deploys on push, so
+this is a release-packet ordering step, not just a migration note.
+Review r1 MINOR 6 also flagged (not fixed, tracked for the live-provider
+rollout alongside T-997): once a live packet is ACTIVE, model-authored
+prose inside `AiAutomaticPlanApproval.providerSelection` can make a
+retried `finalizeCurrentClientPlan` call for the same candidate hit
+`REVISION_CONFLICT` where it previously wouldn't have (see
+`finalization.ts`'s comment at the `existing.stateDigest !== stateDigest`
+check).
+
 **Autonomy decision, 2026-09-21:** the mandatory human-review assumption for every initial numerical plan and intensifying change is superseded by [15 — Bounded autonomous coaching](15-Bounded-Autonomous-Coaching.md). Runtime approval is allowed only after a deterministic server-side gate returns `APPROVE_AUTOMATICALLY` using a professionally reviewed, versioned policy bundle, curated catalogs, contraindication/escalation rules and compact evidence registry. The prior reviewer queue remains governance/exception tooling. Historical entries below accurately describe what was built under the old assumption; they do not authorize it for v1. No runtime code was changed by this documentation decision.
 
 **T-1006 structural gate, 2026-09-21:** a server-only fixed-order service now
@@ -477,7 +523,10 @@ lib/ai-coach/
   nutrition-totals.ts           A04  computeNutrientTotals / aggregateGramsByFood
   composition-feasibility.ts    A04  checkMealComposition — closed reason-code registry
   provider/adapter.ts           A05  ModelProvider interface, timeout wrapper
-  provider/synthetic-provider.ts A05 The only provider that exists — no network I/O, ever
+  provider/synthetic-provider.ts A05 Synthetic-only constrained provider — no network I/O, ever
+  provider/anthropic-provider.ts T-996 Direct Anthropic Messages API constrained provider (dynamic SDK import only)
+  provider/constrained-boundary.ts T-1007 runConstrainedProviderBoundary — the only writer of AiAutomaticPlanApproval.providerSelection
+  provider/explanation-prose.ts T-2006/T-2030 Pure validateExplanationProse — the only authority on bounded model prose (no db/fetch/env/Date)
   provider/spend-limits.ts      A05  Rate limit (real) + token ceiling (safety backstop, not real pricing)
   executor.ts                   A05  runExecutorSweep / processClaimedRun
   run-status.ts                 A05  getRunStatusForClient — safe minimized DTO

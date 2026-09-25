@@ -29,6 +29,14 @@ export class SyntheticFixtureProvider implements ModelProvider {
  * T-1007 synthetic constrained provider. It echoes only server-allowlisted
  * references, has no tools or network integration, and never emits prose,
  * numbers, safety labels, authority decisions, or activation instructions.
+ *
+ * T-2006/T-2030: deliberately still omits `explanationText` and
+ * `clarificationText` from its output — never change that. Both fields are
+ * `.nullable().optional()` on `constrainedProviderOutputObjectSchema`
+ * specifically so this provider's shape keeps parsing unchanged, and the
+ * synthetic evaluation corpus's classifications/hashes
+ * (`ai-coach-provider-evaluation.test.ts`) are pinned to this provider
+ * never emitting prose.
  */
 export class SyntheticConstrainedProvider implements ConstrainedModelProvider {
   async invoke(input: ConstrainedProviderEnvelope, context: { signal: AbortSignal }) {

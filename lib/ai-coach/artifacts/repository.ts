@@ -867,3 +867,23 @@ export function getReviewedExerciseItem(artifact: LoadedArtifact, itemId: string
     );
   return item;
 }
+
+/**
+ * T-2006 — every reviewed food and exercise name in the loaded catalogs.
+ * Server-side only: this is the denylist R7 (`explanation-prose.ts`) scans
+ * for a food/exercise the model mentions but the *candidate plan* never
+ * offered. Never put this in an envelope or a prompt — handing the model a
+ * full catalog vocabulary would give it names it does not otherwise have.
+ */
+export function reviewedCatalogDisplayNames(artifacts: ReviewedArtifactSet): string[] {
+  assertVerifiedLoadedArtifact(artifacts.foodCatalog);
+  assertVerifiedLoadedArtifact(artifacts.exerciseCatalog);
+  const foodContent = parseArtifactContent("FOOD_CATALOG", artifacts.foodCatalog.content);
+  const exerciseContent = parseArtifactContent("EXERCISE_CATALOG", artifacts.exerciseCatalog.content);
+  const names: string[] = [];
+  if ("items" in foodContent) names.push(...foodContent.items.map((item) => item.name));
+  if ("exercises" in exerciseContent) {
+    names.push(...exerciseContent.exercises.map((exercise) => exercise.name));
+  }
+  return names;
+}

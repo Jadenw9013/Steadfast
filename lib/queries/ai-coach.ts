@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { weeklyCandidateIsValid } from "@/lib/ai-coach/weekly-proof";
 import { evidenceIsCurrent } from "@/lib/ai-coach/evidence-snapshot";
 import { Prisma } from "@/app/generated/prisma/client";
@@ -16,6 +17,25 @@ import { contentHash } from "@/lib/ai-coach/canonical-json";
 import { reportAnomaly } from "@/lib/observability/report";
 import { AICOACH_RUNTIME_BINDING_DEGRADED } from "@/lib/observability/events";
 import { resolveAiCoachRuntimeBinding } from "@/lib/ai-coach/runtime-binding";
+
+/**
+ * T-2006 — a narrow read of `AiAutomaticPlanApproval.providerSelection`'s
+ * optional `explanation`/`clarification` shape. Anything that does not
+ * match (an older row, a future contract change) degrades to `undefined`
+ * here and `null` in the projected DTO below — it never throws.
+ */
+const providerSelectionProseProjectionSchema = z
+  .object({
+    explanation: z
+      .object({ text: z.string().min(40).max(400) })
+      .passthrough()
+      .optional(),
+    clarification: z
+      .object({ text: z.string().min(20).max(200), clarificationId: z.string().min(1) })
+      .passthrough()
+      .optional(),
+  })
+  .passthrough();
 
 /** Shared authorized read for web and native. Unapproved proposals expose status
  * only; paused domains never return actionable instructions. No raw run inputs,
@@ -265,6 +285,25 @@ export async function getAiWorkspace(clientId: string) {
                       binding.artifactRequest.policyArtifactKey
                     ).usable
                 );
+          // T-2006 — same `automaticApproved` guard `interpretation` already
+          // uses. A `providerSelection` that does not parse (or that exists
+          // on a not-automatically-approved proposal) projects `null`,
+          // never a throw.
+          const parsedProviderSelection = automaticApproved
+            ? providerSelectionProseProjectionSchema.safeParse(automatic?.providerSelection)
+            : null;
+          const explanation =
+            parsedProviderSelection?.success && parsedProviderSelection.data.explanation
+              ? { text: parsedProviderSelection.data.explanation.text, kind: "MODEL_VALIDATED" as const }
+              : null;
+          const clarification =
+            parsedProviderSelection?.success && parsedProviderSelection.data.clarification
+              ? {
+                  text: parsedProviderSelection.data.clarification.text,
+                  clarificationId: parsedProviderSelection.data.clarification.clarificationId,
+                  kind: "MODEL_VALIDATED" as const,
+                }
+              : null;
           const payload =
             fresh && (automaticApproved || legacyAuthorized) && candidatePolicyUsable
               ? checked
@@ -311,6 +350,8 @@ export async function getAiWorkspace(clientId: string) {
               reasonCodes,
               nextActionTemplateId,
               interpretation: automaticApproved ? (automatic?.providerSelection ?? null) : null,
+              explanation,
+              clarification,
             },
             expectedBaseVersionId: candidate.baseVersionId,
             expectedContextRevision: candidate.contextRevision,
