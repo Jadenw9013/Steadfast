@@ -89,6 +89,71 @@ suite("A03 — intake draft/confirm with real PostgreSQL constraints", () => {
     if (!second.success) throw new Error("unreachable");
     expect(second.profileRevision).toBe(2);
   });
+
+  function v2Full(overrides: Record<string, unknown> = {}) {
+    return {
+      intakeVersion: 2,
+      goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3,
+      equipmentAccess: ["HOME_BASIC"], foodBudgetLevel: "MODERATE",
+      trackingPreference: "PORTIONS_ONLY", unitsPreference: "IMPERIAL",
+      ageYears: 31, ageStatus: "CONFIRMED",
+      energyMethodPopulationCategory: "MALE_ADULT", energyMethodPopulationCategoryStatus: "CONFIRMED",
+      physicalActivityCategory: "ACTIVE", physicalActivityCategoryStatus: "CONFIRMED",
+      bodyMeasurementStatus: "CONFIRMED", heightCm: 180, weightKg: 82, weightMeasuredOn: "2026-09-20",
+      bodyWeightIntent: "MAINTAIN", goalPaceClass: "MAINTAIN", weightNeutralAccepted: true, goalStatus: "CONFIRMED",
+      resistanceTrainingContext: "REGULAR", sessionLengthBand: "MIN_45_60", trainingContextStatus: "CONFIRMED",
+      cookingAccess: { equipment: ["FULL_KITCHEN"], refrigeration: "FRIDGE_AND_FREEZER", mealPrepCapacity: "BATCH", typicalPrepMinutesBand: "MIN_15_30" },
+      cookingAccessStatus: "CONFIRMED",
+      dislikes: [], cuisinePreferences: [],
+      allergenDeclarations: {
+        status: "CONFIRMED", noKnownAllergens: false,
+        items: [{ category: "TREE_NUT", specificity: "cashew", kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+      },
+      dietaryPattern: { pattern: "OMNIVORE", otherLabel: null, mandatory: false, reason: "PREFERENCE", status: "CONFIRMED" },
+      ...overrides,
+    };
+  }
+
+  it("T-2024: a v2 confirm writes intakeVersion: 2, a server-set capturedAt, and derived allergies/dietaryRestrictions", async () => {
+    const client = await makeClient();
+    const before = new Date();
+    const result = await confirmIntake(client.id, v2Full());
+    expect(result.success).toBe(true);
+
+    const profile = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } });
+    const stored = profile.confirmedIntake as Record<string, unknown>;
+    expect(stored.intakeVersion).toBe(2);
+    expect(stored.allergies).toEqual(["TREE_NUT"]);
+    expect(stored.dietaryRestrictions).toEqual([]);
+    expect(typeof stored.capturedAt).toBe("string");
+    expect(new Date(stored.capturedAt as string).getTime()).toBeGreaterThanOrEqual(before.getTime());
+  });
+
+  it("T-2024: a client-supplied capturedAt in a v2 confirm is rejected", async () => {
+    const client = await makeClient();
+    const result = await confirmIntake(client.id, {
+      ...v2Full(),
+      capturedAt: "2020-01-01T00:00:00.000Z",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("T-2024: a client-supplied allergies in a v2 confirm is rejected", async () => {
+    const client = await makeClient();
+    const result = await confirmIntake(client.id, { ...v2Full(), allergies: ["milk"] });
+    expect(result.success).toBe(false);
+  });
+
+  it("T-2024: confirming v2 with ageStatus: UNKNOWN succeeds and stores no ageYears", async () => {
+    const client = await makeClient();
+    const result = await confirmIntake(client.id, v2Full({ ageStatus: "UNKNOWN", ageYears: undefined }));
+    expect(result.success).toBe(true);
+
+    const profile = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } });
+    const stored = profile.confirmedIntake as Record<string, unknown>;
+    expect(stored.ageStatus).toBe("UNKNOWN");
+    expect(stored.ageYears).toBeUndefined();
+  });
 });
 
 suite("A03 — safety disclosure processing with real PostgreSQL constraints", () => {

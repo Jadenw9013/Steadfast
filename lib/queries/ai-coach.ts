@@ -86,6 +86,11 @@ export async function getAiWorkspace(clientId: string) {
     return {
       substitutions,
       schemaVersion: 1 as const,
+      // Capability field (T-2002/T-2024): a client newer than this backend
+      // can detect the intake schema versions this server understands and
+      // degrade instead of eating an opaque 422. `schemaVersion` itself
+      // stays 1 — the shipped iOS build hard-fails on anything else.
+      intakeSchemaVersions: [1, 2] as const,
       experience: profile.isSynthetic
         ? { mode: "SYNTHETIC" as const, disclosure: null }
         : {

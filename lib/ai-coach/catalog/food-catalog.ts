@@ -52,14 +52,31 @@ const RAW_FOOD_CATALOG: FoodItem[] = [
   },
 ];
 
+// T-2024: shellfish-tagged fixture, added to `food-fixture-v2` only (not
+// the frozen `LEGACY_FOOD_CATALOG` below) — exercises the
+// CRUSTACEAN_SHELLFISH -> "SHELLFISH" derived-legacy-token hard-exclusion
+// path. `sourceId` intentionally continues past FIXTURE-006 to FIXTURE-008
+// — FIXTURE-007 was retired with no fixture ever assigned to it and is not
+// reused.
+const V2_ONLY_FOOD_CATALOG: FoodItem[] = [
+  {
+    id: "shrimp-cooked", catalogVersion: FOOD_CATALOG_VERSION, name: "Shrimp, cooked",
+    sourceId: "FIXTURE-008", energyMethod: "SYNTHETIC_FIXTURE", servingGrams: 85,
+    energyKcalPerServing: 84, proteinGPerServing: 18, carbsGPerServing: 0, fatGPerServing: 0.9,
+    allergens: ["SHELLFISH"], dietaryTags: ["GLUTEN_FREE", "DAIRY_FREE"], hasCompleteMicronutrients: false,
+  },
+];
+
 export const FOOD_CATALOG: ReadonlyMap<string, FoodItem> = new Map(
-  RAW_FOOD_CATALOG.map((raw) => {
+  [...RAW_FOOD_CATALOG, ...V2_ONLY_FOOD_CATALOG].map((raw) => {
     const item = foodItemSchema.parse(raw);
     return [item.id, item];
   })
 );
 
-/** Retained v1 records: the six unchanged original fixtures remain readable. */
+/** Retained v1 records: the six unchanged original fixtures remain readable.
+ * `V2_ONLY_FOOD_CATALOG` is deliberately excluded — it never existed under
+ * `food-fixture-v1` and must not silently join it. */
 export const LEGACY_FOOD_CATALOG: ReadonlyMap<string, FoodItem> = new Map(
   RAW_FOOD_CATALOG.filter(item => item.id !== "fixture-grain-alternative").map(item => [item.id, { ...item, catalogVersion: "food-fixture-v1" }])
 );

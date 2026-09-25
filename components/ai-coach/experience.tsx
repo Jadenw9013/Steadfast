@@ -4,21 +4,8 @@ import { AiCheckInForm, AiSessionForm } from "./evidence-forms";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiWorkspace } from "@/lib/queries/ai-coach";
 import { PlanDisplay } from "./plan-display";
-const button =
-  "min-h-12 rounded-xl border border-white/15 px-4 py-3 text-zinc-100 transition-colors hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-blue-400 disabled:opacity-50";
-const primary = `${button} min-h-14 border-blue-500 bg-blue-600 hover:bg-blue-500`;
-const fieldClass =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/15 bg-zinc-900 px-3 py-2 text-base text-zinc-100 focus:outline-2 focus:outline-blue-400";
-const safetyFields = {
-  chestPainDuringExercise: "Chest pain during exercise?",
-  dizzinessOrFainting: "Dizziness or fainting?",
-  heartCondition: "A known heart condition?",
-  pregnantOrPostpartum: "Pregnant or postpartum?",
-  recentInjuryOrSurgery: "A recent injury or surgery?",
-  ageEligibilityConcern: "Any age-eligibility concern?",
-  eatingDisorderHistoryOrConcern: "Any eating-disorder history or concern?",
-  type1Diabetes: "Type 1 diabetes?",
-};
+import { IntakeWizard } from "./intake-wizard";
+import { button, primary, fieldClass } from "./controls";
 
 export function AiCoachExperience({
   initial,
@@ -39,16 +26,6 @@ export function AiCoachExperience({
   );
   const [consent, setConsent] = useState(false);
   const [pauseConfirmed, setPauseConfirmed] = useState(false);
-  const [safety, setSafety] = useState<Record<string, string>>({});
-  const [form, setForm] = useState<Record<string, string>>(() => {
-    const saved = (initial.draft ?? initial.confirmedIntake ?? {}) as Record<string, unknown>;
-    return Object.fromEntries(
-      Object.entries(saved).map(([key, value]) => [
-        key,
-        Array.isArray(value) ? value.join(", ") : String(value),
-      ])
-    );
-  });
   const keys = useRef(new Map<string, string>());
   const refresh = useCallback(async () => {
     const res = await fetch("/api/client/ai-coach/workspace", { cache: "no-store" });
@@ -105,20 +82,6 @@ export function AiCoachExperience({
       expectedProfileRevision: view.profileRevision,
       ...input,
     });
-  function answers() {
-    const data: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(form)) {
-      if (["allergies", "dietaryRestrictions", "equipmentAccess"].includes(key))
-        data[key] = value
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-      else if (["trainingDaysPerWeek", "heightCm", "weightKg"].includes(key)) {
-        if (value !== "") data[key] = Number(value);
-      } else if (value !== "") data[key] = value;
-    }
-    return data;
-  }
   const screen = path[0] ?? "home";
   const liveDisclosure = view.experience.mode === "LIVE" ? view.experience.disclosure : null;
   if (view.experience.mode === "LIVE" && !liveDisclosure) {
@@ -140,37 +103,6 @@ export function AiCoachExperience({
   }
   const proposal = view.proposals.find((p) => p.id === path[1]);
   const review = view.runs.find((r) => r.id === path[1]);
-  const selectField = (key: string, label: string, values: [string, string][]) => (
-    <label key={key} className="block text-sm text-zinc-300">
-      {label}
-      <select
-        className={fieldClass}
-        style={{ fontSize: "max(1rem, 16px)" }}
-        value={form[key] ?? ""}
-        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-      >
-        <option value="">Choose an answer</option>
-        {values.map(([value, text]) => (
-          <option key={value} value={value}>
-            {text}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-  const textField = (key: string, label: string, type = "text") => (
-    <label key={key} className="block text-sm text-zinc-300">
-      {label}
-      <input
-        type={type}
-        inputMode={type === "number" ? "decimal" : undefined}
-        className={fieldClass}
-        style={{ fontSize: "max(1rem, 16px)" }}
-        value={form[key] ?? ""}
-        onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-      />
-    </label>
-  );
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
@@ -356,138 +288,7 @@ export function AiCoachExperience({
       {screen === "check-in" && <AiCheckInForm onRefresh={refresh} />}
       {screen === "sessions" && <AiSessionForm view={view} onRefresh={refresh} />}
       {screen === "intake" && (
-        <div className="space-y-6">
-          <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-            <h2 className="text-xl font-semibold text-zinc-100">1. Safety questions</h2>
-            <p className="text-sm text-zinc-400">
-              Choose Yes, No, or Unsure for every question. A new concern is saved independently of
-              the rest of your intake.
-            </p>
-            {Object.entries(safetyFields).map(([key, label]) => (
-              <label key={key} className="block text-sm text-zinc-300">
-                {label}
-                <select
-                  className={fieldClass}
-                  value={safety[key] ?? ""}
-                  onChange={(e) => setSafety({ ...safety, [key]: e.target.value })}
-                >
-                  <option value="">Choose an answer</option>
-                  <option value="YES">Yes</option>
-                  <option value="NO">No</option>
-                  <option value="UNSURE">Unsure</option>
-                </select>
-              </label>
-            ))}
-            <button
-              className={button}
-              disabled={busy || !Object.values(safety).some((v) => v === "YES" || v === "UNSURE")}
-              onClick={() =>
-                act(
-                  () =>
-                    post("/api/client/ai-coach/concerns", {
-                      payload: {
-                        safetyChanged: Object.values(safety).includes("YES") ? "YES" : "UNSURE",
-                      },
-                    }),
-                  "Concern saved. Affected advice is restricted while you complete the remaining answers."
-                )
-              }
-            >
-              Save selected concern now
-            </button>
-            <button
-              className={primary}
-              disabled={busy || Object.keys(safetyFields).some((k) => !safety[k])}
-              onClick={() =>
-                act(
-                  () => command({ operation: "SAFETY", answers: safety }),
-                  "Safety answers saved."
-                )
-              }
-            >
-              Save safety answers
-            </button>
-          </section>
-          <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-            <h2 className="text-xl font-semibold text-zinc-100">2. Preferences and baseline</h2>
-            {selectField("goal", "Goal", [
-              ["GENERAL_FITNESS", "General fitness"],
-              ["STRENGTH", "Strength"],
-              ["ENDURANCE", "Endurance"],
-              ["BODY_COMPOSITION", "Body composition"],
-            ])}
-            {selectField("experienceLevel", "Training experience", [
-              ["NEW", "New"],
-              ["RETURNING", "Returning"],
-              ["EXPERIENCED", "Experienced"],
-            ])}
-            {textField("trainingDaysPerWeek", "Available training days each week (1–7)", "number")}
-            {selectField("equipmentAccess", "Available equipment", [
-              ["NONE", "No equipment"],
-              ["HOME_BASIC", "Basic home equipment"],
-              ["FULL_GYM", "Full gym"],
-            ])}
-            {textField("allergies", "Food allergies (comma-separated; leave blank if none)")}
-            {textField(
-              "dietaryRestrictions",
-              "Dietary requirements (comma-separated; leave blank if none)"
-            )}
-            {selectField("foodBudgetLevel", "Food budget", [
-              ["LOW", "Low"],
-              ["MODERATE", "Moderate"],
-              ["FLEXIBLE", "Flexible"],
-            ])}
-            {selectField("trackingPreference", "Preferred nutrition display", [
-              ["NUMBERS_VISIBLE", "Show numbers"],
-              ["PORTIONS_ONLY", "Prefer portions"],
-            ])}
-            {selectField("unitsPreference", "Preferred units", [
-              ["METRIC", "Metric"],
-              ["IMPERIAL", "Imperial"],
-            ])}
-            {textField(
-              "heightCm",
-              "Height in centimetres (optional; nutrition stays pending without it)",
-              "number"
-            )}
-            {textField(
-              "weightKg",
-              "Weight in kilograms (optional; nutrition stays pending without it)",
-              "number"
-            )}
-            <div className="flex flex-wrap gap-3">
-              <button
-                className={button}
-                disabled={busy}
-                onClick={() =>
-                  act(async () => {
-                    const data = answers();
-                    await command({ operation: "ALLERGIES", allergies: data.allergies ?? [] });
-                    delete data.allergies;
-                    await command({ operation: "SAVE_INTAKE", answers: data });
-                  }, "Draft saved. You can return to it later.")
-                }
-              >
-                Save draft
-              </button>
-              <button
-                className={primary}
-                disabled={busy}
-                onClick={() =>
-                  act(async () => {
-                    const data = answers();
-                    data.allergies ??= [];
-                    data.dietaryRestrictions ??= [];
-                    await command({ operation: "ALLERGIES", allergies: data.allergies });
-                    await command({ operation: "CONFIRM_INTAKE", answers: data });
-                  }, "Intake confirmed. Return to Overview to continue.")
-                }
-              >
-                Confirm intake
-              </button>
-            </div>
-          </section>
-        </div>
+        <IntakeWizard view={view} busy={busy} act={act} command={command} post={post} />
       )}
       {screen === "plan" && !view.activePlan && (
         <p className="text-zinc-400">

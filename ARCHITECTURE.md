@@ -729,6 +729,41 @@ adds:
 | POST | `/api/client/ai-coach/plans/[id]/finalize` | Finalizes the client's current AI-generated plan version, via `lib/ai-coach/finalization.ts` — additionally gated by `requireFixtureRuntime()`, so it 503s outside fixture/dev mode regardless of flags |
 | GET/POST | `/api/ops/ai-coach/governance` | Governance-grant-gated kill-switch and reviewed-artifact publish/revoke operations, via `lib/ai-coach/operations.ts` and `lib/ai-coach/artifacts/repository.ts` — no route can activate a live release (see the data-model section above) |
 
+**Intake v2 (T-2002/T-2024).** `POST /api/client/ai-coach/commands` is unchanged in
+route shape; three of its operations gained a v2 branch, all validated in
+`lib/ai-coach/client-commands.ts` and `lib/ai-coach/intake.ts`:
+- `SAVE_INTAKE` — `answers` accepts any subset of v1 + v2 intake fields
+  (`intakeAnswersSchema.partial()`, still permissive on read). Sending
+  `allergies` or `allergenDeclarations` is always a 422 (allergen state only
+  moves through `ALLERGIES`); sending `dietaryRestrictions` once a
+  `dietaryPattern` already exists (draft or confirmed) is a 422.
+- `ALLERGIES` — a two-shape command: exactly one of `allergies` (v1 string
+  array, unchanged) or `allergenDeclarations` (v2 structured object) must be
+  present. The v2 branch derives the legacy `allergies` token array via the
+  single writer `lib/ai-coach/intake-allergens.ts#deriveLegacyAllergyTokens`
+  and computes `newConcern` from a canonical content hash
+  (`canonicalDeclarations` + `contentHash`) instead of the v1 lowercase
+  string comparison, so a narrowing (e.g. adding a specificity under an
+  already-declared category) still bumps `safetyRevision` and invalidates
+  proposals.
+- `CONFIRM_INTAKE` — branches on `answers.intakeVersion`. `intakeVersion: 2`
+  is validated against `intakeV2ConfirmSchema` (the write-time completeness
+  schema — every v1 field plus every v2 status field, `allergenDeclarations`,
+  `dietaryPattern`, `dislikes`, `cuisinePreferences` required; the governed
+  value fields stay conditionally required by `superRefine` against their
+  status). The server sets `capturedAt` and derives `allergies`/
+  `dietaryRestrictions` — a client-supplied value for any of those three is
+  rejected. A v1-shaped confirm (no `intakeVersion`) against a client whose
+  profile already holds `intakeVersion: 2` is rejected `422` (`"Update
+  Steadfast to change your intake."`) so an old app build can never silently
+  downgrade a v2 profile.
+
+The workspace DTO (`GET /api/client/ai-coach/workspace`, `lib/queries/ai-coach.ts`)
+gained one new top-level field, `intakeSchemaVersions: [1, 2]` — a
+capability list so a client newer than the backend can detect it and
+degrade instead of eating an opaque 422. `schemaVersion` stays `1`; the
+shipped iOS build hard-fails on anything else.
+
 `/ai-coach` (`app/ai-coach/page.tsx`, added to `proxy.ts`'s public routes) is
 the public, unauthenticated discovery page — `notFound()` unless both the
 enrollment flag and the governed activation row are satisfied. The
