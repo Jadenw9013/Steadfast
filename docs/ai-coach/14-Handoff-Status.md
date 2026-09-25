@@ -1,4 +1,4 @@
-# Implementation handoff status (updated 2026-09-14)
+# Implementation handoff status (updated 2026-09-21)
 
 **This file is not part of the original review pack (00–13).** It was added
 during implementation to record what has actually been built, verified and
@@ -15,6 +15,57 @@ policy version introduced so far is explicitly marked SYNTHETIC/FIXTURE in
 its source file and is not fit to show a real user.
 
 ## Current takeover status — read before the historical log
+
+**Autonomy decision, 2026-09-21:** the mandatory human-review assumption for every initial numerical plan and intensifying change is superseded by [15 — Bounded autonomous coaching](15-Bounded-Autonomous-Coaching.md). Runtime approval is allowed only after a deterministic server-side gate returns `APPROVE_AUTOMATICALLY` using a professionally reviewed, versioned policy bundle, curated catalogs, contraindication/escalation rules and compact evidence registry. The prior reviewer queue remains governance/exception tooling. Historical entries below accurately describe what was built under the old assumption; they do not authorize it for v1. No runtime code was changed by this documentation decision.
+
+**T-1006 structural gate, 2026-09-21:** a server-only fixed-order service now
+produces only `APPROVE_AUTOMATICALLY`, `HOLD`, `FOCUSED_CLARIFICATION` or
+`PAUSE_REFER`. It rejects non-synthetic artifacts, derives authority and account
+classification from locked persisted state, consumes the latest digest-verified
+T-1003 decision, validates the candidate and evidence revisions, resolves a
+reviewed next-action template, and writes an append-only audit record bound to
+the artifact set and candidate hash. Reviewer status, model output, caller-owned
+identity and synthetic flags are not authority inputs. Audit records are included
+in owner export and account deletion. No generation, finalization, acceptance,
+feature flag, UI or live content was enabled; T-1007/T-1008 remain the consumers
+that must enforce the current gate result at later lifecycle boundaries.
+
+Validation passed with 516 isolated PostgreSQL integration tests, 783 default
+tests (517 opt-in tests skipped in that separate run), Prisma generation/schema
+validation, type-check, production build, ticket-scoped lint, new-file format and
+diff checks. Repository-wide lint and format remain pre-existing baselines (13 errors,
+63 warnings; 607 unformatted files). All gate values and fixtures remain
+synthetic. Qualified nutrition-professional and jurisdiction-specific legal
+approval are still required before any live artifact, threshold, cutoff, claim
+or client-facing template can be published.
+
+**T-1007 structural provider boundary, 2026-09-21:** a server-only constrained
+provider interface now receives only persisted current-client synthetic language,
+reviewed eligible catalog IDs, allowed reference IDs and zero tool capabilities.
+Its strict output can select only those references; unknown facts, numerical
+prescriptions, safety/authority decisions, activation requests and free-form
+clarifications fail closed. T-1006 executes both before and after provider I/O,
+and a provider concern can only downgrade the deterministic outcome. The legacy
+executor provider seam now receives a tenant-free synthetic probe and can return
+only the fixed synthetic `HOLD`, so it cannot bypass the constrained contract.
+
+Provider timeouts and transport retries are bounded. Invalid responses do not
+retry or expose partial candidates. Append-only audit rows retain minimized
+digests and validated references without raw prompts, traces or errors, and are
+covered by owner export and account deletion. The provider implementation remains
+synthetic and performs no network I/O; no feature flag, route, public DTO, UI,
+runtime acceptance or live content was enabled.
+
+Validation passed with 528 isolated PostgreSQL integration tests, 789 default
+tests (523 opt-in/smoke tests skipped in that separate run), Prisma generation and
+schema validation, type-check, production build, ticket-scoped lint/format and
+diff checks. Repository-wide lint and format remain pre-existing baselines (13
+errors, 63 warnings; 600 unformatted files). Live activation remains blocked on
+qualified policy/content sign-off, jurisdiction-specific legal review, a reviewed
+provider/model and prompt configuration, measured timeout/retry/token/quality
+evidence, operational monitoring and T-1008's later-boundary revalidation and
+acceptance work. The required graphify rebuild was attempted, but the local
+`graphify` Python module is unavailable.
 
 The web/backend now contains A06–A09, A11 reviewer operations, and the shared
 A12 provider/UI/reliability work. The native repository contains the corresponding
@@ -230,23 +281,23 @@ was applied only locally. Session storage and observation UI remain next.
 
 Commits, oldest to newest (`git log --oneline` on `main`):
 
-| Commit | Slice | One-line outcome |
-|---|---|---|
-| `2ace11a` | F00 | Reconciled contradictory repo instructions (pnpm, Vitest exists, migration workflow, design overrides). |
-| `cbd9f0e` | F01 | Closed the deactivated-account authorization bypass (CB02). |
-| `e654a4c` | F02 | Consent-bound coach/client linking — coach-entered contact info can never grant access; added `ClientCoachingContext` (CB01). |
-| `c64074f` | F03 | Scoped private messages to a specific coach conversation, not client-wide (CB03). |
-| `6a784cf` | F04/F05 | Published meal plans and training programs are immutable; editing forks a new draft (CB04/CB05). |
-| `61d5b6d` | F06 | One unified check-in service shared by web action and iOS REST route (CB07). |
-| `d92f406` | F07 | Truthful adherence/exercise-session logging — missing ≠ zero (CB08). |
-| `3a5e7e8` | F08 | Durable storage-cleanup outbox; decoupled reminder/purge cron sweeps (CB09/CB12). |
-| `02325a8` | CB11 | Stripe webhook event-ordering fix (existing billing, unrelated to new checkout). |
-| `580dc50` | A01 | `ClientCoachingContext` single-provider authority, `AiCoachProfile` identity, `AiCoachEntitlement`, default-OFF flags (`lib/flags/ai-coach.ts`). |
-| `d6152e4` | A02 | `AiCoachRun`/`AiPlanVersion`/`AiAdjustmentSlot`/`AiWorkoutSession`/reviewer-grant schema and lifecycle (`lib/ai-coach/runs.ts`, `plan-lifecycle.ts`). |
-| `3278ea2` | A03 | Staged intake draft/confirm and safety-disclosure service (`lib/ai-coach/intake.ts`, `safety.ts`). |
-| `1f7174f` | A04 | Versioned food/exercise catalog loaders, nutrient totals, feasible-composition checks (`lib/ai-coach/catalog/`, `nutrition-totals.ts`, `composition-feasibility.ts`, `policy/policy-version.ts`). |
-| `fc545e7` | A05 | Durable job executor + provider adapter, all synthetic (`lib/ai-coach/executor.ts`, `provider/`, `run-status.ts`), authenticated cron route. |
-| `c4f6fe1` | A10 | Full atomic proposal acceptance/decline service — the policy/safety/entitlement/reviewer-gated gate A02 explicitly deferred (`lib/ai-coach/plan-acceptance.ts`). |
+| Commit    | Slice   | One-line outcome                                                                                                                                                                                  |
+| --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `2ace11a` | F00     | Reconciled contradictory repo instructions (pnpm, Vitest exists, migration workflow, design overrides).                                                                                           |
+| `cbd9f0e` | F01     | Closed the deactivated-account authorization bypass (CB02).                                                                                                                                       |
+| `e654a4c` | F02     | Consent-bound coach/client linking — coach-entered contact info can never grant access; added `ClientCoachingContext` (CB01).                                                                     |
+| `c64074f` | F03     | Scoped private messages to a specific coach conversation, not client-wide (CB03).                                                                                                                 |
+| `6a784cf` | F04/F05 | Published meal plans and training programs are immutable; editing forks a new draft (CB04/CB05).                                                                                                  |
+| `61d5b6d` | F06     | One unified check-in service shared by web action and iOS REST route (CB07).                                                                                                                      |
+| `d92f406` | F07     | Truthful adherence/exercise-session logging — missing ≠ zero (CB08).                                                                                                                              |
+| `3a5e7e8` | F08     | Durable storage-cleanup outbox; decoupled reminder/purge cron sweeps (CB09/CB12).                                                                                                                 |
+| `02325a8` | CB11    | Stripe webhook event-ordering fix (existing billing, unrelated to new checkout).                                                                                                                  |
+| `580dc50` | A01     | `ClientCoachingContext` single-provider authority, `AiCoachProfile` identity, `AiCoachEntitlement`, default-OFF flags (`lib/flags/ai-coach.ts`).                                                  |
+| `d6152e4` | A02     | `AiCoachRun`/`AiPlanVersion`/`AiAdjustmentSlot`/`AiWorkoutSession`/reviewer-grant schema and lifecycle (`lib/ai-coach/runs.ts`, `plan-lifecycle.ts`).                                             |
+| `3278ea2` | A03     | Staged intake draft/confirm and safety-disclosure service (`lib/ai-coach/intake.ts`, `safety.ts`).                                                                                                |
+| `1f7174f` | A04     | Versioned food/exercise catalog loaders, nutrient totals, feasible-composition checks (`lib/ai-coach/catalog/`, `nutrition-totals.ts`, `composition-feasibility.ts`, `policy/policy-version.ts`). |
+| `fc545e7` | A05     | Durable job executor + provider adapter, all synthetic (`lib/ai-coach/executor.ts`, `provider/`, `run-status.ts`), authenticated cron route.                                                      |
+| `c4f6fe1` | A10     | Full atomic proposal acceptance/decline service — the policy/safety/entitlement/reviewer-gated gate A02 explicitly deferred (`lib/ai-coach/plan-acceptance.ts`).                                  |
 
 A10 was pulled ahead of A06–A09 on purpose: doc 08 states A06 depends on
 A10's fixture-tested acceptance service, and that dependency is
@@ -289,10 +340,10 @@ No UI/pages exist yet for any of this — A06 is the first slice that needs a cl
 
 ### Feature flags (all default OFF — `lib/flags/ai-coach.ts`)
 
-| Env var | Gates |
-|---|---|
-| `FEATURE_AI_COACH_ENROLLMENT` | Whether a client may enroll in AI coaching at all. |
-| `FEATURE_AI_COACH_GENERATION` | Whether `runExecutorSweep` claims/processes anything. |
+| Env var                        | Gates                                                        |
+| ------------------------------ | ------------------------------------------------------------ |
+| `FEATURE_AI_COACH_ENROLLMENT`  | Whether a client may enroll in AI coaching at all.           |
+| `FEATURE_AI_COACH_GENERATION`  | Whether `runExecutorSweep` claims/processes anything.        |
 | `FEATURE_AI_COACH_PUBLICATION` | Whether `acceptPlanVersionAtomic` will activate a candidate. |
 
 None of these are set anywhere in this repo's env files. Turning one on
@@ -321,6 +372,7 @@ clean.
 
 1. **Verify every slice with the same four gates**, in this order, all
    passing before committing:
+
    ```bash
    pnpm run type-check
    SECURITY_INTEGRATION=1 DATABASE_URL="postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test" pnpm exec vitest run tests/integration/
@@ -328,24 +380,31 @@ clean.
    pnpm lint                     # diff against the last known-good count: 78 problems, 14 errors, 64 warnings
    pnpm run build
    ```
-   Run type-check *again* after writing test files, not just after
+
+   Run type-check _again_ after writing test files, not just after
    implementation files — `vitest run` doesn't type-check, and `tsc` errors
    in a test file only surface at the build step otherwise (this bit A02).
 
 2. **Migration workflow** (never `prisma migrate dev` against Neon,
    never a raw untracked SQL change):
+
    ```bash
    # edit prisma/schema.prisma, then:
    pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
    # hand-copy the output into prisma/migrations/<timestamp>_<name>/migration.sql
    pnpm exec prisma migrate deploy   # applies to the real Neon dev DB
    pnpm exec prisma generate
-   DATABASE_URL="postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test" pnpm exec prisma db push --accept-data-loss   # syncs the LOCAL test DB only — never db push against Neon
    ```
-   The local test DB cannot replay the full migration history from empty
-   (the earliest migrations were baselined against Neon's pre-existing
-   schema) — `db push` is the only way to keep it in sync, and this is
-   scoped strictly to that one disposable local database.
+
+   The repository's pre-ledger history is formalized at
+   `prisma/baselines/20260915000000_legacy/`. To prove the complete ledger
+   from a fresh database, create an empty local database whose name starts
+   with `steadfast_migration_replay_` and run `pnpm run prisma:replay` with
+   its explicit `DATABASE_URL`. The command checksum-verifies and resolves
+   the 66 preserved legacy migrations, deploys every later forward migration,
+   verifies the raw-SQL invariants and requires zero schema diff. It rejects
+   remote or non-empty targets. Do not use `prisma db push` to substitute for
+   migration replay.
 
 3. **Postgres enum values**: `ALTER TYPE ... ADD VALUE` cannot be used in
    the same transaction that then references the new value in a data
@@ -372,7 +431,7 @@ clean.
    between runs, and integration test files run with real parallelism
    against the same physical database). A05's executor tests hit this
    directly — a global, unscoped query like `findMany({where:{status:
-   "QUEUED"}})` can and will pick up leftover rows from other test files or
+"QUEUED"}})` can and will pick up leftover rows from other test files or
    earlier runs today. Fix pattern used in `executor.ts`: split "claim a
    batch" (which legitimately must see the whole table) from "process one
    already-claimed run" (which tests can call directly per-run, sidestepping
@@ -383,7 +442,7 @@ clean.
    named human owner and a real artifact (reviewed clinical policy, staffed
    pilot capacity, legal/privacy sign-off, evaluated provider pricing,
    etc.) — see `13-Sources-and-Open-Decisions.md`. Every slice so far has
-   built the *engineering* around these gates (schema, checks, flags,
+   built the _engineering_ around these gates (schema, checks, flags,
    synthetic fixtures) without guessing the content the gates are supposed
    to supply. Keep doing that: implement the mechanism, never the number.
 
@@ -394,7 +453,8 @@ Launch-phase items (L01/L02, P01–P03) which are explicitly gated on real
 G0x artifacts, not more code.
 
 ### A06 — Internal initial macro + strength/cardio vertical slice
-*Dependencies met: A03, A04, A05, A10 all exist.*
+
+_Dependencies met: A03, A04, A05, A10 all exist._
 
 Doc 08: "Deterministic initial prescription and reviewed template
 selection, bounded model explanation, validated candidate, progress/
@@ -403,12 +463,13 @@ units; typed training/cardio; reject catalog hallucination. This is an
 internal milestone, not complete meal MVP."
 
 This is the first slice that:
+
 - Actually creates an `AiPlanVersion` candidate from a client's confirmed
   intake (A03) using A04's catalog/feasibility functions, and runs it
   through A05's executor with the `SyntheticFixtureProvider` (or a slightly
   less trivial synthetic provider that echoes back a structured but still
   non-clinical candidate — do not invent real prescription logic; a
-  deterministic *placeholder* numeric target is fine as long as it's
+  deterministic _placeholder_ numeric target is fine as long as it's
   clearly synthetic, since G01 blocks anything claiming to be real).
 - Needs a client-facing page/route to view the proposal and call A10's
   accept/decline routes — the first actual UI work in this whole backlog.
@@ -421,7 +482,8 @@ This is the first slice that:
   placeholder but should not scatter a second copy of window logic.
 
 ### A07 — Curated meal mode
-*Dependencies: A04, A06.*
+
+_Dependencies: A04, A06._
 
 Deterministic weekly composition, practical quantities, approved
 substitutions, grocery aggregation (`aggregateGramsByFood` in
@@ -431,7 +493,8 @@ undone). Mode switch (macro ⇄ meals) must keep exactly one prescription
 active, never two.
 
 ### A08 — Minimal structured weekly observations and session logs
-*Dependencies: F06/F07 (done), A02/A03 (done).*
+
+_Dependencies: F06/F07 (done), A02/A03 (done)._
 
 Shared check-in service extension, typed session IDs, cardio results.
 `AiWorkoutSession` (A02) already has the schema shape
@@ -440,11 +503,13 @@ about the actual logging UI/API and the observation-completeness tracking
 that A09's controller will read.
 
 ### A09 — Coordinated weekly controller
-*Dependencies: A04–A08 (A08 not yet built).*
+
+_Dependencies: A04–A08 (A08 not yet built)._
 
 This is the biggest remaining piece — the actual weekly decision procedure
 (doc 08's "A09: the actual weekly decision procedure" section, 6 steps).
 It owns:
+
 - Real server-derived activation windows (replacing A10's placeholder
   `reviewWindowKeyFor`).
 - Evidence-sufficiency determination from A08's observations.
@@ -459,12 +524,13 @@ test evidence (V12/V13/V15/V16/V19), which means the sufficiency logic has
 to be real, even if the underlying clinical thresholds stay synthetic.
 
 ### A11 — Actual pilot reviewer operations
-*Dependencies: A05, A10 (both done).*
+
+_Dependencies: A05, A10 (both done)._
 
 Restricted reviewer queue/view/decision endpoint. The data model
-(`AiCoachReviewerGrant`, `AiPlanReviewerApproval`) and the *consumption*
+(`AiCoachReviewerGrant`, `AiPlanReviewerApproval`) and the _consumption_
 side (A10's acceptance service already checks `reviewerStatus`/
-`approvedHash`/grant revocation) are done — A11 is the *production* side:
+`approvedHash`/grant revocation) are done — A11 is the _production_ side:
 an endpoint a grant-holder uses to actually approve/reject a specific
 candidate, hash-bound, with backlog/capacity controls. This could
 plausibly be started now in parallel with A06–A09 since its dependencies
@@ -476,7 +542,8 @@ commitment" — this is infrastructure, not a claim that gate G04 (qualified
 pilot capacity) is resolved.
 
 ### A12 — Integrated evaluation and usability-ready build
-*Dependencies: A06–A11, remaining relevant F repairs.*
+
+_Dependencies: A06–A11, remaining relevant F repairs._
 
 Last slice. Provider-aware home/navigation, `/client/ai-coach/reviews`
 list/detail, offline/error states, model holdouts, end-to-end tests,
