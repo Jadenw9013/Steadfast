@@ -12,11 +12,14 @@ import { db } from "@/lib/db";
 //
 // Response contract (matches iOS ConnectCoachResponse):
 //   Success: { success: true }
-//   Failure: { success: false, error: string }
+//   Failure: { success: false, error: string, message?: string }
 //   T-987: 409 { success: false, error: "confirmation_required", message,
 //     invitedEmailHint, signedInAs, coachName } when the invite was sent to
 //     an address that isn't verified on this account, and the caller has not
 //     yet confirmed it's them (optional `confirmDifferentEmail` in the body).
+//   T-987 review round 2: 403/410 refusals also carry `message`, the exact
+//     service sentence (additive — `error`/status unchanged, so this is not
+//     the `reason` discriminator T-964 owns).
 
 const connectCoachSchema = z.object({
   coachCode: z.string().min(1, "Code is required").max(100),
@@ -86,8 +89,20 @@ export async function POST(req: NextRequest) {
         );
       }
       const status = result.error.includes("expired") ? 410 : 403;
+      // T-987 review round 2, MAJOR 1: additive, no contract change to
+      // `error`/status — six distinct service refusals were collapsing to
+      // two machine tokens, and iOS's userFacingErrorMessage prefers
+      // json["error"], so "already used" and "you're with another coach"
+      // both rendered the literal string "invalid_code". `message` carries
+      // the exact sentence the service produced (the same one the web page
+      // now shows via the confirmError code table), so a future caller can
+      // read it instead of hardcoding a copy of these sentences in Swift.
       return NextResponse.json(
-        { success: false, error: result.error.includes("expired") ? "expired" : "invalid_code" },
+        {
+          success: false,
+          error: result.error.includes("expired") ? "expired" : "invalid_code",
+          message: result.error,
+        },
         { status }
       );
     }

@@ -467,7 +467,7 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     expect(await db.coachClient.count({ where: { coachId: coach.id, clientId: client.id } })).toBe(1);
   });
 
-  it("7. the route with a mismatched account and an EXPIRED invite: 410 expired, not confirmation_required, mismatchSeenAt still NULL", async () => {
+  it("7. the route with a mismatched account and an EXPIRED invite: 410 expired with the exact service sentence as message, not confirmation_required, mismatchSeenAt still NULL", async () => {
     const u = randomUUID().slice(0, 8);
     const relay = `${u}@privaterelay.appleid.com`;
     const { invite } = await fixture(relay, `${u}@icloud.com`, new Date(Date.now() - 1000));
@@ -476,11 +476,17 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     const { status, json } = await callConnectCoach({ coachCode: invite.inviteToken });
     expect(status).toBe(410);
     expect(json).toMatchObject({ success: false, error: "expired" });
+    // T-987 review round 2, MAJOR 1: additive `message`, so a caller does
+    // not have to hardcode a copy of this sentence to show the user
+    // something better than the machine token.
+    expect(json.message).toBe(
+      "This invite has expired or is no longer available. Ask your coach for a new one."
+    );
     const row = await db.clientInvite.findUniqueOrThrow({ where: { id: invite.id } });
     expect(row.mismatchSeenAt).toBeNull();
   });
 
-  it("8. the route with a mismatched account and an invite for a client already enrolled in AI: 403 invalid_code, mismatchSeenAt still NULL", async () => {
+  it("8. the route with a mismatched account and an invite for a client already enrolled in AI: 403 invalid_code with the exact service sentence as message, mismatchSeenAt still NULL", async () => {
     const u = randomUUID().slice(0, 8);
     const relay = `${u}@privaterelay.appleid.com`;
     const { client, invite } = await fixture(relay, `${u}@icloud.com`);
@@ -490,6 +496,7 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     const { status, json } = await callConnectCoach({ coachCode: invite.inviteToken });
     expect(status).toBe(403);
     expect(json).toMatchObject({ success: false, error: "invalid_code" });
+    expect(json.message).toBe("Pause AI coaching or resolve your provider before accepting a human coach.");
     const row = await db.clientInvite.findUniqueOrThrow({ where: { id: invite.id } });
     expect(row.mismatchSeenAt).toBeNull();
   });
@@ -537,6 +544,7 @@ suite("T-987 — structural mismatch recording and the REST confirm path", () =>
     const { status, json } = await callConnectCoach({ coachCode: invite.inviteToken });
     expect(status).toBe(403);
     expect(json).toMatchObject({ success: false, error: "invalid_code" });
+    expect(json.message).toBe("Leave your current coaching relationship before accepting another coach.");
     const row = await db.clientInvite.findUniqueOrThrow({ where: { id: invite.id } });
     expect(row.mismatchSeenAt).toBeNull();
     // Refused, not offered a confirmation — no second CoachClient appears.
