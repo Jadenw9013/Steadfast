@@ -212,7 +212,7 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(after.coachId).toBe(other.id);
   });
   it("purges AI Coach records (A02/A03) on account deletion", async () => {
-    const { user } = await fixture();
+    const { user, other } = await fixture();
     await db.clientCoachingContext.create({ data: { clientId: user.id, mode: "AI", revision: 1 } });
     await db.aiCoachEntitlement.create({ data: { clientId: user.id } });
     await db.aiIntakeDraft.create({ data: { clientId: user.id, answers: { goal: "STRENGTH" } } });
@@ -373,6 +373,49 @@ suite("account deletion with real PostgreSQL constraints", () => {
         action: "REVOKE",
         reasonCode: "SYNTHETIC_PURGE_EVENT",
         reviewRecordId: "synthetic-purge-review",
+      },
+    });
+    // T-995 — AiCoachAccessGrantEvent purge coverage: one row where the
+    // departing user is the actor, one where they are the subject (both must
+    // be deleted), and one belonging to a different user whose `clientIds`
+    // names the departing user (must survive, scrubbed).
+    const grantEventAsActor = await db.aiCoachAccessGrantEvent.create({
+      data: {
+        actorUserId: user.id,
+        subjectUserId: other.id,
+        governanceGrantId: governanceGrant.id,
+        grantType: "GOVERNANCE",
+        action: "GRANT",
+        grantRecordId: "synthetic-purge-grant-record-actor",
+        scopes: ["PUBLISH_ARTIFACTS"],
+        actorRef: "Synthetic Purge Actor",
+        reasonCode: "SYNTHETIC_PURGE_EVENT",
+      },
+    });
+    const grantEventAsSubject = await db.aiCoachAccessGrantEvent.create({
+      data: {
+        actorUserId: other.id,
+        subjectUserId: user.id,
+        governanceGrantId: governanceGrant.id,
+        grantType: "ENTITLEMENT",
+        action: "GRANT",
+        grantRecordId: "synthetic-purge-grant-record-subject",
+        actorRef: "Synthetic Purge Actor",
+        reasonCode: "SYNTHETIC_PURGE_EVENT",
+      },
+    });
+    const grantEventWithClientId = await db.aiCoachAccessGrantEvent.create({
+      data: {
+        actorUserId: other.id,
+        subjectUserId: other.id,
+        governanceGrantId: governanceGrant.id,
+        grantType: "REVIEWER",
+        action: "GRANT",
+        grantRecordId: "synthetic-purge-grant-record-clientids",
+        domains: ["NUTRITION"],
+        clientIds: [user.id, other.id],
+        actorRef: "Synthetic Purge Actor",
+        reasonCode: "SYNTHETIC_PURGE_EVENT",
       },
     });
 
@@ -574,6 +617,21 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(
       await db.aiCoachArtifactLifecycleEvent.findUnique({ where: { id: lifecycleEvent.id } })
     ).toBeNull();
+    // T-995 — the departing user's own AiCoachAccessGrantEvent rows are
+    // gone (whether they were the actor or the subject), while a different
+    // user's row survives with only the departing user's id scrubbed out of
+    // `clientIds`.
+    expect(
+      await db.aiCoachAccessGrantEvent.findUnique({ where: { id: grantEventAsActor.id } })
+    ).toBeNull();
+    expect(
+      await db.aiCoachAccessGrantEvent.findUnique({ where: { id: grantEventAsSubject.id } })
+    ).toBeNull();
+    const survivingGrantEvent = await db.aiCoachAccessGrantEvent.findUnique({
+      where: { id: grantEventWithClientId.id },
+    });
+    expect(survivingGrantEvent).not.toBeNull();
+    expect(survivingGrantEvent?.clientIds).toEqual([other.id]);
     expect(await db.aiPlanAcceptanceOutbox.findFirst({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiPlanAcceptanceReceipt.findFirst({ where: { clientId: user.id } })).toBeNull();
 

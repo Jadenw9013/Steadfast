@@ -598,12 +598,13 @@ column existed (under `7ce26a4`) read `acceptedWithMismatch = false`; that means
 
 ### AI Coach — live-launch and governance (T-989)
 
-29 models (`rg -c '^model Ai' prisma/schema.prisma`; two of them,
-`AiCheckInObservation` and `AiOperationReceipt`, predate this fold and are not
-in the table below). The 7 migrations this fold adds
-(`20260921000000`…`20260922010000`) create 15 of those 29 tables — the other
-27 predate them. `docs/ai-coach/04-Architecture-and-Data.md` and
-`docs/ai-coach/14-Handoff-Status.md` are the authoritative, kept-current
+30 models (`rg -c '^model Ai' prisma/schema.prisma`). The 7 migrations of the
+T-989 fold (`20260921000000`…`20260922010000`) create 15 of those 30 tables;
+T-995 (`20260925000000`) added one more, `AiCoachAccessGrantEvent`; the
+remaining 14 — including `AiCheckInObservation` and `AiOperationReceipt`,
+both `ON DELETE CASCADE` to `User` and grouped in "Not listed above" below —
+predate both (15 + 1 + 14 = 30). `docs/ai-coach/04-Architecture-and-Data.md`
+and `docs/ai-coach/14-Handoff-Status.md` are the authoritative, kept-current
 source for the full model list; the groups are:
 
 | Group | Models | Purpose |
@@ -613,7 +614,7 @@ source for the full model list; the groups are:
 | Plans, sessions, review | `AiPlanVersion`, `AiPlanReviewerApproval`, `AiCoachReviewerGrant`, `AiPlanAcceptanceReceipt`, `AiPlanAcceptanceOutbox`, `AiAdjustmentSlot`, `AiWorkoutSession`, `AiCoachRun`, `AiPlanActivationAttempt` | Plan lifecycle, human-reviewer grants, and idempotent acceptance |
 | Provider transition | `AiCoachProviderTransitionReceipt`, `ClientCoachingContext` (mode/origin, not new) | Immutable record of a client's HUMAN↔AI provider switch |
 | Reviewed artifacts | `AiCoachArtifactVersion`, `AiCoachArtifactLifecycleEvent` | Versioned, append-only policy/catalog artifacts and their publish/revoke history |
-| Live-launch governance | `AiCoachLiveLaunchPacket`, `AiCoachLiveLaunchLifecycleEvent`, `AiCoachGovernanceGrant`, `AiCoachOperationalControl`, `AiCoachOperationalEvent` | The approval packet for a release and the kill-switch/grant infrastructure that gates it |
+| Live-launch governance | `AiCoachLiveLaunchPacket`, `AiCoachLiveLaunchLifecycleEvent`, `AiCoachGovernanceGrant`, `AiCoachOperationalControl`, `AiCoachOperationalEvent`, `AiCoachAccessGrantEvent` | The approval packet for a release and the kill-switch/grant infrastructure that gates it, plus the append-only provisioning history for all three grant tables (T-995) |
 | Live activation | `AiCoachLiveActivation`, `AiCoachLiveActivationEvent` | The single server-selected active release (partial-unique "only one ACTIVE row") and its append-only activate/deactivate history |
 | Not listed above (pre-existing) | `AiCheckInObservation`, `AiOperationReceipt` | `ON DELETE CASCADE` to `User` — purge-safe with no explicit purge.ts line needed |
 
@@ -623,6 +624,106 @@ in `lib/account-deletion/purge.ts` and a case in
 `AiCoachOperationalControl` is global control state (one row per
 `AiCoachOperationalScope`), not user data — it has no purge line by design
 (see the schema comment on `updatedByGrantId`).
+
+**Grant provisioning (T-995).** Before this ticket, nothing in `lib/`, `app/`
+or `scripts/` ever wrote `AiCoachGovernanceGrant`, `AiCoachReviewerGrant` or
+`AiCoachEntitlement` — only test factories against the disposable local
+database did. `lib/ai-coach/grants.ts` is now the single shared writer for
+all three, called from two CLI-only scripts (no HTTP route, matching
+`ai-coach:activate`/`ai-coach:deactivate`). Every create/revoke runs inside
+one `db.$transaction`, under the lock order in
+`docs/ai-coach/05-API-and-State-Contracts.md`, and writes exactly one
+append-only `AiCoachAccessGrantEvent` audit row on success (nothing on
+refusal).
+
+The very first governance grant has no authority above it, so it gets its
+own once-ever script:
+
+```sh
+DATABASE_URL='<approved database>' pnpm run ai-coach:bootstrap-governance -- \
+  --confirm-bootstrap \
+  --user-id '<internal User.id of the operational owner>' \
+  --grant-ref '<signed OPERATIONAL_OWNER governance record id>' \
+  --actor-ref '<named human who ran this command, e.g. "Jaden Wong, operational owner, G04">' \
+  --reason-code 'GOVERNANCE_BOOTSTRAP'
+```
+
+It refuses (`ALREADY_BOOTSTRAPPED`) if any `AiCoachGovernanceGrant` row
+exists at all, revoked included — including after the first grant is later
+revoked — so it can never run a second time against the same database. The
+bootstrap grant always receives all eight `GOVERNANCE_SCOPES`; there is no
+`--scopes` argument on it. Every later grant is created by a
+`CONTROL_OPERATIONS` holder through the second script, whose first non-flag
+argument selects the operation:
+
+```sh
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- grant-governance   --actor-user-id '<id>' --user-id '<id>' --scopes 'PUBLISH_ARTIFACTS,REVOKE_ARTIFACTS' --grant-ref '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- revoke-governance  --actor-user-id '<id>' --user-id '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- grant-reviewer    --actor-user-id '<id>' --user-id '<id>' --client-ids '<id>,<id>' --domains 'NUTRITION,STRENGTH,CARDIO' --qualification-note '<note>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- revoke-reviewer   --actor-user-id '<id>' --user-id '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- grant-entitlement --actor-user-id '<id>' --client-id '<id>' [--expires-at '<ISO instant>'] --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- revoke-entitlement --actor-user-id '<id>' --client-id '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+```
+
+`revoke-governance` refuses (`LAST_CONTROL_GRANT`) if it would leave zero
+non-revoked `CONTROL_OPERATIONS` grants held by an active (non-deactivated)
+account — a grant held only by a deactivated user is not a repairable
+authority, so it does not count toward "another holder" (T-995 r2 MAJOR 1).
+Purge is a separate, still-unguarded path: deleting the last
+`CONTROL_OPERATIONS` holder's account removes their grant with no equivalent
+check, and once any `AiCoachGovernanceGrant`/`AiCoachAccessGrantEvent` row has
+ever existed, `bootstrapGovernanceGrant` refuses forever — recovery in that
+case is a manual SQL insert against `AiCoachGovernanceGrant`
+(`INSERT INTO "AiCoachGovernanceGrant" ("id","userId","scopes","grantRef")
+VALUES (gen_random_uuid()::text, '<recovery user id>',
+ARRAY['CONTROL_OPERATIONS','PUBLISH_ARTIFACTS','REVOKE_ARTIFACTS','VIEW_AGGREGATE_MONITORING','APPROVE_LIVE_LAUNCH','REVOKE_LIVE_LAUNCH','ACTIVATE_LIVE_LAUNCH','DEACTIVATE_LIVE_LAUNCH'],
+'<incident reference>')`, recorded as an incident, never done silently. This
+belongs in the release packet as a named recovery procedure (T-995 r2 MINOR 7).
+
+**The entitlement path reads no `AiCoachReviewerGrant` row and calls no
+reviewer function** (T-2000, Jaden 2026-09-24) — it evaluates the same
+fail-closed *profile/synthetic/live-release* conditions `lockAiClient`
+applies, in the same order (refusal rows 15-17), so a row this command writes
+can never be refused by `lockAiClient` on those three grounds. This does
+**not** extend to the *context* condition: the writer refuses only
+`mode === "HUMAN"` or `resolutionRequired` (row 18, relaxed further at T-995
+r2 MAJOR 2 — see below), while `lockAiClient` with its default
+`requireAuthority = true` refuses anything that is not `mode === "AI"`,
+including `NONE` and a missing context row. An entitlement granted before
+enrollment — the normal case this path exists to serve — is therefore
+correctly refused by every `/api/*/ai-coach/*` route (`run-command.ts`,
+`retry-command.ts`, `reviewer.ts`, `managed-executor.ts`,
+`lib/check-ins/ai-observation.ts`, `lib/workouts/ai-session.ts`) until the
+client actually enrolls and `ClientCoachingContext.mode` becomes `"AI"`. That
+is intended, not a bug: the entitlement is the invitation, not the enrollment.
+
+**T-995 r2 MAJOR 2 — `grant-reviewer`'s context refusal (row 13) was relaxed.**
+As originally frozen, row 13 refused any assigned client whose
+`ClientCoachingContext.mode !== "AI"`. No real (non-synthetic) client can
+reach `mode: "AI"` until T-2000 removes `requireReviewerCapacity` from
+`client-commands.ts:189`'s `ENROLL` path — and that same capacity check
+requires a reviewer grant to already exist for that client, a deadlock for
+the first real client the ticket exists to unblock. Row 13 now refuses only
+`mode === "HUMAN"` or `resolutionRequired`; a `NONE`-mode (pre-enrollment,
+including no context row at all) client can be named in a reviewer grant,
+since no reviewer consumer reads anything for a client before it has a
+`PROPOSED` plan or a safety disposition, neither of which exists pre-enrollment.
+The reviewer-grant CLI stays in scope for safety-resolution and
+governance/exception tooling only; `client-commands.ts`, `run-command.ts` and
+`retry-command.ts` still call `requireReviewerCapacity` for non-synthetic
+profiles until T-2000 lands.
+
+**Deploy ordering — read this before pushing.** `lib/account-deletion/purge.ts`
+references `AiCoachAccessGrantEvent` unconditionally. **Migration
+`20260925000000_ai_coach_access_grant_events` must be applied to the target
+database before this commit is deployed**, or every account-deletion purge
+run throws `relation "AiCoachAccessGrantEvent" does not exist`, which
+`lib/account-deletion/sweep.ts` swallows by resetting the request to
+`PENDING` and incrementing `retryCount` — every pending deletion, web- and
+iOS-initiated alike, silently stalls with the statutory clock still running.
+`GET /api/health` surfaces the mismatch (`migrationsApplied` must equal
+`migrationsExpected`, currently **75** — `lib/health/expected-migrations.ts`)
+before any purge cron run confirms it the hard way.
 
 **Feature-flag scope (`lib/flags/ai-coach.ts`, `FEATURE_AI_COACH_ENROLLMENT/
 GENERATION/PUBLICATION`, all default OFF) — read this precisely, it is what an

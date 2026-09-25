@@ -23,6 +23,8 @@
     "ai-coach:final-provider-evaluation": "tsx scripts/evaluate-ai-coach-final-provider.ts",
     "ai-coach:alerts": "tsx scripts/check-ai-coach-operational-alerts.ts",
     "ai-coach:staging-preflight": "bash scripts/ai-coach-staging-preflight.sh",
+    "ai-coach:bootstrap-governance": "tsx scripts/bootstrap-ai-coach-governance.ts",
+    "ai-coach:grant": "tsx scripts/manage-ai-coach-grants.ts",
     "prisma:replay": "bash scripts/replay-prisma-migrations.sh",
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,json,css,md}\" --ignore-path .gitignore",

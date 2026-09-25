@@ -163,6 +163,8 @@ model User {
   aiCoachLiveLaunchEvents        AiCoachLiveLaunchLifecycleEvent[]
   aiCoachLiveActivationEvents    AiCoachLiveActivationEvent[]
   aiCoachProviderTransitions     AiCoachProviderTransitionReceipt[]
+  aiCoachAccessGrantEventsAsActor   AiCoachAccessGrantEvent[] @relation("AiCoachAccessGrantEventActor")
+  aiCoachAccessGrantEventsAsSubject AiCoachAccessGrantEvent[] @relation("AiCoachAccessGrantEventSubject")
 }
 
 enum CoachingMode {
@@ -572,6 +574,45 @@ model AiCoachOperationalEvent {
   actor User @relation(fields: [actorUserId], references: [id])
 
   @@index([scope, createdAt])
+}
+
+enum AiCoachAccessGrantType {
+  GOVERNANCE
+  REVIEWER
+  ENTITLEMENT
+}
+
+enum AiCoachAccessGrantAction {
+  BOOTSTRAP
+  GRANT
+  REVOKE
+}
+
+// T-995 — append-only provisioning history for the three AI Coach permission
+// tables. BOOTSTRAP is once-ever per database; every other row names the
+// CONTROL_OPERATIONS grant that authorized it.
+model AiCoachAccessGrantEvent {
+  id                String                   @id @default(cuid())
+  actorUserId       String
+  subjectUserId     String
+  governanceGrantId String
+  grantType         AiCoachAccessGrantType
+  action            AiCoachAccessGrantAction
+  grantRecordId     String
+  scopes            String[]                 @default([])
+  domains           String[]                 @default([])
+  clientIds         String[]                 @default([])
+  grantRef          String?
+  actorRef          String
+  reasonCode        String
+  expiresAt         DateTime?
+  createdAt         DateTime                 @default(now())
+
+  actor   User @relation("AiCoachAccessGrantEventActor", fields: [actorUserId], references: [id])
+  subject User @relation("AiCoachAccessGrantEventSubject", fields: [subjectUserId], references: [id])
+
+  @@index([subjectUserId, createdAt])
+  @@index([grantType, createdAt])
 }
 
 enum AiCoachArtifactLifecycleAction {
