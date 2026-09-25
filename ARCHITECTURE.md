@@ -552,6 +552,20 @@ only writer of that value anywhere in the repo; a static guard
 (`tests/integration/lead-activation-funnel-matrix.test.ts`) both enforce it. Design write-up:
 `docs/onboarding-funnel.md`.
 
+**T-987 — invite acceptance matches any verified address, not exact equality.** `acceptClientInviteForUser`
+(`lib/activation.ts`) is the only `coachClient.create` call in the repo, so this rule lives there once and
+every acceptance surface (`redeemInvite`, `POST /api/client/connect-coach`) inherits it. The invite token is
+treated as the credential (random, single-use, 7-day expiry, delivered to the invited inbox); the invited
+address is a confirmation step. Any VERIFIED address on the signed-in Clerk account matches, via
+`lib/auth/invite-email-match.ts#accountOwnsEmail` (provider-aware: Gmail dots/+tags, Apple icloud/me/mac
+aliases). When nothing matches, the caller must explicitly confirm (`confirmDifferentEmail: true`) before a
+`CoachClient` row is created; CB01 still holds — no coach-controlled input reaches that flag, only the
+signed-in client's own request does. Three additive columns on `ClientInvite` (`mismatchSeenAt`,
+`mismatchEmail`, `acceptedWithMismatch`) record whether and from what address a mismatch occurred, so a coach
+can be shown it (T-988) without parsing `CoachClient.coachNotes`. Rows accepted in production before this
+column existed (under `7ce26a4`) read `acceptedWithMismatch = false`; that means "no mismatch recorded", not
+"accepted from the invited address" — no backfill is possible.
+
 ### Onboarding & Intake
 
 | Model | Purpose |
@@ -662,6 +676,7 @@ incident responder acts on:**
 | GET/POST | `/api/client/adherence/*` | Daily adherence (today, meal, workout) |
 | GET | `/api/client/adherence/today` | Today's checkoff record + `mealNames` for the active plan (`lib/meal-plans/active-plan.ts`, provider-gated) |
 | POST | `/api/client/training/results` | Exercise progress logging |
+| POST | `/api/client/connect-coach` | Redeem a `ClientInvite` by `coachCode` (its `inviteToken`), through the shared `acceptClientInviteForUser` service. Body: `{ coachCode: string, confirmDifferentEmail?: boolean }` (the second field is additive/optional). `200 { success: true }` on acceptance; `409 { success: false, error: "confirmation_required", message, invitedEmailHint, signedInAs, coachName }` when the invite was sent to an address not verified on the signed-in account and the caller has not yet confirmed it (T-987) — `invitedEmailHint` is masked (`maskEmail`), never the raw invited address; `409 { error: "already_connected" }`, `410 { error: "expired" }`, `403 { error: "invalid_code" }` (all other refusals), `404 { error: "invalid_code" }` (unknown token) unchanged. No live caller on the currently shipped iOS build (`connectCoach(code:)` is dead code as of T-987/T-964). |
 | GET | `/api/intake/current` | The client's current intake (IntakePacket first, then ClientIntake) with its template and answers. `intake.template` is never null. |
 | PUT | `/api/intake/[id]/answers` | Save one section's answers. Accepts `{ answers: [{ questionId, answer }] }` (the legacy `{ answers: { qid: value } }` object form still works); an `answer` that is empty or whitespace-only is an explicit clear — it deletes the key from `IntakePacket.formAnswers` and nulls the `ClientIntake` column, numeric columns included. A reserved `questionId` (`sections`, anything starting with `_`) is refused on write. On the `ClientIntake` branch a value that cannot be stored in its column (a non-numeric or out-of-range number) is refused with 422 `{ code: "ANSWER_UNSTORABLE", refusedQuestionIds }` before any write, for the whole request — dropping it and answering 200 read as a successful save whenever the column already held an older value. Returns the full `IntakePacketData` with a real `template`. |
 | POST | `/api/intake/[id]/submit` | Submit the intake. The optional body carries the full answer set (`{ answers: [{ questionId, answer }] }`) as a safety net; it is merged before any write. Returns 422 `{ code: "INTAKE_INCOMPLETE", missingQuestionIds }` if a required question is still empty **or** a value cannot be stored in its column (e.g. a non-numeric bodyweight, or a number outside the range its column can hold), 422 `{ code: "DOCUMENTS_UNSIGNED" }` if the packet still has an unsigned document attached (the same rule the web token submit applies, worded to send the client to the emailed intake link, since the app has no signing UI), and 409 if already submitted (race-safe conditional update). On the packet branch it also advances the lead's `consultationStage` to `INTAKE_SUBMITTED`, as the web token submit does, but only from a stage that is not already `ACTIVE` or `DECLINED`. `lib/intake/completion.ts` is the single source of truth for answer normalisation, merging and completeness, shared with the two routes above and with the `submitClientIntake` Server Action. |

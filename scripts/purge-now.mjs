@@ -82,6 +82,9 @@ try {
   await pool.query(`DELETE FROM "NotificationLog" WHERE "clientId" = $1`, [userId]);
   await pool.query(`DELETE FROM "Testimonial" WHERE "coachId" = $1 OR "clientId" = $1`, [userId]);
   await pool.query(`DELETE FROM "CoachClient" WHERE "coachId" = $1 OR "clientId" = $1`, [userId]);
+  // T-987: mismatchEmail is a second user's address stored on a coach's
+  // ClientInvite row (mirrors lib/account-deletion/purge.ts's scrub).
+  await pool.query(`UPDATE "ClientInvite" SET "mismatchEmail" = NULL WHERE lower("mismatchEmail") = lower($1)`, [email]);
   await pool.query(`DELETE FROM "MealPlanUpload" WHERE "clientId" = $1`, [userId]);
 
   if (user.isCoach) {

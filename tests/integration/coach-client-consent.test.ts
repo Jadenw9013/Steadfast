@@ -115,7 +115,7 @@ suite("CB01 — consent-bound coach/client linking with real PostgreSQL constrai
     expect(requestAfter.status).toBe("ACCEPTED");
   });
 
-  it("a wrong signed-in user cannot redeem someone else's invite", async () => {
+  it("T-987 CB01: a wrong signed-in user holding the token gets confirmationRequired and writes nothing; only their own explicit confirmation creates a row, recorded as a mismatch", async () => {
     const coach = await makeCoach();
     const victim = await makeClient("victim3");
     const attacker = await makeClient("attacker");
@@ -128,14 +128,41 @@ suite("CB01 — consent-bound coach/client linking with real PostgreSQL constrai
     const invite = await db.clientInvite.findUniqueOrThrow({ where: { requestId: request.id } });
 
     mocks.authUserId = attacker.clerkId;
-    const result = await redeemInvite(invite.inviteToken) as { success?: boolean; error?: string };
+    const result = await redeemInvite(invite.inviteToken) as { success?: boolean; error?: string; confirmationRequired?: boolean };
+    // Free regression cover from the pre-T-987 lineage: still no `success`
+    // key, and the frozen sentence still contains "different email".
     expect(result.success).toBeUndefined();
     expect(result.error).toContain("different email");
+    expect(result.confirmationRequired).toBe(true);
 
-    const attackerConn = await db.coachClient.findUnique({ where: { coachId_clientId: { coachId: coach.id, clientId: attacker.id } } });
-    expect(attackerConn).toBeNull();
+    // CB01, restated for this ticket: the coach-typed address alone never
+    // granted access, and neither does an unrelated party merely holding
+    // the token. Nothing is written until THIS user explicitly confirms.
+    const attackerConnBefore = await db.coachClient.findUnique({ where: { coachId_clientId: { coachId: coach.id, clientId: attacker.id } } });
+    expect(attackerConnBefore).toBeNull();
     const victimConn = await db.coachClient.findUnique({ where: { coachId_clientId: { coachId: coach.id, clientId: victim.id } } });
     expect(victimConn).toBeNull();
+
+    // Only now, with the attacker's own explicit confirmation, does a row
+    // appear — and it is recorded as a mismatch, not a clean match.
+    const confirmed = await redeemInvite(invite.inviteToken, { confirmDifferentEmail: true }) as { success?: boolean };
+    expect(confirmed.success).toBe(true);
+    const attackerConnAfter = await db.coachClient.findUnique({ where: { coachId_clientId: { coachId: coach.id, clientId: attacker.id } } });
+    expect(attackerConnAfter).not.toBeNull();
+    expect(attackerConnAfter?.coachNotes).toContain("confirmed from");
+    const inviteAfter = await db.clientInvite.findUniqueOrThrow({ where: { id: invite.id } });
+    expect(inviteAfter.acceptedWithMismatch).toBe(true);
+    expect(inviteAfter.mismatchEmail).toBe(attacker.email.toLowerCase());
+    // The victim's account is still untouched — the attacker joined their
+    // OWN account, from the coach's roster point of view, not the victim's.
+    const victimConnAfter = await db.coachClient.findUnique({ where: { coachId_clientId: { coachId: coach.id, clientId: victim.id } } });
+    expect(victimConnAfter).toBeNull();
+    // T-987 review round 1, MAJOR 2: the attacker's confirmation must not
+    // rebind the victim's own lead to the attacker's account — that would
+    // point the coach's client page at the victim's submitted intake under
+    // the attacker's clientId. The lead's prospectId is untouched.
+    const requestAfter = await db.coachingRequest.findUniqueOrThrow({ where: { id: request.id } });
+    expect(requestAfter.prospectId).toBeNull();
   });
 
   it("an expired invite cannot be redeemed", async () => {

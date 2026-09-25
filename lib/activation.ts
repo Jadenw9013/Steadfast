@@ -7,6 +7,7 @@ import {
   getActivationMessage as getLeadActivationMessage,
   type LeadIdentity,
 } from "@/lib/leads/activate-lead";
+import { accountOwnsEmail, normalizeEmailForMatch, maskEmail } from "@/lib/auth/invite-email-match";
 
 type DbClient = typeof db | Prisma.TransactionClient;
 
@@ -36,9 +37,109 @@ export type LinkResult =
   | { linked: false; inviteToken: string; email: string }
   | { linked: false; inviteToken: null; email: null; noEmailOnFile: true };
 
+/** Clerk's email-address shape, structurally identical to the type
+ *  lib/auth/invite-email-match.ts already declares. */
+export type AccountEmailAddress = {
+  id: string;
+  emailAddress: string;
+  verification?: { status: string } | null;
+};
+
 export type AcceptInviteResult =
   | { success: true; alreadyConnected: boolean; coachId: string; coachName: string | null }
-  | { success: false; error: string };
+  | {
+      success: false;
+      confirmationRequired: true;
+      error: string;
+      invitedEmailHint: string;
+      signedInAs: string;
+      coachName: string | null;
+    }
+  | { success: false; confirmationRequired?: false; error: string };
+
+/** Pure. The sentence the REST route returns as `message`. */
+export function inviteConfirmationMessage(input: {
+  invitedEmailHint: string;
+  signedInAs: string;
+  coachName: string | null;
+}): string {
+  return `This invite was sent to ${input.invitedEmailHint}, not ${input.signedInAs}. Confirm it's you to join ${
+    input.coachName ?? "your coach"
+  }.`;
+}
+
+/**
+ * T-987 review round 2 (parity MINOR 2, code review finding C): the six
+ * refusal sentences `acceptClientInviteForUser` returns are a small, known,
+ * closed set. `/invite/[token]`'s confirm submission round-trips one of
+ * them through the URL so the re-rendered page can show it — but the raw
+ * sentence is attacker-controllable free text rendered on the product
+ * domain (anyone holding *any* valid token can craft
+ * `/invite/<token>?confirmError=<phishing copy>`). This table is the one
+ * place that sentence set lives; the redirect target carries a CODE from
+ * it, never the sentence itself, and an unrecognised code (including the
+ * generic code a thrown error maps to) renders the generic fallback.
+ */
+export type ConfirmErrorCode =
+  | "account_unavailable"
+  | "invite_unavailable"
+  | "coach_unavailable"
+  | "already_used"
+  | "expired"
+  | "ai_mode"
+  | "other_coach"
+  | "unknown";
+
+const CONFIRM_ERROR_MESSAGES: Record<Exclude<ConfirmErrorCode, "unknown">, string> = {
+  account_unavailable: "This client account is unavailable.",
+  invite_unavailable: "This invite is no longer available.",
+  coach_unavailable: "This coach is unavailable.",
+  already_used: "This invite has already been used.",
+  expired: "This invite has expired or is no longer available. Ask your coach for a new one.",
+  ai_mode: "Pause AI coaching or resolve your provider before accepting a human coach.",
+  other_coach: "Leave your current coaching relationship before accepting another coach.",
+};
+
+const GENERIC_CONFIRM_ERROR_MESSAGE = "Something went wrong confirming this invite. Please try again.";
+
+/** Pure. The known sentence a refusal code renders as — never the query
+ *  param's raw value. Any code this table does not recognise (including
+ *  `"unknown"`) falls back to the generic sentence; nothing is ever echoed. */
+export function confirmErrorMessageForCode(code: string | null | undefined): string {
+  if (code && Object.prototype.hasOwnProperty.call(CONFIRM_ERROR_MESSAGES, code)) {
+    return CONFIRM_ERROR_MESSAGES[code as Exclude<ConfirmErrorCode, "unknown">];
+  }
+  return GENERIC_CONFIRM_ERROR_MESSAGE;
+}
+
+/** Pure. The inverse lookup: which code (if any) this exact sentence is. */
+function confirmErrorCodeForMessage(message: string): ConfirmErrorCode {
+  for (const [code, sentence] of Object.entries(CONFIRM_ERROR_MESSAGES)) {
+    if (sentence === message) return code as ConfirmErrorCode;
+  }
+  return "unknown";
+}
+
+/**
+ * Pure. Where `/invite/[token]`'s "acceptAnyway" confirm submission sends the
+ * client next, given `redeemInvite`'s result (or, for a thrown error, a
+ * synthetic non-matching `error` string, which maps to the generic code).
+ *
+ * T-987 review round 1, MAJOR 1: the page used to discard this result and
+ * redirect to the welcome dashboard unconditionally, so a refusal reached
+ * after the confirm card rendered — the token already redeemed by someone
+ * else, an expired invite, AI enrollment in another tab, another coach,
+ * a deactivated account — read as success. Extracted so the branch is
+ * unit-testable without rendering the page.
+ */
+export function acceptAnywayRedirectTarget(
+  token: string,
+  result: { success: true } | { success?: false; error: string }
+): string {
+  if (result.success) return "/client?welcomed=1";
+  const code = confirmErrorCodeForMessage(result.error);
+  return `/invite/${encodeURIComponent(token)}?confirmError=${code}`;
+}
 
 // ── Core helper: issue an invitation ──────────────────────────────────────────
 
@@ -184,7 +285,15 @@ export async function linkOrInviteProspect(
  */
 export async function acceptClientInviteForUser(
   invite: Pick<ClientInvite, "id" | "coachId" | "email" | "status" | "expiresAt" | "requestId">,
-  user: { id: string; email: string }
+  user: { id: string; email: string },
+  options?: {
+    /** Every address on the signed-in Clerk account, as written. Omit or pass
+     *  null when no Clerk user is available (JIT, tests, Clerk unreachable);
+     *  the service then compares the stored primary address only. */
+    accountEmailAddresses?: readonly AccountEmailAddress[] | null;
+    /** True only when the client has explicitly confirmed this exact invite. */
+    confirmDifferentEmail?: boolean;
+  }
 ): Promise<AcceptInviteResult> {
   const result: AcceptInviteResult = await db.$transaction(async (tx) => {
     // Shared serialization point with managed AI commands and deactivation.
@@ -209,8 +318,7 @@ export async function acceptClientInviteForUser(
       return { success: false, error: "This client account is unavailable." };
     await tx.$queryRaw`SELECT "id" FROM "ClientInvite" WHERE "id" = ${invite.id} FOR UPDATE`;
     const current = await tx.clientInvite.findUnique({ where: { id: invite.id } });
-    if (!current || current.email.toLowerCase() !== owner.email.toLowerCase())
-      return { success: false, error: "This invite was sent to a different email address." };
+    if (!current) return { success: false, error: "This invite is no longer available." };
     const coach = await tx.user.findUnique({
       where: { id: current.coachId },
       select: { firstName: true, lastName: true, isDeactivated: true, isCoach: true },
@@ -222,8 +330,14 @@ export async function acceptClientInviteForUser(
       where: { coachId_clientId: { coachId: current.coachId, clientId: user.id } },
       select: { id: true },
     });
-    if (current.status === "ACCEPTED")
-      return { success: true, alreadyConnected: !!existing, coachId: current.coachId, coachName };
+    if (current.status === "ACCEPTED") {
+      if (existing) return { success: true, alreadyConnected: true, coachId: current.coachId, coachName };
+      // T-987 fix: a third party replaying an already-accepted token has no
+      // roster row of their own — that must never read as success (was
+      // reachable only after this reorder; the old email-equality check at
+      // the top of this function used to stop them before reaching here).
+      return { success: false, error: "This invite has already been used." };
+    }
     if (current.status === "PENDING" && current.expiresAt <= new Date())
       await tx.clientInvite.update({ where: { id: current.id }, data: { status: "EXPIRED" } });
     if (current.status !== "PENDING" || current.expiresAt <= new Date())
@@ -246,13 +360,67 @@ export async function acceptClientInviteForUser(
         success: false,
         error: "Leave your current coaching relationship before accepting another coach.",
       };
-    if (!existing)
+
+    // T-987. The invited address is a confirmation step, not the gate: the
+    // invite token itself is the credential (random, single-use, 7-day
+    // expiry, delivered to the invited inbox). Every VERIFIED address on the
+    // signed-in Clerk account is accepted; a mismatch is recorded and asks
+    // for one explicit confirmation instead of refusing outright.
+    // T-987 review round 1, MINOR: `options?.accountEmailAddresses` alone
+    // treats an empty array as "Clerk answered with a real address list",
+    // so an account with zero Clerk addresses would be sent to confirm
+    // even when its own stored email matches exactly. `?.length` restores
+    // the documented fallback: no usable Clerk data compares the primary.
+    const owns = options?.accountEmailAddresses?.length
+      ? accountOwnsEmail(options.accountEmailAddresses, current.email)
+      : normalizeEmailForMatch(owner.email) === normalizeEmailForMatch(current.email);
+
+    if (!owns && !options?.confirmDifferentEmail) {
+      await tx.$executeRaw`UPDATE "ClientInvite" SET "mismatchSeenAt" = now(), "mismatchEmail" = ${owner.email.toLowerCase()} WHERE "id" = ${current.id} AND "mismatchSeenAt" IS NULL`;
+      return {
+        success: false,
+        confirmationRequired: true,
+        error: "This invite was sent to a different email address. Confirm it's you to accept it.",
+        invitedEmailHint: maskEmail(current.email),
+        signedInAs: owner.email,
+        coachName,
+      };
+    }
+
+    if (!existing) {
+      const coachNotes = owns
+        ? "Joined via invite."
+        : `Joined via invite (confirmed from ${owner.email}; invite was addressed to ${current.email}).`;
       await tx.coachClient.create({
-        data: { coachId: current.coachId, clientId: user.id, coachNotes: "Joined via invite." },
+        data: { coachId: current.coachId, clientId: user.id, coachNotes },
       });
+    }
     await reconcileCoachingContextForClient(tx, user.id);
-    await tx.clientInvite.update({ where: { id: current.id }, data: { status: "ACCEPTED" } });
-    if (current.requestId)
+    if (!owns) {
+      // A client may POST confirmDifferentEmail: true without ever having
+      // rendered the confirm prompt (e.g. a REST caller). Set-once, so a
+      // prior unfinished attempt is not overwritten.
+      await tx.$executeRaw`UPDATE "ClientInvite" SET "mismatchSeenAt" = now(), "mismatchEmail" = ${owner.email.toLowerCase()} WHERE "id" = ${current.id} AND "mismatchSeenAt" IS NULL`;
+    }
+    await tx.clientInvite.update({
+      where: { id: current.id },
+      data: { status: "ACCEPTED", ...(owns ? {} : { acceptedWithMismatch: true }) },
+    });
+    // T-987 review round 1, MAJOR 2: only rebind the originating lead to
+    // THIS user when they actually own the invited address. On the
+    // confirmed-mismatch path the roster row (CoachClient, just created
+    // above) is the whole relationship — the CoachingRequest keeps
+    // belonging to whoever it always did (prospectName/prospectEmail/the
+    // submitted IntakePacket are that person's, not the confirming user's).
+    // Rebinding prospectId here would point getIntakePacketForClient
+    // (lib/queries/intake.ts), lib/queries/signature.ts and
+    // lib/queries/marketplace.ts — all of which key purely on prospectId —
+    // at the confirming user, so the coach's client page would render a
+    // stranger's submitted intake (bodyweight, health answers) under this
+    // user's name. Leaving the lead alone is the smaller fix: it is still
+    // whatever it was before this acceptance (T-979/T-988 own resolving an
+    // invite that was answered by someone other than its addressee).
+    if (current.requestId && owns)
       await tx.coachingRequest.updateMany({
         where: { id: current.requestId },
         data: { prospectId: user.id, status: "ACCEPTED" },

@@ -1855,6 +1855,18 @@ model ClientInvite {
   requestId String?          @unique
   request   CoachingRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
 
+  /// T-987. Set once, the first time an authenticated client holding this token
+  /// was shown the "confirm a different address" step. Cleared, along with
+  /// mismatchEmail and acceptedWithMismatch, when lib/leads/activate-lead.ts
+  /// reissues this row for a new redemption attempt (T-987 review round 2) —
+  /// T-962/T-988 are the first readers, and a stale mismatch from a previous
+  /// holder must not be reported against whoever the invite is reissued to.
+  mismatchSeenAt       DateTime?
+  /// The account address that triggered or completed that confirmation, lowercased.
+  mismatchEmail        String?
+  /// True only when this invite was accepted through the confirm path.
+  acceptedWithMismatch Boolean  @default(false)
+
   coach User @relation("CoachInvites", fields: [coachId], references: [id])
 
   @@index([coachId])

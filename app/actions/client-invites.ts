@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { acceptClientInviteForUser } from "@/lib/activation";
 import { sendEmail } from "@/lib/email/sendEmail";
+import { currentUser } from "@clerk/nextjs/server";
 
 const sendInviteSchema = z.object({
     name: z.string().min(1).max(100),
@@ -58,14 +59,46 @@ export async function sendClientInvite(input: unknown) {
     return { success: true, inviteToken: invite.inviteToken };
 }
 
-export async function redeemInvite(token: string) {
+export async function redeemInvite(
+    token: string,
+    options: { confirmDifferentEmail?: boolean } = {},
+): Promise<
+    | { success: true; coachName: string | null }
+    | {
+          confirmationRequired: true;
+          error: string;
+          invitedEmailHint: string;
+          signedInAs: string;
+          coachName: string | null;
+      }
+    | { error: string }
+> {
     const user = await getCurrentDbUser();
 
     const invite = await db.clientInvite.findUnique({ where: { inviteToken: token } });
     if (!invite) return { error: "Invite not found." };
 
-    const result = await acceptClientInviteForUser(invite, user);
-    if (!result.success) return { error: result.error };
+    // Clerk's Backend API is network I/O; resolved here, outside
+    // acceptClientInviteForUser's transaction, and passed in as data.
+    const clerkUser = await currentUser();
+
+    const result = await acceptClientInviteForUser(invite, user, {
+        accountEmailAddresses: clerkUser?.emailAddresses ?? null,
+        confirmDifferentEmail: options.confirmDifferentEmail,
+    });
+
+    if (!result.success) {
+        if (result.confirmationRequired) {
+            return {
+                confirmationRequired: true,
+                error: result.error,
+                invitedEmailHint: result.invitedEmailHint,
+                signedInAs: result.signedInAs,
+                coachName: result.coachName,
+            };
+        }
+        return { error: result.error };
+    }
     return { success: true, coachName: result.coachName };
 }
 
