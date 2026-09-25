@@ -7,7 +7,10 @@ import {
   callConstrainedProvider,
   constrainedProviderEnvelopeSchema,
 } from "../lib/ai-coach/provider/adapter";
-import { ApprovedConstrainedGatewayProvider } from "../lib/ai-coach/provider/live-gateway";
+import {
+  AnthropicConstrainedProvider,
+  defaultAnthropicTransportFactory,
+} from "../lib/ai-coach/provider/anthropic-provider";
 import { liveLaunchPacketSchema } from "../lib/ai-coach/live-launch/schema";
 
 const corpusSchema = z
@@ -91,7 +94,9 @@ async function main() {
     runtimeConfiguration: configuration,
     artifactBindings: packet.artifactBindings,
   };
-  const provider = new ApprovedConstrainedGatewayProvider(release);
+  const credential = process.env.AI_COACH_PROVIDER_CREDENTIAL ?? "";
+  const transport = await defaultAnthropicTransportFactory(release, credential);
+  const provider = new AnthropicConstrainedProvider(release, transport);
   const results = [];
   for (const testCase of corpus.cases) {
     const envelope = constrainedProviderEnvelopeSchema.parse({

@@ -652,6 +652,16 @@ incident responder acts on:**
   `requireFixtureRuntime()` (`lib/ai-coach/finalization.ts:50`) — it 503s
   outside fixture/dev mode regardless of any flag or release state.
 
+**AI Coach live-provider egress (T-996):** the only outbound network call the AI
+Coach code can make is `lib/ai-coach/provider/anthropic-provider.ts` calling
+`api.anthropic.com` (HTTPS 443) directly with Anthropic's Messages API, gated by
+`assertAiCoachOperationEnabled("PROVIDER")` and `assertActiveAiCoachLiveReleaseReady()`
+— it has no route, is never reachable from `app/api/**`, and is server-only.
+`@anthropic-ai/sdk` is loaded only through a dynamic `import()`, never a static one.
+The credential is named `AI_COACH_PROVIDER_CREDENTIAL` (an Anthropic API key); its
+presence enables nothing by itself while the operational control or the ACTIVE
+release gate is off.
+
 ---
 
 ## API Surface (REST — iOS & external consumption)

@@ -1,7 +1,7 @@
 import { ArtifactLoadError, type ArtifactLoadRequest } from "../artifacts/repository";
 import type { ArtifactReference } from "../artifacts/schema";
 import { runConstrainedProviderBoundary } from "./constrained-boundary";
-import { loadApprovedConstrainedGatewayProvider } from "./live-gateway";
+import { loadAnthropicConstrainedProvider } from "./anthropic-provider";
 
 function liveArtifactRequest(
   engineVersion: string,
@@ -26,7 +26,7 @@ function liveArtifactRequest(
  * The policy selector is derived from the active packet, never from the caller.
  */
 export async function runActiveConstrainedProviderBoundary(rawInput: unknown) {
-  const { release, provider, executionPolicy } = await loadApprovedConstrainedGatewayProvider();
+  const { release, provider, executionPolicy } = await loadAnthropicConstrainedProvider();
   const request = liveArtifactRequest(release.engineVersion, release.artifactBindings);
   return runConstrainedProviderBoundary(request, rawInput, provider, {
     promptContractVersion: release.runtimeConfiguration.providerBoundary.promptContractVersion,

@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { artifactKindSchema, artifactReferenceSchema } from "../artifacts/schema";
 import { contentHash } from "../canonical-json";
-import { MAX_TOKENS_PER_STAGE_CALL } from "../provider/spend-limits";
+import {
+  MAX_NON_STREAMING_OUTPUT_TOKENS,
+  MAX_TOKENS_PER_STAGE_CALL,
+} from "../provider/spend-limits";
 
 /**
  * A live-launch packet is an evidence index, not an approval UI or an
@@ -16,31 +19,6 @@ const identifierSchema = z
   .regex(/^[A-Za-z0-9][A-Za-z0-9._:-]*$/);
 const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const dateTimeSchema = z.string().datetime({ offset: true });
-
-export function isApprovedProviderGatewayUrl(value: string) {
-  let url: URL;
-  try {
-    url = new URL(value);
-  } catch {
-    return false;
-  }
-  const hostname = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
-  return !(
-    url.protocol !== "https:" ||
-    url.username ||
-    url.password ||
-    url.hash ||
-    url.search ||
-    hostname === "localhost" ||
-    hostname === "0.0.0.0" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1" ||
-    hostname.endsWith(".local") ||
-    hostname === "metadata.google.internal" ||
-    /^(?:10\.|127\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(hostname) ||
-    /^(?:fc|fd|fe8|fe9|fea|feb)/i.test(hostname)
-  );
-}
 
 export const REQUIRED_DECISION_IDS = [
   "D01",
@@ -103,20 +81,23 @@ const providerConfigurationSchema = z
   .object({
     configurationId: identifierSchema,
     version: z.number().int().positive(),
-    protocol: z.literal("STEADFAST_CONSTRAINED_JSON_V1"),
-    gatewayUrl: z
-      .string()
-      .url()
-      .refine(
-        isApprovedProviderGatewayUrl,
-        "Provider gateway must be a public HTTPS URL without credentials or query data."
-      ),
+    vendor: z.literal("ANTHROPIC"),
+    apiBaseUrl: z.literal("https://api.anthropic.com"),
     credentialEnvironmentVariable: z.literal("AI_COACH_PROVIDER_CREDENTIAL"),
     providerName: z.string().trim().min(1).max(160),
     modelIdentifier: identifierSchema,
+    effort: z.enum(["low", "medium", "high"]),
+    pricing: z
+      .object({
+        currency: z.string().regex(/^[A-Z]{3}$/),
+        inputMinorUnitsPerMillionTokens: z.number().int().nonnegative().max(100_000_000),
+        outputMinorUnitsPerMillionTokens: z.number().int().nonnegative().max(100_000_000),
+      })
+      .strict(),
     processingRegion: z.string().trim().min(1).max(160),
     requestStorage: z.literal("DISABLED"),
     trainingUse: z.literal("DISABLED"),
+    organizationDataControlsRecordId: identifierSchema,
     sendsDirectIdentifiers: z.literal(false),
     sendsCrossClientContext: z.literal(false),
     rawPromptOrTraceLogging: z.literal(false),
@@ -133,6 +114,13 @@ const providerConfigurationSchema = z
         code: "custom",
         path: ["retryDelaysMs"],
         message: "Retry delays must contain exactly one entry per retry.",
+      });
+    }
+    if (configuration.maxOutputTokens > MAX_NON_STREAMING_OUTPUT_TOKENS) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["maxOutputTokens"],
+        message: "Output tokens must stay within the non-streaming response limit.",
       });
     }
   });
@@ -214,6 +202,11 @@ const discoveryConfigurationSchema = z
   })
   .strict();
 
+// `requestStorage`/`trainingUse` are attestations of an organization-level
+// configuration, not request parameters: the Messages API has no per-request
+// `store: false`, so zero-data-retention and no-training are set once for the
+// whole Anthropic organization/workspace, and `organizationDataControlsRecordId`
+// names the signed record that attests they are configured that way.
 export const liveRuntimeConfigurationSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -222,7 +215,17 @@ export const liveRuntimeConfigurationSchema = z
     operations: operationsConfigurationSchema,
     discovery: discoveryConfigurationSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((configuration, ctx) => {
+    if (configuration.provider.pricing.currency !== configuration.operations.spendCurrency) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["provider", "pricing", "currency"],
+        message:
+          "The provider pricing currency must match operations.spendCurrency, or the spend estimate and the window cap are in different currencies.",
+      });
+    }
+  });
 export type LiveRuntimeConfiguration = z.infer<typeof liveRuntimeConfigurationSchema>;
 
 const approvalSchema = z

@@ -67,6 +67,27 @@ evidence, operational monitoring and T-1008's later-boundary revalidation and
 acceptance work. The required graphify rebuild was attempted, but the local
 `graphify` Python module is unavailable.
 
+**T-996 Anthropic-direct provider, 2026-09-25:** the T-1007 constrained provider
+boundary had no live endpoint to call — `ApprovedConstrainedGatewayProvider`
+(`provider/live-gateway.ts`) POSTed a Steadfast-invented `STEADFAST_CONSTRAINED_JSON_V1`
+envelope that neither Anthropic's nor OpenAI's API speaks, and nothing implemented
+that contract anywhere in either repo. `provider/live-gateway.ts` is deleted;
+`provider/anthropic-provider.ts` (`AnthropicConstrainedProvider`,
+`loadAnthropicConstrainedProvider`) calls Anthropic's Messages API directly via
+`client.messages.parse` + `zodOutputFormat` for a server-enforced structured-output
+schema, built from a deterministic system prompt (the envelope's server-owned
+allowed-ID lists and task contract only — never client text) and a minimized user
+turn. `@anthropic-ai/sdk` (pinned `0.126.0`) is loaded only through a dynamic
+`import()`, so it never enters the synthetic path or a client bundle. Zero-data-
+retention/no-training moved from invented request flags to organization-level
+attestations (`organizationDataControlsRecordId` names the signed record); the
+`runtimeConfiguration.provider` schema now carries `vendor`, `apiBaseUrl`, `effort`
+and `pricing` instead of `protocol`/`gatewayUrl`, and the DB-side runtime-
+configuration guard trigger was updated to match in the same migration. Every test
+injects a fake `AnthropicTransport`; no test performs network I/O and no test
+statically imports the SDK. This ticket performs zero real inference — flags stay
+OFF and no ACTIVE release exists — the first real call is T-997.
+
 The web/backend now contains A06–A09, A11 reviewer operations, and the shared
 A12 provider/UI/reliability work. The native repository contains the corresponding
 AI navigation, intake, proposals, logging, review history, settings, exports,

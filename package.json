@@ -29,6 +29,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,json,css,md}\" --ignore-path .gitignore"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.126.0",
     "@clerk/nextjs": "^6.37.4",
     "@clerk/themes": "^2.4.57",
     "@dnd-kit/core": "^6.3.1",
