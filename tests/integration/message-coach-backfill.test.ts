@@ -59,7 +59,7 @@ import path from "path";
  * overwrites an existing coachId.
  *
  * Run this gate with `--no-file-parallelism`:
- *   DATABASE_URL=postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test \
+ *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
  *   SECURITY_INTEGRATION=1 pnpm vitest run tests/integration --no-file-parallelism
  * The DB-wide UPDATEs above can otherwise interleave with
  * tests/integration/account-deletion.test.ts's purge, which deletes Message
@@ -80,11 +80,9 @@ import { getClientProfile } from "@/lib/queries/client-profile";
 import { getClientProvider } from "@/lib/queries/client-provider";
 import { NextRequest } from "next/server";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 const SCOPE_MIGRATION = path.join(process.cwd(), "prisma/migrations/20260913200000_message_coach_scope/migration.sql");

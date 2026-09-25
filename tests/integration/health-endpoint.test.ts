@@ -7,13 +7,9 @@ import { EXPECTED_MIGRATIONS } from "@/lib/health/expected-migrations";
 import { db } from "@/lib/db";
 import { PUBLIC_ROUTE_PATTERNS } from "@/proxy";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 const FIXTURE_MARKER = "T-922 local integration fixture";
 let ownsLedgerFixture = false;
@@ -88,8 +84,18 @@ suite("GET /api/health", () => {
     expect(body.migrations).toBe("ok");
     expect(body.migrationsApplied).toBeGreaterThan(0);
 
+    // T-991 review round 1, MINOR 2: under gates.sh's disposable-DB sync the
+    // live database is steadfast_migration_replay_<sha>_<pid>, not
+    // steadfast_security_test, so the static literal below is trivially true
+    // in that mode and stops proving the *actual* database name never
+    // leaks. liveDbName makes the assertion true-by-construction in both
+    // modes; the static literal and the migration_replay prefix stay so this
+    // still pins the known name shapes even if DATABASE_URL is ever missing.
+    const liveDbName = new URL(process.env.DATABASE_URL ?? "").pathname.slice(1);
     for (const forbidden of [
+      liveDbName,
       "steadfast_security_test",
+      "steadfast_migration_replay",
       "127.0.0.1",
       "postgres",
       "prisma",

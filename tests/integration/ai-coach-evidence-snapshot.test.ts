@@ -4,8 +4,9 @@ import { db } from "@/lib/db";
 import { collectEvidence, evidenceIsCurrent } from "@/lib/ai-coach/evidence-snapshot";
 import { submitAiCheckIn } from "@/lib/check-ins/ai-observation";
 import { lockAiClient } from "@/lib/ai-coach/access";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) { const u = new URL(process.env.DATABASE_URL ?? ""); if (u.hostname !== "127.0.0.1" || u.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required"); }
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 suite("frozen evidence references", () => {
   beforeEach(() => vi.stubEnv("AI_COACH_FIXTURE_MODE", "true")); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());

@@ -40,13 +40,10 @@ import {
 } from "@/app/api/coach/clients/[clientId]/training/route";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test")
-    throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 const CURRENT_WEEK = getCurrentWeekMonday();

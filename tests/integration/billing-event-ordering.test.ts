@@ -25,11 +25,9 @@ import { db } from "@/lib/db";
 import { POST as webhookPost } from "@/app/api/webhooks/stripe/route";
 import { NextRequest } from "next/server";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 function fakeSubscriptionEvent(opts: {

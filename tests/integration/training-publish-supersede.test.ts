@@ -23,6 +23,7 @@ import { GET as getCurrentTraining } from "@/app/api/client/training/current/rou
 import { GET as exportTrainingProgram } from "@/app/api/training-programs/[programId]/export/route";
 import { POST as importWorkout } from "@/app/api/workout-import/import/route";
 import { db } from "@/lib/db";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import {
   getLatestPublishedTrainingProgramForCoach,
   getPublishedTrainingProgram,
@@ -31,12 +32,7 @@ import {
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 
 const suite = enabled ? describe : describe.skip;
 

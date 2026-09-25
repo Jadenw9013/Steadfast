@@ -23,9 +23,10 @@ import { buildFoodsDraftInput } from "@/lib/meal-plans/editor-state";
 import { resolveClientPlanView } from "@/lib/meal-plans/client-plan-view";
 import type { MealGroup } from "@/types/meal-plan";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 /**
  * T-800 regression suite. Run through the local test DB:
- *   DATABASE_URL=postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test \
+ *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
  *   SECURITY_INTEGRATION=1 pnpm exec vitest run tests/integration/plan-mode-publish-regression.test.ts
  *
  * Case 1 ("the report") must FAIL on origin/main — see
@@ -34,11 +35,7 @@ import type { MealGroup } from "@/types/meal-plan";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test")
-    throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("T-800: plan-mode-aware publish never blanks a client", () => {

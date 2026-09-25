@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
  *
  * Harness copied verbatim from `tests/integration/plan-mode-consumers.test.ts`
  * (hoisted Clerk mock, `next/cache` mock, sms/email/push mocks, the
- * `SECURITY_INTEGRATION` + `127.0.0.1`/`steadfast_security_test` fail-closed
+ * `SECURITY_INTEGRATION` + the shared `requireLocalTestDb()` fail-closed
  * guard, the `PUBLISHED_MEAL_PLAN_INDEX` self-heal, a `fixture()` returning
  * the `CoachClient` row).
  */
@@ -40,12 +40,10 @@ import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
 import { PUBLISHED_MEAL_PLAN_INDEX, emptyPlanMessage } from "@/lib/meal-plans/publish";
 import { resolveClientPlanView, isCheckoffEligible, deriveCheckoffNames } from "@/lib/meal-plans/client-plan-view";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 // Mondays.
