@@ -616,11 +616,11 @@ source for the full model list; the groups are:
 | Reviewed artifacts | `AiCoachArtifactVersion`, `AiCoachArtifactLifecycleEvent` | Versioned, append-only policy/catalog artifacts and their publish/revoke history |
 | Live-launch governance | `AiCoachLiveLaunchPacket`, `AiCoachLiveLaunchLifecycleEvent`, `AiCoachGovernanceGrant`, `AiCoachOperationalControl`, `AiCoachOperationalEvent`, `AiCoachAccessGrantEvent` | The approval packet for a release and the kill-switch/grant infrastructure that gates it, plus the append-only provisioning history for all three grant tables (T-995) |
 | Live activation | `AiCoachLiveActivation`, `AiCoachLiveActivationEvent` | The single server-selected active release (partial-unique "only one ACTIVE row") and its append-only activate/deactivate history |
-| Not listed above (pre-existing) | `AiCheckInObservation`, `AiOperationReceipt` | `ON DELETE CASCADE` to `User` — purge-safe with no explicit purge.ts line needed |
+| Not listed above (pre-existing) | `AiCheckInObservation`, `AiOperationReceipt` | `ON DELETE CASCADE` to `User`, and also deleted explicitly in lib/account-deletion/purge.ts (T-509) so a later relation change cannot leave them behind |
 
-Every model above with a `User` foreign key and no `CASCADE` has a purge line
-in `lib/account-deletion/purge.ts` and a case in
-`tests/integration/account-deletion.test.ts`.
+Every model above with a `User` foreign key has a purge line in
+`lib/account-deletion/purge.ts` and a case in
+`tests/integration/account-deletion.test.ts`, including the two that also cascade.
 `AiCoachOperationalControl` is global control state (one row per
 `AiCoachOperationalScope`), not user data — it has no purge line by design
 (see the schema comment on `updatedByGrantId`).

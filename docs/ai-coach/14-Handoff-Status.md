@@ -952,3 +952,50 @@ touched; the change is inert until an operator runs a command.
   revoked at commit time; the non-synthetic + ACTIVE-release writer/reader
   agreement case for `entitlement written by the CLI passes lockAiClient
   unchanged`; `grant-entitlement after expiry re-activates in place`.
+
+### T-509 — explicit purge for observations and operation receipts (2026-09-25)
+
+`AiCheckInObservation` (A08a private check-in/session observations, including
+tombstoned rows) and `AiOperationReceipt` (A06d idempotency ledger) are the
+only two user-scoped AI Coach tables with `onDelete: Cascade` to `User`; every
+other user-scoped `Ai*` table is `Restrict`-by-default and already has an
+explicit statement in `lib/account-deletion/purge.ts`. Until this ticket
+their rows left the database only via the implicit DB cascade fired by
+`tx.user.delete()` — the exact implicit behaviour the rest of the file
+deliberately avoids (see the `CoachSettings`/`IntakeFormTemplate` precedent at
+`purge.ts:241-243`). A future relation change (or manual DDL) could have
+silently left a purged client's private health observations behind with no
+test to catch it.
+
+`purge.ts` now deletes both tables explicitly, next to `AiWorkoutSession`
+(the other evidence kind `lib/ai-coach/delete-evidence.ts` tombstones) and
+before `AiAdjustmentSlot`, with no `deletedAt IS NULL` filter — tombstoned
+observations still carry a `clientId` and must be purged, not skipped. This
+is defence in depth, not a behaviour change: the rows already left the
+database today, thirty lines later in the same transaction.
+
+`tests/integration/account-deletion.test.ts` now seeds a live observation, a
+tombstoned observation, and an operation receipt for the purged user, plus
+the same three rows for a second, non-purged user as a scoping control, and
+asserts the purged user's rows are gone (including the tombstone) and the
+other user's rows survive untouched.
+
+**Schema sweep result (stated per the spec's acceptance criterion):** all 30
+`^model Ai` matches in `prisma/schema.prisma` plus `ClientCoachingContext`
+were checked. Exactly two user-scoped tables were missing a purge line —
+both named above and now added. The other four `Ai*` models absent from
+`purge.ts` (`AiCoachArtifactVersion`, `AiCoachOperationalControl`,
+`AiCoachLiveLaunchPacket`, `AiCoachLiveActivation`) have no `User` foreign key
+at all and are correctly absent; no change needed there.
+
+No schema change, no migration, no iOS change (`build_order: web-only`).
+
+Gate results (web repo, isolated local DB): `pnpm run type-check` clean
+before and after the test edit; `tests/integration/account-deletion.test.ts`
+11/11 passing, and together with `tests/integration/ai-coach-delete-evidence.test.ts`
+and `tests/integration/ai-coach-observations.test.ts` (the other two writers
+of these tables), 18/18 passing with no fixture interference; `eslint` clean
+on both changed files. Per the spec's regression-teeth requirement, the two
+new `purge.ts` DELETEs were commented out and the new assertions re-run
+first — they passed, proving the DB cascade is what removes the rows today —
+then the statements were restored before the real gate run above.

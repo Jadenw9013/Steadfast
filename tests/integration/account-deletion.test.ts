@@ -277,6 +277,62 @@ suite("account deletion with real PostgreSQL constraints", () => {
         loadKind: "BODYWEIGHT",
       },
     });
+    // T-509 — AiCheckInObservation and AiOperationReceipt are onDelete:
+    // Cascade, so the purge already removes them via tx.user.delete(); the
+    // explicit purge.ts statements duplicate that cascade for defence in
+    // depth. `liveObservation` and `tombstonedObservation` prove both a live
+    // and a tombstoned (deletedAt set) row are purged with no
+    // "deletedAt IS NULL" filter; `otherObservation`/`otherReceipt` are the
+    // scoping control for a different, non-purged user.
+    const liveObservation = await db.aiCheckInObservation.create({
+      data: {
+        clientId: user.id,
+        clientEventId: "obs-live",
+        occurredAt: new Date(),
+        payload: { synthetic: true },
+        inputDigest: "d".repeat(64),
+        submitted: true,
+      },
+    });
+    const tombstonedObservation = await db.aiCheckInObservation.create({
+      data: {
+        clientId: user.id,
+        clientEventId: "obs-deleted",
+        occurredAt: new Date(),
+        payload: { deleted: true },
+        revision: 2,
+        deletedAt: new Date(),
+        inputDigest: "d".repeat(64),
+      },
+    });
+    const operationReceipt = await db.aiOperationReceipt.create({
+      data: {
+        clientId: user.id,
+        operation: "DELETE_EVIDENCE",
+        requestKey: randomUUID(),
+        inputDigest: "e".repeat(64),
+        result: { deleted: true },
+      },
+    });
+    const otherObservation = await db.aiCheckInObservation.create({
+      data: {
+        clientId: other.id,
+        clientEventId: "obs-other",
+        occurredAt: new Date(),
+        payload: { synthetic: true },
+        inputDigest: "d".repeat(64),
+        submitted: true,
+      },
+    });
+    const otherReceipt = await db.aiOperationReceipt.create({
+      data: {
+        clientId: other.id,
+        operation: "DELETE_EVIDENCE",
+        requestKey: randomUUID(),
+        inputDigest: "e".repeat(64),
+        result: { deleted: true },
+      },
+    });
     const run = await db.aiCoachRun.create({
       data: {
         clientId: user.id,
@@ -595,6 +651,25 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(await db.aiPlanVersion.findUnique({ where: { id: plan.id } })).toBeNull();
     expect(await db.aiAdjustmentSlot.findFirst({ where: { clientId: user.id } })).toBeNull();
     expect(await db.aiWorkoutSession.findFirst({ where: { clientId: user.id } })).toBeNull();
+    // T-509 — live and tombstoned observations, and the operation receipt,
+    // are gone; the same rows for a different, non-purged user survive.
+    expect(
+      await db.aiCheckInObservation.findUnique({ where: { id: liveObservation.id } })
+    ).toBeNull();
+    expect(
+      await db.aiCheckInObservation.findUnique({ where: { id: tombstonedObservation.id } })
+    ).toBeNull();
+    expect(
+      await db.aiOperationReceipt.findUnique({ where: { id: operationReceipt.id } })
+    ).toBeNull();
+    expect(await db.aiCheckInObservation.count({ where: { clientId: user.id } })).toBe(0);
+    expect(await db.aiOperationReceipt.count({ where: { clientId: user.id } })).toBe(0);
+    expect(
+      await db.aiCheckInObservation.findUnique({ where: { id: otherObservation.id } })
+    ).not.toBeNull();
+    expect(
+      await db.aiOperationReceipt.findUnique({ where: { id: otherReceipt.id } })
+    ).not.toBeNull();
     expect(await db.aiCoachRun.findUnique({ where: { id: run.id } })).toBeNull();
     expect(
       await db.aiProviderBoundaryAudit.findUnique({ where: { id: providerAudit.id } })
