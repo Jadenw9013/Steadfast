@@ -51,13 +51,10 @@ import { db } from "@/lib/db";
 import { redeemInvite } from "@/app/actions/client-invites";
 import { POST as connectCoach } from "@/app/api/client/connect-coach/route";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+// Fail closed: these tests never run against a production database.
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 type ClerkEmail = { id: string; emailAddress: string; verification: { status: string } | null };

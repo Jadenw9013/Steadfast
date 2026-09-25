@@ -25,11 +25,9 @@ import { createCheckIn } from "@/app/actions/check-in";
 import { POST as checkinApiPost } from "@/app/api/client/checkin/route";
 import { NextRequest } from "next/server";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("CB07 — unified check-in service with real PostgreSQL constraints", () => {

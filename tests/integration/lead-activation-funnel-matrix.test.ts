@@ -47,13 +47,9 @@ import { PUT as stageRoute } from "@/app/api/coach/leads/[leadId]/stage/route";
 import { POST as createLeadRoute } from "@/app/api/coach/leads/route";
 import { POST as publicCoachingRequestRoute } from "@/app/api/public/coaching-request/route";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 // ── I1, asserted against the database. Never against a return value. ───────

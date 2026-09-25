@@ -69,13 +69,9 @@ import { GET as checkinReminderCron } from "@/app/api/cron/checkin-reminders/rou
 import { POST as stripeWebhook } from "@/app/api/webhooks/stripe/route";
 import { isCriticalRoute } from "@/lib/observability/critical-paths";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe.sequential : describe.skip;
 const originalCronSecret = process.env.CRON_SECRET;
 

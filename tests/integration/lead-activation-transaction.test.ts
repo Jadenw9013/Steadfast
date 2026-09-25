@@ -45,13 +45,9 @@ import { POST as activateRoute } from "@/app/api/coach/leads/[leadId]/activate/r
 import { POST as bypassActivateRoute } from "@/app/api/coach/leads/[leadId]/bypass-activate/route";
 import { PUT as stageRoute } from "@/app/api/coach/leads/[leadId]/stage/route";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 // ── Fixtures — deliberately not shared with the matrix file; each

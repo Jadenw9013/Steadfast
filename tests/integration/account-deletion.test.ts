@@ -16,12 +16,10 @@ import { db } from "@/lib/db";
 import { consumeQuota } from "@/lib/security/quota";
 import { purgeUserAccount } from "@/lib/account-deletion/purge";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 suite("account deletion with real PostgreSQL constraints", () => {
   beforeEach(() => {

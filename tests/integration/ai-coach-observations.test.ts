@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { submitAiCheckIn } from "@/lib/check-ins/submit";
 import { getAiObservations } from "@/lib/queries/ai-observations";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
-if (enabled) { const u = new URL(process.env.DATABASE_URL ?? ""); if (u.hostname !== "127.0.0.1" || u.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required"); }
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 const payload = { schemaVersion: 1, completeness: "REPORTED_PARTIAL", followingDays: null, weight: null, energy: "NOT_REPORTED", recovery: "NOT_REPORTED", hunger: "NOT_REPORTED", barrier: "NOT_REPORTED", safetyChanged: "NO" };
 suite("revisioned private AI check-ins", () => {

@@ -14,9 +14,10 @@ import { GET as getTrainingRest } from "@/app/api/coach/clients/[clientId]/train
 import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { db } from "@/lib/db";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 /**
  * T-803 regression suite. Run through the local test DB:
- *   DATABASE_URL=postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test \
+ *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
  *   SECURITY_INTEGRATION=1 pnpm exec vitest run tests/integration/training-week-fallback.test.ts
  *
  * Cases 1-4 must FAIL on unmodified 04e8d41 (origin/main) — see
@@ -26,11 +27,7 @@ import { db } from "@/lib/db";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test")
-    throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 const INDEX_NAME = "TrainingProgram_one_published_per_client";

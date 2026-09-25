@@ -98,7 +98,7 @@ pnpm exec playwright test # Playwright end-to-end tests (tests/e2e/)
 
 pnpm is the only supported package manager (`package.json` pins it via `packageManager`). Never run `npm install`, `npm run *`, or `yarn *` in this repo — a stray `npm install` previously committed a `package-lock.json` alongside `pnpm-lock.yaml`; that file is now gitignored and must not return.
 
-Vitest (25+ unit-test files under `tests/unit/`, a smoke suite under `tests/smoke/`) and two Postgres-backed integration tests under `tests/integration/` (opt-in via `SECURITY_INTEGRATION=1`, require an isolated local database) are already configured — do not claim no test runner exists. Playwright is configured for `tests/e2e/` but currently has minimal coverage (unauthenticated smoke checks only); it is not a substitute for the missing unit/integration coverage on a change.
+Vitest (25+ unit-test files under `tests/unit/`, a smoke suite under `tests/smoke/`) and two Postgres-backed integration tests under `tests/integration/` (opt-in via `SECURITY_INTEGRATION=1`, require an isolated local database) are already configured — do not claim no test runner exists. Playwright is configured for `tests/e2e/` but currently has minimal coverage (unauthenticated smoke checks only); it is not a substitute for the missing unit/integration coverage on a change. Every `tests/integration/*` file's fail-closed local-database check calls the shared `requireLocalTestDb()` from `tests/helpers/require-local-test-db.ts` (T-991) — never hand-copy the inline hostname/pathname check into a new file.
 
 ### Schema change workflow
 
