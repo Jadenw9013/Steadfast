@@ -332,7 +332,8 @@ Steadfast/
 │   │   └── templates.ts               # SMS templates
 │   ├── notifications/
 │   │   ├── apns.ts                    # APNs JWT + HTTP/2 push sender
-│   │   └── push.ts                    # Push notification orchestrator
+│   │   ├── push.ts                    # Push notification orchestrator
+│   │   └── ai-coach-plan.ts           # T-502: the only seam that turns an accepted AI plan into a push
 │   ├── pdf/
 │   │   ├── meal-plan-pdf.tsx          # Meal plan PDF renderer
 │   │   └── training-program-pdf.tsx   # Training program PDF renderer
@@ -611,7 +612,7 @@ source for the full model list; the groups are:
 |---|---|---|
 | Intake, profile, safety | `AiIntakeDraft`, `AiCoachProfile`, `AiCoachEntitlement`, `AiSafetyDisclosureEvent`, `AiNutritionSafetyDecision` | Client-facing AI Coach identity and the pre-generation safety gate |
 | Autonomy gate & provider boundary | `AiAutonomyGateDecision`, `AiProviderBoundaryAudit`, `AiAutomaticPlanApproval` | The fixed-order gate that must approve a candidate plan automatically before it can activate, and the audit of the constrained-provider call that fed it |
-| Plans, sessions, review | `AiPlanVersion`, `AiPlanReviewerApproval`, `AiCoachReviewerGrant`, `AiPlanAcceptanceReceipt`, `AiPlanAcceptanceOutbox`, `AiAdjustmentSlot`, `AiWorkoutSession`, `AiCoachRun`, `AiPlanActivationAttempt` | Plan lifecycle, human-reviewer grants, and idempotent acceptance |
+| Plans, sessions, review | `AiPlanVersion`, `AiPlanReviewerApproval`, `AiCoachReviewerGrant`, `AiPlanAcceptanceReceipt`, `AiPlanAcceptanceOutbox` (T-502: also push delivery state — attempts/nextAttemptAt/deliveryOutcome/lastErrorCode), `AiAdjustmentSlot`, `AiWorkoutSession`, `AiCoachRun`, `AiPlanActivationAttempt` | Plan lifecycle, human-reviewer grants, and idempotent acceptance |
 | Provider transition | `AiCoachProviderTransitionReceipt`, `ClientCoachingContext` (mode/origin, not new) | Immutable record of a client's HUMAN↔AI provider switch |
 | Reviewed artifacts | `AiCoachArtifactVersion`, `AiCoachArtifactLifecycleEvent` | Versioned, append-only policy/catalog artifacts and their publish/revoke history |
 | Live-launch governance | `AiCoachLiveLaunchPacket`, `AiCoachLiveLaunchLifecycleEvent`, `AiCoachGovernanceGrant`, `AiCoachOperationalControl`, `AiCoachOperationalEvent`, `AiCoachAccessGrantEvent` | The approval packet for a release and the kill-switch/grant infrastructure that gates it, plus the append-only provisioning history for all three grant tables (T-995) |
@@ -1022,6 +1023,13 @@ it must not renumber or reorder the three entries above.
 The executor route always returns 200. A healthy inert sweep body has no `paused` key
 (`{"disabled":true,...}`); `{"paused":true,"reason":"TEMPORARILY_UNAVAILABLE"}` means generation is
 blocked (kill switch or no ready live release) and needs investigating despite the 200 status.
+
+`/api/cron/ai-coach-executor` is scheduled by T-503 (owns `vercel.json`'s entry and the exact
+cadence); on this branch it has no `vercel.json` entry yet, so the drain below runs on no schedule
+at all until that ticket lands. Once scheduled, `runExecutorSweep` advances QUEUED `AiCoachRun`s one
+stage at a time, and (T-502) runs the acceptance-notification drain
+(`lib/ai-coach/acceptance-notifications.ts`) as its first phase, gated independently on
+`FEATURE_AI_COACH_PUBLICATION`.
 
 ---
 

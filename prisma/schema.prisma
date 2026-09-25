@@ -953,18 +953,36 @@ model AiPlanAcceptanceReceipt {
 // same transaction as acceptance (docs/ai-coach/05 step 5: "insert a
 // deduplicated outbox event atomically"). One row per accepted plan
 // version, ever — a replayed acceptance can never enqueue a second
-// notification for the same version. No delivery channel is wired here;
-// `processedAt` exists for a future sweep to claim, matching this
-// codebase's StorageCleanupOutbox pattern.
+// notification for the same version. Delivery (T-502) is a bounded drain
+// phase inside `runExecutorSweep` (`lib/ai-coach/acceptance-notifications.ts`),
+// gated on `FEATURE_AI_COACH_PUBLICATION` and the `ACCEPTANCE` operational
+// control, and push delivery state — matching this codebase's
+// StorageCleanupOutbox pattern for the claim/backoff shape.
+enum AiNotificationOutcome {
+  DELIVERED
+  SUPPRESSED_PREFERENCE
+  SUPPRESSED_NO_DEVICE
+  SUPPRESSED_ACCOUNT_CLOSED
+  SUPPRESSED_SUPERSEDED
+  SUPPRESSED_STALE
+  ABANDONED
+}
+
 model AiPlanAcceptanceOutbox {
-  id            String    @id @default(cuid())
-  planVersionId String    @unique
-  clientId      String
-  createdAt     DateTime  @default(now())
-  processedAt   DateTime?
+  id              String    @id @default(cuid())
+  planVersionId   String    @unique
+  clientId        String
+  createdAt       DateTime  @default(now())
+  processedAt     DateTime?
+  attempts        Int       @default(0) // also the claim token — see the drain's conditional updateMany
+  nextAttemptAt   DateTime? // null = due now; set forward on claim (lease) and on backoff
+  deliveryOutcome AiNotificationOutcome? // non-null iff processedAt is non-null
+  lastErrorCode   String? // closed AiPlanNotificationErrorCode set ONLY — this column is exported to the client, never a provider body
 
   client      User          @relation(fields: [clientId], references: [id])
   planVersion AiPlanVersion @relation(fields: [planVersionId], references: [id])
+
+  @@index([processedAt, nextAttemptAt])
 }
 
 // One accepted ROUTINE change per client per canonical review window,

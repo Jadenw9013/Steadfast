@@ -355,6 +355,7 @@ lib/ai-coach/
   executor.ts                   A05  runExecutorSweep / processClaimedRun
   run-status.ts                 A05  getRunStatusForClient — safe minimized DTO
   plan-acceptance.ts            A10  acceptPlanVersionAtomic / declinePlanVersion — THE real acceptance service
+  acceptance-notifications.ts   T-502 drainAcceptanceNotifications — bounded outbox drain phase in runExecutorSweep
 ```
 
 ### Routes
@@ -788,9 +789,47 @@ Reviewer operations show seven-day run outcomes/retries, expired leases, oldest
 open run, closed-window proposals and undelivered notification intents, scoped
 to assigned synthetic clients. Revocation/assignment are rechecked after reads;
 raw errors/prompts are never returned. Closed-window proposals leave the active
-review queue. Notification delivery explicitly remains unconfigured, not falsely
-reported as sent. The eight-week evidence boundary now uses local-calendar
+review queue. The eight-week evidence boundary now uses local-calendar
 midnight across DST, with spring/fall tests.
+
+**T-502 (2026-09-25) — acceptance notifications are now delivered, not just
+recorded.** A bounded drain phase (`lib/ai-coach/acceptance-notifications.ts`,
+`drainAcceptanceNotifications`) runs as the *first* statement of
+`runExecutorSweep`, before the `FEATURE_AI_COACH_GENERATION` early return —
+an outbox row describes a plan already active on the client's screen, so it
+must not be stranded by the generation flag being paused. The drain is gated
+independently on `FEATURE_AI_COACH_PUBLICATION` plus the `ACCEPTANCE`
+operational control, claims each row with a single conditional `updateMany`
+guarded on `attempts` (never read-then-write — concurrent sweeps must
+deliver exactly once), and sends through one seam,
+`lib/notifications/ai-coach-plan.ts` (`deliverAiPlanAcceptanceNotification`),
+the only importer of `push.ts` for this event. Terminal outcomes:
+`DELIVERED`, `SUPPRESSED_PREFERENCE`, `SUPPRESSED_NO_DEVICE`,
+`SUPPRESSED_ACCOUNT_CLOSED`, `SUPPRESSED_SUPERSEDED` (a client with two
+pending rows only ever gets the newest push), `SUPPRESSED_STALE` (rows older
+than 48 hours are retired without ever sending — the answer to "what happens
+to rows written before this shipped": nothing, no backfill), and `ABANDONED`
+after `MAX_NOTIFICATION_ATTEMPTS` (5) with growing backoff
+(5m/30m/2h/6h) — except `PUSH_CONFIG_MISSING` (no APNs env vars), which backs
+off without consuming the attempt budget so a missing env var can never
+abandon a cohort's notifications. The push payload is `type:
+"MEAL_PLAN_UPDATED"`, deliberately reusing the shipped app's existing
+"plan published" routing (`PushNotificationService.swift`) — no iOS change.
+`getReviewerOperations` now reports `abandonedNotifications`, `retiredNotifications`
+(`SUPPRESSED_STALE` + `SUPPRESSED_SUPERSEDED` — round 2, so a bulk stale/supersede pass doesn't silently drop
+the pending count to zero with no visible explanation) and a real `notificationDelivery: "ENABLED" |
+"DISABLED_BY_FLAG" | "PAUSED" | "ERRORED"` (round 3 adds `"ERRORED"` for an unexpected gate failure, e.g. a
+thrown `LiveLaunchError`) in place of the old hardcoded `"NOT_CONFIGURED"` literal.
+`getAcceptanceDeliveryState()` (`lib/ai-coach/operations.ts`) is the single function both the drain's own
+gate (`runAcceptanceNotificationPhase`) and this readout call, so the two cannot structurally disagree.
+
+T-502 added `tests/integration/ai-coach-acceptance-notifications.test.ts` (15
+new cases), `tests/unit/ai-coach-acceptance-notification-copy.test.ts` (5) and
+`tests/unit/ai-coach-acceptance-notification-mapping.test.ts` (7), and
+extended `tests/integration/ai-coach-export.test.ts` with one case — 27 new
+tests engineer-verified against the ticket branch, on top of whatever full
+count qa-verifier records for the sprint branch as a whole (not recomputed
+here — see the ticket's own evidence file for the exact commands run).
 
 Verified together with the authority follow-up: 218 integration tests and 427
 unit tests pass, type-check/build pass, lint unchanged at 14 errors/64 warnings.
