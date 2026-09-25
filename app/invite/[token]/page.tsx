@@ -1,5 +1,5 @@
 import { getInviteDetails, redeemInvite } from "@/app/actions/client-invites";
-import { acceptAnywayRedirectTarget } from "@/lib/activation";
+import { acceptAnywayRedirectTarget, confirmErrorMessageForCode } from "@/lib/activation";
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
@@ -29,15 +29,29 @@ export default async function InviteRedemptionPage({
     // lie fixed in lib/activation.ts, one layer up (release-safety §4).
     async function acceptAnyway() {
         "use server";
-        const result = await redeemInvite(token, { confirmDifferentEmail: true });
-        redirect(
-            acceptAnywayRedirectTarget(
+        let target: string;
+        try {
+            const result = await redeemInvite(token, { confirmDifferentEmail: true });
+            target = acceptAnywayRedirectTarget(
                 token,
                 "success" in result && result.success
                     ? { success: true }
                     : { success: false, error: "error" in result ? result.error : "Something went wrong. Please try again." }
-            )
-        );
+            );
+        } catch {
+            // T-987 review round 2, code review finding B: redeemInvite calls
+            // getCurrentDbUser(), which throws when the Clerk session has
+            // lapsed between the confirm card rendering and this submission
+            // (the ordinary case for a form left open on a public page) or
+            // the account is pending deletion. Uncaught, that reaches the
+            // user as Next's blank default error screen — no error.tsx
+            // exists here. Route through the same table as every other
+            // refusal, with a code that matches nothing known, so the page
+            // shows the generic sentence. Never put the thrown error's
+            // message in the URL — it can carry internals.
+            target = acceptAnywayRedirectTarget(token, { success: false, error: "__unexpected__" });
+        }
+        redirect(target);
     }
     const { userId } = await auth();
 
@@ -53,12 +67,20 @@ export default async function InviteRedemptionPage({
     // A confirm submission just refused: show the real reason, not a stale
     // "already used"/"expired" landing derived from the invite row alone,
     // and not another silent "welcomed" redirect.
+    //
+    // T-987 review round 2 (parity MINOR 2, code review finding C):
+    // `confirmError` is a stable CODE from the URL, not free text — anyone
+    // holding any valid token could otherwise craft this URL to render
+    // arbitrary phishing copy on the product domain. The sentence always
+    // comes from confirmErrorMessageForCode's fixed table; an unrecognised
+    // code (including one a thrown error produces) renders the generic
+    // fallback, never the raw query value.
     if (confirmError) {
         return (
             <div className="flex min-h-[100dvh] items-center justify-center bg-black px-5">
                 <div className="w-full max-w-md sf-glass-card !border-red-500/20 p-8 text-center space-y-4">
                     <p className="text-lg font-semibold text-zinc-100">Invite Error</p>
-                    <p className="text-sm text-red-400">{confirmError}</p>
+                    <p className="text-sm text-red-400">{confirmErrorMessageForCode(confirmError)}</p>
                     <Link href="/client" className="inline-block text-sm text-zinc-500 hover:text-zinc-300">
                         Go to your dashboard →
                     </Link>

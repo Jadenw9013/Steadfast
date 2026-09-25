@@ -69,8 +69,61 @@ export function inviteConfirmationMessage(input: {
 }
 
 /**
+ * T-987 review round 2 (parity MINOR 2, code review finding C): the six
+ * refusal sentences `acceptClientInviteForUser` returns are a small, known,
+ * closed set. `/invite/[token]`'s confirm submission round-trips one of
+ * them through the URL so the re-rendered page can show it — but the raw
+ * sentence is attacker-controllable free text rendered on the product
+ * domain (anyone holding *any* valid token can craft
+ * `/invite/<token>?confirmError=<phishing copy>`). This table is the one
+ * place that sentence set lives; the redirect target carries a CODE from
+ * it, never the sentence itself, and an unrecognised code (including the
+ * generic code a thrown error maps to) renders the generic fallback.
+ */
+export type ConfirmErrorCode =
+  | "account_unavailable"
+  | "invite_unavailable"
+  | "coach_unavailable"
+  | "already_used"
+  | "expired"
+  | "ai_mode"
+  | "other_coach"
+  | "unknown";
+
+const CONFIRM_ERROR_MESSAGES: Record<Exclude<ConfirmErrorCode, "unknown">, string> = {
+  account_unavailable: "This client account is unavailable.",
+  invite_unavailable: "This invite is no longer available.",
+  coach_unavailable: "This coach is unavailable.",
+  already_used: "This invite has already been used.",
+  expired: "This invite has expired or is no longer available. Ask your coach for a new one.",
+  ai_mode: "Pause AI coaching or resolve your provider before accepting a human coach.",
+  other_coach: "Leave your current coaching relationship before accepting another coach.",
+};
+
+const GENERIC_CONFIRM_ERROR_MESSAGE = "Something went wrong confirming this invite. Please try again.";
+
+/** Pure. The known sentence a refusal code renders as — never the query
+ *  param's raw value. Any code this table does not recognise (including
+ *  `"unknown"`) falls back to the generic sentence; nothing is ever echoed. */
+export function confirmErrorMessageForCode(code: string | null | undefined): string {
+  if (code && Object.prototype.hasOwnProperty.call(CONFIRM_ERROR_MESSAGES, code)) {
+    return CONFIRM_ERROR_MESSAGES[code as Exclude<ConfirmErrorCode, "unknown">];
+  }
+  return GENERIC_CONFIRM_ERROR_MESSAGE;
+}
+
+/** Pure. The inverse lookup: which code (if any) this exact sentence is. */
+function confirmErrorCodeForMessage(message: string): ConfirmErrorCode {
+  for (const [code, sentence] of Object.entries(CONFIRM_ERROR_MESSAGES)) {
+    if (sentence === message) return code as ConfirmErrorCode;
+  }
+  return "unknown";
+}
+
+/**
  * Pure. Where `/invite/[token]`'s "acceptAnyway" confirm submission sends the
- * client next, given `redeemInvite`'s result.
+ * client next, given `redeemInvite`'s result (or, for a thrown error, a
+ * synthetic non-matching `error` string, which maps to the generic code).
  *
  * T-987 review round 1, MAJOR 1: the page used to discard this result and
  * redirect to the welcome dashboard unconditionally, so a refusal reached
@@ -84,7 +137,8 @@ export function acceptAnywayRedirectTarget(
   result: { success: true } | { success?: false; error: string }
 ): string {
   if (result.success) return "/client?welcomed=1";
-  return `/invite/${token}?confirmError=${encodeURIComponent(result.error)}`;
+  const code = confirmErrorCodeForMessage(result.error);
+  return `/invite/${encodeURIComponent(token)}?confirmError=${code}`;
 }
 
 // ── Core helper: issue an invitation ──────────────────────────────────────────
