@@ -31,7 +31,7 @@
 | **Email** | Resend (transactional emails) |
 | **SMS** | Twilio (opt-in notifications) |
 | **LLM** | OpenAI (meal plan parsing, workout plan parsing) |
-| **Deployment** | Vercel (Hobby plan — max 1 cron/day) |
+| **Deployment** | Vercel (Pro decided in G05/T-590, must be confirmed on the dashboard before the T-503 `vercel.json` ships — was Hobby, 1 cron/day; three crons now registered) |
 | **Fonts** | Sora (body), Chakra Petch (headings), Geist Mono (code) |
 
 ### Critical Config Notes
@@ -409,13 +409,13 @@ Exercise: "Incline Press", Sets: 3
 - Granular per-type preferences (12 types)
 - Client: check-in reminders, coach messages, check-in feedback
 - Coach: new client check-ins, missed check-in alerts, new client signups, client messages
-- Daily cron (`/api/cron/checkin-reminders`) runs at 7PM UTC (Vercel Hobby limit: once/day)
+- Daily cron (`/api/cron/checkin-reminders`) runs at 7PM UTC; two more crons registered as of T-503 (see `ARCHITECTURE.md` §Cron Jobs) — no longer Hobby's once/day limit
 
 ---
 
 ## 15. Known Gotchas & Constraints
 
-1. **Vercel Hobby plan**: Only 1 cron job, must run ≤ once per day. Current cron: `0 19 * * *` (7PM UTC)
+1. **Vercel plan**: Pro decided in G05 (T-590), to be confirmed on the dashboard before T-503 ships (was Hobby, 1 cron/day). Current crons: `0 19 * * *` (checkin-reminders), `5 * * * *` (ai-coach-executor), `0 4 * * *` (purge-deleted-accounts) — see `ARCHITECTURE.md` §Cron Jobs
 2. **Prisma adapter**: `@prisma/adapter-pg` with `Int[]` / `Json?` fields can cause P2022 in Turbopack dev. Always use explicit `select` on `CoachClient` and `User` queries that might fetch array columns
 3. **Schema drift**: After editing `schema.prisma`, always run `npx prisma migrate dev` (not `db push`) to create a migration file for the production DB
 4. **Prisma client location**: Generated at `app/generated/prisma/` — after schema changes, run `npx prisma generate` and restart dev server

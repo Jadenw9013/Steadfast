@@ -304,6 +304,15 @@ A10's fixture-tested acceptance service, and that dependency is
 "intentionally acyclic" the other way — building A10 first means A06 has
 something real to call instead of a stub.
 
+**T-503 (2026-09-24):** A05's cron route is now actually scheduled — `vercel.json` registers
+`/api/cron/ai-coach-executor` hourly at `:05 UTC` (`5 * * * *`), with `maxDuration = 180` (135s
+provider ceiling for 3 sequential claims + 45s validation/persistence/reconciliation headroom) and
+`runtime = "nodejs"` declared explicitly on the route. The sweep stays a complete no-op — zero
+database access — while `FEATURE_AI_COACH_GENERATION` is unset, which is every environment today.
+`vercel.json` also gained a second, independent daily drain pass for `/api/cron/purge-deleted-accounts`
+at `04:00 UTC`, alongside its existing 19:00 piggyback inside `checkin-reminders` (F08, unchanged). A
+fourth `vercel.json` entry is reserved for T-998's alert evaluator.
+
 ### File manifest — `lib/ai-coach/`
 
 ```
@@ -330,7 +339,7 @@ lib/ai-coach/
 ### Routes
 
 ```
-app/api/cron/ai-coach-executor/route.ts             A05  authenticated sweep trigger
+app/api/cron/ai-coach-executor/route.ts             A05  authenticated sweep trigger — scheduled hourly at :05 UTC (T-503), maxDuration=180, no-op while flag unset
 app/api/client/ai-coach/runs/[runId]/route.ts        A05  safe run-status read
 app/api/client/ai-coach/plans/[id]/accept/route.ts   A10
 app/api/client/ai-coach/plans/[id]/decline/route.ts  A10
@@ -357,7 +366,8 @@ tests/integration/ai-coach-context.test.ts          A01  (13 tests)
 tests/integration/ai-coach-runs-plans.test.ts        A02  (16 tests)
 tests/integration/ai-coach-intake-safety.test.ts     A03  (13 tests)
 tests/unit/ai-coach-catalog.test.ts                  A04  (18 tests, no DB needed)
-tests/integration/ai-coach-executor.test.ts          A05  (12 tests)
+tests/integration/ai-coach-executor.test.ts          A05  (17 tests)
+tests/unit/cron-schedule.test.ts                     A05  (4 tests, no DB needed — pins vercel.json + route segment config, T-503)
 tests/integration/ai-coach-plan-acceptance.test.ts   A10  (38 tests after takeover correction)
 tests/integration/account-deletion.test.ts           purge coverage extended at every slice
 ```
