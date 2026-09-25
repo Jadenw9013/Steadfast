@@ -32,6 +32,7 @@ import { POST as cancelDeletion } from "@/app/api/actions/account-deletion/cance
 import { db } from "@/lib/db";
 import { consumeQuota } from "@/lib/security/quota";
 import { purgeUserAccount } from "@/lib/account-deletion/purge";
+import { confirmIntake } from "@/lib/ai-coach/intake";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
@@ -763,6 +764,53 @@ suite("account deletion with real PostgreSQL constraints", () => {
         });
       }
     }
+  });
+  it("T-2024: purges a v2-confirmed intake (AiCoachProfile + AiIntakeDraft) same as v1", async () => {
+    const { user } = await fixture();
+    await db.aiIntakeDraft.create({
+      data: { clientId: user.id, answers: { goal: "STRENGTH", intakeVersion: 2 } },
+    });
+    const confirmed = await confirmIntake(user.id, {
+      intakeVersion: 2,
+      goal: "GENERAL_FITNESS",
+      experienceLevel: "NEW",
+      trainingDaysPerWeek: 3,
+      equipmentAccess: ["NONE"],
+      foodBudgetLevel: "LOW",
+      trackingPreference: "NUMBERS_VISIBLE",
+      unitsPreference: "METRIC",
+      ageStatus: "UNKNOWN",
+      energyMethodPopulationCategoryStatus: "UNKNOWN",
+      physicalActivityCategoryStatus: "UNKNOWN",
+      bodyMeasurementStatus: "UNKNOWN",
+      goalStatus: "UNKNOWN",
+      trainingContextStatus: "UNKNOWN",
+      cookingAccessStatus: "UNKNOWN",
+      dislikes: [],
+      cuisinePreferences: [],
+      allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+      dietaryPattern: {
+        pattern: "NONE_DECLARED",
+        otherLabel: null,
+        mandatory: false,
+        reason: "NOT_STATED",
+        status: "UNKNOWN",
+      },
+    });
+    expect(confirmed.success).toBe(true);
+    expect(
+      (await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: user.id } })).confirmedIntake
+    ).toMatchObject({ intakeVersion: 2 });
+    // Confirming clears the draft, so re-create one to prove purge also
+    // handles a v2-shaped draft row, not just a v2-confirmed profile.
+    await db.aiIntakeDraft.create({
+      data: { clientId: user.id, answers: { goal: "STRENGTH", intakeVersion: 2 } },
+    });
+
+    await purgeUserAccount(user.id);
+
+    expect(await db.aiCoachProfile.findUnique({ where: { clientId: user.id } })).toBeNull();
+    expect(await db.aiIntakeDraft.findUnique({ where: { clientId: user.id } })).toBeNull();
   });
   it("keeps all DB records and identity when storage cleanup fails", async () => {
     const { user, receipt, checkIn } = await fixture();

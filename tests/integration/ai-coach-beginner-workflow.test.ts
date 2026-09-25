@@ -64,6 +64,13 @@ suite("beginner shared-command journey with real persistence", () => {
     });
     await command({ operation: "ALLERGIES", allergies: [] });
     await command({ operation: "CONFIRM_INTAKE", answers });
+    // T-2024: a v1-shaped confirm still produces the exact same workspace DTO
+    // shape, plus the new intakeSchemaVersions capability field.
+    const afterV1Confirm = await getAiWorkspace(client.id);
+    expect(afterV1Confirm.intakeSchemaVersions).toEqual([1, 2]);
+    expect(afterV1Confirm.schemaVersion).toBe(1);
+    expect(afterV1Confirm.confirmedIntake).toMatchObject({ goal: "GENERAL_FITNESS" });
+    expect(afterV1Confirm.confirmedIntake).not.toHaveProperty("intakeVersion");
     await command({
       operation: "ENROLL",
       expectedProfileRevision: 1,

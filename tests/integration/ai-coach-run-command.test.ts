@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
-import { requestAiRun } from "@/lib/ai-coach/run-command";
+import { requestAiRun, runSnapshotSchema } from "@/lib/ai-coach/run-command";
 import {
   activateTestLiveRelease,
   createTestGovernanceActor,
@@ -171,5 +171,15 @@ suite("managed run request boundary", () => {
     });
     await db.user.delete({ where: { id: user.id } });
     expect(await db.aiOperationReceipt.count({ where: { clientId: user.id } })).toBe(0);
+  });
+  it("T-2024: a v1 confirmedIntake (no intakeVersion) still produces a stored inputSnapshot that runSnapshotSchema re-parses — the back-compat regression the intake v2 read schema must never break", async () => {
+    const client = await fixture(); // this fixture's confirmedIntake is v1-shaped (no intakeVersion)
+    const { runId } = await requestAiRun(client.id, command());
+    const run = await db.aiCoachRun.findUniqueOrThrow({ where: { id: runId } });
+    const parsed = runSnapshotSchema.safeParse(run.inputSnapshot);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) throw new Error("unreachable");
+    expect(parsed.data.intake).not.toHaveProperty("intakeVersion");
+    expect(parsed.data.schemaVersion).toBe(1);
   });
 });

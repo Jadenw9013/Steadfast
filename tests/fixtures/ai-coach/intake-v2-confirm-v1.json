@@ -1,0 +1,51 @@
+{
+  "intakeVersion": 2,
+  "goal": "BODY_COMPOSITION",
+  "experienceLevel": "RETURNING",
+  "trainingDaysPerWeek": 4,
+  "equipmentAccess": ["HOME_BASIC"],
+  "foodBudgetLevel": "MODERATE",
+  "trackingPreference": "NUMBERS_VISIBLE",
+  "unitsPreference": "METRIC",
+  "heightCm": 170,
+  "weightKg": 68,
+  "ageYears": 29,
+  "ageStatus": "CONFIRMED",
+  "energyMethodPopulationCategory": "FEMALE_ADULT",
+  "energyMethodPopulationCategoryStatus": "CONFIRMED",
+  "physicalActivityCategory": "LOW_ACTIVE",
+  "physicalActivityCategoryStatus": "CONFIRMED",
+  "bodyMeasurementStatus": "CONFIRMED",
+  "weightMeasuredOn": "2026-09-20",
+  "bodyWeightIntent": "MAINTAIN",
+  "goalPaceClass": "MAINTAIN",
+  "weightNeutralAccepted": true,
+  "goalStatus": "CONFIRMED",
+  "resistanceTrainingContext": "OCCASIONAL",
+  "sessionLengthBand": "MIN_45_60",
+  "trainingContextStatus": "CONFIRMED",
+  "cookingAccess": {
+    "equipment": ["STOVETOP", "OVEN"],
+    "refrigeration": "FRIDGE_AND_FREEZER",
+    "mealPrepCapacity": "SOME",
+    "typicalPrepMinutesBand": "MIN_15_30"
+  },
+  "cookingAccessStatus": "CONFIRMED",
+  "dislikes": [{ "label": "cilantro", "canonicalFoodId": null }],
+  "cuisinePreferences": ["Thai", "Mexican"],
+  "allergenDeclarations": {
+    "status": "CONFIRMED",
+    "noKnownAllergens": false,
+    "items": [
+      { "category": "TREE_NUT", "specificity": "cashew", "kind": "ALLERGY", "crossContactAvoidanceRequired": "YES" },
+      { "category": "MILK", "specificity": null, "kind": "INTOLERANCE_OR_SENSITIVITY", "crossContactAvoidanceRequired": "NO" }
+    ]
+  },
+  "dietaryPattern": {
+    "pattern": "OMNIVORE",
+    "otherLabel": null,
+    "mandatory": false,
+    "reason": "PREFERENCE",
+    "status": "CONFIRMED"
+  }
+}

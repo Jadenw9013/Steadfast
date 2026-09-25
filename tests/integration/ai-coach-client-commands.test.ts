@@ -6,6 +6,10 @@ vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: mocks.cler
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { db } from "@/lib/db";
 import { applyAiClientCommand } from "@/lib/ai-coach/client-commands";
+import { deriveLegacyAllergyTokens } from "@/lib/ai-coach/intake-allergens";
+import { intakeAnswersSchema, type AllergenDeclarations } from "@/lib/ai-coach/intake";
+import { getAiWorkspace } from "@/lib/queries/ai-coach";
+import { requestAiRun, runSnapshotSchema } from "@/lib/ai-coach/run-command";
 import { POST } from "@/app/api/client/ai-coach/commands/route";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
 import {
@@ -20,6 +24,21 @@ if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 const answers = { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC" };
 const safety = { chestPainDuringExercise: "NO", dizzinessOrFainting: "NO", heartCondition: "NO", pregnantOrPostpartum: "NO", recentInjuryOrSurgery: "NO" };
+function v2Answers(overrides: Record<string, unknown> = {}) {
+  return {
+    intakeVersion: 2,
+    goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3,
+    equipmentAccess: ["NONE"], foodBudgetLevel: "LOW",
+    trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC",
+    ageStatus: "UNKNOWN", energyMethodPopulationCategoryStatus: "UNKNOWN",
+    physicalActivityCategoryStatus: "UNKNOWN", bodyMeasurementStatus: "UNKNOWN",
+    goalStatus: "UNKNOWN", trainingContextStatus: "UNKNOWN", cookingAccessStatus: "UNKNOWN",
+    dislikes: [], cuisinePreferences: [],
+    allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+    dietaryPattern: { pattern: "NONE_DECLARED", otherLabel: null, mandatory: false, reason: "NOT_STATED", status: "UNKNOWN" },
+    ...overrides,
+  };
+}
 suite("client intake, consent and HTTP boundaries", () => {
   beforeEach(() => { vi.stubEnv("AI_COACH_FIXTURE_MODE", "true"); vi.stubEnv("FEATURE_AI_COACH_ENROLLMENT", "true"); });
   afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
@@ -154,5 +173,257 @@ suite("client intake, consent and HTTP boundaries", () => {
     } finally {
       await deactivateTestLiveRelease(actor.id);
     }
+  });
+
+
+  it("T-2024: ALLERGIES v2 shape writes both allergenDeclarations and the derived legacy allergies array", async () => {
+    const client = await fixture();
+    const declarations = {
+      status: "CONFIRMED", noKnownAllergens: false,
+      items: [{ category: "TREE_NUT", specificity: null, kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+    };
+    await applyAiClientCommand(client.id, { ...base(), operation: "ALLERGIES", allergenDeclarations: declarations });
+    const draft = await db.aiIntakeDraft.findUniqueOrThrow({ where: { clientId: client.id } });
+    expect(draft.answers).toMatchObject({ allergenDeclarations: declarations, allergies: ["TREE_NUT"] });
+  });
+
+  it("T-2024: a v2 narrowing (adding specificity under an already-declared category) still bumps safetyRevision and invalidates proposals — the old string comparison would miss it", async () => {
+    const broad: AllergenDeclarations = {
+      status: "CONFIRMED", noKnownAllergens: false,
+      items: [{ category: "TREE_NUT", specificity: null, kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+    };
+    const narrowed: AllergenDeclarations = {
+      status: "CONFIRMED", noKnownAllergens: false,
+      items: [{ category: "TREE_NUT", specificity: "cashew", kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+    };
+    // Proves the defect the hash comparison fixes: the legacy derived
+    // token list the old code compared is IDENTICAL before and after this
+    // narrowing, so a plain string comparison would never see a change.
+    expect(deriveLegacyAllergyTokens(broad)).toEqual(deriveLegacyAllergyTokens(narrowed));
+
+    const client = await fixture();
+    await applyAiClientCommand(client.id, { ...base(), operation: "ALLERGIES", allergenDeclarations: broad });
+    expect((await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } })).safetyRevision).toBe(1);
+
+    const plan = await db.aiPlanVersion.create({
+      data: { clientId: client.id, version: 1, status: "PROPOSED", payload: {}, payloadHash: "h", contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 1, policyVersion: "p1", catalogVersions: {} },
+    });
+    const run = await db.aiCoachRun.create({
+      data: { clientId: client.id, kind: "WEEKLY_REVIEW", businessKey: randomUUID(), status: "QUEUED", contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 1 },
+    });
+
+    await applyAiClientCommand(client.id, { ...base(), operation: "ALLERGIES", allergenDeclarations: narrowed });
+
+    expect((await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } })).safetyRevision).toBe(2);
+    expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: plan.id } })).status).toBe("INVALIDATED");
+    expect((await db.aiCoachRun.findUniqueOrThrow({ where: { id: run.id } })).status).toBe("CANCELED");
+  });
+
+  it("ALLERGIES rejects a payload sending both allergies and allergenDeclarations", async () => {
+    const client = await fixture();
+    await expect(
+      applyAiClientCommand(client.id, {
+        ...base(),
+        operation: "ALLERGIES",
+        allergies: ["milk"],
+        allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+      })
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("ALLERGIES rejects a payload sending neither shape", async () => {
+    const client = await fixture();
+    await expect(
+      applyAiClientCommand(client.id, { ...base(), operation: "ALLERGIES" })
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("T-2024: a v1-shaped CONFIRM_INTAKE against an already-v2 profile is rejected 422", async () => {
+    const client = await fixture();
+    await applyAiClientCommand(client.id, { ...base(), operation: "SAFETY", answers: safety });
+    await applyAiClientCommand(client.id, {
+      ...base(),
+      operation: "ALLERGIES",
+      allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+    });
+    await applyAiClientCommand(client.id, { ...base(), operation: "CONFIRM_INTAKE", answers: v2Answers() });
+
+    await expect(
+      applyAiClientCommand(client.id, { ...base(), expectedProfileRevision: 1, operation: "CONFIRM_INTAKE", answers })
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR", message: "Update Steadfast to change your intake." });
+  });
+
+  it("T-2024: a v1-shaped CONFIRM_INTAKE against a v1/absent profile still succeeds (old-build regression)", async () => {
+    const client = await fixture();
+    await applyAiClientCommand(client.id, { ...base(), operation: "SAFETY", answers: safety });
+    await applyAiClientCommand(client.id, { ...base(), operation: "ALLERGIES", allergies: [] });
+    const result = await applyAiClientCommand(client.id, { ...base(), operation: "CONFIRM_INTAKE", answers });
+    expect(result).toMatchObject({ saved: true, profileRevision: 1 });
+  });
+
+  it("T-2024: a v2 confirm bumps profileRevision and cancels a QUEUED run + invalidates a PROPOSED plan", async () => {
+    const client = await fixture();
+    await applyAiClientCommand(client.id, { ...base(), operation: "SAFETY", answers: safety });
+    await applyAiClientCommand(client.id, {
+      ...base(),
+      operation: "ALLERGIES",
+      allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+    });
+
+    const plan = await db.aiPlanVersion.create({
+      data: { clientId: client.id, version: 1, status: "PROPOSED", payload: {}, payloadHash: "h", contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 0, policyVersion: "p1", catalogVersions: {} },
+    });
+    const run = await db.aiCoachRun.create({
+      data: { clientId: client.id, kind: "WEEKLY_REVIEW", businessKey: randomUUID(), status: "QUEUED", contextRevision: 0, profileRevision: 0, observationRevision: 0, safetyRevision: 0 },
+    });
+
+    const result = await applyAiClientCommand(client.id, { ...base(), operation: "CONFIRM_INTAKE", answers: v2Answers() });
+    expect(result).toMatchObject({ saved: true, profileRevision: 1 });
+    expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: plan.id } })).status).toBe("INVALIDATED");
+    expect((await db.aiCoachRun.findUniqueOrThrow({ where: { id: run.id } })).status).toBe("CANCELED");
+  });
+
+  it("T-2024 standing rule 10: a v2 confirmedIntake stays readable at every live read path — getAiWorkspace, ENROLL, and runSnapshotSchema", async () => {
+    vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true");
+    const client = await fixture();
+    await applyAiClientCommand(client.id, { ...base(), operation: "SAFETY", answers: safety });
+    await applyAiClientCommand(client.id, {
+      ...base(),
+      operation: "ALLERGIES",
+      allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+    });
+    await applyAiClientCommand(client.id, { ...base(), operation: "CONFIRM_INTAKE", answers: v2Answers() });
+
+    // lib/queries/ai-coach.ts:77 — the workspace read path.
+    const workspace = await getAiWorkspace(client.id);
+    expect(workspace.confirmedIntake).toMatchObject({ intakeVersion: 2 });
+    expect(intakeAnswersSchema.safeParse(workspace.confirmedIntake).success).toBe(true);
+
+    // client-commands.ts ENROLL guard — "Confirm your intake before enrolling."
+    // must not reject a v2-confirmed intake.
+    await applyAiClientCommand(client.id, {
+      ...base(),
+      expectedProfileRevision: 1,
+      operation: "ENROLL",
+      consent: true,
+      expectedContextRevision: 0,
+      reviewTimezone: "America/Los_Angeles",
+    });
+    expect((await db.clientCoachingContext.findUniqueOrThrow({ where: { clientId: client.id } })).mode).toBe("AI");
+
+    // run-command.ts:32 via runSnapshotSchema — a requested run's stored
+    // inputSnapshot must re-parse with the v2 intake embedded.
+    const { runId } = await requestAiRun(client.id, {
+      requestKey: randomUUID(),
+      kind: "INITIAL",
+      representation: "MACROS",
+      expectedContextRevision: 1,
+      expectedProfileRevision: 1,
+    });
+    const run = await db.aiCoachRun.findUniqueOrThrow({ where: { id: runId } });
+    const parsedSnapshot = runSnapshotSchema.safeParse(run.inputSnapshot);
+    expect(parsedSnapshot.success).toBe(true);
+    if (!parsedSnapshot.success) throw new Error("unreachable");
+    expect(parsedSnapshot.data.intake).toMatchObject({ intakeVersion: 2 });
+  });
+
+  it("T-2024 BLOCKER 3: a confirm payload missing allergies (v1) or allergenDeclarations (v2) fails as a clean 422, not a retryable 503, even when a draft row already exists", async () => {
+    const client = await fixture();
+    // A draft row must exist for this — that is exactly what hid the bug:
+    // the `!savedDraft.success` short-circuit threw first when there was
+    // no draft at all.
+    await applyAiClientCommand(client.id, { ...base(), operation: "SAVE_INTAKE", answers: { goal: "GENERAL_FITNESS" } });
+
+    const v1WithoutAllergies: Record<string, unknown> = { ...answers };
+    delete v1WithoutAllergies.allergies;
+    await expect(
+      applyAiClientCommand(client.id, { ...base(), operation: "CONFIRM_INTAKE", answers: v1WithoutAllergies })
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+
+    const v2WithoutDeclarations: Record<string, unknown> = v2Answers();
+    delete v2WithoutDeclarations.allergenDeclarations;
+    await expect(
+      applyAiClientCommand(client.id, { ...base(), operation: "CONFIRM_INTAKE", answers: v2WithoutDeclarations })
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+  });
+
+  it("T-2024 MAJOR 4: a v1-shaped ALLERGIES command against an already-v2 profile is rejected 422, never a second writer of the derived projection", async () => {
+    const client = await fixture();
+    const declarations = {
+      status: "CONFIRMED",
+      noKnownAllergens: false,
+      items: [{ category: "TREE_NUT", specificity: null, kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+    };
+    await applyAiClientCommand(client.id, { ...base(), operation: "SAFETY", answers: safety });
+    await applyAiClientCommand(client.id, { ...base(), operation: "ALLERGIES", allergenDeclarations: declarations });
+    await applyAiClientCommand(client.id, {
+      ...base(),
+      operation: "CONFIRM_INTAKE",
+      answers: v2Answers({ allergenDeclarations: declarations }),
+    });
+
+    await expect(
+      applyAiClientCommand(client.id, {
+        ...base(),
+        expectedProfileRevision: 1,
+        operation: "ALLERGIES",
+        allergies: ["peanuts"],
+      })
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR", message: "Update Steadfast to change your intake." });
+
+    // Never became a second writer: the draft's allergenDeclarations/derived
+    // allergies must be unchanged by the rejected v1 write.
+    const draft = await db.aiIntakeDraft.findUnique({ where: { clientId: client.id } });
+    expect((draft?.answers as Record<string, unknown> | undefined)?.allergies).not.toEqual(["peanuts"]);
+  });
+
+  it("T-2024 round 3 NIT (parity NIT 3): a v1-shaped ALLERGIES is rejected against a v2 draft even before anything is confirmed", async () => {
+    const client = await fixture();
+    await applyAiClientCommand(client.id, {
+      ...base(),
+      operation: "ALLERGIES",
+      allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+    });
+    // No CONFIRM_INTAKE has happened — profile.confirmedIntake is still
+    // null — but the draft already holds v2 allergenDeclarations.
+    await expect(
+      applyAiClientCommand(client.id, { ...base(), operation: "ALLERGIES", allergies: ["peanuts"] })
+    ).rejects.toMatchObject({ code: "VALIDATION_ERROR", message: "Update Steadfast to change your intake." });
+  });
+
+  it("T-2024 round 3 MAJOR 2 (parity MAJOR 3): a trailing space in specificity never makes CONFIRM_INTAKE permanently 422", async () => {
+    const client = await fixture();
+    await applyAiClientCommand(client.id, { ...base(), operation: "SAFETY", answers: safety });
+    // Stored trimmed by allergenDeclarationSchema on write.
+    await applyAiClientCommand(client.id, {
+      ...base(),
+      operation: "ALLERGIES",
+      allergenDeclarations: {
+        status: "CONFIRMED",
+        noKnownAllergens: false,
+        items: [{ category: "TREE_NUT", specificity: "cashew ", kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+      },
+    });
+    const storedDraft = await db.aiIntakeDraft.findUniqueOrThrow({ where: { clientId: client.id } });
+    expect(
+      (storedDraft.answers as { allergenDeclarations: { items: { specificity: string }[] } }).allergenDeclarations
+        .items[0].specificity
+    ).toBe("cashew"); // trimmed on write
+
+    // Confirm sends the untrimmed value a client might still hold in local
+    // state (e.g. autocorrect appended a trailing space and the client
+    // never re-fetched). Must succeed, not 422.
+    const result = await applyAiClientCommand(client.id, {
+      ...base(),
+      operation: "CONFIRM_INTAKE",
+      answers: v2Answers({
+        allergenDeclarations: {
+          status: "CONFIRMED",
+          noKnownAllergens: false,
+          items: [{ category: "TREE_NUT", specificity: "cashew ", kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+        },
+      }),
+    });
+    expect(result).toMatchObject({ saved: true, profileRevision: 1 });
   });
 });

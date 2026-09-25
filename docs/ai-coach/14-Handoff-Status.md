@@ -425,6 +425,7 @@ Commits, oldest to newest (`git log --oneline` on `main`):
 | `580dc50` | A01     | `ClientCoachingContext` single-provider authority, `AiCoachProfile` identity, `AiCoachEntitlement`, default-OFF flags (`lib/flags/ai-coach.ts`).                                                  |
 | `d6152e4` | A02     | `AiCoachRun`/`AiPlanVersion`/`AiAdjustmentSlot`/`AiWorkoutSession`/reviewer-grant schema and lifecycle (`lib/ai-coach/runs.ts`, `plan-lifecycle.ts`).                                             |
 | `3278ea2` | A03     | Staged intake draft/confirm and safety-disclosure service (`lib/ai-coach/intake.ts`, `safety.ts`).                                                                                                |
+| T-2024    | A03v2   | Intake v2 (web): versioned schema (`intakeAnswersSchema` stays the permissive read/compat shape, `intakeV2ConfirmSchema` is the v2 write shape), structured allergens (`lib/ai-coach/intake-allergens.ts`), two-shape `ALLERGIES` command, five-stage wizard (`components/ai-coach/intake-wizard.tsx`). `schemaVersion` stays `1`; new `intakeSchemaVersions: [1,2]` capability field.                |
 | `1f7174f` | A04     | Versioned food/exercise catalog loaders, nutrient totals, feasible-composition checks (`lib/ai-coach/catalog/`, `nutrition-totals.ts`, `composition-feasibility.ts`, `policy/policy-version.ts`). |
 | `fc545e7` | A05     | Durable job executor + provider adapter, all synthetic (`lib/ai-coach/executor.ts`, `provider/`, `run-status.ts`), authenticated cron route.                                                      |
 | `c4f6fe1` | A10     | Full atomic proposal acceptance/decline service — the policy/safety/entitlement/reviewer-gated gate A02 explicitly deferred (`lib/ai-coach/plan-acceptance.ts`).                                  |
@@ -443,16 +444,33 @@ database access — while `FEATURE_AI_COACH_GENERATION` is unset, which is every
 at `04:00 UTC`, alongside its existing 19:00 piggyback inside `checkin-reminders` (F08, unchanged). A
 fourth `vercel.json` entry is reserved for T-998's alert evaluator.
 
+**A03v2 release-packet note (T-2024 review round 3, MINOR 6):** the
+fail-closed sentinel `UNVERIFIABLE_ALLERGEN_STATUS_NOT_CONFIRMED`
+(`lib/ai-coach/intake-allergens.ts`, exported as
+`UNVERIFIABLE_ALLERGEN_STATUS_SENTINEL`) can reach a real client screen.
+`getAiWorkspace` returns `confirmedIntake`/`draft` raw, and the shipped
+pre-T-2025 iOS build renders `allergies` into its v1 intake form's
+free-text field — so a client with a v2 profile whose allergen status is
+DECLINED/UNKNOWN can see this literal string in the Allergies box on an
+old app build until that build is replaced by T-2025. Degraded, not
+crashed: any attempt to edit or confirm from that stale state is rejected
+by the v1 `ALLERGIES`/`CONFIRM_INTAKE` guards
+(`lib/ai-coach/client-commands.ts`). No fix is planned on the projection
+itself — the sentinel must keep failing closed, and T-2004 must never
+"clean" it out of the derived array by treating it as a real category.
+
 ### File manifest — `lib/ai-coach/`
 
 ```
 lib/ai-coach/
   runs.ts                      A02  Run lifecycle: claim/checkpoint/complete/fail/cancel/reconcile/retry
   plan-lifecycle.ts             A02  Storage-level plan version + adjustment-slot primitives (test/internal use only — see plan-acceptance.ts)
-  intake.ts                     A03  saveIntakeDraft / getIntakeDraft / confirmIntake
+  intake.ts                     A03  saveIntakeDraft / getIntakeDraft / confirmIntake — server-only (imports `db`); re-exports everything from intake-contract.ts for existing callers
+  intake-contract.ts            T-2024  intakeAnswersSchema / intakeV2ConfirmSchema / isV2Intake / every v2 enum+object schema / PENDING_G01_WORDING — client-safe leaf (zod only, no `db`/Prisma import), so `components/ai-coach/intake-wizard.tsx` can import it without pulling `pg` into the browser bundle (T-2024 review round 4 production-build fix)
+  intake-allergens.ts           T-2024  deriveLegacyAllergyTokens / deriveLegacyDietaryRestrictions / canonicalDeclarations (single writer of the legacy allergies/dietaryRestrictions projections)
   safety.ts                     A03  submitSafetyDisclosure / clearSafetyRestriction
   catalog/schema.ts             A04  Zod shapes for FoodItem / ExerciseItem (SYNTHETIC)
-  catalog/food-catalog.ts       A04  6-item SYNTHETIC food fixture
+  catalog/food-catalog.ts       A04  8-item SYNTHETIC food fixture (food-fixture-v2; 6 retained under LEGACY_FOOD_CATALOG/food-fixture-v1, T-2024 adds a shellfish-tagged item to v2 only)
   catalog/exercise-catalog.ts   A04  3-item SYNTHETIC exercise fixture
   catalog/loader.ts             A04  getFoodItem / getExerciseItem (id+version lookup, rejects unknown/stale)
   policy/policy-version.ts      A04  checkPolicyVersionUsable (SYNTHETIC single active version + one revoked version)
@@ -495,7 +513,7 @@ a synthetic fixture reach a real user — don't.
 ```
 tests/integration/ai-coach-context.test.ts          A01  (13 tests)
 tests/integration/ai-coach-runs-plans.test.ts        A02  (16 tests)
-tests/integration/ai-coach-intake-safety.test.ts     A03  (13 tests)
+tests/integration/ai-coach-intake-safety.test.ts     A03  (18 tests incl. T-2024 v2 confirm cases)
 tests/unit/ai-coach-catalog.test.ts                  A04  (18 tests, no DB needed)
 tests/integration/ai-coach-executor.test.ts          A05  (17 tests)
 tests/unit/cron-schedule.test.ts                     A05  (4 tests, no DB needed — pins vercel.json + route segment config, T-503)
