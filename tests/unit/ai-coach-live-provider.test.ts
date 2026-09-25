@@ -12,7 +12,10 @@ import {
 } from "@/lib/ai-coach/provider/anthropic-provider";
 import {
   callConstrainedProvider,
+  constrainedProviderEnvelopeSchema,
+  validateConstrainedProviderOutput,
   type ConstrainedProviderEnvelope,
+  type ConstrainedProviderOutput,
 } from "@/lib/ai-coach/provider/adapter";
 import { estimateSpendMinorUnits } from "@/lib/ai-coach/provider/spend-limits";
 import { TEST_RUNTIME_CONFIGURATION } from "@/tests/helpers/ai-live-launch";
@@ -445,5 +448,135 @@ describe("Anthropic constrained provider", () => {
     const provider = new AnthropicConstrainedProvider(release(), transport, () => "token");
     await provider.invoke(envelope(), { signal: new AbortController().signal });
     expect(transport).toHaveBeenCalledOnce();
+  });
+});
+
+describe("T-2030 — explanationInputs on the live provider", () => {
+  function envelopeWithExplanationInputs(): ConstrainedProviderEnvelope {
+    const base = envelope();
+    return {
+      ...base,
+      allowed: { ...base.allowed, numericFieldIds: ["NUTRITION_ENERGY_KCAL"] },
+      explanationInputs: {
+        outcome: "APPROVE_AUTOMATICALLY",
+        numericFields: [
+          {
+            id: "NUTRITION_ENERGY_KCAL",
+            value: 1314,
+            unit: "KCAL_PER_DAY",
+            displayLabel: "Energy",
+            displayValue: "1314",
+          },
+        ],
+        displayNames: [{ optionId: "OPTION_1", name: "Synthetic test food" }],
+        maxCharacters: 400,
+        language: "en",
+      },
+    };
+  }
+
+  it("sends explanationInputs' display tokens, labels and names in the system prompt and the user turn, never catalogVocabulary", async () => {
+    const transport = vi.fn(async (request: AnthropicParseRequest) => {
+      expect(request.system).toContain("1314");
+      expect(request.system).toContain("Energy");
+      expect(request.system).toContain("Synthetic test food");
+      expect(request.system).not.toContain("catalogVocabulary");
+      const payload = JSON.parse(request.messages[0].content) as {
+        explanationInputs?: unknown;
+      };
+      expect(payload.explanationInputs).toEqual({
+        outcome: "APPROVE_AUTOMATICALLY",
+        numericFields: [
+          {
+            id: "NUTRITION_ENERGY_KCAL",
+            value: 1314,
+            unit: "KCAL_PER_DAY",
+            displayLabel: "Energy",
+            displayValue: "1314",
+          },
+        ],
+        displayNames: [{ optionId: "OPTION_1", name: "Synthetic test food" }],
+        maxCharacters: 400,
+        language: "en",
+      });
+      const serializedRequest = JSON.stringify(request);
+      expect(serializedRequest).not.toContain("catalogVocabulary");
+      // review r1 MINOR 2 — this is the *real* serialized transport
+      // request `AnthropicConstrainedProvider.invoke` actually sent
+      // (production code: `buildConstrainedSystemPrompt` +
+      // `minimizedUserPayload`), not a hand-built literal, so scanning it
+      // for these terms is a genuine assertion about what leaves the
+      // server, not a check on the test's own fixture.
+      for (const forbidden of ["clientId", "tenantId", "packetId", "policyBody", "artifactDigest"]) {
+        expect(serializedRequest).not.toContain(forbidden);
+      }
+      return validTransportResponse();
+    });
+    const provider = new AnthropicConstrainedProvider(release(), transport, () => "token");
+    await provider.invoke(envelopeWithExplanationInputs(), {
+      signal: new AbortController().signal,
+    });
+    expect(transport).toHaveBeenCalledOnce();
+  });
+
+  it("explanationInputs' schema structurally rejects clientId, tenantId, packetId, a policy body or an artifact digest field, not just this fixture's instance", () => {
+    // Stronger than scanning one hand-built instance for absent
+    // substrings (review r1 MINOR 2): `explanationInputs` is `.strict()`
+    // (adapter.ts), so the schema itself — not just this test's choice of
+    // fields — rejects any of these keys on any input, forever.
+    const base = envelopeWithExplanationInputs();
+    for (const forbiddenKey of ["clientId", "tenantId", "packetId", "policyBody", "artifactDigest"]) {
+      expect(() =>
+        constrainedProviderEnvelopeSchema.parse({
+          ...base,
+          explanationInputs: { ...base.explanationInputs, [forbiddenKey]: "forbidden-value" },
+        })
+      ).toThrow();
+    }
+  });
+
+  it("an output carrying explanationText parses", () => {
+    const envelopeForOutput = envelopeWithExplanationInputs();
+    const output: unknown = { ...validOutput, explanationText: "Synthetic validated sentence." };
+    expect(validateConstrainedProviderOutput(envelopeForOutput, output)).not.toBeNull();
+  });
+
+  it("an empty-string explanationText is coerced to null, not fail-closed (review r1 MAJOR 1)", () => {
+    const envelopeForOutput = envelopeWithExplanationInputs();
+    const output: unknown = { ...validOutput, explanationText: "" };
+    const result = validateConstrainedProviderOutput(envelopeForOutput, output);
+    expect(result).not.toBeNull();
+    expect(result?.explanationText).toBeNull();
+  });
+
+  it("an over-ceiling (601-character) explanationText is coerced to null, not fail-closed (review r1 MAJOR 1)", () => {
+    const envelopeForOutput = envelopeWithExplanationInputs();
+    const output: unknown = { ...validOutput, explanationText: "x".repeat(601) };
+    const result = validateConstrainedProviderOutput(envelopeForOutput, output);
+    expect(result).not.toBeNull();
+    expect(result?.explanationText).toBeNull();
+  });
+
+  it("a stray clarificationText on a non-REQUEST_CLARIFICATION disposition is coerced to null, not fail-closed (review r1 MAJOR 1)", () => {
+    const envelopeForOutput = envelopeWithExplanationInputs();
+    const output: unknown = {
+      ...validOutput,
+      concern: { disposition: "NONE", clarificationId: null },
+      clarificationText: "Synthetic clarification text.",
+    };
+    const result = validateConstrainedProviderOutput(envelopeForOutput, output);
+    expect(result).not.toBeNull();
+    expect(result?.clarificationText).toBeNull();
+  });
+
+  it("an output carrying neither explanationText nor clarificationText still parses (the synthetic provider's shape)", () => {
+    const envelopeForOutput = envelopeWithExplanationInputs();
+    const output: ConstrainedProviderOutput | null = validateConstrainedProviderOutput(
+      envelopeForOutput,
+      validOutput
+    );
+    expect(output).not.toBeNull();
+    expect(output).not.toHaveProperty("explanationText");
+    expect(output).not.toHaveProperty("clarificationText");
   });
 });

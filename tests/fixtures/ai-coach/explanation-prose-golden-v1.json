@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "t2006-prose-v1",
+  "description": "SYNTHETIC FIXTURE. The frozen REST shape of GET /api/client/ai-coach/workspace's proposals[].authorization additions (T-2006). Every string here is synthetic test data, not a real client, plan or clinical claim. T-2031 (iOS) decodes this same file; its digest is asserted in both repos.",
+  "workspaceProposalAuthorization": {
+    "acceptedExplanation": {
+      "outcome": "APPROVE_AUTOMATICALLY",
+      "reasonCodes": [],
+      "nextActionTemplateId": "SYNTHETIC_NEXT_ACTION_TEMPLATE",
+      "interpretation": null,
+      "explanation": {
+        "text": "SYNTHETIC FIXTURE: Your energy target is 1314 kcal per day, with 123.6 g of protein to support training.",
+        "kind": "MODEL_VALIDATED"
+      },
+      "clarification": null
+    },
+    "acceptedClarification": {
+      "outcome": "FOCUSED_CLARIFICATION",
+      "reasonCodes": ["PROVIDER_CLARIFICATION_REQUESTED"],
+      "nextActionTemplateId": "SYNTHETIC_NEXT_ACTION_TEMPLATE",
+      "interpretation": null,
+      "explanation": null,
+      "clarification": {
+        "text": "SYNTHETIC FIXTURE: Please confirm whether you prefer chicken breast or brown rice as your main protein choice.",
+        "clarificationId": "SYNTHETIC_CLARIFY_PREFERENCE",
+        "kind": "MODEL_VALIDATED"
+      }
+    },
+    "absent": {
+      "outcome": "APPROVE_AUTOMATICALLY",
+      "reasonCodes": [],
+      "nextActionTemplateId": "SYNTHETIC_NEXT_ACTION_TEMPLATE",
+      "interpretation": null,
+      "explanation": null,
+      "clarification": null
+    }
+  }
+}

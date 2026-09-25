@@ -442,25 +442,30 @@ enum AiProviderBoundaryOutcome {
 
 // T-1007 — minimized append-only provider-boundary audit. It stores digests
 // and validated reference selections, never raw prompts, provider traces,
-// arbitrary prose, policy bodies or another client's data.
+// policy bodies or another client's data. T-2006/T-2030:
+// `validatedOutput.explanationText`/`clarificationText` are sanitized to
+// `null` whenever the corresponding prose was rejected — a rejected string
+// never reaches this row — and `explanationValidation` stores only reason
+// codes and a character count, never the text itself.
 model AiProviderBoundaryAudit {
-  id                    String                    @id @default(cuid())
-  clientId              String
-  operationId           String                    @unique
-  promptContractVersion String
-  providerConfiguration String
-  boundaryOutcome       AiProviderBoundaryOutcome
-  resultOutcome         AiAutonomyOutcome
-  failureCode           String?
-  attempts              Int
-  preGateDecisionId     String
-  finalGateDecisionId   String?
-  inputSnapshot         Json
-  inputDigest           String
-  validatedOutput       Json?
-  outputDigest          String?
-  usage                 Json?
-  createdAt             DateTime                  @default(now())
+  id                     String                    @id @default(cuid())
+  clientId               String
+  operationId            String                    @unique
+  promptContractVersion  String
+  providerConfiguration  String
+  boundaryOutcome        AiProviderBoundaryOutcome
+  resultOutcome          AiAutonomyOutcome
+  failureCode            String?
+  attempts               Int
+  preGateDecisionId      String
+  finalGateDecisionId    String?
+  inputSnapshot          Json
+  inputDigest            String
+  validatedOutput        Json?
+  outputDigest           String?
+  usage                  Json?
+  explanationValidation  Json?
+  createdAt              DateTime                  @default(now())
 
   client User @relation(fields: [clientId], references: [id])
 

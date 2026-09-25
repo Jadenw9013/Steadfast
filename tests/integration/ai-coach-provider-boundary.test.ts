@@ -483,8 +483,32 @@ suite("T-1007 constrained provider boundary with real PostgreSQL constraints", (
     const serializedEnvelope = JSON.stringify(seen);
     expect(serializedEnvelope).not.toContain(user.id);
     expect(serializedEnvelope).not.toContain(plan.id);
-    expect(serializedEnvelope).not.toContain("1734");
+    // review r1 MINOR 4 (correcting the framing from r1's report): this
+    // was a real invariant before T-2006 — the envelope carried opaque IDs
+    // and no validated numbers anywhere. T-2006 deliberately *narrows* that
+    // invariant for exactly one field: `explanationInputs.numericFields[].value`
+    // is specified as `z.number().finite()` (adapter.ts) precisely so the
+    // model can write about the real number. Restoring the full-envelope
+    // scan minus that one deliberate exception, rather than narrowing the
+    // scan to `allowed` only, keeps the regression's original breadth for
+    // every other field.
+    // TS narrows `seen` to its literal initializer (`null`) across the rest
+    // of this closure, since the only visible reassignment is inside the
+    // nested `provider.invoke` callback; the explicit cast restores the
+    // declared union so the runtime null-check below is a real check.
+    const seenEnvelope = seen as ConstrainedProviderEnvelope | null;
+    if (!seenEnvelope) throw new Error("provider was never invoked");
+    expect(
+      JSON.stringify({ ...seenEnvelope, explanationInputs: null })
+    ).not.toContain("1734");
     expect(serializedEnvelope).not.toContain("numericParameters");
+    expect(seenEnvelope.explanationInputs?.numericFields).toContainEqual(
+      expect.objectContaining({
+        id: "NUTRITION_ENERGY_KCAL",
+        value: 1734,
+        displayValue: "1734",
+      })
+    );
 
     const audit = await db.aiProviderBoundaryAudit.findUniqueOrThrow({
       where: { id: result.auditId },

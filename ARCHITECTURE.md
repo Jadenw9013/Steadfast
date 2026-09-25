@@ -617,6 +617,20 @@ source for the full model list; the groups are:
 | Live activation | `AiCoachLiveActivation`, `AiCoachLiveActivationEvent` | The single server-selected active release (partial-unique "only one ACTIVE row") and its append-only activate/deactivate history |
 | Not listed above (pre-existing) | `AiCheckInObservation`, `AiOperationReceipt` | `ON DELETE CASCADE` to `User` — purge-safe with no explicit purge.ts line needed |
 
+**T-2006/T-2030 bounded explanation prose:** `AiProviderBoundaryAudit` gains
+one additive nullable column, `explanationValidation Json?` — reason codes
+and a character count for the model's optional `explanationText`/
+`clarificationText`, never the text itself (rejected text is sanitized to
+`null` in `validatedOutput` too, so no rejected string reaches any column).
+Accepted prose is stored inside the existing
+`AiAutomaticPlanApproval.providerSelection.explanation.text` (added only
+when accepted, so every pre-existing row's `stateDigest` is unchanged) — no
+new table. `GET /api/client/ai-coach/workspace` (`getAiWorkspace`) projects
+two new fields inside each `proposals[].authorization`: `explanation:
+{text, kind} | null` and `clarification: {text, clarificationId, kind} |
+null`, both `null` unless the proposal is automatically approved with
+validated prose. See `docs/ai-coach/14-Handoff-Status.md`'s T-2030 entry.
+
 Every model above with a `User` foreign key and no `CASCADE` has a purge line
 in `lib/account-deletion/purge.ts` and a case in
 `tests/integration/account-deletion.test.ts`.

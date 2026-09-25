@@ -13,6 +13,7 @@ import {
 } from "../live-launch/repository";
 import { assertAiCoachOperationEnabled } from "../operations";
 import { contentHash } from "../canonical-json";
+import { PROSE_SYSTEM_RULES } from "./explanation-prose";
 
 /**
  * T-996 — direct Anthropic Messages API provider for the T-1007 constrained
@@ -128,6 +129,7 @@ export const OUTPUT_CONTRACT_RULES = [
   "explanation.numericFieldIds must be a subset of the allowed numeric field IDs.",
   "concern.clarificationId is one of the allowed clarification IDs only when concern.disposition is REQUEST_CLARIFICATION; otherwise it is null.",
   "Never invent an ID, fact, number, name or claim that is not present in the allowed lists above.",
+  ...PROSE_SYSTEM_RULES,
 ] as const;
 
 /** Pure. Deterministic. Contains the allowed IDs and the task contract; never client text. */
@@ -140,6 +142,20 @@ export function buildConstrainedSystemPrompt(envelope: ConstrainedProviderEnvelo
   ];
   for (const [field, label] of ALLOWED_LIST_LABELS) {
     lines.push(`${label}: ${JSON.stringify(envelope.allowed[field])}`);
+  }
+  if (envelope.explanationInputs) {
+    lines.push(`Explanation outcome: ${envelope.explanationInputs.outcome}`);
+    lines.push(
+      `Explanation numeric fields (id, value, unit, displayLabel, displayValue): ${JSON.stringify(
+        envelope.explanationInputs.numericFields
+      )}`
+    );
+    lines.push(
+      `Explanation display names (optionId, name): ${JSON.stringify(
+        envelope.explanationInputs.displayNames
+      )}`
+    );
+    lines.push(`Explanation character budget: ${envelope.explanationInputs.maxCharacters}`);
   }
   lines.push("");
   lines.push("Output contract:");
@@ -155,6 +171,7 @@ export function minimizedUserPayload(envelope: ConstrainedProviderEnvelope): {
   currentClientLanguage: { id: string; text: string }[];
   allowed: ConstrainedProviderEnvelope["allowed"];
   capabilities: ConstrainedProviderEnvelope["capabilities"];
+  explanationInputs?: NonNullable<ConstrainedProviderEnvelope["explanationInputs"]>;
 } {
   return {
     task: "INTERPRET_RANK_EXPLAIN",
@@ -164,6 +181,14 @@ export function minimizedUserPayload(envelope: ConstrainedProviderEnvelope): {
     })),
     allowed: envelope.allowed,
     capabilities: envelope.capabilities,
+    // Omitted entirely (not sent as `null`) when absent, so a caller that
+    // never opts into prose keeps sending exactly the four-key payload the
+    // envelope has always sent — asserted by the pre-T-2006 live-provider
+    // test's `Object.keys(payload)` check. `catalogVocabulary` never
+    // reaches this object; it is not a field of `explanationInputs`.
+    ...(envelope.explanationInputs != null
+      ? { explanationInputs: envelope.explanationInputs }
+      : {}),
   };
 }
 

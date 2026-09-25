@@ -168,6 +168,53 @@ export const constrainedProviderEnvelopeSchema = z
         crossClientMemory: z.literal(false),
       })
       .strict(),
+    /**
+     * T-2006 — the validated numeric fields (with their server-rendered
+     * display tokens) and plan display names the model may mention in
+     * `explanationText`/`clarificationText`. Deliberately a top-level key,
+     * not nested inside `allowed`: the `superRefine` below iterates
+     * `Object.entries(input.allowed)` and calls `uniqueIds` on each value,
+     * which requires every `allowed.*` member to be a flat string array.
+     * Carries no tenant identity, policy body, artifact or capability.
+     * `catalogVocabulary` is never included here — it stays server-side
+     * only (see `constrained-boundary.ts`).
+     */
+    explanationInputs: z
+      .object({
+        outcome: z.enum(["APPROVE_AUTOMATICALLY", "HOLD", "FOCUSED_CLARIFICATION", "PAUSE_REFER"]),
+        numericFields: z
+          .array(
+            z
+              .object({
+                id: identifierSchema,
+                value: z.number().finite(),
+                unit: z.enum(["KCAL_PER_DAY", "GRAMS_PER_DAY"]),
+                displayLabel: z.string().min(1).max(60),
+                displayValue: z
+                  .string()
+                  .min(1)
+                  .max(32)
+                  .regex(/^[0-9]+(\.[0-9])?$/),
+              })
+              .strict()
+          )
+          .max(20),
+        displayNames: z
+          .array(
+            z
+              .object({
+                optionId: identifierSchema,
+                name: z.string().min(1).max(240),
+              })
+              .strict()
+          )
+          .max(100),
+        maxCharacters: z.number().int().min(80).max(400),
+        language: z.literal("en"),
+      })
+      .strict()
+      .nullable()
+      .optional(),
   })
   .strict()
   .superRefine((input, ctx) => {
@@ -186,6 +233,42 @@ export const constrainedProviderEnvelopeSchema = z
         path: ["currentClientLanguage"],
         message: "Current-client language IDs must be unique.",
       });
+    }
+    if (input.explanationInputs) {
+      const numericFieldIds = new Set(input.allowed.numericFieldIds);
+      const optionIds = new Set(input.allowed.optionIds);
+      for (const field of input.explanationInputs.numericFields) {
+        if (!numericFieldIds.has(field.id)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["explanationInputs", "numericFields"],
+            message: "explanationInputs numeric field IDs must be allowed numeric field IDs.",
+          });
+        }
+      }
+      for (const entry of input.explanationInputs.displayNames) {
+        if (!optionIds.has(entry.optionId)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["explanationInputs", "displayNames"],
+            message: "explanationInputs display name option IDs must be allowed option IDs.",
+          });
+        }
+      }
+      if (!uniqueIds(input.explanationInputs.numericFields.map((field) => field.id))) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["explanationInputs", "numericFields"],
+          message: "explanationInputs numeric field IDs must be unique.",
+        });
+      }
+      if (!uniqueIds(input.explanationInputs.displayNames.map((entry) => entry.optionId))) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["explanationInputs", "displayNames"],
+          message: "explanationInputs display name option IDs must be unique.",
+        });
+      }
     }
   });
 
@@ -216,6 +299,17 @@ export const constrainedProviderOutputObjectSchema = z
         limitationIds: z.array(identifierSchema).min(1).max(20),
       })
       .strict(),
+    /**
+     * T-2006 seam. `.nullable().optional()`, not `.nullable()` alone:
+     * `SyntheticConstrainedProvider` returns neither key and must keep
+     * doing so, or a required key would fail-parse every synthetic
+     * finalization. 600/400 are the hard structural ceilings; the
+     * effective budget is `explanationInputs.maxCharacters`, enforced
+     * semantically by `validateExplanationProse` — this schema never
+     * learns about prose content, only shape.
+     */
+    explanationText: z.string().min(1).max(600).nullable().optional(),
+    clarificationText: z.string().min(1).max(400).nullable().optional(),
   })
   .strict();
 
@@ -244,6 +338,16 @@ export const constrainedProviderOutputSchema = constrainedProviderOutputObjectSc
         code: "custom",
         path: ["concern", "clarificationId"],
         message: "Only a clarification disposition may select one allowed clarification.",
+      });
+    }
+    if (
+      output.clarificationText != null &&
+      output.concern.disposition !== "REQUEST_CLARIFICATION"
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["clarificationText"],
+        message: "clarificationText may be set only when concern.disposition is REQUEST_CLARIFICATION.",
       });
     }
   }
@@ -385,11 +489,76 @@ function withinAllowed(values: readonly string[], allowed: readonly string[]) {
   return values.every((value) => allowedSet.has(value));
 }
 
+function isBoundedNonEmptyString(value: unknown, maxLength: number): value is string {
+  return typeof value === "string" && value.length >= 1 && value.length <= maxLength;
+}
+
+/**
+ * T-2030 review r1 MAJOR 1. `explanationText`/`clarificationText` are the
+ * only two output fields whose validity is judged *semantically*
+ * (`validateExplanationProse`, `constrained-boundary.ts`), never
+ * structurally — T-2006 design choice 1: a plan the deterministic gate
+ * approved cannot be withheld because the model chose a bad adjective. But
+ * `z.string().min(1).max(600)` and the clarification/disposition
+ * cross-field `superRefine` rule below are structural, so without this
+ * step a bare `explanationText: ""` (the natural "nothing to say" value),
+ * an over-ceiling string, or a stray `clarificationText` on a non-
+ * REQUEST_CLARIFICATION disposition would fail
+ * `constrainedProviderOutputSchema.safeParse` entirely —
+ * `PROVIDER_OUTPUT_INVALID` — which fail-closes an otherwise gate-approved
+ * plan to HOLD. This coerces exactly those two fields to `null` *before*
+ * structural parsing whenever they violate their own bounds or the
+ * cross-field rule, so the rest of the output (`preferenceIds`,
+ * `rankedOptionIds`, `concern`, `explanation.*` — all still hard structural
+ * requirements) is judged on its own merits, and the coerced-to-null
+ * field reads downstream exactly as "the model supplied no prose" —
+ * `validateExplanationProse` records `PROSE_EMPTY`, the template renders,
+ * the approval survives. This is the one place `validateConstrainedProviderOutput`
+ * now "learns about prose", updating T-2006's original "otherwise
+ * unchanged" statement for this function.
+ */
+function sanitizeProseFieldsBeforeStructuralValidation(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return raw;
+  const source = raw as Record<string, unknown>;
+  const sanitized: Record<string, unknown> = { ...source };
+
+  if (
+    "explanationText" in sanitized &&
+    sanitized.explanationText !== null &&
+    sanitized.explanationText !== undefined &&
+    !isBoundedNonEmptyString(sanitized.explanationText, 600)
+  ) {
+    sanitized.explanationText = null;
+  }
+
+  if (
+    "clarificationText" in sanitized &&
+    sanitized.clarificationText !== null &&
+    sanitized.clarificationText !== undefined
+  ) {
+    const concern =
+      typeof source.concern === "object" && source.concern !== null
+        ? (source.concern as Record<string, unknown>)
+        : null;
+    const disposition = concern?.disposition;
+    if (
+      !isBoundedNonEmptyString(sanitized.clarificationText, 400) ||
+      disposition !== "REQUEST_CLARIFICATION"
+    ) {
+      sanitized.clarificationText = null;
+    }
+  }
+
+  return sanitized;
+}
+
 export function validateConstrainedProviderOutput(
   envelope: ConstrainedProviderEnvelope,
   raw: unknown
 ): ConstrainedProviderOutput | null {
-  const parsed = constrainedProviderOutputSchema.safeParse(raw);
+  const parsed = constrainedProviderOutputSchema.safeParse(
+    sanitizeProseFieldsBeforeStructuralValidation(raw)
+  );
   if (!parsed.success) return null;
   const output = parsed.data;
   if (

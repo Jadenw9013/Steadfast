@@ -550,6 +550,25 @@ export function AiCoachExperience({
                 <p className="text-zinc-300">
                   This is a proposed plan. Your current plan stays active until you accept.
                 </p>
+                {(() => {
+                  // T-2006 — validated model prose when present, otherwise
+                  // the run's deterministic decision sentence (the template
+                  // fallback iOS already renders on this screen,
+                  // AICoachViews.swift:158; web previously did not). Never
+                  // render an empty paragraph.
+                  const explanationText =
+                    proposal.authorization?.explanation?.text ??
+                    view.runs.find((run) => run.resultPlanVersionId === proposal.id)?.decision
+                      ?.explanation ??
+                    null;
+                  if (!explanationText) return null;
+                  return (
+                    <div className="rounded-xl border border-white/10 p-4">
+                      <p className="text-sm text-zinc-400">Automated explanation</p>
+                      <p className="mt-1 text-zinc-100">{explanationText}</p>
+                    </div>
+                  );
+                })()}
                 {view.activePlan && (
                   <details className="rounded-xl border border-white/10 p-4">
                     <summary className="min-h-12 cursor-pointer">
@@ -613,7 +632,8 @@ export function AiCoachExperience({
                     : proposal.status === "PENDING_FINALIZATION"
                       ? "Run the server-owned safety, evidence, catalog and constrained-provider checks before any instructions are shown."
                       : proposal.status === "FOCUSED_CLARIFICATION"
-                        ? "A specific answer is still required. Your current plan remains unchanged."
+                        ? (proposal.authorization?.clarification?.text ??
+                          "A specific answer is still required. Your current plan remains unchanged.")
                         : proposal.status === "PAUSE_REFER"
                           ? "This proposal is paused. Follow the reviewed next step before requesting another proposal."
                           : "The deterministic policy has placed this proposal on hold. Your current plan remains unchanged."}
