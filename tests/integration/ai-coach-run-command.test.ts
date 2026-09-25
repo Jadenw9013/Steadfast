@@ -1,8 +1,12 @@
-import { assignFixtureReviewer } from "../helpers/ai-reviewer";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { requestAiRun } from "@/lib/ai-coach/run-command";
+import {
+  activateTestLiveRelease,
+  createTestGovernanceActor,
+  deactivateTestLiveRelease,
+} from "../helpers/ai-live-launch";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
@@ -19,7 +23,6 @@ suite("managed run request boundary", () => {
     const client = await db.user.create({
       data: { clerkId: id, email: `${id}@example.test`, isClient: true },
     });
-    await assignFixtureReviewer(client.id);
     await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
     await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
     await db.aiCoachProfile.create({
@@ -52,16 +55,15 @@ suite("managed run request boundary", () => {
     expectedContextRevision: 0,
     expectedProfileRevision: 0,
   });
-  it("does not use reviewer grants or reviewer backlog as generation authority", async () => {
+  it("does not use reviewer grants or reviewer backlog as generation authority (T-2000: zero grants exist)", async () => {
     const client = await fixture();
-    const grant = await db.aiCoachReviewerGrant.findFirstOrThrow({
-      where: { clientIds: { has: client.id } },
-    });
-    await db.aiCoachReviewerGrant.update({
-      where: { id: grant.id },
-      data: { domains: ["NUTRITION"] },
-    });
+    expect(await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })).toBe(
+      0
+    );
     expect(await requestAiRun(client.id, command())).toHaveProperty("runId");
+    expect(await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })).toBe(
+      0
+    );
   });
   it("deduplicates concurrent business inputs despite different client request keys", async () => {
     const client = await fixture();
@@ -89,7 +91,7 @@ suite("managed run request boundary", () => {
     ).rejects.toMatchObject({ code: "REVISION_CONFLICT" });
   });
   it.each([
-    "isSynthetic",
+    "nonSyntheticWithoutLiveRelease",
     "generation",
     "fixtureMode",
     "production",
@@ -99,7 +101,10 @@ suite("managed run request boundary", () => {
   ])("fails closed for %s", async (reason) => {
     const client = await fixture();
     const input = command();
-    if (reason === "isSynthetic")
+    if (reason === "nonSyntheticWithoutLiveRelease")
+      // T-2000: this now fails closed for the right reason — no ACTIVE live
+      // release — not because a non-synthetic profile is unconditionally
+      // rejected. See "nonSyntheticWithLiveRelease" below for the success case.
       await db.aiCoachProfile.update({
         where: { clientId: client.id },
         data: { isSynthetic: false },
@@ -117,6 +122,34 @@ suite("managed run request boundary", () => {
     if (reason === "revision") input.expectedContextRevision = 99;
     await expect(requestAiRun(client.id, input)).rejects.toThrow();
     expect(await db.aiCoachRun.count({ where: { clientId: client.id } })).toBe(0);
+  });
+  it("nonSyntheticWithLiveRelease: succeeds under an ACTIVE live release with zero reviewer grants", async () => {
+    const client = await fixture();
+    await db.aiCoachProfile.update({
+      where: { clientId: client.id },
+      data: { isSynthetic: false },
+    });
+    const actor = await createTestGovernanceActor(
+      ["APPROVE_LIVE_LAUNCH", "ACTIVATE_LIVE_LAUNCH", "DEACTIVATE_LIVE_LAUNCH"],
+      "T-2000-run-command-live-test"
+    );
+    await activateTestLiveRelease({
+      namespace: `run-command-live-${randomUUID()}`,
+      actorUserId: actor.id,
+    });
+    try {
+      expect(
+        await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })
+      ).toBe(0);
+      const result = await requestAiRun(client.id, command());
+      expect(result).toHaveProperty("runId");
+      expect(await db.aiCoachRun.count({ where: { clientId: client.id } })).toBe(1);
+      expect(
+        await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })
+      ).toBe(0);
+    } finally {
+      await deactivateTestLiveRelease(actor.id);
+    }
   });
   it("rejects caller-supplied authority or snapshot fields", async () => {
     const client = await fixture();

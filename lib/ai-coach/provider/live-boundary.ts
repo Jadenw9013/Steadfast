@@ -1,24 +1,6 @@
-import { ArtifactLoadError, type ArtifactLoadRequest } from "../artifacts/repository";
-import type { ArtifactReference } from "../artifacts/schema";
 import { runConstrainedProviderBoundary } from "./constrained-boundary";
 import { loadApprovedConstrainedGatewayProvider } from "./live-gateway";
-
-function liveArtifactRequest(
-  engineVersion: string,
-  artifactBindings: readonly ArtifactReference[]
-): ArtifactLoadRequest {
-  const policy = artifactBindings.find((binding) => binding.kind === "POLICY_BUNDLE");
-  if (!policy)
-    throw new ArtifactLoadError(
-      "ARTIFACT_INCOMPATIBLE",
-      "The active release has no exact server-owned policy artifact binding."
-    );
-  return {
-    engineVersion,
-    policyArtifactKey: policy.artifactKey,
-    exactReferences: [...artifactBindings],
-  };
-}
+import { liveArtifactRequest } from "../runtime-binding";
 
 /**
  * Deliberately not exported from a route. The final live-plan orchestrator will

@@ -94,3 +94,15 @@ export const AICOACH_ENVELOPE_FAILED = {
   evt: "sf.aicoach.envelope_failed",
   allow: AICOACH_ENVELOPE_ALLOW,
 } as const;
+
+/** T-2000: getAiWorkspace degrades rather than 500s when the runtime binding
+ *  (fixture artifact set or the sole ACTIVE live release) cannot be resolved
+ *  — every proposal payload and the active plan render null while intake,
+ *  runs and permissions still render. `errorKind` is a class name / code,
+ *  never the raw AiCoachError message. */
+export const AICOACH_RUNTIME_BINDING_DEGRADED_ALLOW = ["errorKind"] as const;
+
+export const AICOACH_RUNTIME_BINDING_DEGRADED = {
+  evt: "sf.aicoach.runtime_binding_degraded",
+  allow: AICOACH_RUNTIME_BINDING_DEGRADED_ALLOW,
+} as const;

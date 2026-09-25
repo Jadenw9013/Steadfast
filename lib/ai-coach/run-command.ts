@@ -1,4 +1,3 @@
-import { requireReviewerCapacity } from "./reviewer-capacity";
 import { collectEvidence, evidenceSnapshotSchema } from "./evidence-snapshot";
 import { z } from "zod";
 import { substitutionSchema } from "./representation";
@@ -12,7 +11,6 @@ import { FOOD_CATALOG_VERSION } from "./catalog/food-catalog";
 import { EXERCISE_CATALOG_VERSION } from "./catalog/exercise-catalog";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
-import { requireFixtureRuntime } from "./access";
 import { assertAiCoachOperationEnabled } from "./operations";
 
 export const runCommandSchema = z
@@ -70,7 +68,6 @@ export async function requestAiRun(clientId: string, raw: unknown) {
   const parsed = runCommandSchema.safeParse(raw);
   if (!parsed.success) throw new AiCoachError("VALIDATION_ERROR", "Invalid plan request.", 422);
   const input = parsed.data;
-  requireFixtureRuntime();
   await assertAiCoachOperationEnabled("GENERATION");
   if (input.substitution && (input.kind !== "REPRESENTATION" || input.representation !== "MEALS"))
     throw new AiCoachError("VALIDATION_ERROR", "Substitutions require meal representation.", 422);
@@ -92,12 +89,6 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     }
     if (!isAiCoachGenerationEnabled())
       throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "Plan preparation is paused.", 503);
-    if (!profile.isSynthetic)
-      throw new AiCoachError(
-        "TEMPORARILY_UNAVAILABLE",
-        "AI Coach generation is limited to synthetic demo accounts.",
-        503
-      );
     if (
       context!.revision !== input.expectedContextRevision ||
       profile.profileRevision !== input.expectedProfileRevision
@@ -202,8 +193,6 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     });
     let run = await tx.aiCoachRun.findUnique({ where: { businessKey } });
     if (!run) {
-      if (input.kind !== "REPRESENTATION" && !profile.isSynthetic)
-        await requireReviewerCapacity(tx, clientId);
       const recent = await tx.aiCoachRun.count({
         where: { clientId, createdAt: { gte: new Date(Date.now() - 86400000) } },
       });

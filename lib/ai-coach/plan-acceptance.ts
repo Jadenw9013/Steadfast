@@ -4,7 +4,6 @@ import { z } from "zod";
 import { intakeAnswersSchema } from "./intake";
 import { isTargetPreserving } from "./representation";
 import { approvalStateHash, grantCoversPlan, validatedManagedPayload } from "./validated-plan";
-import { requireFixtureRuntime } from "./access";
 import { createHash } from "crypto";
 import { db } from "@/lib/db";
 import { Prisma, type AiDomainPermission } from "@/app/generated/prisma/client";
@@ -12,7 +11,10 @@ import { isAiCoachPublicationEnabled } from "@/lib/flags/ai-coach";
 import { checkPolicyVersionUsable } from "./policy/policy-version";
 import { contentHash } from "./canonical-json";
 import { evaluateCurrentClientAutonomyGate, serverAutonomyGateInputSchema } from "./autonomy/gate";
-import { syntheticRuntimeArtifactRequest } from "./finalization";
+import {
+  resolveAiCoachRuntimeBinding,
+  type AiCoachRuntimeBinding,
+} from "./runtime-binding";
 import { assertAiCoachOperationEnabled } from "./operations";
 
 /**
@@ -110,6 +112,10 @@ export async function acceptPlanVersionAtomic(
   const requestKeyDigest = contentHash(input.requestKey);
   let freshGateDecisionId: string | null = null;
   let automaticApprovalId: string | null = null;
+  // Resolved by the managed pre-transaction block below and reused inside the
+  // transaction; a managed candidate can only reach the validationReport-gated
+  // branch in the transaction after this block has run and succeeded.
+  let binding: AiCoachRuntimeBinding | null = null;
 
   const priorReceipt = await db.aiPlanAcceptanceReceipt.findUnique({
     where: { clientId_requestKey: { clientId, requestKey: input.requestKey } },
@@ -121,7 +127,16 @@ export async function acceptPlanVersionAtomic(
     });
     if (managed) {
       try {
-        requireFixtureRuntime();
+        // Not resolveCurrentClientRuntimeBinding(): `clientId` here is the
+        // caller's trusted, explicit input (see the docstring above), not
+        // necessarily the current Clerk session, so the binding resolves
+        // against the profile for that clientId directly.
+        const managedProfile = await db.aiCoachProfile.findUnique({
+          where: { clientId },
+          select: { isSynthetic: true },
+        });
+        if (!managedProfile) throw new Error("AI Coach profile is required.");
+        binding = await resolveAiCoachRuntimeBinding(null, managedProfile);
         await assertAiCoachOperationEnabled("ACCEPTANCE");
         const approval = await db.aiAutomaticPlanApproval.findUnique({
           where: { planVersionId },
@@ -144,7 +159,7 @@ export async function acceptPlanVersionAtomic(
         }
         const gateInput = serverAutonomyGateInputSchema.parse(approval.gateInput);
         const freshGate = await evaluateCurrentClientAutonomyGate(
-          syntheticRuntimeArtifactRequest(),
+          binding.artifactRequest,
           gateInput
         );
         if (
@@ -331,13 +346,17 @@ export async function acceptPlanVersionAtomic(
       }
 
       if (candidate.validationReport !== null) {
-        try {
-          requireFixtureRuntime();
-        } catch {
+        // Defensive fail-closed guard: the managed pre-transaction block
+        // above is the only place that resolves `binding`, and it must have
+        // run and succeeded to reach this branch on a managed candidate. A
+        // null binding here means that assumption broke (e.g. a receipt race)
+        // rather than that the caller is unauthorized, so it returns the same
+        // "policy could not be verified" shape the pre-block itself returns.
+        if (!binding) {
           return {
             success: false,
-            code: "TEMPORARILY_UNAVAILABLE",
-            error: "This plan is only available in the synthetic test environment.",
+            code: "POLICY_UNAVAILABLE",
+            error: "The current reviewed policy could not be verified.",
           };
         }
         if (!(await evidenceIsCurrent(tx, clientId, candidate.sourceRefs)))
@@ -346,7 +365,7 @@ export async function acceptPlanVersionAtomic(
             code: "REVISION_CONFLICT",
             error: "Source evidence changed. Prepare a new review.",
           };
-        if (!profile.isSynthetic || !validatedManagedPayload(candidate)) {
+        if (!validatedManagedPayload(candidate)) {
           return {
             success: false,
             code: "VALIDATION_ERROR",
@@ -444,8 +463,14 @@ export async function acceptPlanVersionAtomic(
       }
 
       // Step 3: policy availability, safety/domain permission, reviewer
-      // approval, exact base version, activation window.
-      const policyCheck = checkPolicyVersionUsable(candidate.policyVersion);
+      // approval, exact base version, activation window. A managed candidate
+      // checks against the resolved runtime binding's policy key (fixture or
+      // live release); a legacy reviewer-authorized candidate keeps the
+      // original ACTIVE_POLICY_VERSION-only check.
+      const policyCheck = checkPolicyVersionUsable(
+        candidate.policyVersion,
+        candidate.validationReport === null ? undefined : binding?.artifactRequest.policyArtifactKey
+      );
       if (!policyCheck.usable) {
         return {
           success: false,

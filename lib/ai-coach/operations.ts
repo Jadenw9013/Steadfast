@@ -37,6 +37,14 @@ export async function assertAiCoachOperationEnabled(scope: AiCoachOperationalSco
   }
   // A caller, flag, environment value or model output cannot select a packet.
   // Production authority comes only from the one persisted ACTIVE release.
+  // T-2000 parity finding P5 considered wrapping this LiveLaunchError the
+  // same way runtime-binding.ts does; reverted — this exact call site's raw,
+  // specific LiveLaunchError code (e.g. LIVE_ACTIVATION_MISSING) is a
+  // pre-existing, deliberate contract other callers/tests already depend on
+  // (tests/integration/ai-coach-live-launch-readiness.test.ts "requires the
+  // server-selected active release for every production operation"), so
+  // wrapping it here would be a regression, not a fix. See T-2000 review
+  // round 2 report for the full reasoning.
   if (process.env.NODE_ENV === "production") {
     const { assertActiveAiCoachLiveReleaseReady } = await import("./live-launch/repository");
     await assertActiveAiCoachLiveReleaseReady();

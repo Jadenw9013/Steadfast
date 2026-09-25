@@ -4,7 +4,6 @@ import { AiCoachError, jsonValue, lockAiClient } from "./access";
 import { contentHash } from "./canonical-json";
 import { runSnapshotSchema } from "./run-command";
 import { evidenceIsCurrent } from "./evidence-snapshot";
-import { requireReviewerCapacity } from "./reviewer-capacity";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
 /** A manual retry never resets a terminal row, activation window, clinical
  * history, source cutoff or adjustment slot. Two linked retries are the cap. */
@@ -27,7 +26,6 @@ export async function retryManagedRun(clientId: string, runId: string, raw: unkn
     let retry = await tx.aiCoachRun.findUnique({ where: { businessKey } });
     if (!retry) {
       if (await tx.aiCoachRun.count({ where: { clientId, createdAt: { gte: new Date(Date.now() - 86400000) } } }) >= 8) throw new AiCoachError("RATE_LIMITED", "The daily preparation limit has been reached.", 429);
-      if (original.kind !== "REPRESENTATION") await requireReviewerCapacity(tx, clientId);
       retry = await tx.aiCoachRun.create({ data: { clientId, kind: original.kind, businessKey, contextRevision: original.contextRevision, profileRevision: original.profileRevision, observationRevision: original.observationRevision, safetyRevision: original.safetyRevision, lookbackStart: original.lookbackStart, lookbackEnd: original.lookbackEnd, snapshotCutoffAt: original.snapshotCutoffAt, activationStartsAt: original.activationStartsAt, activationEndsAt: original.activationEndsAt, retryGeneration: original.retryGeneration + 1, retryOfRunId: original.id, inputSnapshot: jsonValue(snapshot.data) } });
     }
     const result = { runId: retry.id }; await tx.aiOperationReceipt.create({ data: { ...key, inputDigest, result } }); return result;

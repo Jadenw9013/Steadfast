@@ -68,3 +68,39 @@ Monitor artifact revocation, gate failures, outcome distributions, unsafe-attemp
 The implementation sequence is T-1005 → T-1003 → T-1006 → T-1007 → T-1008 → T-1009 → T-1010, followed only after their release gates by T-1011 (distinct AI Coach discovery and explicit provider choice). These tickets replace the mandatory-review release assumption; T-1004 remains an independent historical reviewer-note privacy fix. Until the sequence and its release evidence are complete, all current synthetic fixtures and default-off flags remain in place. The first implementation ticket is T-1005.
 
 Any eventual T-1011 discovery/onboarding disclosure requires qualified legal review, versioning and jurisdiction applicability before display. It must accurately identify AI fitness/general-nutrition coaching, its medical/clinical exclusions, lack of outcome guarantees and the qualified-healthcare referral path. It must not claim clinical validation, medical supervision, risk-free/legal-immunity status, endorsement, or “backed by PhD research.” A truthful statement that the active policy framework is informed by identified, versioned evidence sources and professionally reviewed policy artifacts is permitted only when those records exist. A disclosure is explanatory copy, never a replacement for deterministic safety gates, consent, applicable law or legal/liability review.
+
+### Implementation notes (2026-09-24)
+
+T-2000 removed the mandatory-review model that had coexisted alongside the
+T-1006 gate on the run, retry and enrollment paths. Per-client human review
+is **not a runtime dependency on any path** — not for a synthetic fixture
+account, and not for a real one. The deterministic gate (T-1006), evaluated
+fresh on every finalization and acceptance attempt against the resolved
+runtime binding (the fixture artifact set, or the sole ACTIVE live release's
+exact artifact references — `lib/ai-coach/runtime-binding.ts`), is the sole
+approver of a managed candidate.
+
+`AiCoachReviewerGrant`, `AiPlanReviewerApproval` and `AiPlanVersion.reviewerStatus`
+remain in the schema and continue to be written (`reviewerStatus` keeps
+getting set to `PENDING`/`NOT_REQUIRED`/etc. exactly as before), but they are
+governance and exception records only: nothing reads them to authorize,
+block or bypass a gate outcome for a managed (`validationReport !== null`)
+candidate. The reviewer queue (`/ops/ai-coach`) stays fenced to synthetic
+accounts (`aiCoachProfile.isSynthetic: true` plus the fixture-runtime guard)
+and can never see or act on a real client's candidate.
+
+The per-client stop lever is therefore **not** `reviewerStatus`. In order, it
+is: domain permissions and `safetyDisposition` (read by the gate at
+`lib/ai-coach/autonomy/gate.ts`), the safety-resolution path
+(`safety-resolution.ts`), and the global `AiCoachOperationalControl` scopes
+plus `pnpm ai-coach:deactivate`. A future reader should not re-derive
+`reviewerStatus` as a runtime authority signal from its continued presence in
+the schema or its continued writes.
+
+Binding a *generated* candidate's catalog/policy references to the resolved
+runtime binding (so a live release can actually produce an approvable
+candidate, not just accept one seeded for a proof) is T-2022. A live
+nutrition prescription is additionally blocked on T-2003 (prescription
+engine) and G01 (signed policy bundle) — see the "training-only" note in
+docs/ai-coach/14-Handoff-Status.md's T-2000 entry for why that is a
+deliberate, fail-closed gap and not an oversight.

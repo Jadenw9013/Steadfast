@@ -19,8 +19,23 @@ const REVOKED_POLICY_VERSIONS: ReadonlySet<string> = new Set(["policy-fixture-v0
 export type PolicyUsabilityError = "UNKNOWN_POLICY_VERSION" | "POLICY_REVOKED";
 export type PolicyUsabilityResult = { usable: true } | { usable: false; error: PolicyUsabilityError };
 
-export function checkPolicyVersionUsable(policyVersion: string): PolicyUsabilityResult {
-  if (policyVersion === ACTIVE_POLICY_VERSION) return { usable: true };
+/**
+ * T-2000: an optional `runtimePolicyArtifactKey` lets a caller check
+ * usability against the resolved runtime binding's policy key (synthetic
+ * fixture or live release) instead of the hard-coded fixture constant.
+ * Revocation always wins over a mismatch, and is checked first either way.
+ * Omitting the parameter preserves today's ACTIVE_POLICY_VERSION-only check.
+ */
+export function checkPolicyVersionUsable(
+  policyVersion: string,
+  runtimePolicyArtifactKey?: string
+): PolicyUsabilityResult {
   if (REVOKED_POLICY_VERSIONS.has(policyVersion)) return { usable: false, error: "POLICY_REVOKED" };
+  if (runtimePolicyArtifactKey !== undefined) {
+    return policyVersion === runtimePolicyArtifactKey
+      ? { usable: true }
+      : { usable: false, error: "UNKNOWN_POLICY_VERSION" };
+  }
+  if (policyVersion === ACTIVE_POLICY_VERSION) return { usable: true };
   return { usable: false, error: "UNKNOWN_POLICY_VERSION" };
 }

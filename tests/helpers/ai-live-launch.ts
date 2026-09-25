@@ -1,7 +1,24 @@
+import { randomUUID } from "node:crypto";
 import { artifactContentDigest } from "@/lib/ai-coach/artifacts/digest";
-import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import {
+  buildSyntheticArtifactSet,
+  SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+} from "@/lib/ai-coach/artifacts/synthetic-fixtures";
 import type { ArtifactDraftInput, ArtifactReference } from "@/lib/ai-coach/artifacts/schema";
+import {
+  publishArtifactVersion,
+  registerArtifactVersion,
+} from "@/lib/ai-coach/artifacts/repository";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { db } from "@/lib/db";
+import {
+  activateAiCoachLiveRelease,
+  approveLiveLaunchPacket,
+  deactivateAiCoachLiveRelease,
+  registerLiveLaunchPacket,
+  type ActiveAiCoachLiveRelease,
+} from "@/lib/ai-coach/live-launch/repository";
+import type { GovernanceScope } from "@/lib/ai-coach/operations";
 import {
   REQUIRED_APPROVAL_REQUIREMENTS,
   REQUIRED_DECISION_IDS,
@@ -73,7 +90,7 @@ export const TEST_RUNTIME_CONFIGURATION = {
 };
 export const TEST_RUNTIME_CONFIGURATION_DIGEST = contentHash(TEST_RUNTIME_CONFIGURATION);
 
-function reference(artifact: ArtifactDraftInput): ArtifactReference {
+export function artifactReferenceOf(artifact: ArtifactDraftInput): ArtifactReference {
   return {
     id: artifact.id,
     artifactKey: artifact.artifactKey,
@@ -102,8 +119,8 @@ export function buildNonSyntheticLaunchTestArtifacts(namespace: string) {
   policy.synthetic = false;
   policy.reviewMetadata.jurisdictionReview.legalReviewStatus = "APPROVED";
   policy.reviewMetadata.jurisdictionReview.jurisdictions = ["SYNTHETIC_TEST_JURISDICTION"];
-  policy.dependencies = leaves.map(reference);
-  return { leaves, policy, references: [reference(policy), ...policy.dependencies] };
+  policy.dependencies = leaves.map(artifactReferenceOf);
+  return { leaves, policy, references: [artifactReferenceOf(policy), ...policy.dependencies] };
 }
 
 export function completeNonTestLaunchPacket(input: {
@@ -187,4 +204,138 @@ export function completeNonTestLaunchPacket(input: {
       },
     })),
   });
+}
+
+/**
+ * T-2000: registers + publishes a non-synthetic ("live-classified") artifact
+ * set for `namespace`, then registers + approves + activates a matching
+ * live-launch packet, returning the activation plus the packet and artifacts
+ * used. Isolated-Postgres fixture only.
+ *
+ * `actorUserId` must already hold an active AiCoachGovernanceGrant with
+ * `APPROVE_LIVE_LAUNCH` and `ACTIVATE_LIVE_LAUNCH` scopes (the caller's
+ * beforeEach sets this up, mirroring ai-coach-live-launch-readiness.test.ts).
+ */
+/** Registers (if missing) and publishes (if not already published) — safe to
+ * call repeatedly with the same artifact when a test file shares one
+ * artifact set across several activations. */
+async function ensurePublished(
+  artifact: ArtifactDraftInput,
+  effectiveAt: Date,
+  expiresAt: Date
+): Promise<void> {
+  const existing = await db.aiCoachArtifactVersion.findUnique({ where: { id: artifact.id } });
+  if (existing?.state === "PUBLISHED") return;
+  if (!existing) await registerArtifactVersion(artifact);
+  await publishArtifactVersion({
+    id: artifact.id,
+    effectiveAt,
+    expiresAt,
+    engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+  });
+}
+
+export async function activateTestLiveRelease(input: {
+  namespace: string;
+  actorUserId: string;
+  now?: Date;
+  /** Override for a caller that needs specific content (e.g. an exercise ID
+   * that also satisfies the code's static hardcoded catalog match) instead
+   * of the default generated set. Defaults to
+   * `buildNonSyntheticLaunchTestArtifacts(namespace)`. */
+  artifacts?: ReturnType<typeof buildNonSyntheticLaunchTestArtifacts>;
+  /** Packet/release id suffix, defaults to `namespace`. Override when the
+   * same (shared, already-registered) `artifacts` set is activated more
+   * than once across separate tests, so each activation gets its own
+   * packet/release identity instead of colliding on a duplicate id. */
+  packetSuffix?: string;
+}): Promise<{
+  activation: Awaited<ReturnType<typeof activateAiCoachLiveRelease>>;
+  packet: LiveLaunchPacket;
+  artifacts: ReturnType<typeof buildNonSyntheticLaunchTestArtifacts>;
+  release: () => Promise<ActiveAiCoachLiveRelease>;
+}> {
+  const now = input.now ?? new Date();
+  const effectiveAt = new Date(now.getTime() - 60_000);
+  const expiresAt = new Date(now.getTime() + 3_600_000);
+  const artifacts = input.artifacts ?? buildNonSyntheticLaunchTestArtifacts(input.namespace);
+  for (const artifact of artifacts.leaves) {
+    await ensurePublished(artifact, effectiveAt, expiresAt);
+  }
+  await ensurePublished(artifacts.policy, effectiveAt, expiresAt);
+  const packet = completeNonTestLaunchPacket({
+    suffix: input.packetSuffix ?? input.namespace,
+    artifactBindings: artifacts.references,
+  });
+  await registerLiveLaunchPacket(packet);
+  await approveLiveLaunchPacket({
+    packetId: packet.packetId,
+    actorUserId: input.actorUserId,
+    effectiveAt,
+    expiresAt,
+    reasonCode: "SYNTHETIC_ISOLATED_TEST_APPROVAL",
+    signedApprovalIndexRef: `synthetic-signed-approval-${input.namespace}`,
+  });
+  const activation = await activateAiCoachLiveRelease({
+    packetId: packet.packetId,
+    actorUserId: input.actorUserId,
+    signedActivationRef: `synthetic-signed-activation-${input.namespace}`,
+    reasonCode: "SYNTHETIC_ISOLATED_TEST_ACTIVATION",
+  });
+  const release = async () => {
+    const { assertActiveAiCoachLiveReleaseReady } = await import(
+      "@/lib/ai-coach/live-launch/repository"
+    );
+    return assertActiveAiCoachLiveReleaseReady();
+  };
+  return { activation, packet, artifacts, release };
+}
+
+/** Creates an isolated-DB test user holding an AiCoachGovernanceGrant with the
+ * given scopes, for use as `activateTestLiveRelease`'s `actorUserId`. */
+export async function createTestGovernanceActor(
+  scopes: readonly GovernanceScope[],
+  grantRef = "synthetic-isolated-test-actor"
+): Promise<{ id: string }> {
+  const key = `${grantRef}-${randomUUID()}`;
+  const actor = await db.user.create({
+    data: { clerkId: key, email: `${key}@example.test`, isCoach: true },
+  });
+  await db.aiCoachGovernanceGrant.create({
+    data: { userId: actor.id, scopes: [...scopes], grantRef },
+  });
+  return { id: actor.id };
+}
+
+/**
+ * T-2000: deactivates the currently ACTIVE live release (if any) and wipes
+ * every row `activateTestLiveRelease`/`deactivateAiCoachLiveRelease` write
+ * that is global rather than scoped to a client row — the five
+ * AiCoachOperationalControl scopes and this actor's lifecycle/event/grant
+ * rows — so a test that activates a release for its own duration never
+ * leaks a disabled-by-default control or a lingering activation into a test
+ * that runs after it in the same process. Artifact/packet rows are left in
+ * place: they are keyed by the caller's unique namespace and a REVOKED/
+ * inactive state never satisfies a fresh `assertActiveAiCoachLiveReleaseReady`.
+ */
+export async function deactivateTestLiveRelease(actorUserId: string): Promise<void> {
+  const active = await db.aiCoachLiveActivation.findFirst({ where: { state: "ACTIVE" } });
+  if (active) {
+    await deactivateAiCoachLiveRelease({
+      actorUserId,
+      signedActivationRef: `synthetic-cleanup-${randomUUID()}`,
+      reasonCode: "SYNTHETIC_ISOLATED_TEST_CLEANUP",
+      reason: "Synthetic isolated test cleanup.",
+    });
+  }
+  await db.aiCoachLiveActivationEvent.deleteMany({ where: { actorUserId } });
+  await db.aiCoachLiveLaunchLifecycleEvent.deleteMany({ where: { actorUserId } });
+  await db.aiCoachOperationalEvent.deleteMany({ where: { actorUserId } });
+  await db.aiCoachOperationalControl.deleteMany({
+    where: {
+      scope: { in: ["GENERATION", "PROVIDER", "FINALIZATION", "ACCEPTANCE", "ARTIFACT_PUBLICATION"] },
+    },
+  });
+  await db.aiCoachGovernanceGrant.deleteMany({ where: { userId: actorUserId } });
+  await db.user.deleteMany({ where: { id: actorUserId } });
 }

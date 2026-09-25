@@ -2,30 +2,19 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { requireFixtureRuntime, AiCoachError } from "./access";
+import { AiCoachError } from "./access";
 import {
+  ArtifactLoadError,
   getReviewedPolicyBundleContent,
   loadReviewedArtifactSet,
-  type ArtifactLoadRequest,
 } from "./artifacts/repository";
-import { SYNTHETIC_ARTIFACT_ENGINE_VERSION } from "./artifacts/synthetic-fixtures";
 import { contentHash } from "./canonical-json";
 import { evaluateCurrentClientNutritionSafety } from "./nutrition-safety";
 import { assertAiCoachOperationEnabled } from "./operations";
-import { runConstrainedProviderBoundary } from "./provider/constrained-boundary";
-import { SyntheticConstrainedProvider } from "./provider/synthetic-provider";
+import { resolveAiCoachRuntimeBinding, runRuntimeConstrainedProviderBoundary } from "./runtime-binding";
 import { sourceRefSchema } from "./plan-contract";
 import { safetyDisclosureSchema, type TriState } from "./safety";
 import { validatedManagedPayload } from "./validated-plan";
-
-const RUNTIME_POLICY_KEY = "policy-fixture-v1";
-
-export function syntheticRuntimeArtifactRequest(): ArtifactLoadRequest {
-  return {
-    engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
-    policyArtifactKey: RUNTIME_POLICY_KEY,
-  };
-}
 
 function json(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -47,7 +36,6 @@ function distinct<T>(values: readonly T[]): T[] {
  * candidates and provider implementation are all selected by the server.
  */
 export async function finalizeCurrentClientPlan(planVersionId: string) {
-  requireFixtureRuntime();
   await assertAiCoachOperationEnabled("FINALIZATION");
   await assertAiCoachOperationEnabled("PROVIDER");
   const user = await getCurrentDbUser();
@@ -56,10 +44,10 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
   });
   if (!candidate) throw new AiCoachError("NOT_FOUND", "Plan proposal not found.", 404);
   const payload = validatedManagedPayload(candidate);
-  if (!payload || candidate.policyVersion !== RUNTIME_POLICY_KEY) {
+  if (!payload) {
     throw new AiCoachError(
       "VALIDATION_ERROR",
-      "The proposal is not a valid synthetic candidate.",
+      "This proposal cannot be verified against the current reviewed content.",
       422
     );
   }
@@ -70,11 +58,19 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
       orderBy: [{ reportedAt: "desc" }, { id: "desc" }],
     }),
   ]);
-  if (!profile?.isSynthetic) {
+  if (!profile) {
+    throw new AiCoachError("FORBIDDEN", "An AI Coach profile is required.", 403);
+  }
+  // T-2000: FIXTURE for a synthetic profile, LIVE (exact artifact references
+  // from the sole ACTIVE release) for a real one. Fails closed to
+  // TEMPORARILY_UNAVAILABLE when neither branch is currently usable.
+  const binding = await resolveAiCoachRuntimeBinding(null, profile);
+  const request = binding.artifactRequest;
+  if (candidate.policyVersion !== request.policyArtifactKey) {
     throw new AiCoachError(
-      "FORBIDDEN",
-      "Automatic finalization is limited to persisted synthetic accounts.",
-      403
+      "VALIDATION_ERROR",
+      "The proposal is not bound to the current reviewed policy.",
+      422
     );
   }
   const answers = safetyDisclosureSchema.safeParse(disclosure?.structuredAnswers);
@@ -94,12 +90,33 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
         : screeningValues.includes("UNSURE")
           ? "UNKNOWN"
           : "CLEAR";
-  const request = syntheticRuntimeArtifactRequest();
+  // Artifacts/policy load before the safety call: the screening instrument ID
+  // and provenance below come from the loaded reviewed bundle and account
+  // classification, never from a constant (T-2000 risk #3).
+  let artifacts;
+  try {
+    artifacts = await loadReviewedArtifactSet(request);
+  } catch (err) {
+    // T-2000 parity finding P5: the artifact set can change between binding
+    // resolution and this load (e.g. revoked); ArtifactLoadError extends the
+    // plain Error base, so leaving it unwrapped would escape as an
+    // unreadable message plus a spurious reportServerError anomaly.
+    if (err instanceof ArtifactLoadError) {
+      throw new AiCoachError(
+        "TEMPORARILY_UNAVAILABLE",
+        "AI coaching is not available for live use yet.",
+        503
+      );
+    }
+    throw err;
+  }
+  const policy = getReviewedPolicyBundleContent(artifacts.policy);
+  const provenance = binding.mode === "LIVE" ? "SERVER_VALIDATED_CLIENT_STATE" : "SYNTHETIC_SERVER_FIXTURE";
   await evaluateCurrentClientNutritionSafety(request, {
     screening: {
-      instrumentId: "SYNTHETIC_SCREENING_INSTRUMENT_NOT_FOR_LIVE_USE",
+      instrumentId: policy.safetyControls.screening.instrumentId,
       result: screeningResult,
-      provenance: "SYNTHETIC_SERVER_FIXTURE",
+      provenance,
     },
     contraindications: {
       AGE_ELIGIBILITY: status(answers.success ? answers.data.ageEligibilityConcern : undefined),
@@ -117,28 +134,56 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
             typeof (profile.confirmedIntake as { weightKg?: unknown } | null)?.weightKg === "number"
               ? (profile.confirmedIntake as { weightKg: number }).weightKg
               : null,
-          // Neutral synthetic fixture value; not a live estimate or client-facing claim.
-          projectedWeeklyWeightChangeKg: 0,
-          provenance: "SYNTHETIC_SERVER_FIXTURE",
+          // LIVE: no invented clinical projection. T-2003 (prescription
+          // engine) plus G01 (signed bundle) supply a real projected rate;
+          // until then this fails closed to HOLD via the missing-rate-input
+          // branch in nutrition-safety.ts whenever a live candidate actually
+          // touches nutrition. FIXTURE: neutral synthetic fixture value; not
+          // a live estimate or client-facing claim.
+          projectedWeeklyWeightChangeKg: binding.mode === "LIVE" ? null : 0,
+          provenance,
         }
       : null,
   });
-  const artifacts = await loadReviewedArtifactSet(request);
-  const policy = getReviewedPolicyBundleContent(artifacts.policy);
   const sourceRefs = z.array(sourceRefSchema).parse(candidate.sourceRefs ?? []);
-  const requiredInputs = policy.requiredInputIds.map((id) => ({
-    id,
-    status:
-      id === "SYNTHETIC_REQUIRED_INPUT"
-        ? profile.confirmedIntake
-          ? ("CONFIRMED" as const)
-          : ("UNKNOWN" as const)
-        : id === "SYNTHETIC_SCREEN_RESULT"
-          ? screeningResult === "CLEAR"
-            ? ("CONFIRMED" as const)
-            : ("UNKNOWN" as const)
-          : ("CONFIRMED" as const),
-  }));
+  // T-2000 review finding 1: the server can only verify these specific input
+  // ids today. Any other id a reviewed bundle declares (real inputs land in
+  // T-2003) maps to UNKNOWN, never a caller-asserted CONFIRMED, so the gate
+  // fails closed to FOCUSED_CLARIFICATION instead of trusting an
+  // unrecognized required input. The synthetic fixture bundle never declares
+  // any id outside this set, so FIXTURE behavior is unchanged.
+  const CONTRAINDICATION_REQUIRED_INPUT_IDS = new Set([
+    "AGE_ELIGIBILITY",
+    "PREGNANCY_POSTPARTUM",
+    "EATING_DISORDER_HISTORY_OR_CONCERN",
+    "TYPE_1_DIABETES",
+    "CARDIAC_CONDITION",
+  ]);
+  const contraindicationStatusById: Record<string, "CLEAR" | "EXCLUDED" | "UNKNOWN"> = {
+    AGE_ELIGIBILITY: status(answers.success ? answers.data.ageEligibilityConcern : undefined),
+    PREGNANCY_POSTPARTUM: status(answers.success ? answers.data.pregnantOrPostpartum : undefined),
+    EATING_DISORDER_HISTORY_OR_CONCERN: status(
+      answers.success ? answers.data.eatingDisorderHistoryOrConcern : undefined
+    ),
+    TYPE_1_DIABETES: status(answers.success ? answers.data.type1Diabetes : undefined),
+    CARDIAC_CONDITION: status(answers.success ? answers.data.heartCondition : undefined),
+  };
+  const requiredInputs = policy.requiredInputIds.map((id) => {
+    if (id === "SYNTHETIC_REQUIRED_INPUT")
+      return { id, status: profile.confirmedIntake ? ("CONFIRMED" as const) : ("UNKNOWN" as const) };
+    if (id === "SYNTHETIC_SCREEN_RESULT")
+      return {
+        id,
+        status: screeningResult === "CLEAR" ? ("CONFIRMED" as const) : ("UNKNOWN" as const),
+      };
+    if (CONTRAINDICATION_REQUIRED_INPUT_IDS.has(id))
+      return {
+        id,
+        status:
+          contraindicationStatusById[id] === "CLEAR" ? ("CONFIRMED" as const) : ("UNKNOWN" as const),
+      };
+    return { id, status: "UNKNOWN" as const };
+  });
   const requestedDomains = distinct(
     [
       payload.nutrition ? "NUTRITION" : null,
@@ -155,9 +200,16 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
     ]),
     requestedDomains,
     requiredInputs,
+    // T-2000 review finding 1: the server can only substantiate the known
+    // synthetic-fixture evidence rule today (T-2003 supplies a real
+    // evidence-matching mapping). Any other rule id a reviewed bundle
+    // declares maps to UNKNOWN, never a caller-asserted SUFFICIENT, so the
+    // gate fails closed to FOCUSED_CLARIFICATION rather than trusting an
+    // unsubstantiated evidence rule. The synthetic fixture bundle never
+    // declares any other rule id, so FIXTURE behavior is unchanged.
     evidence: policy.evidenceRuleIds.map((ruleId) => ({
       ruleId,
-      status: "SUFFICIENT" as const,
+      status: ruleId === "SYNTHETIC_EVIDENCE_RULE" ? ("SUFFICIENT" as const) : ("UNKNOWN" as const),
       sourceRefs,
     })),
     candidatePlanVersionId: candidate.id,
@@ -174,15 +226,11 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
     const [kind, id] = reference.split(":", 2);
     return { kind: kind as "FOOD" | "EXERCISE", id };
   });
-  const result = await runConstrainedProviderBoundary(
-    request,
-    {
-      languageSourceRefs: sourceRefs.filter((ref) => ref.kind === "CHECK_IN").slice(0, 5),
-      eligibleOptions,
-      gateInput,
-    },
-    new SyntheticConstrainedProvider()
-  );
+  const result = await runRuntimeConstrainedProviderBoundary(binding, {
+    languageSourceRefs: sourceRefs.filter((ref) => ref.kind === "CHECK_IN").slice(0, 5),
+    eligibleOptions,
+    gateInput,
+  });
   if (result.outcome !== "APPROVE_AUTOMATICALLY" || !result.providerSelection) {
     return {
       outcome: result.outcome,
