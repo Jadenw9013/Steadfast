@@ -257,6 +257,17 @@ export async function purgeUserAccount(userId: string): Promise<void> {
     )
   `;
       await tx.$executeRaw`DELETE FROM "AiWorkoutSession" WHERE "clientId" = ${userId}`;
+      // T-509 — A08a check-in observations and the A06d idempotency ledger.
+      // Both relations are onDelete: Cascade (schema.prisma:1077, :1091), so
+      // tx.user.delete() below already removes them; these two statements
+      // duplicate that cascade deliberately, exactly as CoachSettings and
+      // IntakeFormTemplate do at :241-243, so that a later relation change
+      // cannot silently leave a purged client's health observations behind.
+      // No "deletedAt IS NULL" filter, by design: rows tombstoned by
+      // lib/ai-coach/delete-evidence.ts:21 still hold a clientId, a
+      // clientEventId and an inputDigest and must be purged, not skipped.
+      await tx.$executeRaw`DELETE FROM "AiCheckInObservation" WHERE "clientId" = ${userId}`;
+      await tx.$executeRaw`DELETE FROM "AiOperationReceipt" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiAdjustmentSlot" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiCoachRun" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiPlanActivationAttempt" WHERE "clientId" = ${userId}`;
