@@ -475,7 +475,7 @@ describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalo
       // subject rather than the schema.)
       for (const entry of allowlist.entries) {
         expect(
-          ["SOURCE_FOOD_CATEGORY", "FALLBACK_OMNIVORE_ONLY", "REVIEWER_SET"],
+          ["SOURCE_FOOD_CATEGORY", "FALLBACK_OMNIVORE_ONLY", "NARROWED_BY_DESCRIPTION", "REVIEWER_SET"],
           entry.canonicalName
         ).toContain(entry.patternTagsBasis);
       }

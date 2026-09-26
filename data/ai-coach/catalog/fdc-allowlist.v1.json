@@ -2,7 +2,7 @@
   "allowlistVersion": 1,
   "market": "US",
   "curationState": "ENGINEER_DRAFT",
-  "generatedAt": "2026-09-26T08:37:06.819Z",
+  "generatedAt": "2026-09-26T16:18:08.290Z",
   "coveragePlanDigest": "09ae30c7a5739e4c1af3c6814977c255c790905a1fc02cc24faf16da03f9fe91",
   "entries": [
     {
@@ -12,12 +12,19 @@
       "synonyms": [
         "broccoli, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -29,12 +36,19 @@
       "synonyms": [
         "broccoli raab, cooked"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -46,12 +60,19 @@
       "synonyms": [
         "broccoli raab, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -63,12 +84,19 @@
       "synonyms": [
         "broccoli, chinese, cooked"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -80,11 +108,21 @@
       "synonyms": [
         "spinach souffle"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "patternTagsBasis": "NARROWED_BY_DESCRIPTION",
+      "patternTagsNarrowedBy": [
+        "souffle"
+      ],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -97,12 +135,19 @@
       "synonyms": [
         "spinach, baby"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -114,12 +159,19 @@
       "synonyms": [
         "spinach, mature"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -131,12 +183,19 @@
       "synonyms": [
         "spinach, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -148,12 +207,19 @@
       "synonyms": [
         "malabar spinach, cooked"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -165,12 +231,19 @@
       "synonyms": [
         "carrot, dehydrated"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -182,12 +255,19 @@
       "synonyms": [
         "carrots, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -199,11 +279,19 @@
       "synonyms": [
         "babyfood, carrots, toddler"
       ],
+      "sourceFoodCategory": "Baby Foods",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -216,12 +304,19 @@
       "synonyms": [
         "carrot juice, canned"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -233,12 +328,19 @@
       "synonyms": [
         "carrots, baby, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -250,12 +352,19 @@
       "synonyms": [
         "kale, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -267,12 +376,19 @@
       "synonyms": [
         "kale, frozen, unprepared"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -284,12 +400,19 @@
       "synonyms": [
         "kale, cooked, boiled, drained, with salt"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -301,12 +424,19 @@
       "synonyms": [
         "kale, cooked, boiled, drained, without salt"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -318,12 +448,19 @@
       "synonyms": [
         "peppers, bell, green, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -335,12 +472,19 @@
       "synonyms": [
         "peppers, bell, orange, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -352,12 +496,19 @@
       "synonyms": [
         "peppers, bell, red, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -369,12 +520,19 @@
       "synonyms": [
         "peppers, bell, yellow, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -386,11 +544,19 @@
       "synonyms": [
         "taco bell, nachos"
       ],
+      "sourceFoodCategory": "Fast Foods",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -403,12 +569,19 @@
       "synonyms": [
         "tomato powder"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -420,12 +593,19 @@
       "synonyms": [
         "tomato, roma"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -437,12 +617,19 @@
       "synonyms": [
         "tomato products, canned, sauce, with tomato tidbits"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -454,12 +641,19 @@
       "synonyms": [
         "tomatoes, red, ripe, canned, packed in tomato juice"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -471,12 +665,19 @@
       "synonyms": [
         "tomato, puree, canned"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -488,12 +689,19 @@
       "synonyms": [
         "squash, zucchini, baby, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -505,12 +713,19 @@
       "synonyms": [
         "squash, summer, zucchini, includes skin, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -522,12 +737,19 @@
       "synonyms": [
         "squash, summer, zucchini, italian style, canned"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -539,12 +761,19 @@
       "synonyms": [
         "squash, summer, green, zucchini, includes skin, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -556,12 +785,19 @@
       "synonyms": [
         "squash, summer, zucchini, includes skin, frozen, unprepared"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -573,12 +809,19 @@
       "synonyms": [
         "cauliflower, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -590,12 +833,19 @@
       "synonyms": [
         "cauliflower, frozen, unprepared"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -607,12 +857,19 @@
       "synonyms": [
         "cauliflower, green, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -624,12 +881,19 @@
       "synonyms": [
         "cauliflower, green, cooked, with salt"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -641,12 +905,19 @@
       "synonyms": [
         "sweet potato leaves, raw"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -658,12 +929,19 @@
       "synonyms": [
         "sweet potato, canned, mashed"
       ],
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -675,11 +953,19 @@
       "synonyms": [
         "babyfood, corn and sweet potatoes, strained"
       ],
+      "sourceFoodCategory": "Baby Foods",
       "categoryId": "VEGETABLES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -692,11 +978,17 @@
       "synonyms": [
         "croissants, apple"
       ],
-      "categoryId": "FRUITS",
+      "sourceFoodCategory": "Baked Products",
+      "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -709,11 +1001,17 @@
       "synonyms": [
         "strudel, apple"
       ],
-      "categoryId": "FRUITS",
+      "sourceFoodCategory": "Baked Products",
+      "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -726,11 +1024,19 @@
       "synonyms": [
         "babyfood, juice, apple"
       ],
+      "sourceFoodCategory": "Baby Foods",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -743,11 +1049,18 @@
       "synonyms": [
         "fruit butters, apple"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -760,12 +1073,19 @@
       "synonyms": [
         "rose-apples, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -777,12 +1097,19 @@
       "synonyms": [
         "bananas, dehydrated, or banana powder"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -794,12 +1121,19 @@
       "synonyms": [
         "bananas, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -811,12 +1145,19 @@
       "synonyms": [
         "bananas, overripe, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -828,11 +1169,18 @@
       "synonyms": [
         "melon, banana (navajo)"
       ],
+      "sourceFoodCategory": "American Indian/Alaska Native Foods",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -845,12 +1193,19 @@
       "synonyms": [
         "pepper, banana, raw"
       ],
-      "categoryId": "FRUITS",
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
+      "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -862,11 +1217,19 @@
       "synonyms": [
         "marmalade, orange"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -879,11 +1242,19 @@
       "synonyms": [
         "sherbet, orange"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -896,11 +1267,19 @@
       "synonyms": [
         "babyfood, juice, orange"
       ],
+      "sourceFoodCategory": "Baby Foods",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -913,11 +1292,18 @@
       "synonyms": [
         "beverages, carbonated, orange"
       ],
+      "sourceFoodCategory": "Beverages",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -930,12 +1316,19 @@
       "synonyms": [
         "orange peel, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -947,12 +1340,19 @@
       "synonyms": [
         "strawberries, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -964,11 +1364,19 @@
       "synonyms": [
         "toppings, strawberry"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -981,12 +1389,19 @@
       "synonyms": [
         "guavas, strawberry, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -998,11 +1413,19 @@
       "synonyms": [
         "ice creams, strawberry"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1015,12 +1438,19 @@
       "synonyms": [
         "blueberries, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1032,12 +1462,19 @@
       "synonyms": [
         "blueberries, dried, sweetened"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1049,12 +1486,19 @@
       "synonyms": [
         "blueberries, frozen, sweetened"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1066,11 +1510,17 @@
       "synonyms": [
         "muffins, blueberry, dry mix"
       ],
-      "categoryId": "FRUITS",
+      "sourceFoodCategory": "Baked Products",
+      "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1083,12 +1533,19 @@
       "synonyms": [
         "grape leaves, canned"
       ],
-      "categoryId": "FRUITS",
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
+      "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1100,12 +1557,19 @@
       "synonyms": [
         "grape leaves, raw"
       ],
-      "categoryId": "FRUITS",
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
+      "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1117,12 +1581,19 @@
       "synonyms": [
         "grapes, muscadine, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1134,12 +1605,19 @@
       "synonyms": [
         "tomatoes, grape, raw"
       ],
-      "categoryId": "FRUITS",
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
+      "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1151,11 +1629,19 @@
       "synonyms": [
         "babyfood, juice, apple and grape"
       ],
+      "sourceFoodCategory": "Baby Foods",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1168,12 +1654,19 @@
       "synonyms": [
         "pineapple, raw"
       ],
+      "sourceFoodCategory": "Fruits and Fruit Juices",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1185,11 +1678,19 @@
       "synonyms": [
         "toppings, pineapple"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "FRUITS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1202,12 +1703,19 @@
       "synonyms": [
         "flour, rice, brown"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1219,12 +1727,19 @@
       "synonyms": [
         "rice flour, brown"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1236,11 +1751,19 @@
       "synonyms": [
         "snacks, rice cakes, brown rice, buckwheat"
       ],
+      "sourceFoodCategory": "Snacks",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1253,11 +1776,19 @@
       "synonyms": [
         "snacks, rice cakes, brown rice, corn"
       ],
+      "sourceFoodCategory": "Snacks",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1270,11 +1801,19 @@
       "synonyms": [
         "snacks, rice cakes, brown rice, multigrain"
       ],
+      "sourceFoodCategory": "Snacks",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1287,12 +1826,19 @@
       "synonyms": [
         "flour, rice, white, unenriched"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1304,12 +1850,19 @@
       "synonyms": [
         "rice flour, white, unenriched"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1321,12 +1874,19 @@
       "synonyms": [
         "rice, white, glutinous, unenriched, cooked"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1338,12 +1898,19 @@
       "synonyms": [
         "rice, white, glutinous, unenriched, uncooked"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1355,11 +1922,20 @@
       "synonyms": [
         "rice, white, steamed, chinese restaurant"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_RESTAURANT_OR_FAST_FOOD"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1372,12 +1948,16 @@
       "synonyms": [
         "oil, oat"
       ],
-      "categoryId": "GRAINS_STARCHES",
+      "sourceFoodCategory": "Fats and Oils",
+      "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1389,12 +1969,16 @@
       "synonyms": [
         "bagels, oat bran"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1406,12 +1990,16 @@
       "synonyms": [
         "bread, oat bran"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1423,11 +2011,17 @@
       "synonyms": [
         "muffins, oat bran"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1440,12 +2034,19 @@
       "synonyms": [
         "oat bran, cooked"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1457,12 +2058,19 @@
       "synonyms": [
         "quinoa, cooked"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1474,12 +2082,19 @@
       "synonyms": [
         "quinoa, uncooked"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1491,12 +2106,19 @@
       "synonyms": [
         "flour, quinoa"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1508,11 +2130,20 @@
       "synonyms": [
         "pasta, gluten-free, corn flour and quinoa flour, cooked, ancient harvest"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1525,12 +2156,19 @@
       "synonyms": [
         "pasta, dry, enriched"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1542,12 +2180,19 @@
       "synonyms": [
         "pasta, dry, unenriched"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1559,11 +2204,20 @@
       "synonyms": [
         "babyfood, dinner, pasta with vegetables"
       ],
+      "sourceFoodCategory": "Baby Foods",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD",
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1576,12 +2230,19 @@
       "synonyms": [
         "pasta, dry, enriched, spaghetti"
       ],
+      "sourceFoodCategory": "Cereal Grains and Pasta",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1593,11 +2254,18 @@
       "synonyms": [
         "pasta mix, classic beef, unprepared"
       ],
+      "sourceFoodCategory": "Meals, Entrees, and Side Dishes",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1610,12 +2278,16 @@
       "synonyms": [
         "bread, pita, whole-wheat"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1627,12 +2299,16 @@
       "synonyms": [
         "bread, 100% whole wheat, commercial"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1644,12 +2320,16 @@
       "synonyms": [
         "bread, french or vienna, whole wheat"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1661,12 +2341,16 @@
       "synonyms": [
         "bread, whole-wheat, commercially prepared"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1678,12 +2362,16 @@
       "synonyms": [
         "bread, whole-wheat, commercially prepared, toasted"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1695,12 +2383,16 @@
       "synonyms": [
         "bread, potato"
       ],
+      "sourceFoodCategory": "Baked Products",
       "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1712,12 +2404,19 @@
       "synonyms": [
         "beans, black, mature seeds, raw"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1729,12 +2428,19 @@
       "synonyms": [
         "beans, dry, black (0% moisture)"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1746,11 +2452,20 @@
       "synonyms": [
         "restaurant, latino, black bean soup"
       ],
+      "sourceFoodCategory": "Restaurant Foods",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_RESTAURANT_OR_FAST_FOOD",
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1763,11 +2478,19 @@
       "synonyms": [
         "soup, black bean, canned, condensed"
       ],
+      "sourceFoodCategory": "Soups, Sauces, and Gravies",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1780,12 +2503,19 @@
       "synonyms": [
         "beans, black turtle, mature seeds, canned"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1797,12 +2527,19 @@
       "synonyms": [
         "chickpea flour (besan)"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1814,12 +2551,19 @@
       "synonyms": [
         "chickpeas, (garbanzo beans, bengal gram), dry"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1831,12 +2575,19 @@
       "synonyms": [
         "chickpeas (garbanzo beans, bengal gram), mature seeds, raw"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1848,12 +2599,19 @@
       "synonyms": [
         "chickpeas (garbanzo beans, bengal gram), canned, sodium added, drained and rinsed"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1865,12 +2623,19 @@
       "synonyms": [
         "chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1882,12 +2647,19 @@
       "synonyms": [
         "lentils, dry"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1899,12 +2671,19 @@
       "synonyms": [
         "lentils, raw"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1916,12 +2695,19 @@
       "synonyms": [
         "lentils, sprouted, raw"
       ],
-      "categoryId": "LEGUMES",
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
+      "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1933,12 +2719,19 @@
       "synonyms": [
         "lentils, pink or red, raw"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1950,11 +2743,20 @@
       "synonyms": [
         "smart soup, french lentil"
       ],
+      "sourceFoodCategory": "Soups, Sauces, and Gravies",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN",
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -1967,12 +2769,19 @@
       "synonyms": [
         "beans, liquid from stewed kidney beans"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -1984,12 +2793,19 @@
       "synonyms": [
         "beans, kidney, mature seeds, sprouted, raw"
       ],
-      "categoryId": "LEGUMES",
+      "sourceFoodCategory": "Vegetables and Vegetable Products",
+      "categoryId": "VEGETABLES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2001,12 +2817,19 @@
       "synonyms": [
         "beans, kidney, red, mature seeds, raw"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2018,12 +2841,19 @@
       "synonyms": [
         "beans, dry, dark red kidney (0% moisture)"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2035,12 +2865,19 @@
       "synonyms": [
         "beans, dry, light red kidney (0% moisture)"
       ],
+      "sourceFoodCategory": "Legumes and Legume Products",
       "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2052,12 +2889,16 @@
       "synonyms": [
         "lunchmeat, chicken breast, sliced"
       ],
+      "sourceFoodCategory": "Sausages and Luncheon Meats",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2069,12 +2910,16 @@
       "synonyms": [
         "chicken breast tenders, breaded, uncooked"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2086,12 +2931,16 @@
       "synonyms": [
         "chicken breast, roll, oven-roasted"
       ],
+      "sourceFoodCategory": "Sausages and Luncheon Meats",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2103,12 +2952,16 @@
       "synonyms": [
         "chicken, breast, boneless, skinless, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2120,12 +2973,16 @@
       "synonyms": [
         "chicken, breast, meat and skin, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2137,12 +2994,16 @@
       "synonyms": [
         "chicken, skin (drumsticks and thighs), raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2154,12 +3015,16 @@
       "synonyms": [
         "chicken, thigh, boneless, skinless, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2171,12 +3036,16 @@
       "synonyms": [
         "chicken, thigh, meat and skin, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2188,11 +3057,18 @@
       "synonyms": [
         "chicken, thighs, frozen, breaded, reheated"
       ],
+      "sourceFoodCategory": "Meals, Entrees, and Side Dishes",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -2205,12 +3081,16 @@
       "synonyms": [
         "chicken, skin (drumsticks and thighs), cooked, braised"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2222,12 +3102,16 @@
       "synonyms": [
         "turkey breast, sliced, prepackaged"
       ],
+      "sourceFoodCategory": "Sausages and Luncheon Meats",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2239,12 +3123,16 @@
       "synonyms": [
         "turkey, whole, breast, meat only, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2256,12 +3144,16 @@
       "synonyms": [
         "turkey, all classes, breast, meat and skin, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2273,12 +3165,16 @@
       "synonyms": [
         "turkey, retail parts, breast, meat and skin, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2290,12 +3186,16 @@
       "synonyms": [
         "turkey, retail parts, breast, meat only, raw"
       ],
+      "sourceFoodCategory": "Poultry Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2307,12 +3207,16 @@
       "synonyms": [
         "beef, grass-fed, ground, raw"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2324,12 +3228,16 @@
       "synonyms": [
         "beef, ground, patties, frozen, cooked, broiled"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2341,12 +3249,16 @@
       "synonyms": [
         "beef, ground, unspecified fat content, cooked"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2358,11 +3270,19 @@
       "synonyms": [
         "on the border, soft taco with ground beef, cheese and lettuce"
       ],
+      "sourceFoodCategory": "Restaurant Foods",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -2375,12 +3295,16 @@
       "synonyms": [
         "beef, ground, 70% lean meat / 30% fat, raw"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2388,16 +3312,20 @@
     {
       "fdcId": 2727573,
       "dataType": "Foundation",
-      "canonicalName": "Beef,\u00a0tenderloin steak, raw",
+      "canonicalName": "Beef, tenderloin steak, raw",
       "synonyms": [
-        "beef,\u00a0tenderloin steak, raw"
+        "beef, tenderloin steak, raw"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2409,12 +3337,16 @@
       "synonyms": [
         "beef, top sirloin steak, raw"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2426,12 +3358,16 @@
       "synonyms": [
         "beef, flank, steak, boneless, choice, raw"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2443,12 +3379,16 @@
       "synonyms": [
         "beef, ribeye, steak, boneless, choice, raw"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2460,12 +3400,16 @@
       "synonyms": [
         "beef, short loin (ny strip steak), raw"
       ],
+      "sourceFoodCategory": "Beef Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2477,12 +3421,16 @@
       "synonyms": [
         "pork, loin, boneless, raw"
       ],
+      "sourceFoodCategory": "Pork Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2494,12 +3442,16 @@
       "synonyms": [
         "pork, loin, tenderloin, boneless, raw"
       ],
+      "sourceFoodCategory": "Pork Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2511,11 +3463,17 @@
       "synonyms": [
         "hormel always tender, boneless pork loin, fresh pork"
       ],
+      "sourceFoodCategory": "Pork Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -2528,12 +3486,16 @@
       "synonyms": [
         "pork, fresh, loin, top loin (roasts), boneless, separable lean and fat, raw"
       ],
+      "sourceFoodCategory": "Pork Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2545,12 +3507,16 @@
       "synonyms": [
         "pork, fresh, loin, top loin (roasts), boneless, separable lean only, raw"
       ],
+      "sourceFoodCategory": "Pork Products",
       "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2562,12 +3528,16 @@
       "synonyms": [
         "fish oil, salmon"
       ],
-      "categoryId": "SEAFOOD",
+      "sourceFoodCategory": "Fats and Oils",
+      "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2579,12 +3549,17 @@
       "synonyms": [
         "fish, salmon, chinook, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2596,12 +3571,17 @@
       "synonyms": [
         "fish, salmon, chinook, smoked"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2613,12 +3593,17 @@
       "synonyms": [
         "fish, salmon, chum, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2630,12 +3615,17 @@
       "synonyms": [
         "fish, salmon, pink, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2647,12 +3637,17 @@
       "synonyms": [
         "fish, tuna salad"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2664,12 +3659,17 @@
       "synonyms": [
         "fish, tuna, fresh, bluefin, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2681,12 +3681,17 @@
       "synonyms": [
         "fish, tuna, fresh, skipjack, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2698,12 +3703,17 @@
       "synonyms": [
         "fish, tuna, fresh, yellowfin, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2715,12 +3725,17 @@
       "synonyms": [
         "tuna, ahi or yellowfin, frozen, wild caught"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2732,12 +3747,16 @@
       "synonyms": [
         "fish oil, cod liver"
       ],
-      "categoryId": "SEAFOOD",
+      "sourceFoodCategory": "Fats and Oils",
+      "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2749,12 +3768,17 @@
       "synonyms": [
         "fish, cod, atlantic, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2766,12 +3790,17 @@
       "synonyms": [
         "fish, cod, pacific, cooked"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2783,12 +3812,17 @@
       "synonyms": [
         "fish, cod, atlantic, dried and salted"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2800,12 +3834,17 @@
       "synonyms": [
         "cod, pacific or alaskan, frozen, wild caught"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2817,12 +3856,17 @@
       "synonyms": [
         "crustaceans, shrimp, cooked"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2834,12 +3878,17 @@
       "synonyms": [
         "crustaceans, shrimp, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2851,11 +3900,19 @@
       "synonyms": [
         "snacks, shrimp cracker"
       ],
+      "sourceFoodCategory": "Snacks",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -2868,11 +3925,19 @@
       "synonyms": [
         "applebee's, double crunch shrimp"
       ],
+      "sourceFoodCategory": "Restaurant Foods",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -2885,11 +3950,19 @@
       "synonyms": [
         "denny's, golden fried shrimp"
       ],
+      "sourceFoodCategory": "Restaurant Foods",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -2902,12 +3975,17 @@
       "synonyms": [
         "fish, tilapia, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2919,12 +3997,17 @@
       "synonyms": [
         "fish, tilapia, cooked, dry heat"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2936,12 +4019,17 @@
       "synonyms": [
         "fish, tilapia, farm raised, raw"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2953,12 +4041,16 @@
       "synonyms": [
         "fish oil, sardine"
       ],
-      "categoryId": "SEAFOOD",
+      "sourceFoodCategory": "Fats and Oils",
+      "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2970,12 +4062,17 @@
       "synonyms": [
         "fish, sardine, atlantic, canned in oil, drained solids with bone"
       ],
+      "sourceFoodCategory": "Finfish and Shellfish Products",
       "categoryId": "SEAFOOD",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -2987,11 +4084,17 @@
       "synonyms": [
         "crackers, milk"
       ],
-      "categoryId": "DAIRY",
+      "sourceFoodCategory": "Baked Products",
+      "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_SOUP_MIXED_DISH_OR_SNACK_PRODUCT"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3004,11 +4107,19 @@
       "synonyms": [
         "milk dessert, frozen, milk-fat free, chocolate"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3021,12 +4132,18 @@
       "synonyms": [
         "protein supplement, milk based, muscle milk, powder"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3038,11 +4155,18 @@
       "synonyms": [
         "beverages, rice milk, unsweetened"
       ],
+      "sourceFoodCategory": "Beverages",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3055,11 +4179,19 @@
       "synonyms": [
         "candies, milk chocolate"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3072,12 +4204,20 @@
       "synonyms": [
         "tofu yogurt"
       ],
-      "categoryId": "DAIRY",
+      "sourceFoodCategory": "Legumes and Legume Products",
+      "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "NARROWED_BY_DESCRIPTION",
+      "patternTagsNarrowedBy": [
+        "yogurt"
+      ],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3089,11 +4229,19 @@
       "synonyms": [
         "frozen yogurts, chocolate"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3106,12 +4254,18 @@
       "synonyms": [
         "yogurt, plain, nonfat"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3123,11 +4277,20 @@
       "synonyms": [
         "babyfood, dessert, peach yogurt"
       ],
+      "sourceFoodCategory": "Baby Foods",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD",
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3140,11 +4303,19 @@
       "synonyms": [
         "candies, confectioner's coating, yogurt"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3157,11 +4328,19 @@
       "synonyms": [
         "yogurt, greek, blueberry, chobani"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3174,12 +4353,18 @@
       "synonyms": [
         "yogurt, greek, plain, lowfat"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3191,12 +4376,18 @@
       "synonyms": [
         "yogurt, greek, plain, nonfat"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3208,12 +4399,18 @@
       "synonyms": [
         "yogurt, greek, strawberry, lowfat"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3225,12 +4422,18 @@
       "synonyms": [
         "yogurt, greek, strawberry, nonfat"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3242,12 +4445,18 @@
       "synonyms": [
         "cheese, cheddar"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3259,12 +4468,18 @@
       "synonyms": [
         "cheese, american cheddar, imitation"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3276,12 +4491,18 @@
       "synonyms": [
         "cheese, cheddar, sharp, sliced"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3293,12 +4514,18 @@
       "synonyms": [
         "cheese, cheddar, nonfat or fat free"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3310,12 +4537,18 @@
       "synonyms": [
         "cheese, low fat, cheddar or colby"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3327,12 +4560,18 @@
       "synonyms": [
         "cheese, cottage, with vegetables"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3344,12 +4583,18 @@
       "synonyms": [
         "cheese, cottage, creamed, with fruit"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3361,12 +4606,18 @@
       "synonyms": [
         "cheese, cottage, lowfat, 1% milkfat"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3378,12 +4629,18 @@
       "synonyms": [
         "cheese, cottage, lowfat, 2% milkfat"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3395,11 +4652,19 @@
       "synonyms": [
         "applebee's, mozzarella sticks"
       ],
+      "sourceFoodCategory": "Restaurant Foods",
       "categoryId": "DAIRY",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3412,12 +4677,18 @@
       "synonyms": [
         "eggs, grade a, large, egg whole"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3429,12 +4700,18 @@
       "synonyms": [
         "egg, whole, dried"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3446,12 +4723,18 @@
       "synonyms": [
         "egg, whole, cooked, fried"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3463,12 +4746,18 @@
       "synonyms": [
         "egg, whole, cooked, omelet"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3480,12 +4769,18 @@
       "synonyms": [
         "eggs, grade a, large, egg white"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3497,12 +4792,18 @@
       "synonyms": [
         "egg, white, dried"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3514,12 +4815,18 @@
       "synonyms": [
         "egg, white, raw, fresh"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3531,12 +4838,18 @@
       "synonyms": [
         "egg, white, raw, frozen, pasteurized"
       ],
+      "sourceFoodCategory": "Dairy and Egg Products",
       "categoryId": "EGGS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3548,12 +4861,19 @@
       "synonyms": [
         "flour, almond"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3565,12 +4885,19 @@
       "synonyms": [
         "nuts, almonds"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3582,12 +4909,16 @@
       "synonyms": [
         "oil, almond"
       ],
-      "categoryId": "NUTS_AND_SEEDS",
+      "sourceFoodCategory": "Fats and Oils",
+      "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3599,12 +4930,19 @@
       "synonyms": [
         "almond butter, creamy"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3616,11 +4954,19 @@
       "synonyms": [
         "candies, nougat, with almonds"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3633,12 +4979,16 @@
       "synonyms": [
         "oil, walnut"
       ],
-      "categoryId": "NUTS_AND_SEEDS",
+      "sourceFoodCategory": "Fats and Oils",
+      "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3650,12 +5000,19 @@
       "synonyms": [
         "nuts, walnuts, english"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3667,12 +5024,19 @@
       "synonyms": [
         "nuts, walnuts, glazed"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3684,12 +5048,19 @@
       "synonyms": [
         "nuts, walnuts, black, dried"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3701,12 +5072,19 @@
       "synonyms": [
         "nuts, walnuts, english, halves, raw"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3718,12 +5096,16 @@
       "synonyms": [
         "oil, peanut"
       ],
-      "categoryId": "NUTS_AND_SEEDS",
+      "sourceFoodCategory": "Fats and Oils",
+      "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3735,12 +5117,19 @@
       "synonyms": [
         "peanuts, raw"
       ],
-      "categoryId": "NUTS_AND_SEEDS",
+      "sourceFoodCategory": "Legumes and Legume Products",
+      "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3752,11 +5141,19 @@
       "synonyms": [
         "candies, peanut bar"
       ],
+      "sourceFoodCategory": "Sweets",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "COVERAGE_PLAN_SEARCH_TERM",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "SOURCE_CATEGORY_IS_NOT_A_WHOLE_FOOD_GROUP",
+        "CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3769,12 +5166,19 @@
       "synonyms": [
         "peanut butter, creamy"
       ],
-      "categoryId": "NUTS_AND_SEEDS",
+      "sourceFoodCategory": "Legumes and Legume Products",
+      "categoryId": "LEGUMES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3786,12 +5190,19 @@
       "synonyms": [
         "nuts, cashew nuts, raw"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3803,12 +5214,19 @@
       "synonyms": [
         "nuts, cashew butter, plain, with salt added"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3820,12 +5238,19 @@
       "synonyms": [
         "nuts, cashew butter, plain, without salt added"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3837,12 +5262,19 @@
       "synonyms": [
         "nuts, cashew nuts, dry roasted, with salt added"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3854,12 +5286,19 @@
       "synonyms": [
         "nuts, pistachio nuts, raw"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3871,12 +5310,16 @@
       "synonyms": [
         "yachtwurst, with pistachio nuts, cooked"
       ],
-      "categoryId": "NUTS_AND_SEEDS",
+      "sourceFoodCategory": "Sausages and Luncheon Meats",
+      "categoryId": "POULTRY_AND_MEAT",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3888,12 +5331,19 @@
       "synonyms": [
         "nuts, pistachio nuts, dry roasted, with salt added"
       ],
+      "sourceFoodCategory": "Nut and Seed Products",
       "categoryId": "NUTS_AND_SEEDS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3905,11 +5355,17 @@
       "synonyms": [
         "cereals, quaker, oatmeal, real medleys, cherry pistachio, dry"
       ],
-      "categoryId": "NUTS_AND_SEEDS",
+      "sourceFoodCategory": "Breakfast Cereals",
+      "categoryId": "GRAINS_STARCHES",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -3922,12 +5378,16 @@
       "synonyms": [
         "oil, corn, peanut, and olive"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3939,12 +5399,16 @@
       "synonyms": [
         "oil, olive, extra light"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3956,12 +5420,16 @@
       "synonyms": [
         "oil, olive, extra virgin"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3973,12 +5441,16 @@
       "synonyms": [
         "oil, olive, salad or cooking"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -3990,12 +5462,16 @@
       "synonyms": [
         "mayonnaise, reduced fat, with olive oil"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -4007,12 +5483,16 @@
       "synonyms": [
         "oil, canola"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -4024,12 +5504,16 @@
       "synonyms": [
         "oil, corn and canola"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -4041,11 +5525,17 @@
       "synonyms": [
         "oil, industrial, canola, high oleic"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_AN_INDUSTRIAL_OR_HYDROGENATED_OIL"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -4058,11 +5548,17 @@
       "synonyms": [
         "oil, industrial, canola (partially hydrogenated) oil for deep fat frying"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_AN_INDUSTRIAL_OR_HYDROGENATED_OIL"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -4075,12 +5571,16 @@
       "synonyms": [
         "oil, coconut"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -4092,11 +5592,18 @@
       "synonyms": [
         "oil, industrial, coconut, principal uses candy coatings, oil sprays, roasting nuts"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "DESCRIPTION_NAMES_AN_INDUSTRIAL_OR_HYDROGENATED_OIL"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -4109,11 +5616,18 @@
       "synonyms": [
         "oil, industrial, coconut (hydrogenated), used for whipped toppings and coffee whiteners"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "DESCRIPTION_NAMES_AN_INDUSTRIAL_OR_HYDROGENATED_OIL"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -4126,11 +5640,18 @@
       "synonyms": [
         "oil, industrial, coconut, confection fat, typical basis for ice cream coatings"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
+      ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [
+        "DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT",
+        "DESCRIPTION_NAMES_AN_INDUSTRIAL_OR_HYDROGENATED_OIL"
       ],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
@@ -4143,12 +5664,16 @@
       "synonyms": [
         "oil, avocado"
       ],
+      "sourceFoodCategory": "Fats and Oils",
       "categoryId": "FATS_AND_OILS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "COOKED",
-      "singleIngredientWholeFood": true,
       "patternTags": [
         "OMNIVORE"
       ],
+      "patternTagsBasis": "FALLBACK_OMNIVORE_ONLY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
@@ -4160,12 +5685,19 @@
       "synonyms": [
         "avocados, raw, california"
       ],
-      "categoryId": "FATS_AND_OILS",
+      "sourceFoodCategory": "Fruits and Fruit Juices",
+      "categoryId": "FRUITS",
+      "categoryIdBasis": "SOURCE_FOOD_CATEGORY",
       "foodState": "RAW",
-      "singleIngredientWholeFood": true,
       "patternTags": [
-        "OMNIVORE"
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
       ],
+      "patternTagsBasis": "SOURCE_FOOD_CATEGORY",
+      "patternTagsNarrowedBy": [],
+      "triageFlags": [],
       "ownAllergenCategories": [],
       "reviewState": "PROPOSED",
       "reviewerNote": null
