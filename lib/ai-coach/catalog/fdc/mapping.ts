@@ -1,6 +1,10 @@
-import type {
-  AllergenCategory,
-  SourcedFoodCatalogItem,
+import {
+  SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS,
+  SOURCED_V2_ENERGY_NUTRIENT_IDS,
+  SOURCED_V2_FAT_NUTRIENT_IDS,
+  SOURCED_V2_PROTEIN_NUTRIENT_IDS,
+  type AllergenCategory,
+  type SourcedFoodCatalogItem,
 } from "@/lib/ai-coach/artifacts/schema";
 import { LEGACY_TOKEN_BY_CATEGORY } from "@/lib/ai-coach/intake-allergens";
 import type { AllowlistEntry } from "./allowlist-schema";
@@ -143,12 +147,30 @@ function normalizeUnit(rawUnit: string): "G" | "MG" | "UG" | "KCAL" | "KJ" | "IU
 export const CORE_TRACKED_NUTRIENTS: ReadonlyArray<{
   nutrientNumber: string;
   altNumber: string;
+  /**
+   * Further numbers that report the same quantity. A record carrying one of
+   * these is not missing the nutrient, so no `UNKNOWN` placeholder is added and
+   * the id does not land in `missingNutrientIds`.
+   */
+  otherNumbers?: readonly string[];
   nutrientName: string;
   unit: "G" | "MG" | "UG" | "KCAL";
 }> = [
-  { nutrientNumber: "1008", altNumber: "208", nutrientName: "Energy", unit: "KCAL" },
+  {
+    nutrientNumber: "1008",
+    altNumber: "208",
+    otherNumbers: ["2047", "2048"],
+    nutrientName: "Energy",
+    unit: "KCAL",
+  },
   { nutrientNumber: "1003", altNumber: "203", nutrientName: "Protein", unit: "G" },
-  { nutrientNumber: "1004", altNumber: "204", nutrientName: "Total lipid (fat)", unit: "G" },
+  {
+    nutrientNumber: "1004",
+    altNumber: "204",
+    otherNumbers: ["1085"],
+    nutrientName: "Total lipid (fat)",
+    unit: "G",
+  },
   { nutrientNumber: "1005", altNumber: "205", nutrientName: "Carbohydrate, by difference", unit: "G" },
   { nutrientNumber: "1079", altNumber: "291", nutrientName: "Fiber, total dietary", unit: "G" },
   { nutrientNumber: "2000", altNumber: "269", nutrientName: "Sugars, total including NLEA", unit: "G" },
@@ -176,6 +198,14 @@ export const CORE_TRACKED_NUTRIENTS: ReadonlyArray<{
  * token, so the comparison matches and fails closed.
  *
  * The result is sorted and de-duplicated so the artifact digest is stable.
+ *
+ * **This mapper no longer calls it.** Review r2 MB-4: projecting a tri-state
+ * into a two-state `contains` list asserts absence for every category the
+ * source said nothing about, so SOURCED_V2 items carry no `allergenFacts` at
+ * all. The translation itself is still the one true table and is exported for
+ * the consumer (T-2036) that has to compare a client's declared token against
+ * an `allergenFactsV2` category — that comparison needs exactly this mapping,
+ * and needs it to be the same one `deriveLegacyAllergyTokens` uses.
  */
 export function toLegacyAllergenTokens(categories: readonly AllergenCategory[]): string[] {
   const tokens = categories
@@ -234,19 +264,43 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
     };
   }
 
-  // 2. Identify key macronutrients and energy
-  const findNutrient = (primaryNum: string, altNum: string, expectedUnit: string) => {
+  // 2. Identify key macronutrients and energy.
+  //
+  // The numbers come from the schema's exported id sets, so the mapper and the
+  // SOURCED_V2 refinement cannot disagree about what backs a macro.
+  //
+  // Review r2 MB-1: this lookup used to read only `1008`/`208` for energy and
+  // `1004`/`204` for fat. Modern Foundation records report energy under the
+  // Atwater ids `2047`/`2048` and fat under `1085` "Total fat (NLEA)", so the
+  // tool refused 48 records — plain chicken breast, Pacific cod, olive oil,
+  // bell peppers, walnuts, peanut butter — that carry every macronutrient it
+  // needs. Verified live on `2258588 "Peppers, bell, green, raw"`: no `1008`
+  // row, and `2047` 22.9291, `2048` 19.692148, `1003` 0.715, `1004` 0.1063,
+  // `1005` 4.7781 (board/evidence/T-2035-real-run.md). The ids are searched in
+  // priority order, so the choice is deterministic for a record carrying more
+  // than one. Nothing is derived or computed: a record that truly lacks a macro
+  // is still refused below.
+  const findNutrient = (numbers: readonly string[], expectedUnit: string) => {
+    for (const number of numbers) {
+      const match = norm.nutrients.find(
+        (n) =>
+          n.nutrientNumber === number &&
+          normalizeUnit(n.unitName) === expectedUnit &&
+          n.amount !== null
+      );
+      if (match) return match;
+    }
+    // Fall back to a row with the right id but a null amount, so the error
+    // below distinguishes "not reported" from "absent" identically to before.
     return norm.nutrients.find(
-      (n) =>
-        (n.nutrientNumber === primaryNum || n.nutrientNumber === altNum) &&
-        normalizeUnit(n.unitName) === expectedUnit
+      (n) => numbers.includes(n.nutrientNumber) && normalizeUnit(n.unitName) === expectedUnit
     );
   };
 
-  const energyNutrient = findNutrient("1008", "208", "KCAL");
-  const proteinNutrient = findNutrient("1003", "203", "G");
-  const fatNutrient = findNutrient("1004", "204", "G");
-  const carbNutrient = findNutrient("1005", "205", "G");
+  const energyNutrient = findNutrient(SOURCED_V2_ENERGY_NUTRIENT_IDS, "KCAL");
+  const proteinNutrient = findNutrient(SOURCED_V2_PROTEIN_NUTRIENT_IDS, "G");
+  const fatNutrient = findNutrient(SOURCED_V2_FAT_NUTRIENT_IDS, "G");
+  const carbNutrient = findNutrient(SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS, "G");
 
   if (!energyNutrient || energyNutrient.amount === null) {
     errors.push({
@@ -285,13 +339,24 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
   const fatGrams = fatNutrient!.amount!;
   const carbohydrateGrams = carbNutrient!.amount!;
 
-  // 3. Energy method mapping
+  // 3. Energy method mapping.
+  //
+  // The nutrient id itself is the strongest statement the record makes about
+  // how the kcal figure was arrived at: `2048` *is* "Energy (Atwater Specific
+  // Factors)" and `2047` *is* "Energy (Atwater General Factors)". When the
+  // figure was taken from one of those rows the method is read off the id, so
+  // the artifact records which of a record's several energy values was used.
+  // Otherwise the derivation code/description decides, as before.
   let energyMethod: "ATWATER_GENERAL" | "ATWATER_SPECIFIC" | "SOURCE_REPORTED_UNSPECIFIED" | "UNKNOWN" =
     "SOURCE_REPORTED_UNSPECIFIED";
   const energyDerivationCode = energyNutrient!.derivationCode?.toUpperCase().trim() ?? "";
   const energyDerivationDesc = energyNutrient!.derivationDescription?.toLowerCase().trim() ?? "";
 
-  if (
+  if (energyNutrient!.nutrientNumber === "2048") {
+    energyMethod = "ATWATER_SPECIFIC";
+  } else if (energyNutrient!.nutrientNumber === "2047") {
+    energyMethod = "ATWATER_GENERAL";
+  } else if (
     energyDerivationCode === "AS" ||
     energyDerivationCode === "ATWATER_SPECIFIC" ||
     energyDerivationDesc.includes("atwater specific") ||
@@ -348,7 +413,8 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
   for (const core of CORE_TRACKED_NUTRIENTS) {
     const hasPrimary = processedNutrientNumbers.has(core.nutrientNumber);
     const hasAlt = processedNutrientNumbers.has(core.altNumber);
-    if (!hasPrimary && !hasAlt) {
+    const hasOther = (core.otherNumbers ?? []).some((num) => processedNutrientNumbers.has(num));
+    if (!hasPrimary && !hasAlt && !hasOther) {
       const chosenNumber = norm.dataType === "SR Legacy" ? core.altNumber : core.nutrientNumber;
       nutrientFacts.push({
         nutrientId: chosenNumber,
@@ -372,10 +438,6 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
 
   // 6. Propose allergen facts
   const allergenFactsV2 = proposeAllergenFacts(input.entry, norm, input.retrievedAt);
-
-  const presentLegacyTokens = toLegacyAllergenTokens(
-    allergenFactsV2.categories.filter((c) => c.presence === "PRESENT").map((c) => c.category)
-  );
 
   // 7. Assemble SourcedFoodCatalogItem
   const recordUrl = redactUrl(
@@ -407,12 +469,13 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
       fatGrams,
       missingNutrientIds,
     },
-    allergenFacts: {
-      contains: presentLegacyTokens,
-      evidenceSourceId: "USDA-FDC",
-      verificationStatus: "REVIEWED_SOURCE",
-      crossContactRequiresCurrentVerification: true,
-    },
+    // No `allergenFacts`. See the field's own note in `artifacts/schema.ts` and
+    // review r2 MB-4: the legacy struct has no way to say UNKNOWN, so writing
+    // it here stamped all 197 items "REVIEWED_SOURCE, contains <only the
+    // PRESENT ones>" and silently dropped 1643 UNKNOWN facts — `Nuts, almonds`
+    // shipped as reviewed and containing nothing. `allergenFactsV2` is the only
+    // allergen surface a SOURCED_V2 item has, and the schema now refuses an
+    // item that carries both.
     synonyms: input.entry.synonyms,
     sourceRecord: {
       system: "USDA_FDC",
@@ -439,7 +502,13 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
     energyFact: {
       kcal: energyKcal,
       method: energyMethod,
-      methodDetail: energyNutrient!.derivationDescription ?? energyNutrient!.derivationCode ?? null,
+      // The row's own name when the record gives no derivation: "Energy
+      // (Atwater Specific Factors)" is source text, not an inference.
+      methodDetail:
+        energyNutrient!.derivationDescription ??
+        energyNutrient!.derivationCode ??
+        energyNutrient!.nutrientName ??
+        null,
       macroEnergyDiscrepancyKcal,
     },
     allergenFactsV2,

@@ -286,8 +286,10 @@ describe("T-2035 — FDC mapping pure module", () => {
       expect(legacyValues.has(token)).toBe(true);
     }
 
-    // End to end through the mapper: a record whose identity names an allergen
-    // emits the legacy token, never the category name.
+    // End to end through the mapper: the PRESENT categories project to the
+    // legacy tokens, never to the category names. The mapper no longer writes
+    // that projection into the item (review r2 MB-4, asserted below); the
+    // translation is still the one T-2036 must use.
     const rawMilk = loadFixture("allergen-milk.json");
     const res = mapFdcRecordToCatalogItem({
       entry: {
@@ -303,9 +305,79 @@ describe("T-2035 — FDC mapping pure module", () => {
     });
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.item.allergenFacts.contains).toEqual(["MILK", "SHELLFISH", "SOY"]);
-    expect(res.item.allergenFacts.contains).not.toContain("SOYBEAN");
-    expect(res.item.allergenFacts.contains).not.toContain("CRUSTACEAN_SHELLFISH");
+    const presentCategories = res.item.allergenFactsV2!.categories
+      .filter((c) => c.presence === "PRESENT")
+      .map((c) => c.category);
+    expect(toLegacyAllergenTokens(presentCategories)).toEqual(["MILK", "SHELLFISH", "SOY"]);
+    expect(toLegacyAllergenTokens(presentCategories)).not.toContain("SOYBEAN");
+    expect(toLegacyAllergenTokens(presentCategories)).not.toContain("CRUSTACEAN_SHELLFISH");
+  });
+
+  /**
+   * Review r2 MB-4. The legacy `allergenFacts` struct has two states and a
+   * `verificationStatus` pinned to the literal "REVIEWED_SOURCE". The real run
+   * produced 1643 UNKNOWN facts against 130 PRESENT; projecting that into
+   * `contains` stamped every one of the 197 items "reviewed against the source
+   * and containing only these", so `Nuts, almonds` shipped as reviewed and
+   * containing nothing. It fails OPEN, and it is the field every pre-existing
+   * consumer speaks.
+   *
+   * Of the review's two fixes, this is the one a consumer that has not been
+   * updated cannot misread: the field is gone, so `item.allergenFacts.contains`
+   * is a TypeScript error and a runtime TypeError, not an empty array that
+   * reads as "no allergens". An `unknownCategories` array beside `contains`
+   * would still have left `contains: []` for such a consumer to believe.
+   */
+  it("A SOURCED_V2 item carries no legacy allergenFacts, and the schema refuses one that does", () => {
+    const res = mapFdcRecordToCatalogItem({
+      entry: {
+        ...mockAllowlistEntry,
+        fdcId: 9000000006,
+        canonicalName: "Synthetic Dairy Item",
+        ownAllergenCategories: ["MILK"],
+      },
+      record: loadFixture("allergen-milk.json"),
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    expect(res.item.allergenFacts).toBeUndefined();
+    expect(Object.keys(res.item)).not.toContain("allergenFacts");
+    // The tri-state survives in full: nothing was lost to the legacy struct.
+    expect(res.item.allergenFactsV2?.categories).toHaveLength(9);
+    expect(
+      res.item.allergenFactsV2?.categories.filter((c) => c.presence === "UNKNOWN").length
+    ).toBeGreaterThan(0);
+
+    const container = {
+      artifactKey: "food-catalog",
+      version: 1,
+      catalogProfile: "SOURCED_V2" as const,
+      market: "US" as const,
+      items: [res.item],
+    };
+    expect(() => foodCatalogContentSchema.parse(container)).not.toThrow();
+
+    // Re-adding it is a schema failure, not a silent regression. This is the
+    // guard that stops the false-negative surface coming back.
+    expect(() =>
+      foodCatalogContentSchema.parse({
+        ...container,
+        items: [
+          {
+            ...res.item,
+            allergenFacts: {
+              contains: [],
+              evidenceSourceId: "USDA-FDC",
+              verificationStatus: "REVIEWED_SOURCE",
+              crossContactRequiresCurrentVerification: true,
+            },
+          },
+        ],
+      })
+    ).toThrowError(/allergenFacts is forbidden under SOURCED_V2/);
   });
 
   it("isIngestableEntry / selectIngestableEntries skip STRUCK entries and only STRUCK entries", () => {
@@ -413,6 +485,201 @@ describe("T-2035 — FDC mapping pure module", () => {
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.errors.some((e) => e.code === "MISSING_PROTEIN")).toBe(true);
+    }
+  });
+
+
+  /**
+   * Review r2 MB-1. The lookup read only `1008`/`208` for energy and
+   * `1004`/`204` for fat, so it refused 48 modern Foundation records that carry
+   * every macronutrient it needs — plain chicken breast, Pacific cod, olive
+   * oil, bell peppers, walnuts, peanut butter — and the catalog shipped with no
+   * plain chicken breast in it while keeping `TACO BELL, Nachos`. Modern
+   * Foundation records report energy under the Atwater ids `2047`/`2048` and
+   * fat under `1085` "Total fat (NLEA)". Live check of one struck record,
+   * `2258588 "Peppers, bell, green, raw"`: no `1008` row, `2047` and `2048`
+   * both present, `1003`/`1004`/`1005` all present
+   * (board/evidence/T-2035-real-run.md).
+   *
+   * The values below are invented and the record is labelled SYNTHETIC; what is
+   * borrowed from the source is the nutrient *numbering*, which is structure.
+   */
+  const modernFoundationRecord = (
+    nutrients: Array<{ number: string; name: string; unitName: string; amount: number }>
+  ) => ({
+    _synthetic: { label: "SYNTHETIC FIXTURE - NOT A USDA RECORD" },
+    fdcId: 9000000401,
+    description: "SYNTHETIC FIXTURE - modern Foundation nutrient vocabulary",
+    dataType: "Foundation",
+    publicationDate: "01/01/1902",
+    foodCategory: { description: "SYNTHETIC CATEGORY - plant item" },
+    foodNutrients: nutrients.map((n, index) => ({
+      type: "FoodNutrient",
+      id: 20002000 + index,
+      nutrient: { id: Number(n.number), number: n.number, name: n.name, unitName: n.unitName },
+      amount: n.amount,
+    })),
+    foodPortions: [],
+  });
+
+  const ATWATER_GENERAL_ROW = {
+    number: "2047",
+    name: "Energy (Atwater General Factors)",
+    unitName: "KCAL",
+    amount: 30,
+  };
+  const ATWATER_SPECIFIC_ROW = {
+    number: "2048",
+    name: "Energy (Atwater Specific Factors)",
+    unitName: "KCAL",
+    amount: 25,
+  };
+  const NLEA_FAT_ROW = { number: "1085", name: "Total fat (NLEA)", unitName: "G", amount: 0.5 };
+  const PROTEIN_ROW = { number: "1003", name: "Protein", unitName: "G", amount: 1 };
+  const CARB_ROW = {
+    number: "1005",
+    name: "Carbohydrate, by difference",
+    unitName: "G",
+    amount: 4,
+  };
+
+  it("A modern Foundation record with Atwater energy and NLEA fat maps instead of being refused", () => {
+    const record = modernFoundationRecord([
+      ATWATER_GENERAL_ROW,
+      ATWATER_SPECIFIC_ROW,
+      PROTEIN_ROW,
+      NLEA_FAT_ROW,
+      CARB_ROW,
+    ]);
+
+    const res = mapFdcRecordToCatalogItem({
+      entry: { ...mockAllowlistEntry, fdcId: 9000000401, canonicalName: "Synthetic Modern Item" },
+      record,
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    // Energy is taken from a row the record actually carries, never derived:
+    // 2048 wins over 2047 deterministically, and the choice is recorded.
+    expect(res.item.nutrients.energyKcal).toBe(25);
+    expect(res.item.energyFact?.kcal).toBe(25);
+    expect(res.item.energyFact?.method).toBe("ATWATER_SPECIFIC");
+    expect(res.item.energyFact?.methodDetail).toBe("Energy (Atwater Specific Factors)");
+
+    // Fat comes from Total fat (NLEA).
+    expect(res.item.nutrients.fatGrams).toBe(0.5);
+    expect(res.item.nutrients.proteinGrams).toBe(1);
+    expect(res.item.nutrients.carbohydrateGrams).toBe(4);
+
+    // The legacy ids are genuinely not reported, but the quantity is, so they
+    // must not be listed as missing.
+    expect(res.item.nutrients.missingNutrientIds).not.toContain("1008");
+    expect(res.item.nutrients.missingNutrientIds).not.toContain("1004");
+
+    // And the SOURCED_V2 refinement accepts it: the schema's id sets and the
+    // mapper's are the same exported lists.
+    expect(() =>
+      foodCatalogContentSchema.parse({
+        artifactKey: "food-catalog",
+        version: 1,
+        catalogProfile: "SOURCED_V2" as const,
+        market: "US" as const,
+        items: [res.item],
+      })
+    ).not.toThrow();
+  });
+
+  it("Atwater general alone yields ATWATER_GENERAL; a reported 1008 still wins over both", () => {
+    const generalOnly = mapFdcRecordToCatalogItem({
+      entry: { ...mockAllowlistEntry, fdcId: 9000000401, canonicalName: "Synthetic Modern Item" },
+      record: modernFoundationRecord([ATWATER_GENERAL_ROW, PROTEIN_ROW, NLEA_FAT_ROW, CARB_ROW]),
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(generalOnly.ok).toBe(true);
+    if (generalOnly.ok) {
+      expect(generalOnly.item.nutrients.energyKcal).toBe(30);
+      expect(generalOnly.item.energyFact?.method).toBe("ATWATER_GENERAL");
+    }
+
+    const withLegacyEnergy = mapFdcRecordToCatalogItem({
+      entry: { ...mockAllowlistEntry, fdcId: 9000000401, canonicalName: "Synthetic Modern Item" },
+      record: modernFoundationRecord([
+        { number: "1008", name: "Energy", unitName: "KCAL", amount: 28 },
+        ATWATER_GENERAL_ROW,
+        ATWATER_SPECIFIC_ROW,
+        PROTEIN_ROW,
+        NLEA_FAT_ROW,
+        CARB_ROW,
+      ]),
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(withLegacyEnergy.ok).toBe(true);
+    if (withLegacyEnergy.ok) {
+      expect(withLegacyEnergy.item.nutrients.energyKcal).toBe(28);
+      // No derivation on the row and no Atwater id used, so the method is not
+      // guessed from the other rows present.
+      expect(withLegacyEnergy.item.energyFact?.method).toBe("SOURCE_REPORTED_UNSPECIFIED");
+    }
+  });
+
+  it("A record that genuinely reports no energy under ANY accepted id is still refused", () => {
+    // Widening the lookup must not become deriving the number. `1079` is fiber:
+    // a kcal quantity is nowhere in this record under 1008, 208, 2047 or 2048.
+    const res = mapFdcRecordToCatalogItem({
+      entry: { ...mockAllowlistEntry, fdcId: 9000000402, canonicalName: "Synthetic No Energy" },
+      record: modernFoundationRecord([
+        PROTEIN_ROW,
+        NLEA_FAT_ROW,
+        CARB_ROW,
+        { number: "1079", name: "Fiber, total dietary", unitName: "G", amount: 2 },
+      ]),
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.errors.some((e) => e.code === "MISSING_ENERGY")).toBe(true);
+    }
+
+    // Same for fat, with no 1004, 204 or 1085 row.
+    const noFat = mapFdcRecordToCatalogItem({
+      entry: { ...mockAllowlistEntry, fdcId: 9000000403, canonicalName: "Synthetic No Fat" },
+      record: modernFoundationRecord([ATWATER_SPECIFIC_ROW, PROTEIN_ROW, CARB_ROW]),
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(noFat.ok).toBe(false);
+    if (!noFat.ok) {
+      expect(noFat.errors.some((e) => e.code === "MISSING_FAT")).toBe(true);
+    }
+  });
+
+  it("A null-amount Atwater row is 'not reported', not zero", () => {
+    const record = modernFoundationRecord([PROTEIN_ROW, NLEA_FAT_ROW, CARB_ROW]) as Record<
+      string,
+      unknown
+    >;
+    (record.foodNutrients as unknown[]).push({
+      type: "FoodNutrient",
+      id: 20002099,
+      nutrient: { id: 2048, number: "2048", name: "Energy (Atwater Specific Factors)", unitName: "KCAL" },
+      amount: null,
+    });
+
+    const res = mapFdcRecordToCatalogItem({
+      entry: { ...mockAllowlistEntry, fdcId: 9000000404, canonicalName: "Synthetic Null Energy" },
+      record,
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.errors.some((e) => e.code === "MISSING_ENERGY")).toBe(true);
     }
   });
 

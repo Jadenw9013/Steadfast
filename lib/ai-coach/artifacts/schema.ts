@@ -400,6 +400,21 @@ export const allergenCategorySchema = z.enum([
 ]);
 export type AllergenCategory = z.infer<typeof allergenCategorySchema>;
 
+/**
+ * The FoodData Central nutrient numbers that can back each SOURCED_V2 macro.
+ * Exported so `lib/ai-coach/catalog/fdc/mapping.ts` reads the same list the
+ * schema enforces — one vocabulary, not two that can drift (review r2 MB-1).
+ *
+ * `2047` / `2048` are "Energy (Atwater General Factors)" / "Energy (Atwater
+ * Specific Factors)"; `1085` is "Total fat (NLEA)". Modern Foundation records
+ * report those instead of `1008` / `1004`. `208` / `203` / `204` / `205` are
+ * the SR Legacy numbers.
+ */
+export const SOURCED_V2_ENERGY_NUTRIENT_IDS = ["1008", "208", "2048", "2047"] as const;
+export const SOURCED_V2_PROTEIN_NUTRIENT_IDS = ["1003", "203"] as const;
+export const SOURCED_V2_FAT_NUTRIENT_IDS = ["1004", "204", "1085"] as const;
+export const SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS = ["1005", "205"] as const;
+
 export const sourcedFoodCatalogItemSchema = z
   .object({
     id: identifierSchema,
@@ -417,6 +432,21 @@ export const sourcedFoodCatalogItemSchema = z
         missingNutrientIds: z.array(identifierSchema).max(200),
       })
       .strict(),
+    /**
+     * Legacy allergen surface. It has exactly two states — a category is in
+     * `contains` or it is not — and `verificationStatus` is pinned to the
+     * literal `"REVIEWED_SOURCE"`, so it cannot express `UNKNOWN`. A SOURCED_V2
+     * item's real allergen status is mostly `UNKNOWN` (1643 of 1773 facts in
+     * the first real run), and projecting that into this struct turns every one
+     * of them into "reviewed against the source, and it does not contain this"
+     * — a bag of almonds shipping as reviewed and containing nothing. It fails
+     * **open**, which is the same false-assertion failure as the fabricated
+     * data pointed at a different field (review r2 MB-4).
+     *
+     * It is therefore optional, and *forbidden* under SOURCED_V2 (see the
+     * refinement below). Pre-SOURCED_V2 catalogs that genuinely carry a
+     * reviewed exclusion list still use it.
+     */
     allergenFacts: z
       .object({
         contains: z.array(identifierSchema).max(50),
@@ -424,7 +454,8 @@ export const sourcedFoodCatalogItemSchema = z
         verificationStatus: z.literal("REVIEWED_SOURCE"),
         crossContactRequiresCurrentVerification: z.boolean(),
       })
-      .strict(),
+      .strict()
+      .optional(),
     synonyms: z.array(z.string().min(1).max(120)).max(10).optional(),
     sourceRecord: z
       .object({
@@ -565,75 +596,79 @@ export const foodCatalogContentSchema = z
           }
         }
 
+        // The lossy legacy surface may not coexist with allergenFactsV2. A
+        // consumer that has not been updated reads `allergenFacts.contains`
+        // and, finding it empty, concludes the food is free of every allergen;
+        // the tri-state says UNKNOWN for most of them. Two sources of truth
+        // where the lossy one fails open. Absent, that consumer gets a
+        // TypeError it must handle, not a false negative it cannot see.
+        if (item.allergenFacts !== undefined) {
+          ctx.addIssue({
+            code: "custom",
+            path: [...itemPath, "allergenFacts"],
+            message:
+              "Field allergenFacts is forbidden under SOURCED_V2 profile: it cannot express UNKNOWN, so it would assert REVIEWED_SOURCE absence for categories whose real status is UNKNOWN. Read allergenFactsV2.",
+          });
+        }
+
         if (item.nutrientFacts) {
-          const proteinFact = item.nutrientFacts.find(
-            (n) => (n.nutrientId === "203" || n.nutrientId === "1003") && n.unit === "G"
-          );
-          const fatFact = item.nutrientFacts.find(
-            (n) => (n.nutrientId === "204" || n.nutrientId === "1004") && n.unit === "G"
-          );
-          const carbFact = item.nutrientFacts.find(
-            (n) => (n.nutrientId === "205" || n.nutrientId === "1005") && n.unit === "G"
-          );
-          const energyFact = item.nutrientFacts.find(
-            (n) => (n.nutrientId === "208" || n.nutrientId === "1008") && n.unit === "KCAL"
-          );
+          /**
+           * A macro is backed when *some* nutrient fact carrying one of the
+           * accepted ids reports it, and the summary value equals one of those
+           * reported values.
+           *
+           * The id sets are wider than the legacy four because modern USDA
+           * Foundation records are (review r2 MB-1): they report energy under
+           * the Atwater ids `2047`/`2048` rather than `1008`, and fat under
+           * `1085` "Total fat (NLEA)" rather than `1004` "Total lipid (fat)".
+           * Matching on a single id per macro is what made the tool refuse 48
+           * records — plain chicken breast, cod, olive oil, bell peppers — that
+           * carry every macronutrient. "One of the reported values" rather than
+           * "the first match" because a record can carry both Atwater energies
+           * and the mapper picks one deterministically.
+           */
+          const requireBackedMacro = (
+            label: string,
+            field: "proteinGrams" | "fatGrams" | "carbohydrateGrams" | "energyKcal",
+            nutrientIds: readonly string[],
+            unit: "G" | "KCAL"
+          ) => {
+            const reported = item.nutrientFacts!.filter(
+              (n) =>
+                nutrientIds.includes(n.nutrientId) &&
+                n.unit === unit &&
+                n.status === "REPORTED" &&
+                n.value !== null
+            );
+            if (reported.length === 0) {
+              ctx.addIssue({
+                code: "custom",
+                path: [...itemPath, "nutrients", field],
+                message: `${label} must be REPORTED in nutrientFacts under SOURCED_V2`,
+              });
+              return;
+            }
+            const summaryValue = item.nutrients[field];
+            if (!reported.some((n) => n.value === summaryValue)) {
+              ctx.addIssue({
+                code: "custom",
+                path: [...itemPath, "nutrients", field],
+                message: `${label} ${summaryValue} must match a reported nutrientFacts value (${reported
+                  .map((n) => n.value)
+                  .join(", ")})`,
+              });
+            }
+          };
 
-          if (!proteinFact || proteinFact.status !== "REPORTED" || proteinFact.value === null) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "proteinGrams"],
-              message: "Protein must be REPORTED in nutrientFacts under SOURCED_V2",
-            });
-          } else if (item.nutrients.proteinGrams !== proteinFact.value) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "proteinGrams"],
-              message: `Protein ${item.nutrients.proteinGrams} must match nutrientFacts value ${proteinFact.value}`,
-            });
-          }
-
-          if (!fatFact || fatFact.status !== "REPORTED" || fatFact.value === null) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "fatGrams"],
-              message: "Fat must be REPORTED in nutrientFacts under SOURCED_V2",
-            });
-          } else if (item.nutrients.fatGrams !== fatFact.value) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "fatGrams"],
-              message: `Fat ${item.nutrients.fatGrams} must match nutrientFacts value ${fatFact.value}`,
-            });
-          }
-
-          if (!carbFact || carbFact.status !== "REPORTED" || carbFact.value === null) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "carbohydrateGrams"],
-              message: "Carbohydrate must be REPORTED in nutrientFacts under SOURCED_V2",
-            });
-          } else if (item.nutrients.carbohydrateGrams !== carbFact.value) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "carbohydrateGrams"],
-              message: `Carbohydrate ${item.nutrients.carbohydrateGrams} must match nutrientFacts value ${carbFact.value}`,
-            });
-          }
-
-          if (!energyFact || energyFact.status !== "REPORTED" || energyFact.value === null) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "energyKcal"],
-              message: "Energy must be REPORTED in nutrientFacts under SOURCED_V2",
-            });
-          } else if (item.nutrients.energyKcal !== energyFact.value) {
-            ctx.addIssue({
-              code: "custom",
-              path: [...itemPath, "nutrients", "energyKcal"],
-              message: `Energy ${item.nutrients.energyKcal} must match nutrientFacts value ${energyFact.value}`,
-            });
-          }
+          requireBackedMacro("Protein", "proteinGrams", SOURCED_V2_PROTEIN_NUTRIENT_IDS, "G");
+          requireBackedMacro("Fat", "fatGrams", SOURCED_V2_FAT_NUTRIENT_IDS, "G");
+          requireBackedMacro(
+            "Carbohydrate",
+            "carbohydrateGrams",
+            SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS,
+            "G"
+          );
+          requireBackedMacro("Energy", "energyKcal", SOURCED_V2_ENERGY_NUTRIENT_IDS, "KCAL");
         }
       }
     }

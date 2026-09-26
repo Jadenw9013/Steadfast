@@ -104,8 +104,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 1999633,
@@ -121,8 +121,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168462,
@@ -240,8 +240,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168421,
@@ -325,8 +325,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2258591,
@@ -342,8 +342,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2258590,
@@ -359,8 +359,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2258589,
@@ -376,8 +376,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 170336,
@@ -427,8 +427,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 170463,
@@ -478,8 +478,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168565,
@@ -546,8 +546,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168469,
@@ -580,8 +580,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 170398,
@@ -1022,8 +1022,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168158,
@@ -1175,8 +1175,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 169665,
@@ -1498,8 +1498,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 172027,
@@ -1583,8 +1583,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168954,
@@ -1634,8 +1634,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 174091,
@@ -1736,8 +1736,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168068,
@@ -1821,8 +1821,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 173756,
@@ -1855,8 +1855,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 173800,
@@ -1889,8 +1889,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 172420,
@@ -2025,8 +2025,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 747438,
@@ -2042,8 +2042,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2759004,
@@ -2059,8 +2059,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 171515,
@@ -2110,8 +2110,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2727569,
@@ -2127,8 +2127,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 172855,
@@ -2161,8 +2161,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2727567,
@@ -2178,8 +2178,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168961,
@@ -2399,8 +2399,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2727574,
@@ -2416,8 +2416,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2646175,
@@ -2433,8 +2433,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2646172,
@@ -2450,8 +2450,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2727572,
@@ -2467,8 +2467,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2646168,
@@ -2484,8 +2484,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2646169,
@@ -2501,8 +2501,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168320,
@@ -2722,8 +2722,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 173577,
@@ -2807,8 +2807,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 175180,
@@ -2943,8 +2943,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 173578,
@@ -3113,8 +3113,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168133,
@@ -3555,8 +3555,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 170567,
@@ -3606,8 +3606,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 169060,
@@ -3708,8 +3708,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 1750348,
@@ -3725,8 +3725,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2515376,
@@ -3742,8 +3742,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 169585,
@@ -3776,8 +3776,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 2515374,
@@ -3793,8 +3793,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 168597,
@@ -3946,8 +3946,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 748608,
@@ -3963,8 +3963,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 171413,
@@ -4014,8 +4014,8 @@
         "OMNIVORE"
       ],
       "ownAllergenCategories": [],
-      "reviewState": "STRUCK",
-      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
     },
     {
       "fdcId": 169867,

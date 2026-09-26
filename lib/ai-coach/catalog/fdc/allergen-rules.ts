@@ -76,6 +76,13 @@ export type SourcedAllergenFacts = {
   speciesOrTypeDetail: string | null;
 };
 
+/**
+ * Terms are written in the **singular only**. `matchesAnyTerm` generates the
+ * plural and matches possessives, so listing `almonds` beside `almond` buys
+ * nothing and listing only `almond` no longer loses `Nuts, almonds`. A unit
+ * test walks all nine lists and asserts the generated plural of every term
+ * matches, so this property holds for terms added later.
+ */
 export const ALLERGEN_TERM_INDEX: Readonly<Record<AllergenCategory, readonly string[]>> = {
   MILK: [
     "milk",
@@ -90,7 +97,7 @@ export const ALLERGEN_TERM_INDEX: Readonly<Record<AllergenCategory, readonly str
     "buttermilk",
     "custard",
   ],
-  EGG: ["egg", "eggs", "albumin", "albumen", "yolk", "eggwhite", "mayonnaise"],
+  EGG: ["egg", "albumin", "albumen", "yolk", "eggwhite", "mayonnaise"],
   FISH: [
     "fish",
     "salmon",
@@ -139,7 +146,7 @@ export const ALLERGEN_TERM_INDEX: Readonly<Record<AllergenCategory, readonly str
     "pine nut",
     "chestnut",
   ],
-  PEANUT: ["peanut", "peanuts", "groundnut", "arachis"],
+  PEANUT: ["peanut", "groundnut", "arachis"],
   WHEAT: [
     "wheat",
     "flour",
@@ -155,22 +162,70 @@ export const ALLERGEN_TERM_INDEX: Readonly<Record<AllergenCategory, readonly str
     "bread",
     "pasta",
   ],
-  SOYBEAN: ["soy", "soya", "soybean", "soybeans", "edamame", "tofu", "tempeh", "miso"],
+  SOYBEAN: ["soy", "soya", "soybean", "edamame", "tofu", "tempeh", "miso"],
   SESAME: ["sesame", "tahini", "sesamum", "benne"],
 };
 
 /** Stamped on every fact this module emits, so a later rule change is visible in stored data. */
 export const INGESTION_ALLERGEN_RULE_ID = "INGESTION_RULE_V2_FAIL_CLOSED";
 
-function matchesAnyTerm(text: string, terms: readonly string[]): boolean {
+function escapeRegExp(literal: string): string {
+  return literal.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Every written form of a term the matcher must recognise.
+ *
+ * Review r2 MB-3: the term lists hold singulars and the old boundary demanded a
+ * non-alphanumeric character *immediately* after the term, so `almond` did not
+ * match `Nuts, almonds` and the catalog shipped `Nuts, almonds` with
+ * `TREE_NUT: PRESENT = []`. USDA descriptions are overwhelmingly plural
+ * (`Nuts, walnuts, english`, `Crustaceans, shrimp`, `Eggs, Grade A, Large`),
+ * so the singular-only match missed the commonest spelling of the allergen.
+ *
+ * Plurals are *generated*, not listed, so the gap cannot reopen one category at
+ * a time: adding a term to any of the nine lists automatically covers its
+ * plural. Possessives need no variant — the boundary character class already
+ * admits `'` and `’`, so `almond's` and `almonds'` both match; a test pins that.
+ */
+export function allergenTermVariants(term: string): string[] {
+  const base = term.trim().toLowerCase();
+  const variants = new Set<string>([base]);
+  if (/[^aeiou]y$/.test(base)) {
+    variants.add(`${base.slice(0, -1)}ies`); // anchovy -> anchovies
+  } else if (/(?:s|sh|ch|x|z)$/.test(base)) {
+    variants.add(`${base}es`); // bass -> basses, shellfish -> shellfishes
+  } else {
+    variants.add(`${base}s`); // almond -> almonds, crustacean -> crustaceans
+  }
+  return [...variants];
+}
+
+export function matchesAnyTerm(text: string, terms: readonly string[]): boolean {
   for (const term of terms) {
-    // Regex for whole-word boundary
-    const regex = new RegExp(`(?:^|[^a-zA-Z0-9])${term}(?:$|[^a-zA-Z0-9])`, "i");
-    if (regex.test(text)) {
-      return true;
+    for (const variant of allergenTermVariants(term)) {
+      // Whole-word boundary. The trailing class admits apostrophes, so a
+      // possessive is matched without a variant of its own.
+      const regex = new RegExp(
+        `(?:^|[^a-zA-Z0-9])${escapeRegExp(variant)}(?:$|[^a-zA-Z0-9])`,
+        "i"
+      );
+      if (regex.test(text)) {
+        return true;
+      }
     }
   }
   return false;
+}
+
+/**
+ * Does `text` name this allergen category? The single matcher the ingestion
+ * rule and its tests both call, so a test cannot re-implement the rule it is
+ * checking, and the invariant test over the committed catalog is asserting the
+ * shipped rule rather than a copy of it.
+ */
+export function textNamesAllergenCategory(text: string, category: AllergenCategory): boolean {
+  return matchesAnyTerm(text, ALLERGEN_TERM_INDEX[category]);
 }
 
 export function proposeAllergenFacts(
@@ -179,12 +234,29 @@ export function proposeAllergenFacts(
   retrievedAt?: string
 ): SourcedAllergenFacts {
   const timestamp = retrievedAt ?? new Date().toISOString();
-  const combinedText = [
-    entry.canonicalName,
-    record.description,
-    record.foodCategory,
-    ...entry.synonyms,
-  ].join(" ");
+  /**
+   * The record's own *identity*: what the food is called, by USDA and by the
+   * curator. Deliberately **not** `record.foodCategory`.
+   *
+   * The frozen spec's PRESENT clause named the category. Review r2 MB-2
+   * measured what that produced over the real run: 42 of 130 PRESENT facts came
+   * only from the category string and none of them were true. Every one of the
+   * 14 finfish read `CRUSTACEAN_SHELLFISH: PRESENT` because USDA files them
+   * under "Finfish and Shellfish Products"; quinoa and white rice read
+   * `WHEAT: PRESENT` under "Cereal Grains and Pasta"; cheddar read
+   * `EGG: PRESENT` and egg white read `MILK: PRESENT` under "Dairy and Egg
+   * Products". This is a deliberate departure from the spec.
+   *
+   * Over-declaring is not the safe direction it looks like. `UNKNOWN` already
+   * fails closed downstream, so a false `PRESENT` excludes nothing that
+   * `UNKNOWN` would not have excluded anyway — it buys no safety. What it does
+   * buy is a document the RD is asked to sign that says cod contains crustacean
+   * shellfish. A catalog whose positive claims are 32% false is a catalog whose
+   * positive claims cannot be relied on, which is the same failure as asserting
+   * absence nobody verified, pointed the other way. `PRESENT` must be true;
+   * `UNKNOWN` is the safe default, and the category is not identity.
+   */
+  const combinedText = [entry.canonicalName, record.description, ...entry.synonyms].join(" ");
 
   const categories: SourcedAllergenCategoryFact[] = allergenCategorySchema.options.map((category) => {
     const terms = ALLERGEN_TERM_INDEX[category];
