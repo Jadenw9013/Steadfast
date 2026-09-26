@@ -1,5 +1,6 @@
+import { DRAFT_EXERCISE_CATALOG_VERSION } from "./draft-catalog-version";
 import { FOOD_CATALOG, FOOD_CATALOG_VERSION, LEGACY_FOOD_CATALOG } from "./food-catalog";
-import { EXERCISE_CATALOG, EXERCISE_CATALOG_VERSION } from "./exercise-catalog";
+import { EXERCISE_CATALOG, EXERCISE_CATALOG_VERSION, getDraftExerciseCatalog } from "./exercise-catalog";
 import type { FoodItem, ExerciseItem } from "./schema";
 
 /**
@@ -25,7 +26,15 @@ export function getFoodItem(id: string, catalogVersion: string): CatalogLookupRe
 }
 
 export function getExerciseItem(id: string, catalogVersion: string): CatalogLookupResult<ExerciseItem> {
-  const item = EXERCISE_CATALOG.get(id);
+  // T-2038: the draft catalog is resolved only where a server-side module has
+  // enabled it through the guarded loader (`catalog/draft-exercise-catalog.ts`),
+  // never through a static import of the JSON, so its content stays out of every
+  // client bundle and out of production entirely. `null` here means "not
+  // available", reported as UNKNOWN_ID rather than thrown, because this function
+  // runs inside planPayloadSchema's superRefine on every parse of every stored plan.
+  const catalog =
+    catalogVersion === DRAFT_EXERCISE_CATALOG_VERSION ? getDraftExerciseCatalog() : EXERCISE_CATALOG;
+  const item = catalog?.get(id);
   if (!item) return { success: false, error: "UNKNOWN_ID" };
   if (item.catalogVersion !== catalogVersion) return { success: false, error: "CATALOG_VERSION_MISMATCH" };
   return { success: true, item };

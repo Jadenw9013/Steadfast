@@ -168,3 +168,72 @@ describe("T-1005 — reviewed artifact schemas", () => {
     expect(() => parseArtifactDraftInput(parameter)).toThrow("references unknown authoritative ID");
   });
 });
+
+describe("T-2038 — the additive exercise-catalog fields move no already-registered byte", () => {
+  /**
+   * Captured from this branch's base, `team/sprint-1@72bf255`, before the
+   * optional fields were added. `artifactContentDigest` hashes review metadata,
+   * compatibility and content together, and every registered artifact row is
+   * bound to its digest, so a `.default()`, a reordered key or a dropped
+   * `.strict()` in `artifacts/schema.ts` would invalidate all of them silently.
+   */
+  const DIGESTS_BEFORE_T2038: Record<string, Record<string, string>> = {
+    "t1005-fixture": {
+      foodCatalog: "5c5153170d060f62937fb58eea635e869978f2e5445413709732fd5b577d7a7a",
+      exerciseCatalog: "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594",
+      evidenceRegistry: "3a946969a4053dc12a80057b4d48b658961fa09fca070764eb056c756d5d4feb",
+      escalationTemplates: "9765ae01912b2c8ea0ec82e508640481dcc940c6af48f8ddf821bdc9294feb4c",
+      policyBundle: "225de40fb936f1b0c94ca8415b95bd46ac55b6b95c9ff23ba71f46d50e3c32d4",
+    },
+    "t1008-runtime": {
+      foodCatalog: "9d7eb3f81a2fc045345f79a315aead0a5c2779178ab0385eca13fef3abd92695",
+      exerciseCatalog: "17af02f644e7e6effba953e9ba97f6ffe9cb5c75572992e927649ce09bea469f",
+      evidenceRegistry: "5ca52850969c44d856f193f9481afa5063811e45f70bb660325a7c97d78b8ecc",
+      escalationTemplates: "4082649b7259f1d6dd7274b9c66bf4404b8628637d6dd85063a47a3162cdf956",
+      policyBundle: "87c0fb9ca421851f7bd02590a3ca56bcebd3f71dc3388c7645438d3ef4ba93e8",
+    },
+  };
+
+  it("still parses every synthetic artifact to its pre-change digest", () => {
+    for (const [namespace, expected] of Object.entries(DIGESTS_BEFORE_T2038)) {
+      const set =
+        namespace === "t1005-fixture"
+          ? buildSyntheticArtifactSet()
+          : buildSyntheticArtifactSet(namespace);
+      for (const key of Object.keys(expected) as (keyof typeof set)[]) {
+        const artifact = set[key] as Parameters<typeof parseArtifactDraftInput>[0];
+        expect(parseArtifactDraftInput(artifact)).toEqual(artifact);
+        expect({ namespace, key, digest: artifactContentDigest(artifact) }).toEqual({
+          namespace,
+          key,
+          digest: expected[key as string],
+        });
+      }
+    }
+  });
+
+  it("cross-checks equipmentAlternatives only when the field is present", () => {
+    const base = structuredClone(
+      buildSyntheticArtifactSet("unit-equipment-alternatives").exerciseCatalog
+    );
+    const content = exerciseCatalogContentSchema.parse(base.content);
+
+    // Absent: parses, exactly as every already-registered artifact does.
+    expect(content.exercises[0].equipmentAlternatives).toBeUndefined();
+    expect(() => exerciseCatalogContentSchema.parse(content)).not.toThrow();
+
+    const dangling = structuredClone(content);
+    dangling.exercises[0].equipmentAlternatives = [
+      { equipmentId: "EQUIPMENT_NONE", exerciseId: "model-invented-exercise-id" },
+    ];
+    expect(() => exerciseCatalogContentSchema.parse(dangling)).toThrow(
+      "references unknown authoritative ID"
+    );
+
+    const resolvable = structuredClone(content);
+    resolvable.exercises[0].equipmentAlternatives = [
+      { equipmentId: "EQUIPMENT_NONE", exerciseId: content.exercises[0].id },
+    ];
+    expect(() => exerciseCatalogContentSchema.parse(resolvable)).not.toThrow();
+  });
+});

@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { getFoodItem, getExerciseItem, getCurrentFoodCatalogVersion, getCurrentExerciseCatalogVersion } from "@/lib/ai-coach/catalog/loader";
+import { DRAFT_EXERCISE_CATALOG_VERSION } from "@/lib/ai-coach/artifacts/drafts/exercise-catalog";
+import { enableDraftExerciseCatalog } from "@/lib/ai-coach/catalog/draft-exercise-catalog";
 import { computeNutrientTotals, aggregateGramsByFood, type RecipeComponent } from "@/lib/ai-coach/nutrition-totals";
 import { checkPolicyVersionUsable, ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { checkMealComposition } from "@/lib/ai-coach/composition-feasibility";
@@ -26,6 +28,81 @@ describe("A04 — catalog loaders", () => {
   it("resolves a known exercise item and rejects an unknown one", () => {
     expect(getExerciseItem("bodyweight-squat", EXERCISE_V)).toMatchObject({ success: true });
     expect(getExerciseItem("nonexistent-exercise", EXERCISE_V)).toMatchObject({ success: false, error: "UNKNOWN_ID" });
+  });
+});
+
+describe("T-2038 — exercise catalog version routing", () => {
+  const DRAFT_ID = "chair-squat";
+
+  // The draft resolves only where a server-side module has deliberately enabled
+  // it through the guarded loader; it is never in a client bundle and never in
+  // production. See tests/unit/ai-coach-exercise-catalog-draft.test.ts.
+  beforeAll(() => {
+    enableDraftExerciseCatalog();
+  });
+
+  it("still serves the three fixture items unchanged under exercise-fixture-v1", () => {
+    // T-2005 decision (2): EXERCISE_CATALOG_VERSION is pinned by
+    // runSnapshotSchema, so every stored AiCoachRun.inputSnapshot depends on
+    // these three items staying byte-identical.
+    expect(getCurrentExerciseCatalogVersion()).toBe("exercise-fixture-v1");
+    expect(getExerciseItem("goblet-squat", EXERCISE_V)).toEqual({
+      success: true,
+      item: {
+        id: "goblet-squat", catalogVersion: "exercise-fixture-v1", name: "Goblet squat",
+        modality: "STRENGTH", requiredEquipment: ["HOME_BASIC", "FULL_GYM"], substitutionIds: ["bodyweight-squat"],
+      },
+    });
+    expect(getExerciseItem("bodyweight-squat", EXERCISE_V)).toEqual({
+      success: true,
+      item: {
+        id: "bodyweight-squat", catalogVersion: "exercise-fixture-v1", name: "Bodyweight squat",
+        modality: "STRENGTH", requiredEquipment: ["NONE", "HOME_BASIC", "FULL_GYM"], substitutionIds: [],
+      },
+    });
+    expect(getExerciseItem("brisk-walk", EXERCISE_V)).toEqual({
+      success: true,
+      item: {
+        id: "brisk-walk", catalogVersion: "exercise-fixture-v1", name: "Brisk walk",
+        modality: "CARDIO", requiredEquipment: ["NONE", "HOME_BASIC", "FULL_GYM"], substitutionIds: [],
+      },
+    });
+  });
+
+  it("serves the draft catalog under its own version, projected into the ExerciseItem shape", () => {
+    const result = getExerciseItem(DRAFT_ID, DRAFT_EXERCISE_CATALOG_VERSION);
+    expect(result).toMatchObject({
+      success: true,
+      item: {
+        id: DRAFT_ID,
+        catalogVersion: DRAFT_EXERCISE_CATALOG_VERSION,
+        name: "Chair squat",
+        modality: "STRENGTH",
+        requiredEquipment: ["NONE", "HOME_BASIC", "FULL_GYM"],
+      },
+    });
+    // Equipment IDs are mapped from the artifact tier vocabulary, not copied.
+    const gymOnly = getExerciseItem("barbell-back-squat", DRAFT_EXERCISE_CATALOG_VERSION);
+    expect(gymOnly).toMatchObject({ success: true, item: { requiredEquipment: ["FULL_GYM"] } });
+  });
+
+  it("keeps the two catalogs from leaking into each other", () => {
+    expect(getExerciseItem(DRAFT_ID, EXERCISE_V)).toMatchObject({ success: false, error: "UNKNOWN_ID" });
+    expect(getExerciseItem("bodyweight-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toMatchObject({
+      success: false,
+      error: "UNKNOWN_ID",
+    });
+  });
+
+  it("rejects a stale exercise catalog version exactly as it did before", () => {
+    expect(getExerciseItem("bodyweight-squat", "exercise-fixture-v0")).toMatchObject({
+      success: false,
+      error: "CATALOG_VERSION_MISMATCH",
+    });
+    expect(getExerciseItem(DRAFT_ID, "exercise-fixture-v0")).toMatchObject({
+      success: false,
+      error: "UNKNOWN_ID",
+    });
   });
 });
 
