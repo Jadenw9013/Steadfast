@@ -408,3 +408,133 @@ so the mapping cannot be re-verified against source without a new API key. The p
 left standing; recording a handful of responses is tracked as **T-2017**.
 
 A fixture is one or the other. A hand-built file that carries a provenance claim is the failure this ticket was rewritten to remove.
+
+---
+
+# Exercise catalog (T-2038)
+
+> **What the ACSM reference in this catalog does and does not mean.** Every movement record in
+> `lib/ai-coach/artifacts/drafts/exercise-catalog.draft-unsigned.v1.json` carries a `source` block naming
+> the ACSM news summary of the 2026 resistance-training Position Stand
+> (<https://acsm.org/resistance-training-guidelines-update-2026/>). **The American College of Sports Medicine
+> has not reviewed, endorsed or validated any Steadfast exercise, instruction, cue or template.** The
+> movement selection is Steadfast's own, and every instruction and cue was written from scratch for this
+> file. The page was consulted as a general, public reference for the *shape* of beginner training —
+> equipment-agnostic, across the major muscle groups, favouring simple movements a person will repeat.
+>
+> Two fields in that block are fixed by the schema and must be read narrowly:
+>
+> - `authority: "REVIEWED_SOURCE"` is a **literal that `reviewedSourceSchema` pins for every artifact of
+>   every kind** (`lib/ai-coach/artifacts/schema.ts`). It describes the class of reference the field may
+>   hold. It is not a statement that anyone reviewed this record.
+> - `reviewedAt` records **when the referenced page was consulted** (2026-09-26, confirmed reachable and
+>   read on that date). It is not a review date for any exercise.
+>
+> **The reviewer is being asked to confirm this reference or replace it**, and to correct or strike any
+> movement. Their signature, not this header, is what makes the content usable.
+
+## E1. What this is
+
+A `DRAFT_UNSIGNED` engineering draft of ~40 beginner movements for the G02 reviewer to correct, plus the
+session templates the T-2039 composer selects from. It is a worksheet with content in it, not guidance.
+
+- Data file: `lib/ai-coach/artifacts/drafts/exercise-catalog.draft-unsigned.v1.json`
+  (`artifactKey: "exercise-beginner-v1"`, `version: 1`).
+- Loader and conversion: `lib/ai-coach/artifacts/drafts/exercise-catalog.ts`.
+  `loadDraftUnsignedExerciseCatalog()` throws when `NODE_ENV === "production"`;
+  `draftExerciseCatalogToArtifactDraftInput(file, signed, dependencies)` cannot be called without signed
+  review metadata, at the type level and at runtime.
+- In-code projection: `DRAFT_EXERCISE_CATALOG` in `lib/ai-coach/catalog/exercise-catalog.ts`, served by
+  `getExerciseItem(id, "exercise-beginner-v1")`. It is a **projection of the JSON**, never a second list:
+  add or correct a movement in the JSON and both readers change together.
+- Tests: `tests/unit/ai-coach-exercise-catalog-draft.test.ts`.
+
+**It cannot reach a client.** `EXERCISE_CATALOG_VERSION` is unchanged (`exercise-fixture-v1`), nothing
+stamps `exercise-beginner-v1` into a plan payload, and the autonomy gate requires the stamped catalog
+version to equal a **published** artifact's key. There is no published exercise artifact, and T-2034's four
+refusal points reject `DRAFT_UNSIGNED` metadata at `assertUsable`, `publishArtifactVersion`,
+`loadLiveArtifactSetForLaunchValidation` and `parseArtifactDraftInput`.
+
+## E2. Content rules the tests enforce
+
+| Rule | Where it is enforced |
+|---|---|
+| No dose — no sets, repetitions, rest, load, tempo, frequency or duration in any instruction or cue | `ai-coach-exercise-catalog-draft.test.ts` "states no dose": the spec regex, **plus any digit at all**, plus spelled-out counts and unit nouns |
+| No diagnosis, pain management, rehabilitation or working through symptoms (doc 06 §6) | same file, "makes no clinical claim" |
+| No image, video, GIF or animation field | the content schema is `.strict()`; the test adds `imageUrl` and asserts the parse fails |
+| IDs are lower-kebab with words spelled out (the shipped iOS build renders the ID itself) | "identifier convention", including a two-letter-abbreviation denylist |
+| Rule IDs come only from the two closed sets frozen in T-2005 | "carries only rule IDs from the two closed sets" |
+| Substitutions and equipment alternatives resolve inside the file, and an alternative is itself performable at the tier it is offered for (the composer follows a chain at most once) | "references resolve inside the file" |
+| Every item ships `PROPOSED` | "is synthetic: false and ships every item PROPOSED" |
+
+Dose belongs to the policy bundle (T-2039's `TRAINING.DOSE.*`, `CARDIO.DOSE.*`, `WORKLOAD.*` parameters),
+which is why none of it is here. The ACSM summary itself quotes dose figures; they are deliberately not
+carried into this file, because selecting a dose for a named individual is the reviewer's decision.
+
+## E3. Coverage, and where the reviewer should look first
+
+41 movements, 8 templates (`FULL_BODY` 1–3, `UPPER` 1–2, `LOWER` 1–2, one `CARDIO`).
+
+| Tier | Performable movements |
+|---|---|
+| `EQUIPMENT_NONE` | 16 |
+| `EQUIPMENT_HOME_BASIC` | 28 |
+| `EQUIPMENT_FULL_GYM` | 41 |
+
+Patterns: SQUAT 4, HINGE 4, LUNGE 4, HORIZONTAL_PUSH 5, VERTICAL_PUSH 3, HORIZONTAL_PULL 4,
+VERTICAL_PULL 3, ANTI_EXTENSION 3, ANTI_ROTATION 3, CARRY 2, GAIT 3, CYCLIC_CARDIO 3.
+6 of the 41 are `CARDIO`, two of them at `EQUIPMENT_NONE`.
+
+**Known gaps and judgment calls, stated rather than hidden:**
+
+1. **There is no equipment-free vertical pull.** Nothing in the bodyweight tier pulls overhead without a
+   bar or a band, so `resistance-band-lat-pulldown` deliberately carries **no** `EQUIPMENT_NONE`
+   alternative and the slot is dropped at that tier rather than silently swapped for a horizontal pull.
+   Both `UPPER` templates therefore fill four of five slots at `EQUIPMENT_NONE`. The reviewer decides
+   whether to add a movement, accept a horizontal-pull stand-in, or accept the shorter session.
+2. **`CONTRA.HIGH_IMPACT.V1` is used by no movement.** Nothing in the set is plyometric or high impact.
+   The rule ID is still declared in the closed set so a later movement can carry it.
+3. **`ROTATION` has no movement.** Loaded rotation was judged out of place in a beginner set; only
+   `ANTI_ROTATION` is represented. No template uses `ROTATION`.
+4. **Furniture counts as "no equipment".** `chair-squat`, `bodyweight-step-up`, `incline-push-up` and
+   `incline-forearm-plank` assume a sturdy chair, a stair and a waist-high counter. That is a judgment
+   about what a person at home has, not about equipment. If the reviewer disagrees, those four move to
+   `EQUIPMENT_HOME_BASIC` and the `EQUIPMENT_NONE` tier drops to 12, below the coverage floor — so the
+   decision is worth making explicitly.
+5. **Three gym movements are not simple.** `barbell-back-squat`, `barbell-bench-press` and
+   `rowing-machine` carry no `BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1` and no
+   `BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1`. They are in the set because a full-gym beginner will
+   meet them, and their cues say to ask gym staff. The reviewer may strike them.
+6. **`dumbbell-farmer-carry` and `dumbbell-suitcase-carry` have no equipment-free version**, so the carry
+   slot in `full-body-session-three` is dropped at `EQUIPMENT_NONE`.
+7. **14 of the 41 movements are named by no template**, so the composer can only reach them as a
+   substitution or an equipment alternative: `barbell-back-squat`, `leg-press-machine`,
+   `barbell-bench-press`, `chest-press-machine`, `barbell-overhead-press`, `seated-cable-row-machine`,
+   `lat-pulldown-machine`, `assisted-pull-up-machine`, `hip-hinge-to-wall`, `bodyweight-split-squat`,
+   `wall-push-up`, `prone-reverse-fly`, `incline-forearm-plank`, `dumbbell-suitcase-carry`. The
+   equipment-free ones are deliberate — they are the `EQUIPMENT_NONE` fallbacks the templates substitute
+   into. The nine barbell and machine ones are a consequence worth stating plainly: alternatives only fire
+   when an exercise is *ineligible*, so a `EQUIPMENT_FULL_GYM` client is served the dumbbell or band
+   version of every slot and never the barbell or machine version. Whether a full-gym beginner should be
+   offered the barbell variants is a reviewer decision; making it happen is a template change here, not a
+   composer change in T-2039.
+8. **Contraindication tagging is uneven by construction.** `CONTRA.GRIP_DEMAND.V1` is on 19 movements
+   (anything held in the hand) and `CONTRA.PRONE_POSITION.V1` on 2; 11 movements carry none at all. The
+   tags describe what a movement *demands*, so a client with that rule active loses it. Nothing populates
+   `activeContraindicationRuleIds` in v1 — the screening instrument is gate G01 — so no exercise is
+   excluded for anyone today.
+
+## E4. How the reviewer marks the file
+
+Per-item marks live in the file envelope, in `reviewStates`, **not** inside `content`: workflow state
+should not enter the hashed artifact content, and T-2005 froze the list of additive `content` fields.
+Every exercise and every template needs exactly one entry, checked by
+`draftExerciseCatalogFileSchema`'s refinement.
+
+```jsonc
+{ "itemKind": "EXERCISE", "itemId": "chair-squat", "reviewState": "PROPOSED" }   // or ACCEPTED, or STRUCK
+```
+
+Everything ships `PROPOSED`. Jaden may read this content as a coach and his corrections are welcome at any
+point, but an informal read is not a signature: the artifact still needs the signed review record (G02)
+before `publishArtifactVersion` will accept it, and T-2034's refusal points enforce that mechanically.

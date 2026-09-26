@@ -1,5 +1,6 @@
+import { DRAFT_EXERCISE_CATALOG_VERSION } from "../artifacts/drafts/exercise-catalog";
 import { FOOD_CATALOG, FOOD_CATALOG_VERSION, LEGACY_FOOD_CATALOG } from "./food-catalog";
-import { EXERCISE_CATALOG, EXERCISE_CATALOG_VERSION } from "./exercise-catalog";
+import { DRAFT_EXERCISE_CATALOG, EXERCISE_CATALOG, EXERCISE_CATALOG_VERSION } from "./exercise-catalog";
 import type { FoodItem, ExerciseItem } from "./schema";
 
 /**
@@ -25,7 +26,9 @@ export function getFoodItem(id: string, catalogVersion: string): CatalogLookupRe
 }
 
 export function getExerciseItem(id: string, catalogVersion: string): CatalogLookupResult<ExerciseItem> {
-  const item = EXERCISE_CATALOG.get(id);
+  const item = (
+    catalogVersion === DRAFT_EXERCISE_CATALOG_VERSION ? DRAFT_EXERCISE_CATALOG : EXERCISE_CATALOG
+  ).get(id);
   if (!item) return { success: false, error: "UNKNOWN_ID" };
   if (item.catalogVersion !== catalogVersion) return { success: false, error: "CATALOG_VERSION_MISMATCH" };
   return { success: true, item };
