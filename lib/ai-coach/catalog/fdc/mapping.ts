@@ -267,6 +267,28 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
     };
   }
 
+  // T-2016: the entry's `patternTags` and `categoryId` were derived at
+  // `--propose` time from the food category the *search* response carried. This
+  // is the first point where the full record's own category is visible, so a
+  // disagreement is reported rather than left invisible: it would mean the
+  // derivation on the entry the RD reviews was made from a different category
+  // than the record actually has. A warning, not an error — the values are
+  // proposals under review, and refusing the record would drop a usable food
+  // over a category-string change.
+  if (
+    input.entry.sourceFoodCategory !== null &&
+    norm.foodCategory.length > 0 &&
+    input.entry.sourceFoodCategory !== norm.foodCategory
+  ) {
+    warnings.push({
+      code: "ENTRY_SOURCE_CATEGORY_MISMATCH",
+      message:
+        `Allowlist entry records sourceFoodCategory '${input.entry.sourceFoodCategory}' but the ` +
+        `record carries '${norm.foodCategory}'. patternTags and categoryId on the entry were ` +
+        `derived from the former; re-run --propose to re-derive them.`,
+    });
+  }
+
   // 1. Data type fencing
   if (norm.dataType !== "Foundation" && norm.dataType !== "SR Legacy") {
     return {

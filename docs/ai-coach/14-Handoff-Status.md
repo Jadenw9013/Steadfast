@@ -729,6 +729,18 @@ read `allergenFactsV2`, not `allergenFacts`:** the legacy struct cannot express
 `UNKNOWN`, so a SOURCED_V2 item carries none and the schema rejects one that
 does. See `docs/ai-coach/catalog/README.md`.
 
+T-2016 then deleted `singleIngredientWholeFood` from the allowlist entry (it was
+an unverified `true` on every entry with no reader left) and made `categoryId`
+and `patternTags` derived from the record's own USDA `foodCategory` in
+`lib/ai-coach/catalog/fdc/curation.ts`, with the basis recorded on the entry and
+machine-written `triageFlags` for the restaurant/candy/babyfood/industrial-oil
+search hits. **All three are engineer-proposed scaffolding until the RD review**
+(README §2.2). `patternTags` fails closed to `["OMNIVORE"]` whenever the category
+does not unambiguously establish the pattern set, so **A07/T-2036 must treat an
+empty pattern-filtered result as "nothing is tagged for this pattern yet" and
+degrade — never as "no foods exist", and never by rendering an empty screen**
+(`board/strategy/release-safety.md`). Nothing reads `patternTags` today.
+
 ### A08 — Minimal structured weekly observations and session logs
 
 _Dependencies: F06/F07 (done), A02/A03 (done)._

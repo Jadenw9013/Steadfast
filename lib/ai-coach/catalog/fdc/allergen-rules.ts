@@ -15,8 +15,19 @@ import type { NormalizedFdcRecord } from "./normalize";
  *
  * Absence of an ingredient list is not evidence of absence. A category label is
  * not evidence of absence. An empty `inputFoods`/`foodComponents` array is not
- * evidence of absence. A `singleIngredientWholeFood` flag chosen by whoever
- * curated the allowlist is not evidence at all — it is not in the record.
+ * evidence of absence. The `singleIngredientWholeFood` flag this rule once read
+ * was not evidence at all — it was chosen by whoever curated the allowlist and
+ * was not in the record — and T-2016 deleted the field outright.
+ *
+ * **The USDA `foodCategory` is not read by this module and must not become read
+ * by it** (review r2 MB-2: scanning it declared crustacean shellfish present in
+ * all 14 finfish and wheat present in quinoa and rice). T-2016 does read the
+ * category, in `curation.ts`, to derive the food's *eating patterns* — a
+ * question of the food's identity, which is exactly what a food group
+ * establishes. An allergen declaration is a statement about ingredients and
+ * processing, which a food group does not establish. The distinction is the
+ * whole reason the two live in different modules; a unit test pins that no
+ * curation field on the entry changes any fact here.
  *
  * What a real FDC record actually contains (structure probed live 2026-09-26,
  * Foundation fdcId 747447, Branded fdcId 1886332):

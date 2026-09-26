@@ -28,7 +28,7 @@ To satisfy G02 without asking a Registered Dietitian to author hundreds of food 
 | Component | Path | Checked in? |
 |---|---|---|
 | Coverage plan | `data/ai-coach/catalog/fdc-coverage-plan.v1.json` | engineer-authored; category ids, per-category target counts and search terms |
-| Allowlist | `data/ai-coach/catalog/fdc-allowlist.v1.json` | **output of `--propose`** against the live API |
+| Allowlist | `data/ai-coach/catalog/fdc-allowlist.v1.json` | **output of `--propose`** against the live API. `categoryId`, `patternTags` and `triageFlags` on each entry are machine-derived proposals; see §2.2 |
 | Source exclusions | `data/ai-coach/catalog/fdc-source-exclusions.v1.json` | **written by `--ingest`** when a record cannot be mapped. Machine-written only; see §2.1 |
 | Draft catalog artifact | `lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json` | **output of `--ingest`** against the live API |
 | Offline CLI | `scripts/ai-coach-ingest-fdc.ts` | yes. Never executes in CI or at runtime; requires an operator-supplied `FDC_API_KEY` |
@@ -128,6 +128,107 @@ The artifact is `DRAFT_UNSIGNED` whatever the run returns. Real source data is n
 
 ---
 
+## 2.2 Machine-derived curation fields: `categoryId`, `patternTags`, `triageFlags` (T-2016)
+
+**Everything in this section is engineer-proposed scaffolding until the RD review.** It is written by
+`--propose` from the record's own USDA `foodCategory` and its own description, it is recomputed from scratch on
+every run, and none of it is a clinical judgment. `reviewState` and `reviewerNote` stay the reviewer's, exactly
+as in §2.1: the tool has its own fields and never writes theirs.
+
+Three fields used to be engineer-set constants presented as facts about the food (review r2 FU-3):
+
+- **`singleIngredientWholeFood` is deleted.** It was `true` on 245 of 245 entries, including `TACO BELL,
+  Nachos`, `Candies, nougat, with almonds` and `Oil, industrial, canola (partially hydrogenated) oil for deep
+  fat frying`. The allergen rule that read it was removed in the T-2035 repair, so it was an unverified claim
+  with no reader. The entry schema is `.strict()`, so an allowlist still carrying the field does not parse.
+- **`categoryId`** was whichever coverage-plan *search term* returned the record, so `TACO BELL, Nachos` was
+  `VEGETABLES`, `Croissants, apple` was `FRUITS` and `APPLEBEE'S, Double Crunch Shrimp` was `SEAFOOD`.
+- **`patternTags`** was `["OMNIVORE"]` on every entry, so any pattern-filtered read for a `VEGAN`,
+  `LACTO_OVO_VEGETARIAN` or `PESCATARIAN` client returned the empty set.
+
+### How `patternTags` is derived, and that it fails closed
+
+`lib/ai-coach/catalog/fdc/curation.ts` maps the record's own USDA food group onto the four patterns:
+
+| USDA food group | Derived patterns |
+|---|---|
+| Vegetables and Vegetable Products, Fruits and Fruit Juices, Cereal Grains and Pasta, Legumes and Legume Products, Nut and Seed Products | all four |
+| Dairy and Egg Products | `LACTO_OVO_VEGETARIAN`, `PESCATARIAN`, `OMNIVORE` |
+| Finfish and Shellfish Products | `PESCATARIAN`, `OMNIVORE` |
+| Poultry, Beef, Pork, Lamb/Veal/Game, Sausages and Luncheon Meats | `OMNIVORE` |
+| **everything else, including every unrecognised string and a record with no category** | `OMNIVORE` |
+
+**It fails closed to omnivore-only whenever the category does not unambiguously establish the set** — every
+mixed dish, restaurant item, candy, baby food, soup and beverage group, and every category string the table
+does not recognise. Omnivore-only excludes the food from the three restricted patterns, which is the safe
+direction: a vegan client not offered broccoli gets a poorer catalog, a vegan client offered chicken gets a
+broken promise. `patternTagsBasis` records which happened, so an entry derived from an unambiguous category is
+distinguishable from one that fell back — both read `["OMNIVORE"]` for a beef record and a candy record, and
+only the basis tells them apart.
+
+**Why reading `foodCategory` here is not a reintroduction of review r2 MB-2.** That finding removed the
+category from the *allergen* rule, where it declared crustacean shellfish present in all 14 finfish and wheat
+present in quinoa and rice. An allergen declaration is a statement about a food's ingredients and processing,
+which a food group does not establish. Which eating patterns a food belongs to is a question of the food's
+*identity*, and its USDA food group is exactly a statement of identity. The two live in different modules, the
+description is never read for pattern tags, and a unit test pins that no curation field on an entry changes any
+allergen fact.
+
+**`"Fats and Oils"` is deliberately not a plant group.** USDA's Fats and Oils group holds lard, tallow, butter
+oil, the fish oils, margarine and mayonnaise next to the plant oils — `Mayonnaise, reduced fat, with olive oil`
+and three `Fish oil, …` records are in the current allowlist — so a plant tag set derived from it would offer a
+vegan client cod liver oil. Plant oils therefore carry omnivore-only until the RD widens them.
+
+**Known residue, not fixed here.** A plant-named USDA group can still contain a prepared item that is not
+plant-only: `Spinach souffle` sits in "Vegetables and Vegetable Products" and USDA's egg noodles sit in "Cereal
+Grains and Pasta". Those entries will be proposed with plant tags they do not deserve. The correction is the RD
+review, not a description-based rule — inferring from the description is precisely what produced the allergen
+defects in §3. Same shape as the rice-milk residue documented there.
+
+A reviewer who sets their own tags sets `patternTagsBasis: "REVIEWER_SET"`. That basis exists because the
+allowlist schema **re-derives** any entry claiming `SOURCE_FOOD_CATEGORY` from its own recorded
+`sourceFoodCategory` and refuses the file when the two disagree: a stated basis must be reproducible from the
+stated input, so a hand-widened tag set cannot masquerade as something the source said.
+
+### How `categoryId` is derived
+
+The same module maps the record's food group onto the coverage plan's ten ids, preferring it over the search
+term. "Baked Products" and "Breakfast Cereals" map to `GRAINS_STARCHES`, which is what moves `Croissants,
+apple` out of `FRUITS`. "Dairy and Egg Products" cannot choose between `DAIRY` and `EGGS`, so the plan's value
+is kept and `categoryIdBasis` says `SOURCE_FOOD_CATEGORY_AMBIGUOUS_PLAN_KEPT`. **Where no confident mapping
+exists the plan-assigned value is kept unchanged and the entry is flagged** rather than guessed at.
+
+### Triage flags
+
+`triageFlags` is machine-written and recomputed every run. It exists because `--propose` takes search hits
+unfiltered, so roughly 29 of 245 entries are restaurant, candy, baby food or industrial-oil records (review r2
+FU-5): nothing unsafe, because everything is `PROPOSED`, but it costs the RD time and skews any "the catalog has
+N foods" claim. A flag names what the tool detected in the description or the category —
+`DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN`, `DESCRIPTION_NAMES_A_BABY_OR_TODDLER_FOOD`,
+`DESCRIPTION_NAMES_A_CONFECTIONERY_OR_DESSERT`, `DESCRIPTION_NAMES_AN_INDUSTRIAL_OR_HYDROGENATED_OIL` and the
+rest — so a flagged group can be struck in bulk instead of read row by row.
+
+> [!IMPORTANT]
+> **Flags are the tool's; `reviewState` is the reviewer's; the two never mix.** A flag excludes nothing and
+> decides nothing. Striking a flagged entry is the RD's act and the one legitimate use of `STRUCK`.
+> **The absence of a flag is not a claim either**: this is keyword triage over USDA description text, not a
+> classifier. It misses things (`Fruit butters, apple`) and it will flag a food the RD may want to keep
+> (`Rice, white, steamed, Chinese restaurant`). Never read an empty `triageFlags` as "the tool judged this a
+> good candidate".
+
+### For consumers (T-2036)
+
+- **No consumer may read an empty pattern-filtered result as "no foods exist".** It means no food in the
+  catalog carries that tag, which today can be a derivation that failed closed rather than a fact about food.
+- **T-2036 must degrade rather than disappear on an empty filter result** — show the unfiltered catalog behind
+  an explicit notice, or an explicit empty state that says the catalog has nothing tagged for this pattern yet.
+  A screen that vanishes is forbidden by `board/strategy/release-safety.md`, and it is the reason this ticket
+  exists. There is no such consumer today: nothing in `lib/` or `app/` reads `patternTags`.
+- `categoryId`, `patternTags` and `triageFlags` are all engineer proposals until `curationState` reaches
+  `REVIEWER_COMPLETE`. Do not present any of them to a client as a dietary classification.
+
+---
+
 ## 3. Allergen tri-state rules and fail-closed safety
 
 Allergen facts use T-2002's nine frozen categories: `MILK, EGG, FISH, CRUSTACEAN_SHELLFISH, TREE_NUT, PEANUT, WHEAT, SOYBEAN, SESAME`.
@@ -182,7 +283,7 @@ Why there is no absence branch, from the record structure itself (probed live 20
 - An **SR Legacy** record is the same minus `inputFoods`/`foodComponents`, and its descriptions include commercially prepared foods whose real ingredient statements routinely include soybean oil, milk solids and sesame.
 - A **Branded** record is the only data type carrying an `ingredients` statement, because US labelling law requires one. v1 does not accept Branded records and does not parse ingredient statements.
 
-Absence of an ingredient list is not evidence of absence. A category label is not evidence of absence. An empty `inputFoods` array is not evidence of absence. A `singleIngredientWholeFood` flag is not in the record at all. The deleted catalog inferred absence from exactly those signals and produced 2,119 `VERIFIED_ABSENT` facts out of 2,340 — including sesame and soy "absent" from sourdough, rye and pita, and milk and soy "absent" from a pea protein powder. A real Branded whole wheat bread's ingredient statement contains `SOYBEAN AND/OR CANOLA OIL`.
+Absence of an ingredient list is not evidence of absence. A category label is not evidence of absence. An empty `inputFoods` array is not evidence of absence. The `singleIngredientWholeFood` flag was not in the record at all, and T-2016 deleted the field (§2.2). A food group *is* evidence of the food's identity, which is why §2.2 may read it for eating patterns and this section may not read it for an allergen declaration. The deleted catalog inferred absence from exactly those signals and produced 2,119 `VERIFIED_ABSENT` facts out of 2,340 — including sesame and soy "absent" from sourdough, rye and pita, and milk and soy "absent" from a pea protein powder. A real Branded whole wheat bread's ingredient statement contains `SOYBEAN AND/OR CANOLA OIL`.
 
 The consequence is intended: the catalog is mostly `UNKNOWN`, and downstream (T-2036) `UNKNOWN` **blocks** the food for a client who declared that allergen. A food excluded on an unanswered question is the correct outcome; a food served on an unverified absence claim is not. Do not "improve" this by inferring absence from a category, a species name or a single-commodity identity.
 

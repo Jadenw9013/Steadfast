@@ -13,6 +13,7 @@ import {
   parseArtifactDraftInput,
 } from "@/lib/ai-coach/artifacts/schema";
 import {
+  allowlistEntrySchema,
   allowlistSchema,
   allowlistSchemaForPlan,
   coveragePlanSchema,
@@ -49,10 +50,16 @@ const baseEntry: AllowlistEntry = {
   dataType: "Foundation",
   canonicalName: "Synthetic Plant Item, Raw",
   synonyms: ["synthetic plant item"],
+  // A synthetic category string on purpose: it is in no USDA food-category
+  // table, so the derivation fails closed to omnivore-only and this fixture
+  // cannot accidentally assert that a synthetic food is vegan.
+  sourceFoodCategory: "SYNTHETIC CATEGORY - plant item",
   categoryId: "VEGETABLE",
+  categoryIdBasis: "COVERAGE_PLAN_SEARCH_TERM",
   foodState: "RAW",
-  singleIngredientWholeFood: true,
   patternTags: ["OMNIVORE"],
+  patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+  triageFlags: ["CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"],
   ownAllergenCategories: [],
   reviewState: "PROPOSED",
   reviewerNote: null,
@@ -320,6 +327,79 @@ describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalo
     ).toThrowError(/Unknown categoryId 'NOT_IN_PLAN'/);
   });
 
+  it("singleIngredientWholeFood is gone from the schema, and an entry carrying it does not parse", () => {
+    // T-2016. It was `true` on 245 of 245 entries, including TACO BELL Nachos
+    // and partially hydrogenated industrial canola oil, and the rule that read
+    // it was removed in the T-2035 repair — an unverified claim with no reader.
+    // `.strict()` is what keeps it gone: the field cannot come back by being
+    // written, only by being added to the schema deliberately.
+    expect(Object.keys(allowlistEntrySchema.shape)).not.toContain("singleIngredientWholeFood");
+    expect(() =>
+      allowlistSchema.parse(
+        buildAllowlist([{ ...baseEntry, singleIngredientWholeFood: true } as AllowlistEntry])
+      )
+    ).toThrowError(/[Uu]nrecognized key/);
+  });
+
+  it("a stated derivation basis must be reproducible from the entry's own recorded category", () => {
+    // The anti-fabrication invariant: `patternTagsBasis: "SOURCE_FOOD_CATEGORY"`
+    // is a claim that `sourceFoodCategory` produced these tags, so the schema
+    // re-derives it. A hand-edit that widens the tags without owning the
+    // decision does not parse.
+    const derivedSeafood: AllowlistEntry = {
+      ...baseEntry,
+      sourceFoodCategory: "Finfish and Shellfish Products",
+      categoryId: "VEGETABLE",
+      categoryIdBasis: "REVIEWER_SET",
+      patternTags: ["OMNIVORE", "PESCATARIAN"],
+      patternTagsBasis: "SOURCE_FOOD_CATEGORY",
+      triageFlags: [],
+    };
+    expect(allowlistSchema.parse(buildAllowlist([derivedSeafood])).entries).toHaveLength(1);
+
+    // Same category, tags widened to include VEGAN: refused.
+    expect(() =>
+      allowlistSchema.parse(
+        buildAllowlist([{ ...derivedSeafood, patternTags: ["OMNIVORE", "PESCATARIAN", "VEGAN"] }])
+      )
+    ).toThrowError(/derives \[OMNIVORE,PESCATARIAN\]/);
+
+    // A fallback basis may only ever carry omnivore-only.
+    expect(() =>
+      allowlistSchema.parse(
+        buildAllowlist([
+          {
+            ...baseEntry,
+            patternTags: ["OMNIVORE", "VEGAN"],
+            patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+          },
+        ])
+      )
+    ).toThrowError(/derives \[OMNIVORE\]/);
+
+    // A category that derives something else cannot be labelled a fallback.
+    expect(() =>
+      allowlistSchema.parse(
+        buildAllowlist([
+          {
+            ...baseEntry,
+            sourceFoodCategory: "Beef Products",
+            patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+          },
+        ])
+      )
+    ).toThrowError(/is not what sourceFoodCategory 'Beef Products' derives/);
+
+    // And the reviewer's own value is exempt, which is the point of the basis.
+    expect(
+      allowlistSchema.parse(
+        buildAllowlist([
+          { ...baseEntry, patternTags: ["VEGAN"], patternTagsBasis: "REVIEWER_SET" },
+        ])
+      ).entries
+    ).toHaveLength(1);
+  });
+
   it("the allowlist schema fences dataType to Foundation and SR Legacy", () => {
     expect(() =>
       allowlistSchema.parse(buildAllowlist([{ ...baseEntry, dataType: "Branded" as never }]))
@@ -342,6 +422,58 @@ describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalo
         for (const entry of allowlist.entries) {
           expect(entry.reviewState).not.toBe("ACCEPTED");
         }
+      }
+
+      // T-2016. The parse above is itself the assertion the ticket asks for:
+      // `.strict()` refuses the deleted field, and the schema re-derives every
+      // entry's stated basis from its own recorded category. Spelled out here
+      // too, because "it parses" is easy to read past.
+      const raw = JSON.parse(fs.readFileSync(ALLOWLIST_PATH, "utf8")) as {
+        entries: Array<Record<string, unknown>>;
+      };
+      for (const entry of raw.entries) {
+        expect(Object.keys(entry)).not.toContain("singleIngredientWholeFood");
+      }
+    }
+  );
+
+  /**
+   * The defect T-2016 exists to remove: `patternTags: ["OMNIVORE"]` on 245 of
+   * 245 entries, so every pattern-filtered read for a VEGAN,
+   * LACTO_OVO_VEGETARIAN or PESCATARIAN client is empty — a screen that
+   * disappears rather than degrades (`board/strategy/release-safety.md`).
+   *
+   * **Red until the allowlist is re-proposed**, which is the only thing that can
+   * make it green: the derivation needs the USDA food category, the committed
+   * file was generated before the entry carried one, and hand-editing run output
+   * is the failure this ticket's parent exists to record. It asserts only that
+   * *some* food reaches each pattern — the count is whatever the source says.
+   */
+  it.skipIf(!HAS_ALLOWLIST || !HAS_COVERAGE_PLAN)(
+    "the checked-in allowlist gives a vegan, vegetarian and pescatarian client a non-empty catalog",
+    () => {
+      const plan = coveragePlanSchema.parse(JSON.parse(fs.readFileSync(COVERAGE_PLAN_PATH, "utf8")));
+      const allowlist = allowlistSchemaForPlan(plan).parse(
+        JSON.parse(fs.readFileSync(ALLOWLIST_PATH, "utf8"))
+      );
+
+      for (const pattern of ["VEGAN", "LACTO_OVO_VEGETARIAN", "PESCATARIAN"] as const) {
+        const matching = allowlist.entries.filter((entry) => entry.patternTags.includes(pattern));
+        expect(
+          matching.length,
+          `no allowlist entry is tagged ${pattern}; a client on that pattern gets an empty catalog`
+        ).toBeGreaterThan(0);
+      }
+
+      // Every tag set must be traceable: either the record's own category
+      // derived it, or the reviewer owns it. Nothing else can put a pattern on a
+      // food. (The schema enforces this; asserted here so the file is the
+      // subject rather than the schema.)
+      for (const entry of allowlist.entries) {
+        expect(
+          ["SOURCE_FOOD_CATEGORY", "FALLBACK_OMNIVORE_ONLY", "REVIEWER_SET"],
+          entry.canonicalName
+        ).toContain(entry.patternTagsBasis);
       }
     }
   );
