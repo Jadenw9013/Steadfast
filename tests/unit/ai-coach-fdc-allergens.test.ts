@@ -238,7 +238,7 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
     const facts = proposeAllergenFacts(
       entryFor(norm, {
         dataType: "SR Legacy",
-        canonicalName: "Synthetic Commercial Bread",
+        canonicalName: "Synthetic Whole-Wheat Commercial Bread",
         categoryId: "GRAIN_STARCH",
         foodState: "PREPARED",
         singleIngredientWholeFood: true,
@@ -254,9 +254,26 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
     expect(presenceOf("MILK")).toBe("UNKNOWN");
     expect(presenceOf("SESAME")).toBe("UNKNOWN");
     expect(presenceOf("EGG")).toBe("UNKNOWN");
-    // The record's own identity does say it is bread, which is the one claim it supports.
+    // The record's own identity says wheat, which is the one claim it supports.
     expect(presenceOf("WHEAT")).toBe("PRESENT");
     expect(facts.ingredientStatementAvailable).toBe(false);
+
+    // The name said "bread" before this rework and that alone used to be enough.
+    // `bread` is a food form — rye, corn and gluten-free breads exist — so it is
+    // no longer a WHEAT term, and an unqualified bread record is UNKNOWN. That
+    // still excludes a wheat-allergic client; it just stops the catalog
+    // asserting something the record did not say.
+    const unqualified = proposeAllergenFacts(
+      entryFor(norm, {
+        dataType: "SR Legacy",
+        canonicalName: "Synthetic Commercial Bread",
+        categoryId: "GRAIN_STARCH",
+        foodState: "PREPARED",
+      }),
+      norm,
+      "2026-09-26T00:00:00.000Z"
+    );
+    expect(unqualified.categories.find((c) => c.category === "WHEAT")?.presence).toBe("UNKNOWN");
   });
 
   it("ingredientStatementAvailable is read off the record, not assumed", () => {
@@ -451,10 +468,11 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
 
   /**
    * The invariant that turns MB-3 from three named foods into a property of the
-   * shipped artifact: if an item's own name names an allergen, the stored fact
-   * says PRESENT. The rule scans `canonicalName + description + synonyms` and
-   * `item.name` *is* `canonicalName`, so any violation means the committed
-   * catalog was produced by a different rule than the one in the tree.
+   * shipped artifact, **forward direction**: if an item's own name names an
+   * allergen, the stored fact says PRESENT. The rule scans
+   * `canonicalName + description + synonyms` and `item.name` *is*
+   * `canonicalName`, so any violation means the committed catalog was produced
+   * by a different rule than the one in the tree.
    *
    * It is red on purpose until the ingest is re-run after this change: the
    * committed artifact was produced by the singular-only matcher.
@@ -479,6 +497,188 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
         "\n"
       )}`
     ).toEqual([]);
+  });
+
+
+  /**
+   * The same invariant, **reverse direction**: no stored PRESENT fact may come
+   * from a term the list no longer contains, or from a signal the rule no
+   * longer reads. Without this, dropping `flour`/`bread`/`pasta`/`butter` and
+   * the `foodCategory` scan would leave the false facts they produced sitting
+   * in the artifact with nothing asserting they are gone.
+   *
+   * The rule's inputs are `canonicalName + description + synonyms` plus
+   * `ownAllergenCategories`. The artifact stores the name and the synonyms but
+   * not the USDA `description`, so this check reconstructs the first and third
+   * and joins the allowlist for the fourth. In the committed data
+   * `--propose` sets `canonicalName` from the description and every
+   * `ownAllergenCategories` is empty, so a violation here is a real divergence
+   * worth reading, not a reconstruction artefact.
+   *
+   * Red until the re-run, for the same reason as the forward direction.
+   */
+  it("Committed catalog: no item has a PRESENT fact that the current rule cannot explain", () => {
+    const file = loadDraftUnsignedFoodCatalog();
+    const allowlist = JSON.parse(
+      fs.readFileSync(path.resolve("data/ai-coach/catalog/fdc-allowlist.v1.json"), "utf8")
+    ) as { entries: Array<{ fdcId: number; ownAllergenCategories: AllergenCategory[] }> };
+    const ownByRecordId = new Map(
+      allowlist.entries.map((entry) => [String(entry.fdcId), entry.ownAllergenCategories])
+    );
+
+    const unexplained: string[] = [];
+    for (const item of file.content.items) {
+      const scanned = [item.name, ...(item.synonyms ?? [])].join(" ");
+      const own = ownByRecordId.get(item.sourceRecord?.recordId ?? "") ?? [];
+      for (const fact of item.allergenFactsV2?.categories ?? []) {
+        if (fact.presence !== "PRESENT") continue;
+        if (textNamesAllergenCategory(scanned, fact.category)) continue;
+        if (own.includes(fact.category)) continue;
+        unexplained.push(`${item.name} -> ${fact.category}`);
+      }
+    }
+
+    expect(
+      unexplained,
+      `PRESENT facts the current rule cannot produce (a removed term or the food category):\n${unexplained.join(
+        "\n"
+      )}`
+    ).toEqual([]);
+  });
+
+  /**
+   * The two the lead named as the ones not to put in front of the RD. Pinned by
+   * name rather than left to the invariants, so they cannot be lost in a
+   * re-measure. Both read `WHEAT: PRESENT` in the first real run — one from
+   * `flour` and `pasta`, one from `flour` — and one of them is labelled
+   * gluten-free on its own package.
+   */
+  it("Gluten-free pasta and chickpea flour do not read WHEAT", () => {
+    for (const name of [
+      "Pasta, gluten-free, corn flour and quinoa flour, cooked, ANCIENT HARVEST",
+      "Chickpea flour (besan)",
+      "Flour, rice, brown",
+      "Rice flour, white, unenriched",
+      "Oat bran, cooked",
+    ]) {
+      expect(textNamesAllergenCategory(name, "WHEAT"), `${name} must not name WHEAT`).toBe(false);
+    }
+
+    // And the coverage that must survive: whole-wheat bread still reads WHEAT
+    // through `wheat`, with `bread` gone from the list.
+    for (const name of [
+      "Bread, whole-wheat, commercially prepared",
+      "Bread, whole-wheat, commercially prepared, toasted",
+      "Bread, pita, whole-wheat",
+      "Bread, french or vienna, whole wheat",
+    ]) {
+      expect(textNamesAllergenCategory(name, "WHEAT"), `${name} must still name WHEAT`).toBe(true);
+    }
+
+    // Nut and fruit butters are not dairy.
+    expect(textNamesAllergenCategory("Nuts, cashew butter, plain, with salt added", "MILK")).toBe(
+      false
+    );
+    expect(textNamesAllergenCategory("Fruit butters, apple", "MILK")).toBe(false);
+    // ...and the cashew is still a tree nut.
+    expect(
+      textNamesAllergenCategory("Nuts, cashew butter, plain, with salt added", "TREE_NUT")
+    ).toBe(true);
+  });
+
+  /**
+   * A term names the allergen substance itself, never a food form that can be
+   * made from something else. Asserted against the lists directly so re-adding
+   * one is a red test rather than a quiet regression in the next run's data.
+   */
+  it("No term names a food form rather than the allergen substance", () => {
+    const forbidden: Array<[AllergenCategory, string]> = [
+      ["MILK", "butter"],
+      ["MILK", "custard"],
+      ["WHEAT", "flour"],
+      ["WHEAT", "bran"],
+      ["WHEAT", "bread"],
+      ["WHEAT", "pasta"],
+      ["EGG", "mayonnaise"],
+    ];
+    for (const [category, term] of forbidden) {
+      expect(
+        ALLERGEN_TERM_INDEX[category],
+        `${term} is a food form, not ${category}`
+      ).not.toContain(term);
+    }
+
+    // The substances that must stay, so the loss is bounded and visible.
+    expect(ALLERGEN_TERM_INDEX.MILK).toEqual(
+      expect.arrayContaining([
+        "milk",
+        "cream",
+        "cheese",
+        "yogurt",
+        "whey",
+        "casein",
+        "lactose",
+        "buttermilk",
+        "butterfat",
+        "ghee",
+      ])
+    );
+    expect(ALLERGEN_TERM_INDEX.WHEAT).toEqual(
+      expect.arrayContaining([
+        "wheat",
+        "semolina",
+        "durum",
+        "spelt",
+        "farro",
+        "bulgur",
+        "couscous",
+        "seitan",
+      ])
+    );
+  });
+
+  /**
+   * `<term>-free` is a negation of the term. Without this guard,
+   * `Pasta, gluten-free, ...` reads WHEAT through `gluten`: a food whose name
+   * says it does not contain the allergen, declared as containing it. The
+   * result is UNKNOWN, not VERIFIED_ABSENT — a label phrase in a USDA
+   * description is not the positive evidence of absence this module requires,
+   * so the food still fails closed for a client who declared wheat.
+   */
+  it("A '<term>-free' phrase does not read as naming the allergen, and still yields UNKNOWN", () => {
+    expect(textNamesAllergenCategory("Crackers, gluten-free", "WHEAT")).toBe(false);
+    expect(textNamesAllergenCategory("Crackers, gluten free", "WHEAT")).toBe(false);
+    expect(textNamesAllergenCategory("Dessert, dairy-free, frozen", "MILK")).toBe(false);
+    // Narrow on purpose: "milk-fat free" is not "milk free".
+    expect(
+      textNamesAllergenCategory("Milk dessert, frozen, milk-fat free, chocolate", "MILK")
+    ).toBe(true);
+    // And "free" starting another word is not a negation.
+    expect(textNamesAllergenCategory("Grains, gluten freekeh blend", "WHEAT")).toBe(true);
+
+    const raw = {
+      _synthetic: { label: "SYNTHETIC FIXTURE - NOT A USDA RECORD" },
+      fdcId: 9000000304,
+      description: "SYNTHETIC FIXTURE - gluten-free pasta record",
+      dataType: "SR Legacy",
+      publicationDate: "01/01/1900",
+      foodCategory: { description: "SYNTHETIC CATEGORY - grain item" },
+      foodNutrients: [],
+    };
+    const norm = normalizeFdcRecord(raw);
+    const facts = proposeAllergenFacts(
+      entryFor(norm, {
+        canonicalName: "Pasta, gluten-free, corn flour and quinoa flour, cooked, ANCIENT HARVEST",
+        categoryId: "GRAINS_STARCHES",
+      }),
+      norm,
+      "2026-09-26T00:00:00.000Z"
+    );
+    const wheat = facts.categories.find((c) => c.category === "WHEAT");
+    // Not PRESENT, and emphatically not VERIFIED_ABSENT: the rule still refuses
+    // to convert a label phrase into evidence of absence.
+    expect(wheat?.presence).toBe("UNKNOWN");
+    expect(wheat?.basis).toBe("NONE");
   });
 
   it("crossContact is UNKNOWN for every category of every fixture", () => {

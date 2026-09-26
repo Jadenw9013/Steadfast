@@ -82,22 +82,48 @@ export type SourcedAllergenFacts = {
  * nothing and listing only `almond` no longer loses `Nuts, almonds`. A unit
  * test walks all nine lists and asserts the generated plural of every term
  * matches, so this property holds for terms added later.
+ *
+ * **A term names the allergen substance itself, never a food form that can be
+ * made from something else.** `butter` is a form — cashew butter and apple
+ * butter are not dairy. `flour` is a form — rice flour and chickpea flour are
+ * not wheat. So are `bread`, `pasta`, `bran`, `custard` and `mayonnaise`, and
+ * all of them are gone. Measured over the first real run, those terms produced
+ * PRESENT facts on `Chickpea flour (besan)`, both rice flours, both
+ * `Flour, rice` records, `Pasta, gluten-free, corn flour and quinoa flour`,
+ * `Oat bran, cooked`, `Nuts, cashew butter` and `Fruit butters, apple` — a
+ * gluten-free pasta and two nut/fruit butters declaring wheat and milk in a
+ * document a Registered Dietitian is asked to sign.
+ *
+ * The coverage loss is the correct cost. `Pasta, dry, enriched` and
+ * `Butter, salted` become UNKNOWN rather than PRESENT, and UNKNOWN excludes a
+ * client who declared the allergen exactly as PRESENT does — nothing is made
+ * less safe, and every positive claim that remains is one the reviewer can
+ * trust. The same argument as the `foodCategory` removal below.
+ *
+ * What stays, and why it is a substance and not a form: `cream`, `cheese`,
+ * `yogurt`, `whey`, `casein`, `lactose`, `buttermilk`, `butterfat`, `ghee`,
+ * `dairy` (milk fractions and milk products, not preparations); `semolina`,
+ * `durum`, `spelt`, `kamut`, `farro`, `bulgur`, `couscous`, `gluten`, `seitan`
+ * (wheat and wheat fractions); `tofu`, `tempeh`, `miso`, `tahini` (forms whose
+ * unqualified name has no non-allergen production base — a chickpea tofu is
+ * always written "chickpea tofu"); every FISH, CRUSTACEAN_SHELLFISH, TREE_NUT
+ * and PEANUT entry, which are species and substance names throughout.
  */
 export const ALLERGEN_TERM_INDEX: Readonly<Record<AllergenCategory, readonly string[]>> = {
   MILK: [
     "milk",
     "dairy",
-    "butter",
     "cheese",
     "cream",
     "yogurt",
     "whey",
     "casein",
+    "lactose",
     "ghee",
     "buttermilk",
-    "custard",
+    "butterfat",
   ],
-  EGG: ["egg", "albumin", "albumen", "yolk", "eggwhite", "mayonnaise"],
+  EGG: ["egg", "albumin", "albumen", "yolk", "eggwhite"],
   FISH: [
     "fish",
     "salmon",
@@ -149,7 +175,6 @@ export const ALLERGEN_TERM_INDEX: Readonly<Record<AllergenCategory, readonly str
   PEANUT: ["peanut", "groundnut", "arachis"],
   WHEAT: [
     "wheat",
-    "flour",
     "semolina",
     "spelt",
     "kamut",
@@ -157,10 +182,8 @@ export const ALLERGEN_TERM_INDEX: Readonly<Record<AllergenCategory, readonly str
     "durum",
     "bulgur",
     "gluten",
-    "bran",
+    "seitan",
     "couscous",
-    "bread",
-    "pasta",
   ],
   SOYBEAN: ["soy", "soya", "soybean", "edamame", "tofu", "tempeh", "miso"],
   SESAME: ["sesame", "tahini", "sesamum", "benne"],
@@ -201,13 +224,29 @@ export function allergenTermVariants(term: string): string[] {
   return [...variants];
 }
 
+/**
+ * `<term>-free` and `<term> free` are a *negation* of the term, so a match
+ * there is a reading error rather than a term-list question. Without this,
+ * `Pasta, gluten-free, corn flour and quinoa flour` reads `WHEAT: PRESENT`
+ * through `gluten` — a food whose name says it does not contain the allergen,
+ * declared as containing it. The result is `UNKNOWN`, not `VERIFIED_ABSENT`:
+ * "gluten-free" on a USDA description is not the positive evidence of absence
+ * this module requires, so the food still fails closed for a client who
+ * declared wheat.
+ *
+ * Deliberately narrow. `milk-fat free` is not `milk free`, so
+ * `Milk dessert, frozen, milk-fat free, chocolate` still reads `MILK: PRESENT`
+ * through `milk`, which is correct.
+ */
+const NEGATION_SUFFIX = "(?![-\\s]?free(?:$|[^a-zA-Z0-9]))";
+
 export function matchesAnyTerm(text: string, terms: readonly string[]): boolean {
   for (const term of terms) {
     for (const variant of allergenTermVariants(term)) {
       // Whole-word boundary. The trailing class admits apostrophes, so a
       // possessive is matched without a variant of its own.
       const regex = new RegExp(
-        `(?:^|[^a-zA-Z0-9])${escapeRegExp(variant)}(?:$|[^a-zA-Z0-9])`,
+        `(?:^|[^a-zA-Z0-9])${escapeRegExp(variant)}${NEGATION_SUFFIX}(?:$|[^a-zA-Z0-9])`,
         "i"
       );
       if (regex.test(text)) {

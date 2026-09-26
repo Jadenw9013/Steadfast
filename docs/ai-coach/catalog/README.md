@@ -92,6 +92,33 @@ Allergen facts use T-2002's nine frozen categories: `MILK, EGG, FISH, CRUSTACEAN
     `anchovy` matches `anchovies`) and possessives. Listing only singulars used to lose the commonest USDA
     spelling: `Nuts, almonds` and three walnut records shipped declaring no tree nut at all (review r2 MB-3).
     Add terms in the singular only; a unit test asserts every term in all nine lists matches its own plural.
+  - **A term names the allergen substance itself, never a food form that can be made from something else.**
+    `butter` is a form (cashew butter, apple butter); `flour` is a form (rice flour, chickpea flour); so are
+    `bread`, `pasta`, `bran`, `custard` and `mayonnaise`. All are removed. In the first real run they produced
+    `WHEAT: PRESENT` on `Chickpea flour (besan)`, four rice-flour records and
+    `Pasta, gluten-free, corn flour and quinoa flour`, and `MILK: PRESENT` on both `Nuts, cashew butter`
+    records and `Fruit butters, apple`. What stays is substances and fractions: `cream`, `cheese`, `yogurt`,
+    `whey`, `casein`, `lactose`, `buttermilk`, `butterfat`, `ghee`, `dairy`; `semolina`, `durum`, `spelt`,
+    `kamut`, `farro`, `bulgur`, `couscous`, `gluten`, `seitan`; every fish, crustacean, tree nut and peanut
+    entry. `tofu`, `tempeh`, `miso` and `tahini` stay because the unqualified name has no non-allergen
+    production base — a chickpea tofu is always written "chickpea tofu".
+  - The coverage loss is the correct cost. `Pasta, dry, enriched` and `Butter, salted` become `UNKNOWN`
+    instead of `PRESENT`, and `UNKNOWN` excludes a client who declared the allergen exactly as `PRESENT`
+    does. Nothing is made less safe, and every positive claim left in the document is one the reviewer can
+    trust. `Bread, whole-wheat, commercially prepared` still reads `WHEAT` through `wheat`; a unit test pins
+    that, and pins the gluten-free pasta and the chickpea flour as *not* wheat.
+  - **`<term>-free` is a negation, not a mention.** `Pasta, gluten-free, …` used to read `WHEAT: PRESENT`
+    through `gluten` — a food whose own name says it does not contain the allergen, declared as containing
+    it. The matcher refuses `<term>-free` and `<term> free`. The result is `UNKNOWN`, never
+    `VERIFIED_ABSENT`: a label phrase in a USDA description is not the positive evidence of absence this
+    module requires, so the food still fails closed for a client who declared it. Narrow on purpose —
+    `milk-fat free` is not `milk free`, so `Milk dessert, frozen, milk-fat free` still reads `MILK`.
+  - **Known residue, not fixed here.** A non-dairy analogue named after the dairy product still reads
+    `MILK: PRESENT`: `Beverages, rice milk`, `Tofu yogurt`, and
+    `Oil, industrial, coconut … for ice cream coatings`. These are compound qualifiers rather than food
+    forms, so the rule above does not reach them and a negative-qualifier mechanism would be a new design.
+    `coconut` is deliberately absent from `TREE_NUT` although the FDA classifies it as one; that is an RD
+    call, and `UNKNOWN` blocks a tree-nut-allergic client either way.
 - **`UNKNOWN`** — everything else. `basis: "NONE"`, `verifiedAt: null`.
 - **`VERIFIED_ABSENT`** — not emitted by ingestion at all, and the emitted type says so rather than a comment saying so.
 
