@@ -3,9 +3,12 @@ import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { exportAiData } from "@/lib/ai-coach/data-export";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 suite("bounded owner-only AI export", () => {
   afterAll(() => db.$disconnect());
   async function user() {

@@ -4,9 +4,12 @@ import { db } from "@/lib/db";
 import { resolveAiSafety, getSafetyCases } from "@/lib/ai-coach/safety-resolution";
 import { assignFixtureReviewer } from "../helpers/ai-reviewer";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 suite("scoped reviewed safety resolution", () => {
   beforeEach(() => vi.stubEnv("AI_COACH_FIXTURE_MODE", "true")); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() { const id = randomUUID(); const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } }); await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true, safetyDisposition: "URGENT", nutritionPermission: "PAUSED", strengthPermission: "PAUSED", cardioPermission: "PAUSED", safetyRevision: 2 } }); await db.aiCoachEntitlement.create({ data: { clientId: client.id } }); const grant = await assignFixtureReviewer(client.id); const input = { requestKey: randomUUID(), clientId: client.id, expectedSafetyRevision: 2, domains: ["STRENGTH"], reviewReference: "SYNTHETIC-CLEARANCE-001", rationale: "Reviewed fixture evidence", confirmed: true }; return { client, grant, input }; }

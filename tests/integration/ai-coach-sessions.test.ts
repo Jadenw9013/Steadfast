@@ -6,9 +6,12 @@ import { getAiSessions } from "@/lib/queries/ai-sessions";
 import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 suite("typed AI activity evidence", () => {
   beforeEach(() => vi.stubEnv("AI_COACH_FIXTURE_MODE", "true")); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() {

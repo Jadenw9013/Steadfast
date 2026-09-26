@@ -4,9 +4,12 @@ import { db } from "@/lib/db";
 import { deleteAiEvidence } from "@/lib/ai-coach/delete-evidence";
 import { submitAiCheckIn } from "@/lib/check-ins/ai-observation";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 suite("owned evidence deletion", () => {
   beforeEach(() => vi.stubEnv("AI_COACH_FIXTURE_MODE", "true")); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() { const id = randomUUID(); const user = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } }); await db.aiCoachProfile.create({ data: { clientId: user.id, isSynthetic: true } }); await db.aiCoachEntitlement.create({ data: { clientId: user.id } }); await db.clientCoachingContext.create({ data: { clientId: user.id, mode: "AI" } }); const input = { requestKey: randomUUID(), clientEventId: randomUUID(), expectedRevision: 0, occurredAt: new Date().toISOString(), submit: false, payload: { energy: "LOW" } }; await submitAiCheckIn(user.id, input); const row = await db.aiCheckInObservation.findFirstOrThrow({ where: { clientId: user.id } }); return { user, row, input }; }
