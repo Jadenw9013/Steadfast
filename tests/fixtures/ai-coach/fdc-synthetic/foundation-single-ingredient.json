@@ -1,0 +1,373 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "mapping.ts Foundation happy path: nested `nutrient` rows, derivation codes A / AS / NC, an unmappable unit row (SP_GR) that must be skipped with a warning, a kJ energy row that must not be mistaken for the kcal row, and the AS-is-CALCULATED / energy-method-is-ATWATER_SPECIFIC split. `inputFoods` is empty, which the allergen rule must NOT read as evidence of allergen absence.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented. No source, no license, no retrieval date and no attribution is claimed. Key structure mirrors a real /food/{id} response so the mapping code is exercised against a representative shape."
+  },
+  "dataType": "Foundation",
+  "description": "SYNTHETIC FIXTURE 01 - foundation single item, plain",
+  "fdcId": 9000000001,
+  "foodAttributes": [
+    {
+      "id": 1,
+      "value": "SYNTHETIC ATTRIBUTE",
+      "name": "SYNTHETIC ATTRIBUTE NAME",
+      "foodAttributeType": {
+        "id": 1,
+        "name": "SYNTHETIC ATTRIBUTE TYPE",
+        "description": "synthetic"
+      }
+    }
+  ],
+  "foodCategory": {
+    "id": 9001,
+    "code": "9001",
+    "description": "SYNTHETIC CATEGORY - plant item"
+  },
+  "foodClass": "FinalFood",
+  "foodComponents": [],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 20001008,
+      "nutrient": {
+        "id": 1008,
+        "number": "208",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "KCAL"
+      },
+      "amount": 100,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "AS",
+        "description": "Calculated using Atwater specific factors",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001003,
+      "nutrient": {
+        "id": 1003,
+        "number": "203",
+        "name": "Protein",
+        "rank": 201,
+        "unitName": "G"
+      },
+      "amount": 5,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001004,
+      "nutrient": {
+        "id": 1004,
+        "number": "204",
+        "name": "Total lipid (fat)",
+        "rank": 204,
+        "unitName": "G"
+      },
+      "amount": 2,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001005,
+      "nutrient": {
+        "id": 1005,
+        "number": "205",
+        "name": "Carbohydrate, by difference",
+        "rank": 205,
+        "unitName": "G"
+      },
+      "amount": 10,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "NC",
+        "description": "Calculated",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001079,
+      "nutrient": {
+        "id": 1079,
+        "number": "291",
+        "name": "Fiber, total dietary",
+        "rank": 200,
+        "unitName": "G"
+      },
+      "amount": 3,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20002000,
+      "nutrient": {
+        "id": 2000,
+        "number": "269",
+        "name": "Sugars, total including NLEA",
+        "rank": 210,
+        "unitName": "G"
+      },
+      "amount": 4,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "NC",
+        "description": "Calculated",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001087,
+      "nutrient": {
+        "id": 1087,
+        "number": "301",
+        "name": "Calcium, Ca",
+        "rank": 300,
+        "unitName": "MG"
+      },
+      "amount": 40,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001089,
+      "nutrient": {
+        "id": 1089,
+        "number": "303",
+        "name": "Iron, Fe",
+        "rank": 310,
+        "unitName": "MG"
+      },
+      "amount": 1,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001092,
+      "nutrient": {
+        "id": 1092,
+        "number": "306",
+        "name": "Potassium, K",
+        "rank": 320,
+        "unitName": "MG"
+      },
+      "amount": 300,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001093,
+      "nutrient": {
+        "id": 1093,
+        "number": "307",
+        "name": "Sodium, Na",
+        "rank": 330,
+        "unitName": "MG"
+      },
+      "amount": 20,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001110,
+      "nutrient": {
+        "id": 1110,
+        "number": "324",
+        "name": "Vitamin D (D2 + D3)",
+        "rank": 340,
+        "unitName": "UG"
+      },
+      "amount": 0,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001051,
+      "nutrient": {
+        "id": 1051,
+        "name": "Water",
+        "rank": 100,
+        "unitName": "G"
+      },
+      "amount": 80,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      },
+      "dataPoints": 6,
+      "min": 78.0,
+      "max": 82.0,
+      "median": 80.0
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001062,
+      "nutrient": {
+        "id": 1062,
+        "name": "Energy",
+        "rank": 110,
+        "unitName": "kJ"
+      },
+      "amount": 418,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "AS",
+        "description": "Calculated using Atwater specific factors",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001063,
+      "nutrient": {
+        "id": 1063,
+        "name": "Sugars, Total NLEA",
+        "rank": 400,
+        "unitName": "SP_GR"
+      },
+      "amount": 1,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    }
+  ],
+  "foodPortions": [
+    {
+      "id": 1,
+      "gramWeight": 50,
+      "portionDescription": "1 synthetic unit",
+      "sequenceNumber": 1,
+      "measureUnit": {
+        "id": 9999,
+        "name": "undetermined",
+        "abbreviation": "undetermined"
+      }
+    }
+  ],
+  "footnote": "SYNTHETIC FOOTNOTE - not a USDA footnote",
+  "inputFoods": [],
+  "isHistoricalReference": false,
+  "ndbNumber": 99001,
+  "nutrientConversionFactors": [
+    {
+      "id": 1,
+      "type": ".ProteinConversionFactor",
+      "value": 6.25
+    },
+    {
+      "id": 2,
+      "type": ".CalorieConversionFactor",
+      "proteinValue": 4.0,
+      "fatValue": 9.0,
+      "carbohydrateValue": 4.0
+    }
+  ],
+  "publicationDate": "01/01/1900",
+  "scientificName": "Synthetica fixtura"
+}

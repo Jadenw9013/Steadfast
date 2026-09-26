@@ -387,41 +387,178 @@ export const policyBundleContentSchema = z
 
 export type PolicyBundleContent = z.infer<typeof policyBundleContentSchema>;
 
-export const foodCatalogContentSchema = z
+export const allergenCategorySchema = z.enum([
+  "MILK",
+  "EGG",
+  "FISH",
+  "CRUSTACEAN_SHELLFISH",
+  "TREE_NUT",
+  "PEANUT",
+  "WHEAT",
+  "SOYBEAN",
+  "SESAME",
+]);
+export type AllergenCategory = z.infer<typeof allergenCategorySchema>;
+
+/**
+ * The FoodData Central nutrient numbers that can back each SOURCED_V2 macro.
+ * Exported so `lib/ai-coach/catalog/fdc/mapping.ts` reads the same list the
+ * schema enforces — one vocabulary, not two that can drift (review r2 MB-1).
+ *
+ * These are FDC nutrient **numbers** (`nutrient.number`), not nutrient ids.
+ * The two differ and the distinction is the whole point: "Energy (Atwater
+ * Specific Factors)" has id `2048` but number `"958"`, "Energy (Atwater General
+ * Factors)" has id `2047` but number `"957"`, and "Total fat (NLEA)" has id
+ * `1085` but number `"298"`. `findNutrient` matches on `nutrientNumber`, so a
+ * list written with ids silently matches nothing — which is exactly how the
+ * 2026-09-26 run refused 48 records that carried every macro it needed.
+ * Verified live against `/food/2258588` and `/food/748608`.
+ *
+ * `208` / `203` / `204` / `205` are the classic SR Legacy numbers.
+ */
+export const SOURCED_V2_ENERGY_NUTRIENT_IDS = ["208", "958", "957"] as const;
+export const SOURCED_V2_PROTEIN_NUTRIENT_IDS = ["203"] as const;
+export const SOURCED_V2_FAT_NUTRIENT_IDS = ["204", "298"] as const;
+export const SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS = ["205"] as const;
+
+export const sourcedFoodCatalogItemSchema = z
   .object({
-    ...contentIdentity,
-    items: z
+    id: identifierSchema,
+    version: versionSchema,
+    name: z.string().min(1).max(240),
+    source: reviewedSourceSchema,
+    foodState: z.enum(["RAW", "COOKED", "PREPARED", "NOT_APPLICABLE"]),
+    servingGrams: z.number().positive().finite(),
+    nutrients: z
+      .object({
+        energyKcal: z.number().nonnegative().finite(),
+        proteinGrams: z.number().nonnegative().finite(),
+        carbohydrateGrams: z.number().nonnegative().finite(),
+        fatGrams: z.number().nonnegative().finite(),
+        missingNutrientIds: z.array(identifierSchema).max(200),
+      })
+      .strict(),
+    /**
+     * Legacy allergen surface. It has exactly two states — a category is in
+     * `contains` or it is not — and `verificationStatus` is pinned to the
+     * literal `"REVIEWED_SOURCE"`, so it cannot express `UNKNOWN`. A SOURCED_V2
+     * item's real allergen status is mostly `UNKNOWN` (1643 of 1773 facts in
+     * the first real run), and projecting that into this struct turns every one
+     * of them into "reviewed against the source, and it does not contain this"
+     * — a bag of almonds shipping as reviewed and containing nothing. It fails
+     * **open**, which is the same false-assertion failure as the fabricated
+     * data pointed at a different field (review r2 MB-4).
+     *
+     * It is therefore optional, and *forbidden* under SOURCED_V2 (see the
+     * refinement below). Pre-SOURCED_V2 catalogs that genuinely carry a
+     * reviewed exclusion list still use it.
+     */
+    allergenFacts: z
+      .object({
+        contains: z.array(identifierSchema).max(50),
+        evidenceSourceId: identifierSchema,
+        verificationStatus: z.literal("REVIEWED_SOURCE"),
+        crossContactRequiresCurrentVerification: z.boolean(),
+      })
+      .strict()
+      .optional(),
+    synonyms: z.array(z.string().min(1).max(120)).max(10).optional(),
+    sourceRecord: z
+      .object({
+        system: z.literal("USDA_FDC"),
+        recordId: z.string().min(1).max(40),
+        dataType: z.enum(["FOUNDATION", "SR_LEGACY"]),
+        publicationDate: z.string().min(4).max(40),
+        sourceReleaseLabel: z.string().min(1).max(120),
+        retrievedAt: z.string().datetime({ offset: true }),
+        recordUrl: z.string().url(),
+        license: z.literal("CC0_PUBLIC_DOMAIN"),
+        attributionText: z.string().min(1).max(400),
+      })
+      .strict()
+      .optional(),
+    amountBasis: z
+      .object({
+        basisGrams: z.literal(100),
+        ediblePortionFactor: z.number().positive().max(1).nullable(),
+        ediblePortionProvenance: z.enum(["SOURCE_REPORTED", "UNKNOWN"]),
+        householdMeasures: z
+          .array(
+            z
+              .object({
+                text: z.string().min(1).max(160),
+                gramWeight: z.number().positive(),
+                provenance: z.literal("SOURCE_PORTION"),
+              })
+              .strict()
+          )
+          .max(20),
+        yieldMethod: z.enum(["NONE_APPLIED", "UNKNOWN"]),
+      })
+      .strict()
+      .optional(),
+    nutrientFacts: z
       .array(
         z
           .object({
-            id: identifierSchema,
-            version: versionSchema,
-            name: z.string().min(1).max(240),
-            source: reviewedSourceSchema,
-            foodState: z.enum(["RAW", "COOKED", "PREPARED", "NOT_APPLICABLE"]),
-            servingGrams: z.number().positive().finite(),
-            nutrients: z
-              .object({
-                energyKcal: z.number().nonnegative().finite(),
-                proteinGrams: z.number().nonnegative().finite(),
-                carbohydrateGrams: z.number().nonnegative().finite(),
-                fatGrams: z.number().nonnegative().finite(),
-                missingNutrientIds: z.array(identifierSchema).max(200),
-              })
-              .strict(),
-            allergenFacts: z
-              .object({
-                contains: z.array(identifierSchema).max(50),
-                evidenceSourceId: identifierSchema,
-                verificationStatus: z.literal("REVIEWED_SOURCE"),
-                crossContactRequiresCurrentVerification: z.boolean(),
-              })
-              .strict(),
+            nutrientId: z.string().min(1).max(60),
+            nutrientName: z.string().min(1).max(160),
+            unit: z.enum(["G", "MG", "UG", "KCAL", "KJ", "IU"]),
+            value: z.number().finite().nonnegative().nullable(),
+            status: z.enum(["REPORTED", "UNKNOWN"]),
+            derivation: z.enum(["ANALYTICAL", "CALCULATED", "MANUFACTURER_LABEL", "UNKNOWN"]),
+            derivationDetail: z.string().max(240).nullable(),
           })
           .strict()
       )
-      .min(1)
-      .max(10_000),
+      .max(300)
+      .optional(),
+    energyFact: z
+      .object({
+        kcal: z.number().finite().nonnegative().nullable(),
+        method: z.enum(["ATWATER_GENERAL", "ATWATER_SPECIFIC", "SOURCE_REPORTED_UNSPECIFIED", "UNKNOWN"]),
+        methodDetail: z.string().max(240).nullable(),
+        macroEnergyDiscrepancyKcal: z.number().finite().nullable(),
+      })
+      .strict()
+      .optional(),
+    allergenFactsV2: z
+      .object({
+        categories: z
+          .array(
+            z
+              .object({
+                category: allergenCategorySchema,
+                presence: z.enum(["PRESENT", "VERIFIED_ABSENT", "UNKNOWN"]),
+                crossContact: z.enum(["PRESENT", "VERIFIED_ABSENT", "UNKNOWN"]),
+                basis: z.enum(["SOURCE_RECORD_IDENTITY", "REVIEWER_ATTESTED", "NONE"]),
+                ruleId: z.string().min(1).max(80),
+                verifiedAt: z.string().datetime({ offset: true }).nullable(),
+              })
+              .strict()
+          )
+          .length(9),
+        ingredientStatementAvailable: z.boolean(),
+        speciesOrTypeDetail: z.string().max(160).nullable(),
+      })
+      .strict()
+      .optional(),
+    patternTags: z
+      .array(z.enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"]))
+      .optional(),
+    reviewState: z.enum(["PROPOSED", "ACCEPTED"]).optional(),
+    supersedesItemId: z.string().max(160).nullable().optional(),
+  })
+  .strict();
+
+export type SourcedFoodCatalogItem = z.infer<typeof sourcedFoodCatalogItemSchema>;
+
+export const foodCatalogContentSchema = z
+  .object({
+    ...contentIdentity,
+    catalogProfile: z.enum(["SOURCED_V2"]).optional(),
+    market: z.literal("US").optional(),
+    items: z.array(sourcedFoodCatalogItemSchema).min(1).max(10_000),
   })
   .strict()
   .superRefine((catalog, ctx) => {
@@ -431,6 +568,116 @@ export const foodCatalogContentSchema = z
       ["items"],
       "Food"
     );
+
+    if (catalog.catalogProfile === "SOURCED_V2") {
+      if (catalog.market !== "US") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["market"],
+          message: "Market must be US under SOURCED_V2 profile",
+        });
+      }
+
+      for (let i = 0; i < catalog.items.length; i++) {
+        const item = catalog.items[i];
+        const itemPath = ["items", i];
+
+        const requiredDossierFields: (keyof typeof item)[] = [
+          "synonyms",
+          "sourceRecord",
+          "amountBasis",
+          "nutrientFacts",
+          "energyFact",
+          "allergenFactsV2",
+          "patternTags",
+        ];
+
+        for (const field of requiredDossierFields) {
+          if (item[field] === undefined) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, field],
+              message: `Field ${String(field)} is required under SOURCED_V2 profile`,
+            });
+          }
+        }
+
+        // The lossy legacy surface may not coexist with allergenFactsV2. A
+        // consumer that has not been updated reads `allergenFacts.contains`
+        // and, finding it empty, concludes the food is free of every allergen;
+        // the tri-state says UNKNOWN for most of them. Two sources of truth
+        // where the lossy one fails open. Absent, that consumer gets a
+        // TypeError it must handle, not a false negative it cannot see.
+        if (item.allergenFacts !== undefined) {
+          ctx.addIssue({
+            code: "custom",
+            path: [...itemPath, "allergenFacts"],
+            message:
+              "Field allergenFacts is forbidden under SOURCED_V2 profile: it cannot express UNKNOWN, so it would assert REVIEWED_SOURCE absence for categories whose real status is UNKNOWN. Read allergenFactsV2.",
+          });
+        }
+
+        if (item.nutrientFacts) {
+          /**
+           * A macro is backed when *some* nutrient fact carrying one of the
+           * accepted ids reports it, and the summary value equals one of those
+           * reported values.
+           *
+           * The id sets are wider than the legacy four because modern USDA
+           * Foundation records are (review r2 MB-1): they report energy under
+           * the Atwater ids `2047`/`2048` rather than `1008`, and fat under
+           * `1085` "Total fat (NLEA)" rather than `1004` "Total lipid (fat)".
+           * Matching on a single id per macro is what made the tool refuse 48
+           * records — plain chicken breast, cod, olive oil, bell peppers — that
+           * carry every macronutrient. "One of the reported values" rather than
+           * "the first match" because a record can carry both Atwater energies
+           * and the mapper picks one deterministically.
+           */
+          const requireBackedMacro = (
+            label: string,
+            field: "proteinGrams" | "fatGrams" | "carbohydrateGrams" | "energyKcal",
+            nutrientIds: readonly string[],
+            unit: "G" | "KCAL"
+          ) => {
+            const reported = item.nutrientFacts!.filter(
+              (n) =>
+                nutrientIds.includes(n.nutrientId) &&
+                n.unit === unit &&
+                n.status === "REPORTED" &&
+                n.value !== null
+            );
+            if (reported.length === 0) {
+              ctx.addIssue({
+                code: "custom",
+                path: [...itemPath, "nutrients", field],
+                message: `${label} must be REPORTED in nutrientFacts under SOURCED_V2`,
+              });
+              return;
+            }
+            const summaryValue = item.nutrients[field];
+            if (!reported.some((n) => n.value === summaryValue)) {
+              ctx.addIssue({
+                code: "custom",
+                path: [...itemPath, "nutrients", field],
+                message: `${label} ${summaryValue} must match a reported nutrientFacts value (${reported
+                  .map((n) => n.value)
+                  .join(", ")})`,
+              });
+            }
+          };
+
+          requireBackedMacro("Protein", "proteinGrams", SOURCED_V2_PROTEIN_NUTRIENT_IDS, "G");
+          requireBackedMacro("Fat", "fatGrams", SOURCED_V2_FAT_NUTRIENT_IDS, "G");
+          requireBackedMacro(
+            "Carbohydrate",
+            "carbohydrateGrams",
+            SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS,
+            "G"
+          );
+          requireBackedMacro("Energy", "energyKcal", SOURCED_V2_ENERGY_NUTRIENT_IDS, "KCAL");
+        }
+      }
+    }
   });
 
 export const exerciseCatalogContentSchema = z

@@ -1,0 +1,68 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "mapping.ts data-type fence (Branded must be rejected with DISALLOWED_DATA_TYPE) and normalize.ts `ingredientStatement` extraction. Branded is the only FDC data type that carries an `ingredients` field, i.e. the only place a positive allergen declaration could ever come from; v1 does not accept it and does not parse it.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented. No source, no license, no retrieval date and no attribution is claimed. Key structure mirrors a real /food/{id} response so the mapping code is exercised against a representative shape."
+  },
+  "dataType": "Branded",
+  "description": "SYNTHETIC FIXTURE 08 - branded item, disallowed data type",
+  "fdcId": 9000000008,
+  "brandOwner": "SYNTHETIC BRAND OWNER",
+  "brandName": "SYNTHETIC BRAND",
+  "gtinUpc": "00000000000000",
+  "marketCountry": "SYNTHETIC MARKET",
+  "householdServingFullText": "1 synthetic serving",
+  "ingredients": "SYNTHETIC INGREDIENT A, SYNTHETIC INGREDIENT B, SYNTHETIC INGREDIENT C.",
+  "foodClass": "Branded",
+  "foodCategory": "SYNTHETIC CATEGORY - packaged item",
+  "publicationDate": "01/01/1902",
+  "finalFoodInputFoods": [],
+  "foodPortions": [
+    {
+      "id": 8,
+      "gramWeight": 40,
+      "portionDescription": "1 synthetic bar",
+      "sequenceNumber": 1
+    }
+  ],
+  "foodNutrients": [
+    {
+      "nutrientNumber": "1008",
+      "nutrientName": "Energy",
+      "unitName": "KCAL",
+      "value": 180
+    },
+    {
+      "nutrientNumber": "1003",
+      "nutrientName": "Protein",
+      "unitName": "G",
+      "value": 4
+    },
+    {
+      "nutrientNumber": "1004",
+      "nutrientName": "Total lipid (fat)",
+      "unitName": "G",
+      "value": 7
+    },
+    {
+      "nutrientNumber": "1005",
+      "nutrientName": "Carbohydrate, by difference",
+      "unitName": "G",
+      "value": 25
+    }
+  ],
+  "labelNutrients": {
+    "protein": {
+      "value": 4
+    },
+    "fat": {
+      "value": 7
+    },
+    "carbohydrates": {
+      "value": 25
+    },
+    "calories": {
+      "value": 180
+    }
+  }
+}

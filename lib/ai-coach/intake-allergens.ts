@@ -16,7 +16,16 @@ export const EMPTY_ALLERGEN_DECLARATIONS: AllergenDeclarations = {
   items: [],
 };
 
-const LEGACY_TOKEN_BY_CATEGORY: Partial<Record<AllergenCategory, string>> = {
+/**
+ * The single translation table between T-2002's nine catalog allergen
+ * categories and the legacy exclusion tokens that `matchAllergen`
+ * (`composition-feasibility.ts`) and `lib/ai-coach/catalog/schema.ts`'s
+ * `allergenSchema` speak. Exported for T-2035's FDC mapper, which writes
+ * `allergenFacts.contains` in the *legacy* vocabulary so a future comparison
+ * against a declared token cannot miss (review r1, finding F1). `OTHER` is
+ * deliberately unmapped — it must fail closed.
+ */
+export const LEGACY_TOKEN_BY_CATEGORY: Partial<Record<AllergenCategory, string>> = {
   MILK: "MILK",
   EGG: "EGG",
   PEANUT: "PEANUT",

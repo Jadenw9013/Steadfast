@@ -1,0 +1,82 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "allergen-rules.ts fail-closed regression. A commercially prepared bread is a multi-ingredient product in reality - the lead's live FDC probe of a real Branded whole wheat bread shows SOYBEAN AND/OR CANOLA OIL in its ingredient statement - but a Foundation/SR Legacy record carries no `ingredients` field at all, so the record says nothing about milk, soy, sesame or egg. Every one of those must be UNKNOWN. The deleted catalog asserted VERIFIED_ABSENT here, which is the exact harm this rule prevents.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented. No source, no license, no retrieval date and no attribution is claimed. Key structure mirrors a real /food/{id} response so the mapping code is exercised against a representative shape."
+  },
+  "dataType": "SR Legacy",
+  "description": "SYNTHETIC FIXTURE 09 - commercially prepared bread item",
+  "fdcId": 9000000009,
+  "foodAttributes": [],
+  "foodCategory": {
+    "id": 9002,
+    "code": "9002",
+    "description": "SYNTHETIC CATEGORY - baked item"
+  },
+  "foodClass": "FinalFood",
+  "foodNutrients": [
+    {
+      "nutrientNumber": "208",
+      "nutrientName": "Energy",
+      "unitName": "KCAL",
+      "value": 250
+    },
+    {
+      "nutrientNumber": "203",
+      "nutrientName": "Protein",
+      "unitName": "G",
+      "value": 12
+    },
+    {
+      "nutrientNumber": "204",
+      "nutrientName": "Total lipid (fat)",
+      "unitName": "G",
+      "value": 3
+    },
+    {
+      "nutrientNumber": "205",
+      "nutrientName": "Carbohydrate, by difference",
+      "unitName": "G",
+      "value": 43
+    },
+    {
+      "nutrientNumber": "291",
+      "nutrientName": "Fiber, total dietary",
+      "unitName": "G",
+      "value": 6
+    },
+    {
+      "nutrientNumber": "307",
+      "nutrientName": "Sodium, Na",
+      "unitName": "MG",
+      "value": 450
+    }
+  ],
+  "foodPortions": [
+    {
+      "id": 9,
+      "gramWeight": 43,
+      "modifier": "1 synthetic slice",
+      "amount": 1,
+      "sequenceNumber": 1
+    }
+  ],
+  "isHistoricalReference": true,
+  "ndbNumber": 99002,
+  "nutrientConversionFactors": [
+    {
+      "id": 1,
+      "type": ".ProteinConversionFactor",
+      "value": 6.25
+    },
+    {
+      "id": 2,
+      "type": ".CalorieConversionFactor",
+      "proteinValue": 4.0,
+      "fatValue": 9.0,
+      "carbohydrateValue": 4.0
+    }
+  ],
+  "publicationDate": "01/01/1901",
+  "scientificName": "Synthetica fixtura"
+}

@@ -1,0 +1,88 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "mapping.ts SR Legacy path: flat `nutrientNumber`/`value` rows on the legacy 203/204/205/208 numbers, a portion expressed via `modifier`, and no derivation code at all, so the SR Legacy default derivation and the SOURCE_REPORTED_UNSPECIFIED energy method are exercised.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented. No source, no license, no retrieval date and no attribution is claimed. Key structure mirrors a real /food/{id} response so the mapping code is exercised against a representative shape."
+  },
+  "dataType": "SR Legacy",
+  "description": "SYNTHETIC FIXTURE 02 - sr legacy single item, cooked",
+  "fdcId": 9000000002,
+  "foodAttributes": [],
+  "foodCategory": {
+    "id": 9002,
+    "code": "9002",
+    "description": "SYNTHETIC CATEGORY - animal item"
+  },
+  "foodClass": "FinalFood",
+  "foodNutrients": [
+    {
+      "nutrientNumber": "208",
+      "nutrientName": "Energy",
+      "unitName": "KCAL",
+      "value": 200
+    },
+    {
+      "nutrientNumber": "203",
+      "nutrientName": "Protein",
+      "unitName": "G",
+      "value": 30
+    },
+    {
+      "nutrientNumber": "204",
+      "nutrientName": "Total lipid (fat)",
+      "unitName": "G",
+      "value": 4
+    },
+    {
+      "nutrientNumber": "205",
+      "nutrientName": "Carbohydrate, by difference",
+      "unitName": "G",
+      "value": 0
+    },
+    {
+      "nutrientNumber": "291",
+      "nutrientName": "Fiber, total dietary",
+      "unitName": "G",
+      "value": 0
+    },
+    {
+      "nutrientNumber": "301",
+      "nutrientName": "Calcium, Ca",
+      "unitName": "MG",
+      "value": 15
+    },
+    {
+      "nutrientNumber": "307",
+      "nutrientName": "Sodium, Na",
+      "unitName": "MG",
+      "value": 70
+    }
+  ],
+  "foodPortions": [
+    {
+      "id": 2,
+      "gramWeight": 30,
+      "modifier": "1 synthetic piece",
+      "amount": 1,
+      "sequenceNumber": 1
+    }
+  ],
+  "isHistoricalReference": true,
+  "ndbNumber": 99002,
+  "nutrientConversionFactors": [
+    {
+      "id": 1,
+      "type": ".ProteinConversionFactor",
+      "value": 6.25
+    },
+    {
+      "id": 2,
+      "type": ".CalorieConversionFactor",
+      "proteinValue": 4.0,
+      "fatValue": 9.0,
+      "carbohydrateValue": 4.0
+    }
+  ],
+  "publicationDate": "01/01/1901",
+  "scientificName": "Synthetica fixtura"
+}

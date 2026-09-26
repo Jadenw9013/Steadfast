@@ -525,6 +525,11 @@ lib/ai-coach/
   catalog/food-catalog.ts       A04  8-item SYNTHETIC food fixture (food-fixture-v2; 6 retained under LEGACY_FOOD_CATALOG/food-fixture-v1, T-2024 adds a shellfish-tagged item to v2 only)
   catalog/exercise-catalog.ts   A04  3-item SYNTHETIC exercise fixture
   catalog/loader.ts             A04  getFoodItem / getExerciseItem (id+version lookup, rejects unknown/stale)
+  catalog/fdc/allowlist-schema.ts T-2035 Allowlist and coverage plan schemas with unique ID and name validations
+  catalog/fdc/normalize.ts      T-2035 Pure normalization of USDA FoodData Central records without guessing or defaulting
+  catalog/fdc/allergen-rules.ts T-2035 Fail-closed allergen rules across 9 frozen categories; emits PRESENT or UNKNOWN only (VERIFIED_ABSENT needs positive record evidence, which FDC cannot supply). Matches the food's own name/synonyms with generated plurals, never the USDA foodCategory
+  catalog/fdc/mapping.ts        T-2035 Pure FDC record to SourcedFoodCatalogItem mapper, derivation/energy method tables, URL redaction. Macro lookup keys on FDC nutrient NUMBERS ("208"/"958"/"957"/"298"), never nutrient ids
+  catalog/fdc/source-exclusions.ts T-2035 The ingestion tool's own record of entries it cannot map. A SOURCE LIMITATION, never a review decision; reviewState stays the RD's field
   policy/policy-version.ts      A04  checkPolicyVersionUsable (SYNTHETIC single active version + one revoked version)
   nutrition-totals.ts           A04  computeNutrientTotals / aggregateGramsByFood
   composition-feasibility.ts    A04  checkMealComposition — closed reason-code registry
@@ -704,7 +709,25 @@ substitutions, grocery aggregation (`aggregateGramsByFood` in
 `nutrition-totals.ts` already gives raw per-food gram totals — A07 turns
 that into practical purchasable quantities, which A04 explicitly left
 undone). Mode switch (macro ⇄ meals) must keep exactly one prescription
-active, never two.
+active, never two. T-2035 provides the offline USDA FoodData Central ingestion
+tool (`scripts/ai-coach-ingest-fdc.ts`) and the pure mapping modules it drives,
+with mechanical tri-state allergen facts across the 9 frozen major categories.
+The allowlist (`data/ai-coach/catalog/fdc-allowlist.v1.json`) and the
+`DRAFT_UNSIGNED` catalog artifact
+(`lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json`) are
+**committed outputs of a real operator run** against the live API on 2026-09-26
+(`board/evidence/T-2035-real-run.md`); the hand-written versions shipped in
+1ec2588 were fabricated and were deleted (`board/evidence/T-2035.md`). They are
+never hand-edited after a run: a wrong field is fixed in the code and the run
+repeated. A record the tool cannot map is written to
+`data/ai-coach/catalog/fdc-source-exclusions.v1.json` by the tool itself, which
+records a source limitation and never a review decision — `reviewState` has
+exactly one writer, the RD. `VERIFIED_ABSENT` requires positive evidence in the source record,
+which no Foundation or SR Legacy record can supply, so ingestion emits only
+`PRESENT` or `UNKNOWN` and `UNKNOWN` fails closed downstream. **A09/A07 must
+read `allergenFactsV2`, not `allergenFacts`:** the legacy struct cannot express
+`UNKNOWN`, so a SOURCED_V2 item carries none and the schema rejects one that
+does. See `docs/ai-coach/catalog/README.md`.
 
 ### A08 — Minimal structured weekly observations and session logs
 
