@@ -45,6 +45,12 @@ export const allowlistEntrySchema = z
      */
     patternTagsBasis: z.enum(PATTERN_TAG_BASES),
     /**
+     * The description terms that removed a pattern the category had
+     * established, empty when none did. Recorded so an RD who disagrees with a
+     * narrowing can find every entry it touched and widen it.
+     */
+    patternTagsNarrowedBy: z.array(z.string().trim().min(1).max(60)).max(20),
+    /**
      * Machine-written triage flags. The tool's field; `reviewState` is the
      * reviewer's, and the two never mix — same separation as
      * `fdc-source-exclusions.v1.json`. Recomputed on every `--propose` run, so
@@ -161,7 +167,10 @@ function checkAllowlistInvariants(
  * compared, so an entry cannot carry a derivation the recorded category does
  * not support — including a hand-edited one. `"FALLBACK_OMNIVORE_ONLY"` is the
  * matching claim in the other direction: the category established nothing, so
- * the tags are omnivore-only and nothing else.
+ * the tags are omnivore-only and nothing else. `"NARROWED_BY_DESCRIPTION"` is
+ * re-derived from both recorded inputs, the category and `canonicalName`, and
+ * `patternTagsNarrowedBy` has to match the terms that actually did the
+ * narrowing.
  *
  * A reviewer who wants different tags sets `"REVIEWER_SET"`, which is exempt:
  * it says the value is theirs rather than the category's, which is exactly the
@@ -174,7 +183,10 @@ function checkDerivationIsReproducible(
 ): void {
   if (entry.patternTagsBasis === "REVIEWER_SET") return;
 
-  const derived = derivePatternTags(entry.sourceFoodCategory);
+  const derived = derivePatternTags({
+    foodCategory: entry.sourceFoodCategory,
+    description: entry.canonicalName,
+  });
 
   if (derived.basis !== entry.patternTagsBasis) {
     ctx.addIssue({
@@ -184,6 +196,20 @@ function checkDerivationIsReproducible(
         `patternTagsBasis '${entry.patternTagsBasis}' is not what sourceFoodCategory ` +
         `'${entry.sourceFoodCategory ?? "(none)"}' derives ('${derived.basis}'). ` +
         `Re-run --propose, or set REVIEWER_SET if this is the reviewer's own value.`,
+    });
+    return;
+  }
+
+  const statedNarrowing = [...entry.patternTagsNarrowedBy].sort().join(",");
+  const expectedNarrowing = [...derived.narrowedBy].sort().join(",");
+  if (statedNarrowing !== expectedNarrowing) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["entries", index, "patternTagsNarrowedBy"],
+      message:
+        `patternTagsNarrowedBy [${statedNarrowing}] is not what canonicalName ` +
+        `'${entry.canonicalName}' derives ([${expectedNarrowing}]). Re-run --propose, or set ` +
+        `REVIEWER_SET if this is the reviewer's own value.`,
     });
     return;
   }

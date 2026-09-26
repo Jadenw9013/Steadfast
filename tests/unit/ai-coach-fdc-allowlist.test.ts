@@ -59,6 +59,7 @@ const baseEntry: AllowlistEntry = {
   foodState: "RAW",
   patternTags: ["OMNIVORE"],
   patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+  patternTagsNarrowedBy: [],
   triageFlags: ["CATEGORY_ID_NOT_DERIVED_FROM_SOURCE_CATEGORY"],
   ownAllergenCategories: [],
   reviewState: "PROPOSED",
@@ -353,6 +354,7 @@ describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalo
       categoryIdBasis: "REVIEWER_SET",
       patternTags: ["OMNIVORE", "PESCATARIAN"],
       patternTagsBasis: "SOURCE_FOOD_CATEGORY",
+      patternTagsNarrowedBy: [],
       triageFlags: [],
     };
     expect(allowlistSchema.parse(buildAllowlist([derivedSeafood])).entries).toHaveLength(1);
@@ -372,6 +374,7 @@ describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalo
             ...baseEntry,
             patternTags: ["OMNIVORE", "VEGAN"],
             patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+            patternTagsNarrowedBy: [],
           },
         ])
       )
@@ -385,6 +388,7 @@ describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalo
             ...baseEntry,
             sourceFoodCategory: "Beef Products",
             patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+            patternTagsNarrowedBy: [],
           },
         ])
       )

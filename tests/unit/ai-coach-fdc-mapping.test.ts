@@ -48,6 +48,7 @@ const mockAllowlistEntry: AllowlistEntry = {
   foodState: "RAW",
   patternTags: ["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"],
   patternTagsBasis: "REVIEWER_SET",
+  patternTagsNarrowedBy: [],
   triageFlags: [],
   ownAllergenCategories: [],
   reviewState: "PROPOSED",

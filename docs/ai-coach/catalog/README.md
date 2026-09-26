@@ -150,7 +150,7 @@ Three fields used to be engineer-set constants presented as facts about the food
 
 `lib/ai-coach/catalog/fdc/curation.ts` maps the record's own USDA food group onto the four patterns:
 
-| USDA food group | Derived patterns |
+| USDA food group | Patterns the group establishes (before the description narrows them, below) |
 |---|---|
 | Vegetables and Vegetable Products, Fruits and Fruit Juices, Cereal Grains and Pasta, Legumes and Legume Products, Nut and Seed Products | all four |
 | Dairy and Egg Products | `LACTO_OVO_VEGETARIAN`, `PESCATARIAN`, `OMNIVORE` |
@@ -162,8 +162,8 @@ Three fields used to be engineer-set constants presented as facts about the food
 mixed dish, restaurant item, candy, baby food, soup and beverage group, and every category string the table
 does not recognise. Omnivore-only excludes the food from the three restricted patterns, which is the safe
 direction: a vegan client not offered broccoli gets a poorer catalog, a vegan client offered chicken gets a
-broken promise. `patternTagsBasis` records which happened, so an entry derived from an unambiguous category is
-distinguishable from one that fell back — both read `["OMNIVORE"]` for a beef record and a candy record, and
+broken promise. `patternTagsBasis` records which of the three happened — derived, narrowed, or fallen back — so an entry
+derived from an unambiguous category is distinguishable from one that fell back — both read `["OMNIVORE"]` for a beef record and a candy record, and
 only the basis tells them apart.
 
 **Why reading `foodCategory` here is not a reintroduction of review r2 MB-2.** That finding removed the
@@ -179,16 +179,50 @@ oil, the fish oils, margarine and mayonnaise next to the plant oils — `Mayonna
 and three `Fish oil, …` records are in the current allowlist — so a plant tag set derived from it would offer a
 vegan client cod liver oil. Plant oils therefore carry omnivore-only until the RD widens them.
 
-**Known residue, not fixed here.** A plant-named USDA group can still contain a prepared item that is not
-plant-only: `Spinach souffle` sits in "Vegetables and Vegetable Products" and USDA's egg noodles sit in "Cereal
-Grains and Pasta". Those entries will be proposed with plant tags they do not deserve. The correction is the RD
-review, not a description-based rule — inferring from the description is precisely what produced the allergen
-defects in §3. Same shape as the rice-milk residue documented there.
+### The description narrows, and may never widen
+
+A plant-named USDA group still contains prepared items that are not plant-only: `Spinach souffle` is a real
+member of "Vegetables and Vegetable Products" and is made of eggs and cheese, and
+`Pasta mix, classic beef, unprepared` may well sit in "Cereal Grains and Pasta". The category alone would ship
+both tagged `VEGAN`.
+
+So after the category has spoken, the record's own description can **remove** patterns from the set, and can
+never add one. The direction is the whole safety argument: inferring a property *from* a name is what produced
+the allergen defects in §3 (`Beverages, rice milk` read `MILK: PRESENT`), but declining to assert a property
+because of a name adds no claim at all. The result is always a subset of what the category produced, so the
+worst case is a food the catalog does not offer, never a food it offers falsely. A unit test asserts that subset
+property over every indicator term in every category.
+
+Each indicator carries the patterns it still permits, rather than resetting everything to omnivore-only. A
+blanket reset would delete exactly the foods each restricted pattern is defined by: every dairy description says
+"cheese" or "yogurt" and every seafood description says "fish" or "shrimp", so it would strip
+`LACTO_OVO_VEGETARIAN` from all 33 dairy and egg entries and `PESCATARIAN` from all 25 seafood entries — a
+pescatarian catalog with no fish in it. For a plant-category record the intersection gives the intended answer
+anyway: a flesh term (`beef`, `chicken`, `gelatin`, `broth`) leaves omnivore-only, a fish term leaves
+pescatarian, and a dairy, egg or preparation term (`cheese`, `cream`, `custard`, `souffle`, `gratin`,
+`scalloped`, `breaded`, `honey`) removes `VEGAN`.
+
+`patternTagsBasis: "NARROWED_BY_DESCRIPTION"` marks it and `patternTagsNarrowedBy` lists the terms that did it,
+so an RD who disagrees can find every narrowed entry and widen it. A match that removes nothing is not recorded
+as a narrowing.
+
+`butter` is deliberately not an indicator and `creamy` cannot match one. Both are food forms — `Almond butter,
+creamy`, `Peanut butter, creamy`, `Nuts, cashew butter` and `Fruit butters, apple` are all in the current
+allowlist — and this is the same trap the allergen term list fell into once and now documents in §3. Real butter
+sits in "Dairy and Egg Products", which already excludes `VEGAN`.
+
+**It is a heuristic, it will miss things, and it is not a substitute for the RD review.** A creamed vegetable
+under a spelling the list does not carry still ships with plant tags. It is blunt in the safe direction too:
+`Fish oil, cod liver` matches `liver` and loses `PESCATARIAN`, which the RD may want back. What it closes is the
+set of cases where the pipeline would otherwise assert something false with confidence, which is the only part
+that is ours to close. Measured over the 245 committed descriptions against their coverage-plan groups, it
+changes 4 entries and costs 3 of them their `VEGAN` tag.
 
 A reviewer who sets their own tags sets `patternTagsBasis: "REVIEWER_SET"`. That basis exists because the
-allowlist schema **re-derives** any entry claiming `SOURCE_FOOD_CATEGORY` from its own recorded
-`sourceFoodCategory` and refuses the file when the two disagree: a stated basis must be reproducible from the
-stated input, so a hand-widened tag set cannot masquerade as something the source said.
+allowlist schema **re-derives** any entry claiming `SOURCE_FOOD_CATEGORY` or `NARROWED_BY_DESCRIPTION` from its
+own recorded inputs — `sourceFoodCategory` and `canonicalName` — and refuses the file when the two disagree: a
+stated basis must be reproducible from the stated input, so a hand-widened tag set cannot masquerade as
+something the source said.
 
 ### How `categoryId` is derived
 

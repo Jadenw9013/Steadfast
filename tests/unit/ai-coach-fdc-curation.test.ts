@@ -6,6 +6,7 @@ import { coveragePlanSchema } from "@/lib/ai-coach/catalog/fdc/allowlist-schema"
 import {
   CATEGORY_ID_BASES,
   EATING_PATTERNS,
+  NON_PLANT_INDICATOR_TERMS,
   PATTERN_TAG_BASES,
   TRIAGE_FLAGS,
   computeTriageFlags,
@@ -61,6 +62,16 @@ const FALLBACK_CATEGORIES = [
   "A category string USDA has never used",
 ];
 
+/**
+ * The category-only answer. The description is neutral — it names no non-plant
+ * indicator — so these cases test the category table alone.
+ */
+const NEUTRAL_DESCRIPTION = "Generic item, raw";
+
+function fromCategory(foodCategory: string | null) {
+  return derivePatternTags({ foodCategory, description: NEUTRAL_DESCRIPTION });
+}
+
 describe("T-2016 — curation derived from the record's own USDA food category", () => {
   it("the eating-pattern vocabulary is the artifact schema's, not a second copy", () => {
     // One vocabulary for the allowlist, the derivation and the catalog item. A
@@ -73,14 +84,14 @@ describe("T-2016 — curation derived from the record's own USDA food category",
   describe("patternTags", () => {
     it("plant food groups establish all four patterns", () => {
       for (const category of PLANT_CATEGORIES) {
-        const derived = derivePatternTags(category);
+        const derived = fromCategory(category);
         expect(derived.basis, category).toBe("SOURCE_FOOD_CATEGORY");
         expect([...derived.patternTags].sort(), category).toEqual([...EATING_PATTERNS].sort());
       }
     });
 
     it("Dairy and Egg Products excludes VEGAN and nothing else", () => {
-      const derived = derivePatternTags("Dairy and Egg Products");
+      const derived = fromCategory("Dairy and Egg Products");
       expect(derived.basis).toBe("SOURCE_FOOD_CATEGORY");
       expect([...derived.patternTags].sort()).toEqual([
         "LACTO_OVO_VEGETARIAN",
@@ -90,7 +101,7 @@ describe("T-2016 — curation derived from the record's own USDA food category",
     });
 
     it("Finfish and Shellfish Products is pescatarian and omnivore", () => {
-      const derived = derivePatternTags("Finfish and Shellfish Products");
+      const derived = fromCategory("Finfish and Shellfish Products");
       expect(derived.basis).toBe("SOURCE_FOOD_CATEGORY");
       expect([...derived.patternTags].sort()).toEqual(["OMNIVORE", "PESCATARIAN"]);
     });
@@ -100,7 +111,7 @@ describe("T-2016 — curation derived from the record's own USDA food category",
       // from an unambiguous category must be distinguishable from one that fell
       // back. Both read ["OMNIVORE"]; only the basis tells them apart.
       for (const category of ANIMAL_FLESH_CATEGORIES) {
-        const derived = derivePatternTags(category);
+        const derived = fromCategory(category);
         expect(derived.patternTags, category).toEqual(["OMNIVORE"]);
         expect(derived.basis, category).toBe("SOURCE_FOOD_CATEGORY");
       }
@@ -108,7 +119,7 @@ describe("T-2016 — curation derived from the record's own USDA food category",
 
     it("every ambiguous, mixed, prepared or unrecognised category fails closed to omnivore-only", () => {
       for (const category of [...FALLBACK_CATEGORIES, "", "   ", null]) {
-        const derived = derivePatternTags(category);
+        const derived = fromCategory(category);
         expect(derived.patternTags, String(category)).toEqual(["OMNIVORE"]);
         expect(derived.basis, String(category)).toBe("FALLBACK_OMNIVORE_ONLY");
       }
@@ -125,7 +136,7 @@ describe("T-2016 — curation derived from the record's own USDA food category",
         "Finfish and Shellfish Products",
       ];
       for (const category of everyCategory) {
-        const { patternTags } = derivePatternTags(category);
+        const { patternTags } = fromCategory(category);
         if (patternTags.includes("VEGAN")) {
           expect(PLANT_CATEGORIES, category).toContain(category);
           // Anything acceptable to a vegan is acceptable on all four patterns.
@@ -134,22 +145,25 @@ describe("T-2016 — curation derived from the record's own USDA food category",
       }
     });
 
-    it("the food's name is never read: the same category derives the same tags for any description", () => {
-      // `Spinach souffle` and `Broccoli, raw` share a USDA category. The
-      // derivation cannot tell them apart and must not try — name-based
-      // inference is what produced the allergen defects (review r2 MB-2/MB-3).
-      const a = proposeCuration({
-        description: "Broccoli, raw",
-        foodCategory: "Vegetables and Vegetable Products",
-        planCategoryId: "VEGETABLES",
-      });
-      const b = proposeCuration({
-        description: "Spinach souffle",
-        foodCategory: "Vegetables and Vegetable Products",
-        planCategoryId: "VEGETABLES",
-      });
-      expect(a.patternTags).toEqual(b.patternTags);
-      expect(a.patternTagsBasis).toEqual(b.patternTagsBasis);
+    it("a description that names nothing non-plant leaves the category's answer untouched", () => {
+      // The description may only ever remove a pattern (see the narrowing
+      // block below). A description naming no indicator changes nothing, and
+      // `categoryId` and the tag set stay a function of the category.
+      for (const description of [
+        "Broccoli, raw",
+        "Chickpeas (garbanzo beans, bengal gram), mature seeds, raw",
+        "Peanut butter, creamy",
+        "Almond butter, creamy",
+        "Fruit butters, apple",
+      ]) {
+        const derived = derivePatternTags({
+          description,
+          foodCategory: "Vegetables and Vegetable Products",
+        });
+        expect(derived.basis, description).toBe("SOURCE_FOOD_CATEGORY");
+        expect([...derived.patternTags].sort(), description).toEqual([...EATING_PATTERNS].sort());
+        expect(derived.narrowedBy, description).toEqual([]);
+      }
     });
 
     it("is insensitive to case, padding and a trailing period", () => {
@@ -159,7 +173,158 @@ describe("T-2016 — curation derived from the record's own USDA food category",
         "FINFISH AND SHELLFISH PRODUCTS.",
         "Finfish  and  Shellfish  Products",
       ]) {
-        expect(derivePatternTags(written).basis, written).toBe("SOURCE_FOOD_CATEGORY");
+        expect(fromCategory(written).basis, written).toBe("SOURCE_FOOD_CATEGORY");
+      }
+    });
+  });
+
+  describe("patternTags narrowed by the record's own description", () => {
+    it("Spinach souffle keeps its category's vegetarian tags but loses VEGAN", () => {
+      // The case the lead named. `Spinach souffle` is a real member of
+      // "Vegetables and Vegetable Products" and is made of eggs and cheese, so
+      // the category alone would ship it tagged VEGAN.
+      const categoryOnly = fromCategory("Vegetables and Vegetable Products");
+      expect(categoryOnly.patternTags).toContain("VEGAN");
+
+      const derived = derivePatternTags({
+        description: "Spinach souffle",
+        foodCategory: "Vegetables and Vegetable Products",
+      });
+      expect(derived.patternTags).not.toContain("VEGAN");
+      expect([...derived.patternTags].sort()).toEqual([
+        "LACTO_OVO_VEGETARIAN",
+        "OMNIVORE",
+        "PESCATARIAN",
+      ]);
+      expect(derived.basis).toBe("NARROWED_BY_DESCRIPTION");
+      expect(derived.narrowedBy).toContain("souffle");
+    });
+
+    it("Pasta mix, classic beef falls to omnivore-only, which no triage flag catches", () => {
+      // The second case: its USDA group may well be "Cereal Grains and Pasta",
+      // and no description triage flag matches it, so the flags alone would
+      // have shipped a beef pasta mix tagged VEGAN.
+      expect(
+        computeTriageFlags({
+          description: "Pasta mix, classic beef, unprepared",
+          foodCategory: "Cereal Grains and Pasta",
+          categoryIdBasis: "SOURCE_FOOD_CATEGORY",
+        })
+      ).toEqual([]);
+
+      const derived = derivePatternTags({
+        description: "Pasta mix, classic beef, unprepared",
+        foodCategory: "Cereal Grains and Pasta",
+      });
+      expect(derived.patternTags).toEqual(["OMNIVORE"]);
+      expect(derived.basis).toBe("NARROWED_BY_DESCRIPTION");
+      expect(derived.narrowedBy).toEqual(["beef"]);
+    });
+
+    it("narrowing never adds a tag: the result is always a subset of the category's answer", () => {
+      // The safety property in one place, over every indicator term in every
+      // category. A description can only ever take a pattern off.
+      const everyCategory = [
+        ...PLANT_CATEGORIES,
+        ...ANIMAL_FLESH_CATEGORIES,
+        ...FALLBACK_CATEGORIES,
+        "Dairy and Egg Products",
+        "Finfish and Shellfish Products",
+        null,
+      ];
+      const everyTerm = NON_PLANT_INDICATOR_TERMS;
+      expect(everyTerm.length).toBeGreaterThan(100);
+
+      for (const foodCategory of everyCategory) {
+        const categoryOnly = new Set(fromCategory(foodCategory).patternTags);
+        for (const term of everyTerm) {
+          const derived = derivePatternTags({
+            description: `Synthetic item with ${term}, raw`,
+            foodCategory,
+          });
+          expect(derived.patternTags.length, `${foodCategory} / ${term}`).toBeGreaterThan(0);
+          for (const pattern of derived.patternTags) {
+            expect(
+              [...categoryOnly],
+              `${foodCategory} / ${term}: narrowing added ${pattern}`
+            ).toContain(pattern);
+          }
+        }
+      }
+    });
+
+    it("does not strip a restricted pattern from the foods that define it", () => {
+      // A blanket "any indicator resets to omnivore-only" would delete every
+      // dairy food from LACTO_OVO_VEGETARIAN and every fish from PESCATARIAN,
+      // because their descriptions say "cheese" and "fish". Narrowing to what
+      // the term permits keeps them.
+      const cheese = derivePatternTags({
+        description: "Cheese, cheddar",
+        foodCategory: "Dairy and Egg Products",
+      });
+      expect([...cheese.patternTags].sort()).toEqual([
+        "LACTO_OVO_VEGETARIAN",
+        "OMNIVORE",
+        "PESCATARIAN",
+      ]);
+      expect(cheese.basis).toBe("SOURCE_FOOD_CATEGORY");
+      expect(cheese.narrowedBy).toEqual([]);
+
+      const cod = derivePatternTags({
+        description: "Fish, cod, Atlantic, raw",
+        foodCategory: "Finfish and Shellfish Products",
+      });
+      expect([...cod.patternTags].sort()).toEqual(["OMNIVORE", "PESCATARIAN"]);
+      expect(cod.basis).toBe("SOURCE_FOOD_CATEGORY");
+
+      const egg = derivePatternTags({
+        description: "Egg, white, raw, fresh",
+        foodCategory: "Dairy and Egg Products",
+      });
+      expect(egg.patternTags).toContain("LACTO_OVO_VEGETARIAN");
+    });
+
+    it("a narrowing that removes nothing is not recorded as a narrowing", () => {
+      // Beef in "Beef Products" is already omnivore-only. Claiming a narrowing
+      // would point the RD at an entry where nothing happened.
+      const derived = derivePatternTags({
+        description: "Beef, ground, unspecified fat content, cooked",
+        foodCategory: "Beef Products",
+      });
+      expect(derived.patternTags).toEqual(["OMNIVORE"]);
+      expect(derived.basis).toBe("SOURCE_FOOD_CATEGORY");
+      expect(derived.narrowedBy).toEqual([]);
+    });
+
+    it("a fish term in a plant category leaves pescatarian, and a flesh term does not", () => {
+      const withFish = derivePatternTags({
+        description: "Vegetables with anchovy, canned",
+        foodCategory: "Vegetables and Vegetable Products",
+      });
+      expect([...withFish.patternTags].sort()).toEqual(["OMNIVORE", "PESCATARIAN"]);
+      expect(withFish.narrowedBy).toEqual(["anchovy"]);
+
+      const withBoth = derivePatternTags({
+        description: "Vegetables with anchovy and bacon, canned",
+        foodCategory: "Vegetables and Vegetable Products",
+      });
+      expect(withBoth.patternTags).toEqual(["OMNIVORE"]);
+    });
+
+    it("the nut butters stay vegan: `butter` and `creamy` are food forms, not indicators", () => {
+      // The trap the allergen term list already fell into once: `butter` names
+      // a form (almond, peanut, cashew, apple), not the dairy substance.
+      for (const description of [
+        "Peanut butter, creamy",
+        "Almond butter, creamy",
+        "Nuts, cashew butter, plain, with salt added",
+        "Fruit butters, apple",
+      ]) {
+        const derived = derivePatternTags({
+          description,
+          foodCategory: "Nut and Seed Products",
+        });
+        expect(derived.patternTags, description).toContain("VEGAN");
       }
     });
   });
@@ -392,6 +557,7 @@ describe("T-2016 — curation derived from the record's own USDA food category",
         "categoryIdBasis",
         "patternTags",
         "patternTagsBasis",
+        "patternTagsNarrowedBy",
         "triageFlags",
       ]);
     });
@@ -408,6 +574,9 @@ describe("T-2016 — curation derived from the record's own USDA food category",
         categoryIdBasis: "SOURCE_FOOD_CATEGORY",
         patternTags: ["OMNIVORE", "PESCATARIAN"] as EatingPattern[],
         patternTagsBasis: "SOURCE_FOOD_CATEGORY",
+        // "fish" and "cod" are indicators, and both permit PESCATARIAN, so the
+        // category's answer is unchanged and no narrowing is recorded.
+        patternTagsNarrowedBy: [],
         triageFlags: [],
       });
     });

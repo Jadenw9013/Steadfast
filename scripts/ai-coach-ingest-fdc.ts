@@ -248,6 +248,7 @@ async function main(): Promise<void> {
                 foodState: canonicalName.toLowerCase().includes("raw") ? "RAW" : "COOKED",
                 patternTags: curation.patternTags,
                 patternTagsBasis: curation.patternTagsBasis,
+                patternTagsNarrowedBy: curation.patternTagsNarrowedBy,
                 triageFlags: curation.triageFlags,
                 ownAllergenCategories: [],
                 reviewState: "PROPOSED",
@@ -288,6 +289,14 @@ async function main(): Promise<void> {
       safeLog(`  entries tagged ${pattern}: ${count}`);
     }
     safeLog(`  entries with no food category on the record: ${withoutSourceCategory}`);
+    const narrowed = entries.filter((e) => e.patternTagsNarrowedBy.length > 0);
+    safeLog(`  entries narrowed by their own description: ${narrowed.length}`);
+    for (const entry of narrowed) {
+      safeLog(
+        `    ${entry.fdcId} ${entry.canonicalName} -> [${entry.patternTags.join(",")}] ` +
+          `(narrowed by ${entry.patternTagsNarrowedBy.join(", ")})`
+      );
+    }
     for (const flag of TRIAGE_FLAGS) {
       const count = entries.filter((e) => e.triageFlags.includes(flag)).length;
       if (count > 0) safeLog(`  triageFlag ${flag}: ${count}`);

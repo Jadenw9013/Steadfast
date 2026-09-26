@@ -59,6 +59,7 @@ function buildSourcedCatalogItem(itemId: string) {
     foodState: "RAW",
     patternTags: ["OMNIVORE"],
     patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+    patternTagsNarrowedBy: [],
     triageFlags: [],
     ownAllergenCategories: [],
     reviewState: "PROPOSED",

@@ -736,7 +736,9 @@ and `patternTags` derived from the record's own USDA `foodCategory` in
 machine-written `triageFlags` for the restaurant/candy/babyfood/industrial-oil
 search hits. **All three are engineer-proposed scaffolding until the RD review**
 (README §2.2). `patternTags` fails closed to `["OMNIVORE"]` whenever the category
-does not unambiguously establish the pattern set, so **A07/T-2036 must treat an
+does not unambiguously establish the pattern set, and the record's own
+description can then only *narrow* the set further (never widen it), which is
+what keeps `Spinach souffle` out of a vegan client's catalog. So **A07/T-2036 must treat an
 empty pattern-filtered result as "nothing is tagged for this pattern yet" and
 degrade — never as "no foods exist", and never by rendering an empty screen**
 (`board/strategy/release-safety.md`). Nothing reads `patternTags` today.

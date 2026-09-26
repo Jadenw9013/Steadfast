@@ -40,10 +40,16 @@
  *
  * Two rules keep that distinction from eroding:
  *
- *  1. **Category only, never the description, for pattern tags.** Name-based
- *     inference is what produced the allergen defects. `Tofu yogurt` and
- *     `Beverages, rice milk` are the standing proof that a USDA description
- *     does not tell you what a food is made of.
+ *  1. **Only the category may put a pattern on a food; the description may only
+ *     take one off.** Name-based inference is what produced the allergen
+ *     defects — `Tofu yogurt` and `Beverages, rice milk` are the standing proof
+ *     that a USDA description does not tell you what a food is made of. But
+ *     that asymmetry is about *asserting*: declining to assert a property
+ *     because of a name adds no claim, and always yields a subset of what the
+ *     category alone would have produced. So the description narrows
+ *     (`NON_PLANT_INDICATORS`) and never widens, which closes the case of
+ *     `Spinach souffle` — a real member of "Vegetables and Vegetable Products",
+ *     made of eggs and cheese — shipping tagged `VEGAN`.
  *  2. **Fail closed to `["OMNIVORE"]` whenever the category does not
  *     unambiguously establish the pattern set.** Omnivore-only excludes the food
  *     from the three restricted patterns, which is the safe direction: a vegan
@@ -82,6 +88,14 @@ export const PATTERN_TAG_BASES = [
    * three restricted patterns.
    */
   "FALLBACK_OMNIVORE_ONLY",
+  /**
+   * The category established a set, and the record's own description then
+   * *removed* patterns from it: `Spinach souffle` is a real member of
+   * "Vegetables and Vegetable Products" and is made of eggs and cheese. The
+   * removed patterns are recorded as `patternTagsNarrowedBy`, so an RD who
+   * disagrees can find every narrowed entry and widen it.
+   */
+  "NARROWED_BY_DESCRIPTION",
   /**
    * The reviewer set these tags themselves. The tool never writes this value;
    * it exists so an RD edit has an honest home, because the consistency check
@@ -372,10 +386,190 @@ export function descriptionCarriesAllCapsBrandToken(description: string): boolea
 }
 
 /**
- * The pattern set a record's own USDA food category establishes, and the basis
- * that produced it. Category only — never the description.
+ * Description terms that contradict a plant identity, with the patterns each
+ * one still *permits*.
+ *
+ * **These are used to withhold patterns, never to add one, and the direction is
+ * the whole safety argument.** Inferring a property *from* a name is what
+ * produced the allergen defects — `Beverages, rice milk` read `MILK: PRESENT`,
+ * `Chickpea flour (besan)` read `WHEAT: PRESENT`. Declining to assert a
+ * property because of a name adds no claim at all: the result is always a
+ * subset of what the category alone produced, so the worst case is a food the
+ * catalog does not offer, never a food it offers falsely. A unit test pins the
+ * subset property over every term in every category.
+ *
+ * It is a heuristic and it will miss things. `Vegetables, creamed style` under a
+ * spelling not listed here still ships with plant tags. It closes the cases
+ * where the pipeline would otherwise assert something false with confidence —
+ * `Spinach souffle` and `Pasta mix, classic beef, unprepared` are both in the
+ * current allowlist — and it is **not** a substitute for the RD review.
+ *
+ * Why each group carries a `permits` set rather than resetting everything to
+ * omnivore-only: a blanket reset deletes exactly the foods each restricted
+ * pattern is defined by. Every dairy description says "cheese" or "yogurt" and
+ * every seafood description says "fish" or "shrimp", so resetting on any match
+ * would strip `LACTO_OVO_VEGETARIAN` from all 33 dairy and egg entries and
+ * `PESCATARIAN` from all 25 seafood entries — a pescatarian catalog containing
+ * no fish. Intersecting with what the term permits is still strictly a
+ * narrowing, and for a plant-category record it gives exactly the intended
+ * result: a flesh term leaves omnivore-only, a dairy or egg term removes
+ * `VEGAN`.
  */
-export function derivePatternTags(foodCategory: string | null): {
+const NON_PLANT_INDICATORS: ReadonlyArray<{
+  groupId: string;
+  permits: readonly EatingPattern[];
+  terms: readonly string[];
+}> = [
+  {
+    groupId: "ANIMAL_FLESH_OR_DERIVED",
+    permits: ["OMNIVORE"],
+    terms: [
+      "beef",
+      "veal",
+      "pork",
+      "ham",
+      "bacon",
+      "lard",
+      "tallow",
+      "suet",
+      "poultry",
+      "chicken",
+      "turkey",
+      "duck",
+      "goose",
+      "lamb",
+      "mutton",
+      "venison",
+      "bison",
+      "rabbit",
+      "sausage",
+      "salami",
+      "pepperoni",
+      "bologna",
+      "frankfurter",
+      "hot dog",
+      "lunchmeat",
+      "luncheon meat",
+      "meat",
+      "meatball",
+      "meatloaf",
+      "brisket",
+      "sirloin",
+      "ribeye",
+      "tenderloin",
+      "liver",
+      "gizzard",
+      "tripe",
+      "oxtail",
+      "jerky",
+      "chorizo",
+      "prosciutto",
+      "pastrami",
+      "gelatin",
+      "gelatine",
+      "broth",
+      "bouillon",
+      "stroganoff",
+      "bolognese",
+      "carbonara",
+    ],
+  },
+  {
+    groupId: "FISH_OR_SHELLFISH",
+    permits: ["OMNIVORE", "PESCATARIAN"],
+    terms: [
+      "fish",
+      "shellfish",
+      "crustacean",
+      "anchovy",
+      "sardine",
+      "salmon",
+      "tuna",
+      "cod",
+      "haddock",
+      "halibut",
+      "herring",
+      "mackerel",
+      "pollock",
+      "tilapia",
+      "trout",
+      "snapper",
+      "flounder",
+      "catfish",
+      "swordfish",
+      "caviar",
+      "shrimp",
+      "prawn",
+      "crab",
+      "lobster",
+      "crawfish",
+      "crayfish",
+      "oyster",
+      "clam",
+      "mussel",
+      "scallop",
+      "squid",
+      "calamari",
+      "octopus",
+      "krill",
+      "surimi",
+    ],
+  },
+  {
+    groupId: "DAIRY_EGG_OR_OTHER_ANIMAL_PRODUCT",
+    permits: ["OMNIVORE", "LACTO_OVO_VEGETARIAN", "PESCATARIAN"],
+    terms: [
+      // `butter` is deliberately absent and `creamy` cannot match: both are food
+      // forms, and `Almond butter, creamy`, `Peanut butter, creamy` and
+      // `Fruit butters, apple` are in the current allowlist. Same trap as the
+      // allergen term list, which dropped `butter` for the same reason. Real
+      // butter sits in "Dairy and Egg Products", which already excludes VEGAN.
+      "milk",
+      "buttermilk",
+      "butterfat",
+      "butter oil",
+      "ghee",
+      "dairy",
+      "cheese",
+      "cheddar",
+      "mozzarella",
+      "parmesan",
+      "ricotta",
+      "provolone",
+      "colby",
+      "cream",
+      "creamed",
+      "custard",
+      "yogurt",
+      "yoghurt",
+      "kefir",
+      "whey",
+      "casein",
+      "lactose",
+      "lactalbumin",
+      "pudding",
+      "egg",
+      "albumen",
+      "meringue",
+      "mayonnaise",
+      "aioli",
+      // Preparations that imply dairy or an egg wash even when the description
+      // names no ingredient.
+      "souffle",
+      "quiche",
+      "gratin",
+      "scalloped",
+      "alfredo",
+      "bechamel",
+      "hollandaise",
+      "breaded",
+      "battered",
+      "honey",
+    ],
+  },
+];
+
+function patternsFromCategory(foodCategory: string | null): {
   patternTags: EatingPattern[];
   basis: PatternTagBasis;
 } {
@@ -385,6 +579,74 @@ export function derivePatternTags(foodCategory: string | null): {
     return { patternTags: [...OMNIVORE_ONLY], basis: "FALLBACK_OMNIVORE_ONLY" };
   }
   return { patternTags: [...mapped], basis: "SOURCE_FOOD_CATEGORY" };
+}
+
+/**
+ * Every indicator term, flattened in declaration order. Exported so the subset
+ * property can be asserted over the whole list rather than over a sample.
+ */
+export const NON_PLANT_INDICATOR_TERMS: readonly string[] = NON_PLANT_INDICATORS.flatMap(
+  (group) => group.terms
+);
+
+/** Every non-plant indicator the description names, in declaration order. */
+export function matchNonPlantIndicators(description: string): string[] {
+  const matched: string[] = [];
+  for (const group of NON_PLANT_INDICATORS) {
+    for (const term of group.terms) {
+      if (descriptionNamesTerm(description ?? "", term)) matched.push(term);
+    }
+  }
+  return matched;
+}
+
+function permittedByIndicators(matchedTerms: readonly string[]): readonly EatingPattern[] {
+  let permitted: readonly EatingPattern[] = EATING_PATTERNS;
+  for (const group of NON_PLANT_INDICATORS) {
+    if (!group.terms.some((term) => matchedTerms.includes(term))) continue;
+    permitted = permitted.filter((pattern) => group.permits.includes(pattern));
+  }
+  return permitted;
+}
+
+/**
+ * The pattern set for a record: what its own USDA food category establishes,
+ * narrowed by anything in its own description that contradicts a plant
+ * identity.
+ *
+ * The category is the only thing that can *put* a pattern on a food. The
+ * description can only take one off. `narrowedBy` is empty unless the
+ * description actually changed the answer, so the file never claims a narrowing
+ * that did nothing.
+ */
+export function derivePatternTags(input: {
+  foodCategory: string | null;
+  description: string;
+}): {
+  patternTags: EatingPattern[];
+  basis: PatternTagBasis;
+  narrowedBy: string[];
+} {
+  const fromCategory = patternsFromCategory(input.foodCategory);
+  const matchedTerms = matchNonPlantIndicators(input.description ?? "");
+  if (matchedTerms.length === 0) {
+    return { ...fromCategory, narrowedBy: [] };
+  }
+
+  const permitted = permittedByIndicators(matchedTerms);
+  const narrowed = fromCategory.patternTags.filter((pattern) => permitted.includes(pattern));
+  // OMNIVORE is permitted by every group, so this cannot empty the set; the
+  // guard is here so that a future group which forgets it cannot produce an
+  // entry with no patterns at all.
+  const patternTags = narrowed.length > 0 ? narrowed : [...OMNIVORE_ONLY];
+
+  if (patternTags.length === fromCategory.patternTags.length) {
+    // The description named something, and it removed nothing. Claiming a
+    // narrowing here would point the RD at an entry where nothing happened.
+    return { ...fromCategory, narrowedBy: [] };
+  }
+
+  return { patternTags, basis: "NARROWED_BY_DESCRIPTION", narrowedBy: matchedTerms };
 }
 
 /**
@@ -458,6 +720,8 @@ export type ProposedCuration = {
   categoryIdBasis: CategoryIdBasis;
   patternTags: EatingPattern[];
   patternTagsBasis: PatternTagBasis;
+  /** The description terms that removed a pattern; empty when none did. */
+  patternTagsNarrowedBy: string[];
   triageFlags: TriageFlag[];
 };
 
@@ -476,12 +740,16 @@ export function proposeCuration(input: {
     foodCategory: input.foodCategory,
     planCategoryId: input.planCategoryId,
   });
-  const patterns = derivePatternTags(input.foodCategory);
+  const patterns = derivePatternTags({
+    foodCategory: input.foodCategory,
+    description: input.description,
+  });
   return {
     categoryId: category.categoryId,
     categoryIdBasis: category.basis,
     patternTags: patterns.patternTags,
     patternTagsBasis: patterns.basis,
+    patternTagsNarrowedBy: patterns.narrowedBy,
     triageFlags: computeTriageFlags({
       description: input.description,
       foodCategory: input.foodCategory,
