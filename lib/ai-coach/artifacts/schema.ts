@@ -405,15 +405,21 @@ export type AllergenCategory = z.infer<typeof allergenCategorySchema>;
  * Exported so `lib/ai-coach/catalog/fdc/mapping.ts` reads the same list the
  * schema enforces — one vocabulary, not two that can drift (review r2 MB-1).
  *
- * `2047` / `2048` are "Energy (Atwater General Factors)" / "Energy (Atwater
- * Specific Factors)"; `1085` is "Total fat (NLEA)". Modern Foundation records
- * report those instead of `1008` / `1004`. `208` / `203` / `204` / `205` are
- * the SR Legacy numbers.
+ * These are FDC nutrient **numbers** (`nutrient.number`), not nutrient ids.
+ * The two differ and the distinction is the whole point: "Energy (Atwater
+ * Specific Factors)" has id `2048` but number `"958"`, "Energy (Atwater General
+ * Factors)" has id `2047` but number `"957"`, and "Total fat (NLEA)" has id
+ * `1085` but number `"298"`. `findNutrient` matches on `nutrientNumber`, so a
+ * list written with ids silently matches nothing — which is exactly how the
+ * 2026-09-26 run refused 48 records that carried every macro it needed.
+ * Verified live against `/food/2258588` and `/food/748608`.
+ *
+ * `208` / `203` / `204` / `205` are the classic SR Legacy numbers.
  */
-export const SOURCED_V2_ENERGY_NUTRIENT_IDS = ["1008", "208", "2048", "2047"] as const;
-export const SOURCED_V2_PROTEIN_NUTRIENT_IDS = ["1003", "203"] as const;
-export const SOURCED_V2_FAT_NUTRIENT_IDS = ["1004", "204", "1085"] as const;
-export const SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS = ["1005", "205"] as const;
+export const SOURCED_V2_ENERGY_NUTRIENT_IDS = ["208", "958", "957"] as const;
+export const SOURCED_V2_PROTEIN_NUTRIENT_IDS = ["203"] as const;
+export const SOURCED_V2_FAT_NUTRIENT_IDS = ["204", "298"] as const;
+export const SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS = ["205"] as const;
 
 export const sourcedFoodCatalogItemSchema = z
   .object({

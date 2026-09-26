@@ -352,9 +352,13 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
   const energyDerivationCode = energyNutrient!.derivationCode?.toUpperCase().trim() ?? "";
   const energyDerivationDesc = energyNutrient!.derivationDescription?.toLowerCase().trim() ?? "";
 
-  if (energyNutrient!.nutrientNumber === "2048") {
+  // Nutrient NUMBERS, not ids: "Energy (Atwater Specific Factors)" is id 2048 /
+  // number "958", and "Energy (Atwater General Factors)" is id 2047 / number
+  // "957". Matching on the ids here matches nothing, because the normalized row
+  // carries the number. Verified live against /food/2258588.
+  if (energyNutrient!.nutrientNumber === "958") {
     energyMethod = "ATWATER_SPECIFIC";
-  } else if (energyNutrient!.nutrientNumber === "2047") {
+  } else if (energyNutrient!.nutrientNumber === "957") {
     energyMethod = "ATWATER_GENERAL";
   } else if (
     energyDerivationCode === "AS" ||
