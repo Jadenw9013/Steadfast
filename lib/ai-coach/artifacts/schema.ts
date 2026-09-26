@@ -698,6 +698,46 @@ export const exerciseCatalogContentSchema = z
             substitutionIds: z.array(identifierSchema).max(100),
             contraindicationRuleIds: z.array(identifierSchema).max(100),
             beginnerConstraintIds: z.array(identifierSchema).min(1).max(100),
+            // T-2038 (contract frozen in T-2005): additive movement description.
+            // Every field is `.optional()` with NO `.default()` — `artifactContentDigest`
+            // hashes the parsed object and `canonicalJson` throws on `undefined` rather
+            // than skipping it, so a default would change the digest of every artifact
+            // already registered against this schema. Do not add a `.default()` here, and
+            // do not add any image/video/GIF/animation field: v1 carries no licensed media.
+            movementPattern: z
+              .enum([
+                "SQUAT",
+                "HINGE",
+                "HORIZONTAL_PUSH",
+                "VERTICAL_PUSH",
+                "HORIZONTAL_PULL",
+                "VERTICAL_PULL",
+                "LUNGE",
+                "CARRY",
+                "ROTATION",
+                "ANTI_ROTATION",
+                "ANTI_EXTENSION",
+                "GAIT",
+                "CYCLIC_CARDIO",
+              ])
+              .optional(),
+            primaryMuscleIds: z.array(identifierSchema).min(1).max(12).optional(),
+            laterality: z.enum(["BILATERAL", "UNILATERAL"]).optional(),
+            loadKind: z.enum(["EXTERNAL", "BODYWEIGHT", "ASSISTED"]).optional(),
+            /** Ordered steps describing how to perform the movement. Never a dose. */
+            instructions: z.array(z.string().min(1).max(600)).min(1).max(12).optional(),
+            cues: z.array(z.string().min(1).max(240)).max(8).optional(),
+            equipmentAlternatives: z
+              .array(
+                z
+                  .object({
+                    equipmentId: identifierSchema,
+                    exerciseId: identifierSchema,
+                  })
+                  .strict()
+              )
+              .max(50)
+              .optional(),
           })
           .strict()
       )
@@ -712,6 +752,12 @@ export const exerciseCatalogContentSchema = z
             exerciseIds: z.array(identifierSchema).min(1).max(100),
             beginnerConstraintIds: z.array(identifierSchema).min(1).max(100),
             source: reviewedSourceSchema,
+            // T-2038: additive, optional, no `.default()` — see the note on exercises[].
+            name: z.string().min(1).max(240).optional(),
+            templateKind: z.enum(["FULL_BODY", "UPPER", "LOWER", "CARDIO"]).optional(),
+            /** Stable order within a split. Exercise order inside a template is
+             *  `exerciseIds` array order and the composer never re-sorts it. */
+            sequence: z.number().int().min(1).max(20).optional(),
           })
           .strict()
       )
@@ -742,6 +788,17 @@ export const exerciseCatalogContentSchema = z
         ["exercises", index, "substitutionIds"],
         "Exercise substitution"
       );
+      // T-2038: cross-check only when the optional field is present, so no artifact
+      // already registered without it gains a new failure mode.
+      if (exercise.equipmentAlternatives) {
+        reportUnknownIds(
+          exercise.equipmentAlternatives.map((alternative) => alternative.exerciseId),
+          exerciseIds,
+          ctx,
+          ["exercises", index, "equipmentAlternatives"],
+          "Exercise equipment alternative"
+        );
+      }
     });
     catalog.templates.forEach((template, index) => {
       reportUnknownIds(

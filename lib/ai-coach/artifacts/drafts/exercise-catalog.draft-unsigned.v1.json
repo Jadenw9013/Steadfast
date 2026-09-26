@@ -1,0 +1,2968 @@
+{
+  "fileSchemaVersion": 1,
+  "reviewMetadata": {
+    "decision": "DRAFT_UNSIGNED",
+    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
+    "preparedAt": "2026-09-26T00:00:00.000Z",
+    "draftRecordId": "exercise-beginner-catalog-draft-v1",
+    "worksheetSectionIds": [
+      "D05",
+      "D09",
+      "D12"
+    ],
+    "proposalProvenance": [
+      {
+        "parameterId": "chair-squat",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-goblet-squat",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "barbell-back-squat",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "leg-press-machine",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "hip-hinge-to-wall",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "glute-bridge",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-romanian-deadlift",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "barbell-hip-thrust",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "bodyweight-split-squat",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "bodyweight-step-up",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-split-squat",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-reverse-lunge",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "wall-push-up",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "incline-push-up",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-floor-press",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "barbell-bench-press",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "chest-press-machine",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "wall-slide",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-overhead-press",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "barbell-overhead-press",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "prone-reverse-fly",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "resistance-band-seated-row",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-single-arm-row",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "seated-cable-row-machine",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "resistance-band-lat-pulldown",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "lat-pulldown-machine",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "assisted-pull-up-machine",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "forearm-plank",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dead-bug",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "incline-forearm-plank",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "bird-dog",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "side-plank",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "resistance-band-pallof-press",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-farmer-carry",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "dumbbell-suitcase-carry",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "outdoor-walk",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "marching-in-place",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "treadmill-walk",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "stationary-bike",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "rowing-machine",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "elliptical-machine",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "full-body-session-one",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "full-body-session-two",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "full-body-session-three",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "upper-session-one",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "upper-session-two",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "lower-session-one",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "lower-session-two",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      },
+      {
+        "parameterId": "cardio-session-one",
+        "sourceClaimId": "CLAIM.ACSM.RESISTANCE_TRAINING.2026.SUMMARY",
+        "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+        "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+        "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
+      }
+    ],
+    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+  },
+  "reviewStates": [
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "chair-squat",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-goblet-squat",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "barbell-back-squat",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "leg-press-machine",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "hip-hinge-to-wall",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "glute-bridge",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-romanian-deadlift",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "barbell-hip-thrust",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "bodyweight-split-squat",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "bodyweight-step-up",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-split-squat",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-reverse-lunge",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "wall-push-up",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "incline-push-up",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-floor-press",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "barbell-bench-press",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "chest-press-machine",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "wall-slide",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-overhead-press",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "barbell-overhead-press",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "prone-reverse-fly",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "resistance-band-seated-row",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-single-arm-row",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "seated-cable-row-machine",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "resistance-band-lat-pulldown",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "lat-pulldown-machine",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "assisted-pull-up-machine",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "forearm-plank",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dead-bug",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "incline-forearm-plank",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "bird-dog",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "side-plank",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "resistance-band-pallof-press",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-farmer-carry",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "dumbbell-suitcase-carry",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "outdoor-walk",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "marching-in-place",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "treadmill-walk",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "stationary-bike",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "rowing-machine",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "EXERCISE",
+      "itemId": "elliptical-machine",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "full-body-session-one",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "full-body-session-two",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "full-body-session-three",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "upper-session-one",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "upper-session-two",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "lower-session-one",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "lower-session-two",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "cardio-session-one",
+      "reviewState": "PROPOSED"
+    }
+  ],
+  "content": {
+    "artifactKey": "exercise-beginner-v1",
+    "version": 1,
+    "exercises": [
+      {
+        "id": "chair-squat",
+        "version": 1,
+        "name": "Chair squat",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-goblet-squat"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "SQUAT",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "ERECTOR_SPINAE"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Stand tall in front of a sturdy chair with your feet a little wider than your hips and your toes turned slightly out.",
+          "Send your hips back and bend both knees, lowering slowly until your hips touch the chair.",
+          "Keep your chest facing forward and your whole foot in contact with the floor as you lower.",
+          "Press evenly through both feet to stand back up to full height, and finish standing tall before you step away from the chair."
+        ],
+        "cues": [
+          "Let your knees travel in the same direction as your toes.",
+          "Touch the chair lightly rather than dropping onto it."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "dumbbell-goblet-squat",
+        "version": 1,
+        "name": "Dumbbell goblet squat",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "chair-squat",
+          "barbell-back-squat"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.DEEP_KNEE_FLEXION.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "SQUAT",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "ERECTOR_SPINAE",
+          "FOREARMS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Hold a single dumbbell upright against your chest with both hands cupped under the top end.",
+          "Stand with your feet a little wider than your hips and your toes turned slightly out.",
+          "Send your hips back and bend your knees, lowering until your thighs are roughly parallel to the floor or until your heels want to lift, whichever comes first.",
+          "Drive through both feet to stand back up with the dumbbell still against your chest, and place it on the floor when you have finished."
+        ],
+        "cues": [
+          "Keep your elbows tucked inside your knees at the bottom.",
+          "Keep your ribs stacked over your hips rather than leaning back."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "chair-squat"
+          }
+        ]
+      },
+      {
+        "id": "barbell-back-squat",
+        "version": 1,
+        "name": "Barbell back squat",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-goblet-squat",
+          "leg-press-machine",
+          "chair-squat"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.SPINAL_LOADING.V1",
+          "CONTRA.DEEP_KNEE_FLEXION.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "movementPattern": "SQUAT",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "HAMSTRINGS",
+          "ERECTOR_SPINAE"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Set the bar in a rack at about the height of your collarbone and step under it so the bar rests across the muscles at the top of your back, never on your neck.",
+          "Grip the bar evenly with both hands, stand up to lift it out of the rack, and take a short step back with each foot.",
+          "With your feet a little wider than your hips, send your hips back and bend your knees until your thighs are roughly parallel to the floor.",
+          "Drive through both feet to stand back up, then walk the bar forward into the rack hooks and let it settle before you step away."
+        ],
+        "cues": [
+          "Keep the bar stacked over the middle of your feet throughout.",
+          "Ask gym staff to check your rack height and safety pins before you begin."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "dumbbell-goblet-squat"
+          },
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "chair-squat"
+          }
+        ]
+      },
+      {
+        "id": "leg-press-machine",
+        "version": 1,
+        "name": "Leg press machine",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-goblet-squat",
+          "chair-squat"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.DEEP_KNEE_FLEXION.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "SQUAT",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Sit in the leg press with your back and hips flat against the padded support.",
+          "Place your feet flat on the platform about hip width apart and level with each other.",
+          "Release the safety catches, then bend your knees to let the platform travel towards you until your knees reach about a right angle.",
+          "Press the platform away until your legs are almost straight without locking your knees hard, and re-engage the catches before you climb out."
+        ],
+        "cues": [
+          "Keep your lower back in contact with the pad the whole way down.",
+          "Stop lowering before your hips start to curl up off the seat."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "dumbbell-goblet-squat"
+          },
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "chair-squat"
+          }
+        ]
+      },
+      {
+        "id": "hip-hinge-to-wall",
+        "version": 1,
+        "name": "Hip hinge to wall",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "glute-bridge",
+          "dumbbell-romanian-deadlift"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HINGE",
+        "primaryMuscleIds": [
+          "HAMSTRINGS",
+          "GLUTES",
+          "ERECTOR_SPINAE"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Stand a short step in front of a wall with your back to it and your feet about hip width apart.",
+          "Rest your hands on the front of your thighs and keep a soft bend in your knees.",
+          "Push your hips straight back until they touch the wall, letting your chest tip forward and your hands slide down your thighs.",
+          "Squeeze your hips to stand back up to full height, and finish standing tall away from the wall."
+        ],
+        "cues": [
+          "Move at the hips rather than rounding your upper back.",
+          "Keep your head in line with your chest as it tips forward."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "glute-bridge",
+        "version": 1,
+        "name": "Glute bridge",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "hip-hinge-to-wall",
+          "barbell-hip-thrust"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.SUPINE_POSITION.V1",
+          "CONTRA.FLOOR_TRANSFER.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HINGE",
+        "primaryMuscleIds": [
+          "GLUTES",
+          "HAMSTRINGS",
+          "RECTUS_ABDOMINIS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Lie on your back on a mat or carpet with your knees bent and your feet flat on the floor beneath your knees.",
+          "Rest your arms alongside your body with your palms down.",
+          "Press through your heels and lift your hips until your body forms a straight line from your knees to your shoulders.",
+          "Lower your hips back to the floor under control, and finish lying flat before you get up."
+        ],
+        "cues": [
+          "Lift with your hips rather than arching your lower back.",
+          "Keep your ribs down as your hips rise."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "dumbbell-romanian-deadlift",
+        "version": 1,
+        "name": "Dumbbell Romanian deadlift",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "hip-hinge-to-wall",
+          "glute-bridge"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.SPINAL_LOADING.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HINGE",
+        "primaryMuscleIds": [
+          "HAMSTRINGS",
+          "GLUTES",
+          "ERECTOR_SPINAE",
+          "FOREARMS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Stand with your feet about hip width apart and hold a dumbbell in each hand in front of your thighs, palms facing you.",
+          "Soften your knees and keep them in that position for the whole movement.",
+          "Push your hips back and let the dumbbells travel down the front of your legs, stopping where you feel your hamstrings lengthen or where your back would otherwise round.",
+          "Squeeze your hips to stand back up to full height, then place the dumbbells on the floor when you have finished."
+        ],
+        "cues": [
+          "Keep the dumbbells brushing close to your legs.",
+          "Let your hips travel back rather than your knees travel forward."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "hip-hinge-to-wall"
+          }
+        ]
+      },
+      {
+        "id": "barbell-hip-thrust",
+        "version": 1,
+        "name": "Barbell hip thrust",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "glute-bridge",
+          "hip-hinge-to-wall"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.SUPINE_POSITION.V1",
+          "CONTRA.FLOOR_TRANSFER.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "movementPattern": "HINGE",
+        "primaryMuscleIds": [
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Sit on the floor with your upper back resting against the long edge of a flat bench and your knees bent, feet flat.",
+          "Roll a padded barbell over your hips so it sits across the crease at the top of your legs, and steady it with both hands.",
+          "Press through your heels and lift your hips until your body is level from your knees to your shoulders.",
+          "Lower your hips under control until they touch the floor, then roll the bar off before you stand up."
+        ],
+        "cues": [
+          "Tuck your chin slightly so your eyes follow your hips.",
+          "Finish the lift with your hips level rather than arching your back."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "glute-bridge"
+          },
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "glute-bridge"
+          }
+        ]
+      },
+      {
+        "id": "bodyweight-split-squat",
+        "version": 1,
+        "name": "Bodyweight split squat",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "chair-squat",
+          "dumbbell-split-squat"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.DEEP_KNEE_FLEXION.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "LUNGE",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "HAMSTRINGS"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Stand with one foot forward and the other a long stride behind you, with the back heel lifted.",
+          "Rest a hand on a wall or the back of a chair for balance if you need it.",
+          "Bend both knees to lower your back knee towards the floor, stopping just before it touches.",
+          "Press through your front foot to return to standing, work the other side the same way, and finish standing tall with both feet together."
+        ],
+        "cues": [
+          "Keep your torso upright rather than leaning over your front knee.",
+          "Place your feet on slightly different lines so you are not balancing along a single line."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "bodyweight-step-up",
+        "version": 1,
+        "name": "Bodyweight step up",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "bodyweight-split-squat",
+          "dumbbell-reverse-lunge"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.DEEP_KNEE_FLEXION.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "LUNGE",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "CALVES"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Stand facing a stair or a low, stable step that does not move when you press on it.",
+          "Place your whole front foot on the step and rest a hand on a wall or rail for balance.",
+          "Press through the foot on the step to bring your body up until that leg is straight, then bring the other foot up to meet it.",
+          "Step back down with the same control, lead with the other leg for the same work, and finish standing on the floor."
+        ],
+        "cues": [
+          "Push down through the step instead of hopping off the floor.",
+          "Choose a step height that lets your front heel stay flat."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "dumbbell-split-squat",
+        "version": 1,
+        "name": "Dumbbell split squat",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "bodyweight-split-squat",
+          "chair-squat"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.DEEP_KNEE_FLEXION.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "LUNGE",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "HAMSTRINGS",
+          "FOREARMS"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Hold a dumbbell in each hand by your sides and stand with one foot forward, the other a long stride behind, with the back heel lifted.",
+          "Place your feet on slightly different lines so you have a stable base.",
+          "Bend both knees to lower your back knee towards the floor, stopping just before it touches.",
+          "Press through your front foot to stand back up, work the other side the same way, and set the dumbbells down to finish."
+        ],
+        "cues": [
+          "Keep your torso upright rather than leaning over the front knee.",
+          "Let your front heel stay flat on the floor throughout."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "bodyweight-split-squat"
+          }
+        ]
+      },
+      {
+        "id": "dumbbell-reverse-lunge",
+        "version": 1,
+        "name": "Dumbbell reverse lunge",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "bodyweight-split-squat",
+          "bodyweight-step-up"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.DEEP_KNEE_FLEXION.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "LUNGE",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "HAMSTRINGS",
+          "FOREARMS"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Stand tall with a dumbbell in each hand by your sides and your feet under your hips.",
+          "Step one foot straight back and lower that knee towards the floor, keeping your front heel flat.",
+          "Stop just before your back knee touches, with both knees bent at about a right angle.",
+          "Press through your front foot to bring the back foot in beside the other, change legs, and set the dumbbells down to finish."
+        ],
+        "cues": [
+          "Step back far enough that your front knee stays above your front foot.",
+          "Keep your chest facing forward rather than tipping towards the front knee."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "bodyweight-step-up"
+          }
+        ]
+      },
+      {
+        "id": "wall-push-up",
+        "version": 1,
+        "name": "Wall push up",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "incline-push-up"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PUSH",
+        "primaryMuscleIds": [
+          "PECTORALS",
+          "TRICEPS",
+          "ANTERIOR_DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Stand facing a wall, a little less than arm's length away, with your feet under your hips.",
+          "Place both palms on the wall at about chest height, a little wider than your shoulders.",
+          "Bend your elbows to bring your chest towards the wall, keeping your body in a straight line from your head to your heels.",
+          "Press the wall away until your arms are straight again, and finish by stepping back from the wall."
+        ],
+        "cues": [
+          "Keep your hips in line with your shoulders rather than letting them sag.",
+          "Angle your elbows back rather than flaring them straight out to the sides."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "incline-push-up",
+        "version": 1,
+        "name": "Incline push up",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "wall-push-up",
+          "dumbbell-floor-press"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PUSH",
+        "primaryMuscleIds": [
+          "PECTORALS",
+          "TRICEPS",
+          "ANTERIOR_DELTOIDS",
+          "RECTUS_ABDOMINIS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Place both hands on a stable, waist-high surface such as a kitchen counter or a sturdy bench, a little wider than your shoulders.",
+          "Walk your feet back until your body is straight from your head to your heels and your weight rests on your hands and toes.",
+          "Bend your elbows to bring your chest towards the surface, stopping when your chest is close to it.",
+          "Press back up until your arms are straight, then walk your feet in and stand up to finish."
+        ],
+        "cues": [
+          "Choose a higher surface if your hips begin to sag, a lower one if the movement feels easy.",
+          "Look at a point on the surface just ahead of your hands to keep your neck long."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "dumbbell-floor-press",
+        "version": 1,
+        "name": "Dumbbell floor press",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "incline-push-up",
+          "barbell-bench-press"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.SUPINE_POSITION.V1",
+          "CONTRA.FLOOR_TRANSFER.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PUSH",
+        "primaryMuscleIds": [
+          "PECTORALS",
+          "TRICEPS",
+          "ANTERIOR_DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Lie on your back on a mat with your knees bent and your feet flat on the floor, holding a dumbbell in each hand.",
+          "Bring the dumbbells to the sides of your chest with your upper arms resting on the floor at a slight angle from your body.",
+          "Press both dumbbells straight up until your arms are almost straight above your chest.",
+          "Lower them under control until your upper arms touch the floor again, then place the dumbbells beside you before you sit up."
+        ],
+        "cues": [
+          "Keep your wrists stacked over your elbows throughout.",
+          "Let the floor stop the movement rather than reaching for extra depth."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "incline-push-up"
+          }
+        ]
+      },
+      {
+        "id": "barbell-bench-press",
+        "version": 1,
+        "name": "Barbell bench press",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-floor-press",
+          "chest-press-machine",
+          "incline-push-up"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.SUPINE_POSITION.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PUSH",
+        "primaryMuscleIds": [
+          "PECTORALS",
+          "TRICEPS",
+          "ANTERIOR_DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Lie on the bench with your eyes under the bar, your feet flat on the floor and your shoulder blades drawn down into the bench.",
+          "Grip the bar a little wider than your shoulders and lift it out of the hooks with straight arms.",
+          "Lower the bar under control to the middle of your chest, keeping your elbows angled slightly towards your body.",
+          "Press the bar back up over your shoulders, then guide it into the hooks and let it settle before you sit up."
+        ],
+        "cues": [
+          "Ask a training partner or gym staff to stand behind the bar before you begin.",
+          "Keep both feet flat and still on the floor."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "dumbbell-floor-press"
+          },
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "incline-push-up"
+          }
+        ]
+      },
+      {
+        "id": "chest-press-machine",
+        "version": 1,
+        "name": "Chest press machine",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-floor-press",
+          "incline-push-up"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PUSH",
+        "primaryMuscleIds": [
+          "PECTORALS",
+          "TRICEPS",
+          "ANTERIOR_DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Set the seat so the handles line up with the middle of your chest when you sit down.",
+          "Sit with your back flat against the pad and take a handle in each hand.",
+          "Press the handles forward until your arms are almost straight, without locking your elbows hard.",
+          "Let the handles travel back under control until your hands are level with your chest, then rest the stack down fully before you stand up."
+        ],
+        "cues": [
+          "Keep your shoulders back against the pad as you press.",
+          "Move at an even speed in both directions."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "dumbbell-floor-press"
+          },
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "incline-push-up"
+          }
+        ]
+      },
+      {
+        "id": "wall-slide",
+        "version": 1,
+        "name": "Wall slide",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-overhead-press"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "VERTICAL_PUSH",
+        "primaryMuscleIds": [
+          "DELTOIDS",
+          "TRAPEZIUS",
+          "SERRATUS_ANTERIOR"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Stand with your back against a wall and your feet a short step away from it.",
+          "Place the backs of your forearms and hands against the wall with your elbows bent to about a right angle.",
+          "Slide your arms up the wall as far as you can while keeping your forearms, wrists and lower back in contact with it.",
+          "Slide them back down to the starting position under control, and finish by stepping away from the wall."
+        ],
+        "cues": [
+          "Stop sliding upward where your lower back starts to lift off the wall.",
+          "Keep your ribs down and your chin level."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "dumbbell-overhead-press",
+        "version": 1,
+        "name": "Dumbbell overhead press",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "wall-slide",
+          "barbell-overhead-press"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.OVERHEAD_LOADING.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "VERTICAL_PUSH",
+        "primaryMuscleIds": [
+          "DELTOIDS",
+          "TRICEPS",
+          "TRAPEZIUS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Stand with your feet under your hips holding a dumbbell in each hand at shoulder height, palms facing forward.",
+          "Brace your middle so your ribs stay stacked over your hips.",
+          "Press both dumbbells overhead until your arms are almost straight and the weights sit above your shoulders.",
+          "Lower them under control back to shoulder height, and place the dumbbells on the floor once you have finished."
+        ],
+        "cues": [
+          "Move your head back slightly as the dumbbells pass your face, then return it.",
+          "Press upward rather than leaning back to help the weights up."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "wall-slide"
+          }
+        ]
+      },
+      {
+        "id": "barbell-overhead-press",
+        "version": 1,
+        "name": "Barbell overhead press",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-overhead-press",
+          "wall-slide"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.OVERHEAD_LOADING.V1",
+          "CONTRA.SPINAL_LOADING.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "movementPattern": "VERTICAL_PUSH",
+        "primaryMuscleIds": [
+          "DELTOIDS",
+          "TRICEPS",
+          "TRAPEZIUS",
+          "ERECTOR_SPINAE"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Set the bar in a rack at about shoulder height and grip it a little wider than your shoulders.",
+          "Lift the bar out of the rack onto the front of your shoulders and take a short step back with each foot.",
+          "Press the bar overhead until your arms are almost straight and the bar sits above the middle of your feet.",
+          "Lower it under control to the front of your shoulders, then step forward and return the bar to the rack."
+        ],
+        "cues": [
+          "Squeeze your hips and middle so your lower back does not arch.",
+          "Keep your wrists stacked over your elbows."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "dumbbell-overhead-press"
+          },
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "wall-slide"
+          }
+        ]
+      },
+      {
+        "id": "prone-reverse-fly",
+        "version": 1,
+        "name": "Prone reverse fly",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "resistance-band-seated-row",
+          "dumbbell-single-arm-row"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.PRONE_POSITION.V1",
+          "CONTRA.FLOOR_TRANSFER.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PULL",
+        "primaryMuscleIds": [
+          "RHOMBOIDS",
+          "TRAPEZIUS",
+          "POSTERIOR_DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Lie face down on a mat with your forehead resting on a folded towel and your arms out to the sides, palms down.",
+          "Draw your shoulder blades gently together and down.",
+          "Lift both hands a small distance off the floor with your arms almost straight and your neck relaxed.",
+          "Lower them back to the floor under control, and finish lying flat before you get up."
+        ],
+        "cues": [
+          "Lead with the backs of your hands rather than shrugging your shoulders.",
+          "Keep your forehead resting on the towel throughout."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "resistance-band-seated-row",
+        "version": 1,
+        "name": "Resistance band seated row",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "prone-reverse-fly",
+          "seated-cable-row-machine"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.FLOOR_TRANSFER.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PULL",
+        "primaryMuscleIds": [
+          "RHOMBOIDS",
+          "LATISSIMUS_DORSI",
+          "BICEPS",
+          "POSTERIOR_DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Sit on the floor with your legs straight in front of you and loop the middle of a resistance band around both feet.",
+          "Hold an end of the band in each hand with your arms straight and your back upright.",
+          "Draw both elbows back past your ribs, keeping them close to your body, until your hands reach the sides of your waist.",
+          "Let your arms straighten again under control, then release the tension from the band before you unhook your feet."
+        ],
+        "cues": [
+          "Sit tall rather than leaning back to pull the band.",
+          "Start the pull from your shoulder blades, not from your hands."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "prone-reverse-fly"
+          }
+        ]
+      },
+      {
+        "id": "dumbbell-single-arm-row",
+        "version": 1,
+        "name": "Dumbbell single arm row",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "prone-reverse-fly",
+          "resistance-band-seated-row"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PULL",
+        "primaryMuscleIds": [
+          "LATISSIMUS_DORSI",
+          "RHOMBOIDS",
+          "BICEPS",
+          "POSTERIOR_DELTOIDS"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Place your left knee and left hand on a bench or sturdy chair so your back is roughly level with the floor.",
+          "Hold a dumbbell in your right hand with that arm straight below your shoulder.",
+          "Draw your right elbow back towards your hip until your hand reaches the side of your ribs.",
+          "Lower the dumbbell under control until your arm is straight, work the other side the same way, and set the dumbbell down to finish."
+        ],
+        "cues": [
+          "Keep your shoulders level with each other as you pull.",
+          "Let your body stay still while only the arm moves."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "prone-reverse-fly"
+          }
+        ]
+      },
+      {
+        "id": "seated-cable-row-machine",
+        "version": 1,
+        "name": "Seated cable row machine",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "resistance-band-seated-row",
+          "prone-reverse-fly"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "HORIZONTAL_PULL",
+        "primaryMuscleIds": [
+          "LATISSIMUS_DORSI",
+          "RHOMBOIDS",
+          "BICEPS",
+          "POSTERIOR_DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Sit facing the cable station with your feet on the platform and a slight bend in your knees.",
+          "Take the handle with both hands and sit upright with your arms straight.",
+          "Draw both elbows back past your ribs until your hands reach the front of your waist.",
+          "Let the handle travel forward under control until your arms are straight, then return the weight to the stack before you stand up."
+        ],
+        "cues": [
+          "Keep your torso upright instead of rocking backward and forward.",
+          "Let your shoulder blades slide together as the handle comes in."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "resistance-band-seated-row"
+          },
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "prone-reverse-fly"
+          }
+        ]
+      },
+      {
+        "id": "resistance-band-lat-pulldown",
+        "version": 1,
+        "name": "Resistance band lat pulldown",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "lat-pulldown-machine",
+          "resistance-band-seated-row"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.OVERHEAD_LOADING.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "VERTICAL_PULL",
+        "primaryMuscleIds": [
+          "LATISSIMUS_DORSI",
+          "BICEPS",
+          "TRAPEZIUS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Anchor a resistance band securely above head height and kneel or sit facing the anchor.",
+          "Take an end of the band in each hand with your arms straight overhead and your body upright.",
+          "Pull both elbows down and out to the sides until your hands are level with your shoulders.",
+          "Let your arms straighten back overhead under control, then release the band's tension before you unhook it."
+        ],
+        "cues": [
+          "Keep your upper body still and let your arms do the work.",
+          "Check that the anchor point holds before you take any tension."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "lat-pulldown-machine",
+        "version": 1,
+        "name": "Lat pulldown machine",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "resistance-band-lat-pulldown",
+          "assisted-pull-up-machine"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.OVERHEAD_LOADING.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "VERTICAL_PULL",
+        "primaryMuscleIds": [
+          "LATISSIMUS_DORSI",
+          "BICEPS",
+          "TRAPEZIUS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Set the thigh pad so it holds your legs down when you sit, and choose a grip a little wider than your shoulders.",
+          "Sit down, take the bar with both hands and let your arms straighten overhead.",
+          "Pull the bar down in front of your face until it reaches the top of your chest, drawing your elbows towards your ribs.",
+          "Let the bar travel back up under control until your arms are straight, then guide it to its resting position before you stand up."
+        ],
+        "cues": [
+          "Lean back only slightly and keep that angle for the whole movement.",
+          "Pull the bar in front of your head, never behind your neck."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "resistance-band-lat-pulldown"
+          }
+        ]
+      },
+      {
+        "id": "assisted-pull-up-machine",
+        "version": 1,
+        "name": "Assisted pull up machine",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "lat-pulldown-machine",
+          "resistance-band-lat-pulldown"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.OVERHEAD_LOADING.V1",
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "VERTICAL_PULL",
+        "primaryMuscleIds": [
+          "LATISSIMUS_DORSI",
+          "BICEPS",
+          "TRAPEZIUS",
+          "FOREARMS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "ASSISTED",
+        "instructions": [
+          "Set the assistance level so you can complete the movement under control, then kneel or stand on the platform.",
+          "Take the handles above you with your arms straight and your shoulders drawn down away from your ears.",
+          "Pull your body up until your chin reaches the height of your hands.",
+          "Lower yourself under control until your arms are straight, then step off once the platform has come to a stop."
+        ],
+        "cues": [
+          "Begin each pull by drawing your shoulder blades down.",
+          "Keep your body still rather than swinging for momentum."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_HOME_BASIC",
+            "exerciseId": "resistance-band-lat-pulldown"
+          }
+        ]
+      },
+      {
+        "id": "forearm-plank",
+        "version": 1,
+        "name": "Forearm plank",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "incline-forearm-plank",
+          "dead-bug"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.PRONE_POSITION.V1",
+          "CONTRA.FLOOR_TRANSFER.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "ANTI_EXTENSION",
+        "primaryMuscleIds": [
+          "RECTUS_ABDOMINIS",
+          "OBLIQUES",
+          "ERECTOR_SPINAE"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Lie face down on a mat and place your forearms on the floor with your elbows under your shoulders.",
+          "Tuck your toes under and lift your hips and knees off the floor so your body forms a straight line from your head to your heels.",
+          "Hold that position with your hips level, breathing steadily.",
+          "Lower your knees back to the floor to finish, then push yourself back to standing."
+        ],
+        "cues": [
+          "Squeeze your hips and middle so your lower back stays flat.",
+          "Let your knees rest on the floor if your hips start to drop."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "dead-bug",
+        "version": 1,
+        "name": "Dead bug",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "glute-bridge",
+          "forearm-plank"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.SUPINE_POSITION.V1",
+          "CONTRA.FLOOR_TRANSFER.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "ANTI_EXTENSION",
+        "primaryMuscleIds": [
+          "RECTUS_ABDOMINIS",
+          "OBLIQUES"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Lie on your back on a mat with both arms reaching straight up towards the ceiling.",
+          "Lift your knees so they sit above your hips with your shins parallel to the floor.",
+          "Press your lower back gently into the floor, then lower an arm overhead and the opposite leg towards the floor.",
+          "Bring them back to the start, work the other pair the same way, and finish lying flat before you get up."
+        ],
+        "cues": [
+          "Stop lowering where your lower back would lift off the floor.",
+          "Breathe out slowly as your limbs travel away from you."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "incline-forearm-plank",
+        "version": 1,
+        "name": "Incline forearm plank",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "forearm-plank",
+          "dead-bug"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "ANTI_EXTENSION",
+        "primaryMuscleIds": [
+          "RECTUS_ABDOMINIS",
+          "OBLIQUES",
+          "ERECTOR_SPINAE"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Place both forearms on a stable, waist-high surface with your elbows under your shoulders.",
+          "Walk your feet back until your body forms a straight line from your head to your heels.",
+          "Hold that position with your hips level and your weight shared between your forearms and your toes.",
+          "Walk your feet back in and stand up to finish."
+        ],
+        "cues": [
+          "Choose a higher surface if your hips begin to sag.",
+          "Keep your neck long by looking at the surface just ahead of your hands."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "bird-dog",
+        "version": 1,
+        "name": "Bird dog",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dead-bug",
+          "side-plank"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.FLOOR_TRANSFER.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "ANTI_ROTATION",
+        "primaryMuscleIds": [
+          "ERECTOR_SPINAE",
+          "GLUTES",
+          "OBLIQUES"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Kneel on a mat on all fours with your hands under your shoulders and your knees under your hips.",
+          "Set your back flat and your neck in line with it, looking at the floor.",
+          "Reach an arm forward and the opposite leg back until both are level with your body, without letting your hips tip.",
+          "Bring them back under you, change sides, and finish kneeling with both hands and knees on the mat."
+        ],
+        "cues": [
+          "Keep your hips square to the floor as the leg travels back.",
+          "Reach long rather than lifting high."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "side-plank",
+        "version": 1,
+        "name": "Side plank",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "bird-dog",
+          "forearm-plank"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.FLOOR_TRANSFER.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "ANTI_ROTATION",
+        "primaryMuscleIds": [
+          "OBLIQUES",
+          "GLUTES",
+          "RECTUS_ABDOMINIS"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Lie on your side on a mat with your forearm on the floor, elbow under your shoulder, and your knees bent behind you.",
+          "Stack your hips and shoulders so your body forms a straight line from your head to your knees.",
+          "Lift your hips off the floor and hold that line, keeping your top shoulder above the bottom one.",
+          "Lower your hips back to the floor, change sides, and finish lying flat before you get up."
+        ],
+        "cues": [
+          "Press the floor away with your forearm to keep your shoulder supported.",
+          "Straighten your legs instead of bending your knees when you want a harder version."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "resistance-band-pallof-press",
+        "version": 1,
+        "name": "Resistance band Pallof press",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "bird-dog",
+          "side-plank"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "ANTI_ROTATION",
+        "primaryMuscleIds": [
+          "OBLIQUES",
+          "RECTUS_ABDOMINIS",
+          "DELTOIDS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Anchor a resistance band at about chest height and stand side on to the anchor, a short distance away.",
+          "Hold the band in both hands against the middle of your chest with your feet under your hips.",
+          "Press both hands straight out in front of you, resisting the band's pull towards the anchor.",
+          "Draw your hands back to your chest under control, turn to face the other way and work that side, then release the tension to finish."
+        ],
+        "cues": [
+          "Keep your hips and shoulders facing forward the whole time.",
+          "Step further from the anchor for more tension, closer for less."
+        ],
+        "equipmentAlternatives": [
+          {
+            "equipmentId": "EQUIPMENT_NONE",
+            "exerciseId": "bird-dog"
+          }
+        ]
+      },
+      {
+        "id": "dumbbell-farmer-carry",
+        "version": 1,
+        "name": "Dumbbell farmer carry",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-suitcase-carry"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "CARRY",
+        "primaryMuscleIds": [
+          "FOREARMS",
+          "TRAPEZIUS",
+          "OBLIQUES",
+          "GLUTES"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Stand between a pair of dumbbells placed on the floor beside your feet.",
+          "Bend at your hips and knees to take one in each hand, then stand up tall with your arms straight by your sides.",
+          "Walk forward in a straight line at an even pace, keeping your shoulders level and your ribs stacked over your hips.",
+          "Walk back to where you started, then bend your hips and knees to place the dumbbells on the floor."
+        ],
+        "cues": [
+          "Take your normal stride length rather than rushing.",
+          "Keep your shoulders drawn back rather than letting the weight pull them forward."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "dumbbell-suitcase-carry",
+        "version": 1,
+        "name": "Dumbbell suitcase carry",
+        "modality": "STRENGTH",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "dumbbell-farmer-carry"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "CARRY",
+        "primaryMuscleIds": [
+          "OBLIQUES",
+          "FOREARMS",
+          "TRAPEZIUS",
+          "GLUTES"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Stand beside a single dumbbell placed on the floor next to your right foot.",
+          "Bend at your hips and knees to pick it up in your right hand, then stand tall with that arm straight by your side.",
+          "Walk forward in a straight line, resisting the pull towards the loaded side so your shoulders stay level.",
+          "Walk back, place the dumbbell down, then carry out the same walk holding it in your left hand to finish."
+        ],
+        "cues": [
+          "Keep both shoulders at the same height the whole way.",
+          "Let your free arm hang relaxed by your side rather than sticking it out."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "outdoor-walk",
+        "version": 1,
+        "name": "Outdoor walk",
+        "modality": "CARDIO",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "marching-in-place",
+          "treadmill-walk"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "GAIT",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "CALVES",
+          "HAMSTRINGS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Choose a flat, even route with good footing, and good lighting when it is dark.",
+          "Start walking at an easy pace and let your body warm up.",
+          "Build to a pace where your breathing is noticeably deeper but you could still speak in full sentences.",
+          "Ease back to the easy pace for the final stretch of the route and finish standing still until your breathing settles."
+        ],
+        "cues": [
+          "Let your arms swing freely rather than holding them across your body.",
+          "Shorten the route or slow the pace whenever the walk stops feeling repeatable."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "marching-in-place",
+        "version": 1,
+        "name": "Marching in place",
+        "modality": "CARDIO",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_NONE",
+          "EQUIPMENT_HOME_BASIC",
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "outdoor-walk",
+          "treadmill-walk"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "GAIT",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "CALVES"
+        ],
+        "laterality": "UNILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Stand tall in a clear space with your feet under your hips and your arms relaxed by your sides.",
+          "Lift a knee towards hip height, place that foot back down, then lift the other knee.",
+          "Swing your arms in an easy rhythm opposite to your legs as the pace picks up.",
+          "Slow the march gradually and finish standing still with both feet on the floor."
+        ],
+        "cues": [
+          "Stay on the spot rather than drifting forward.",
+          "Lower each foot quietly so the movement stays smooth."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "treadmill-walk",
+        "version": 1,
+        "name": "Treadmill walk",
+        "modality": "CARDIO",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "outdoor-walk",
+          "marching-in-place"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "GAIT",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "CALVES",
+          "HAMSTRINGS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "BODYWEIGHT",
+        "instructions": [
+          "Step onto the treadmill belt and attach the safety clip to your clothing before you start the belt.",
+          "Start the belt at its slowest setting and let it move under you before you take your hands off the rail.",
+          "Raise the speed in small increments to a walking pace where your breathing is deeper but you could still speak in full sentences.",
+          "Lower the speed gradually, let the belt come to a stop, and step off once it has stopped completely."
+        ],
+        "cues": [
+          "Walk in the middle of the belt rather than drifting towards the back.",
+          "Use the rail for balance only, not to carry your weight."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "stationary-bike",
+        "version": 1,
+        "name": "Stationary bike",
+        "modality": "CARDIO",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "elliptical-machine",
+          "outdoor-walk"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "CYCLIC_CARDIO",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "HAMSTRINGS",
+          "GLUTES",
+          "CALVES"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Set the saddle so that, with the pedal at its lowest point, your knee keeps a slight bend.",
+          "Sit upright with both hands resting on the handlebars and your feet flat on the pedals.",
+          "Pedal at an easy resistance until your legs feel warm, then raise the resistance to where your breathing is deeper but you could still speak in full sentences.",
+          "Drop the resistance back to easy, slow your pedalling, and step off once the pedals have stopped."
+        ],
+        "cues": [
+          "Keep your pedalling smooth and even rather than pushing in surges.",
+          "Sit tall rather than rounding forward over the handlebars."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "rowing-machine",
+        "version": 1,
+        "name": "Rowing machine",
+        "modality": "CARDIO",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "elliptical-machine",
+          "stationary-bike"
+        ],
+        "contraindicationRuleIds": [
+          "CONTRA.GRIP_DEMAND.V1"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "movementPattern": "CYCLIC_CARDIO",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "LATISSIMUS_DORSI",
+          "RHOMBOIDS",
+          "BICEPS"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Sit on the seat, fasten the foot straps across the widest part of your feet, and take the handle with both hands.",
+          "Start with your shins upright and your arms straight, then push the floor away with your legs.",
+          "Once your legs are almost straight, lean your body back slightly and draw the handle to the bottom of your ribs.",
+          "Return in the opposite order by straightening your arms, tipping forward from your hips, then bending your knees, and hang the handle back on its hook to finish."
+        ],
+        "cues": [
+          "Let your legs start the drive and your arms finish it.",
+          "Ask gym staff to watch the order of your movement the first time you use the machine."
+        ],
+        "equipmentAlternatives": []
+      },
+      {
+        "id": "elliptical-machine",
+        "version": 1,
+        "name": "Elliptical machine",
+        "modality": "CARDIO",
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "equipmentIds": [
+          "EQUIPMENT_FULL_GYM"
+        ],
+        "substitutionIds": [
+          "stationary-bike",
+          "outdoor-walk"
+        ],
+        "contraindicationRuleIds": [],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+          "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+        ],
+        "movementPattern": "CYCLIC_CARDIO",
+        "primaryMuscleIds": [
+          "QUADRICEPS",
+          "GLUTES",
+          "HAMSTRINGS",
+          "CALVES"
+        ],
+        "laterality": "BILATERAL",
+        "loadKind": "EXTERNAL",
+        "instructions": [
+          "Step onto the foot plates while the machine is stationary and take hold of the moving handles.",
+          "Begin at a low resistance and let the pedals travel in smooth, even circles.",
+          "Raise the resistance to where your breathing is deeper but you could still speak in full sentences, keeping your body upright.",
+          "Lower the resistance, let the pedals slow, and step off once they have stopped."
+        ],
+        "cues": [
+          "Keep your whole foot in contact with the plate.",
+          "Stand tall rather than leaning your weight onto the handles."
+        ],
+        "equipmentAlternatives": []
+      }
+    ],
+    "templates": [
+      {
+        "id": "full-body-session-one",
+        "version": 1,
+        "exerciseIds": [
+          "dumbbell-goblet-squat",
+          "dumbbell-romanian-deadlift",
+          "dumbbell-floor-press",
+          "dumbbell-single-arm-row",
+          "forearm-plank"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Full body session one",
+        "templateKind": "FULL_BODY",
+        "sequence": 1
+      },
+      {
+        "id": "full-body-session-two",
+        "version": 1,
+        "exerciseIds": [
+          "dumbbell-split-squat",
+          "glute-bridge",
+          "dumbbell-overhead-press",
+          "resistance-band-seated-row",
+          "dead-bug"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Full body session two",
+        "templateKind": "FULL_BODY",
+        "sequence": 2
+      },
+      {
+        "id": "full-body-session-three",
+        "version": 1,
+        "exerciseIds": [
+          "chair-squat",
+          "dumbbell-reverse-lunge",
+          "incline-push-up",
+          "resistance-band-lat-pulldown",
+          "bird-dog",
+          "dumbbell-farmer-carry"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Full body session three",
+        "templateKind": "FULL_BODY",
+        "sequence": 3
+      },
+      {
+        "id": "upper-session-one",
+        "version": 1,
+        "exerciseIds": [
+          "dumbbell-floor-press",
+          "dumbbell-single-arm-row",
+          "dumbbell-overhead-press",
+          "resistance-band-lat-pulldown",
+          "forearm-plank"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Upper body session one",
+        "templateKind": "UPPER",
+        "sequence": 1
+      },
+      {
+        "id": "upper-session-two",
+        "version": 1,
+        "exerciseIds": [
+          "incline-push-up",
+          "resistance-band-lat-pulldown",
+          "resistance-band-seated-row",
+          "wall-slide",
+          "resistance-band-pallof-press"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Upper body session two",
+        "templateKind": "UPPER",
+        "sequence": 2
+      },
+      {
+        "id": "lower-session-one",
+        "version": 1,
+        "exerciseIds": [
+          "dumbbell-goblet-squat",
+          "dumbbell-romanian-deadlift",
+          "dumbbell-reverse-lunge",
+          "glute-bridge",
+          "dead-bug"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Lower body session one",
+        "templateKind": "LOWER",
+        "sequence": 1
+      },
+      {
+        "id": "lower-session-two",
+        "version": 1,
+        "exerciseIds": [
+          "dumbbell-split-squat",
+          "barbell-hip-thrust",
+          "bodyweight-step-up",
+          "chair-squat",
+          "side-plank"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Lower body session two",
+        "templateKind": "LOWER",
+        "sequence": 2
+      },
+      {
+        "id": "cardio-session-one",
+        "version": 1,
+        "exerciseIds": [
+          "outdoor-walk",
+          "marching-in-place",
+          "stationary-bike",
+          "elliptical-machine",
+          "treadmill-walk",
+          "rowing-machine"
+        ],
+        "beginnerConstraintIds": [
+          "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+          "BEGINNER.CONSTRAINT.LOW_IMPACT.V1"
+        ],
+        "source": {
+          "sourceId": "ACSM-RESISTANCE-TRAINING-2026",
+          "sourceVersion": "news-summary-2026-03-17",
+          "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
+          "reviewedAt": "2026-09-26T00:00:00.000Z",
+          "licenseClassification": "PUBLIC_SUMMARY_REFERENCE_ONLY",
+          "authority": "REVIEWED_SOURCE"
+        },
+        "name": "Cardio session one",
+        "templateKind": "CARDIO",
+        "sequence": 1
+      }
+    ]
+  }
+}
