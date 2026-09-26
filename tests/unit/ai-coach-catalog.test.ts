@@ -3,6 +3,7 @@ import { getFoodItem, getExerciseItem, getCurrentFoodCatalogVersion, getCurrentE
 import { computeNutrientTotals, aggregateGramsByFood, type RecipeComponent } from "@/lib/ai-coach/nutrition-totals";
 import { checkPolicyVersionUsable, ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { checkMealComposition } from "@/lib/ai-coach/composition-feasibility";
+import { inCodeFoodCatalogSource } from "@/lib/ai-coach/catalog/food-source";
 
 const FOOD_V = getCurrentFoodCatalogVersion();
 const EXERCISE_V = getCurrentExerciseCatalogVersion();
@@ -164,5 +165,56 @@ describe("A04 — feasible composition", () => {
     if (result.feasible) throw new Error("unreachable");
     const codes = result.reasons.map((r) => r.code).sort();
     expect(codes).toEqual(["ALLERGEN_CONFLICT", "NUTRITION_DOMAIN_NOT_ALLOWED"]);
+  });
+
+  it("T-2036: explicit source: inCodeFoodCatalogSource produces identical result to omitting source", () => {
+    const withoutSource = checkMealComposition({
+      ...baseInput,
+      components: [{ foodId: "peanut-butter", catalogVersion: FOOD_V, grams: 32 }],
+      allergies: ["peanut"],
+    });
+    const withSource = checkMealComposition({
+      ...baseInput,
+      components: [{ foodId: "peanut-butter", catalogVersion: FOOD_V, grams: 32 }],
+      allergies: ["peanut"],
+      source: inCodeFoodCatalogSource,
+    });
+    expect(withSource).toEqual(withoutSource);
+  });
+
+  it("T-2036: computeNutrientTotals with and without source produces identical results", () => {
+    const components: RecipeComponent[] = [
+      { foodId: "chicken-breast-raw", catalogVersion: FOOD_V, grams: 150 },
+      { foodId: "brown-rice-cooked", catalogVersion: FOOD_V, grams: 120 },
+    ];
+    const withoutSource = computeNutrientTotals(components);
+    const withSource = computeNutrientTotals(components, inCodeFoodCatalogSource);
+    expect(withSource).toEqual(withoutSource);
+  });
+
+  it("T-2036: checkMealComposition with allergenDeclarations on legacy item falls back to array semantics", () => {
+    const legacyArrayResult = checkMealComposition({
+      ...baseInput,
+      components: [{ foodId: "peanut-butter", catalogVersion: FOOD_V, grams: 32 }],
+      allergies: ["peanut"],
+    });
+    const structuredResult = checkMealComposition({
+      ...baseInput,
+      components: [{ foodId: "peanut-butter", catalogVersion: FOOD_V, grams: 32 }],
+      allergies: ["peanut"],
+      allergenDeclarations: {
+        status: "CONFIRMED",
+        noKnownAllergens: false,
+        items: [
+          {
+            category: "PEANUT",
+            specificity: null,
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "NO",
+          },
+        ],
+      },
+    });
+    expect(structuredResult).toEqual(legacyArrayResult);
   });
 });

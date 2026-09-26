@@ -8,17 +8,37 @@ import { FOOD_CATALOG_VERSION, FOOD_SUBSTITUTIONS } from "./catalog/food-catalog
 import { computeNutrientTotals } from "./nutrition-totals";
 import { checkMealComposition } from "./composition-feasibility";
 import { contentHash } from "./canonical-json";
+import type { MealTemplateSet } from "./catalog/meal-template-schema";
+import type { FoodCatalogSource } from "./catalog/food-source";
 export const substitutionSchema = z.object({ day: z.number().int().min(1).max(7), mealId: z.string().min(1).max(120), foodId: z.string().min(1).max(120), replacementId: z.string().min(1).max(120) }).strict();
 export type Substitution = z.infer<typeof substitutionSchema>;
 
-export function mealTargetsMatch(plan: PlanPayload, answers: IntakeAnswers): boolean {
+export function substitutionOptionsFor(
+  foodId: string,
+  templateSet?: MealTemplateSet
+): readonly string[] {
+  if (templateSet) {
+    for (const group of templateSet.substitutionGroups) {
+      if (group.memberFoodIds.includes(foodId)) {
+        return group.memberFoodIds.filter((id) => id !== foodId);
+      }
+    }
+  }
+  return FOOD_SUBSTITUTIONS[foodId] ?? [];
+}
+
+export function mealTargetsMatch(
+  plan: PlanPayload,
+  answers: IntakeAnswers,
+  source?: FoodCatalogSource
+): boolean {
   if (!plan.meals) return true;
   if (answers.dietaryRestrictions.some(r => !dietaryTagSchema.safeParse(r.trim().toUpperCase().replace(/[\s-]+/g, "_")).success)) return false;
   if (!plan.nutrition) return false;
   for (const day of plan.meals.days) {
     const components = day.meals.flatMap(m => m.ingredients);
-    if (!checkMealComposition({ components, allergies: answers.allergies, dietaryRestrictions: answers.dietaryRestrictions, nutritionPermission: "ALLOW", policyVersion: plan.policyVersion }).feasible) return false;
-    const calculated = computeNutrientTotals(components);
+    if (!checkMealComposition({ components, allergies: answers.allergies, dietaryRestrictions: answers.dietaryRestrictions, nutritionPermission: "ALLOW", policyVersion: plan.policyVersion, source }).feasible) return false;
+    const calculated = computeNutrientTotals(components, source);
     if (!calculated.success) return false;
     for (const key of ["energyKcal", "proteinG", "carbsG", "fatG"] as const) {
       const target = plan.nutrition.targets[key];
@@ -38,7 +58,7 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
   let payload = structuredClone(base);
   const noChange = (reason: "NO_FEASIBLE_MEALS" | "UNCHANGED", text: string) => ({ payload: null, decision: { action: "HOLD" as const, reasonCodes: [reason], explanation: text, limitations: ["Synthetic catalog only; nutrient adequacy is not established."], nextAction: "Keep the current plan or update practical preferences.", changeClass: null } });
   if (substitution) {
-    if (!payload.meals || !FOOD_SUBSTITUTIONS[substitution.foodId]?.includes(substitution.replacementId)) return noChange("NO_FEASIBLE_MEALS", "No validated equivalent substitution is available.");
+    if (!payload.meals || !substitutionOptionsFor(substitution.foodId).includes(substitution.replacementId)) return noChange("NO_FEASIBLE_MEALS", "No validated equivalent substitution is available.");
     const meal = payload.meals.days.find(d => d.day === substitution.day)?.meals.find(m => m.id === substitution.mealId);
     const ingredient = meal?.ingredients.find(i => i.foodId === substitution.foodId);
     if (!ingredient || ingredient.catalogVersion !== FOOD_CATALOG_VERSION) return noChange("NO_FEASIBLE_MEALS", "This ingredient is unavailable for the selected substitution.");
@@ -94,7 +114,7 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
 export function availableSubstitutions(plan: PlanPayload, answers: IntakeAnswers): Substitution[] {
   const offers: Substitution[] = [];
   for (const day of plan.meals?.days ?? []) for (const meal of day.meals) for (const food of meal.ingredients) {
-    for (const replacementId of FOOD_SUBSTITUTIONS[food.foodId] ?? []) {
+    for (const replacementId of substitutionOptionsFor(food.foodId)) {
       const offer = { day: day.day, mealId: meal.id, foodId: food.foodId, replacementId };
       if (representFixturePlan(plan, answers, "MEALS", offer).payload) offers.push(offer);
     }

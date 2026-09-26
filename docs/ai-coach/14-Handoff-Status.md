@@ -525,6 +525,10 @@ lib/ai-coach/
   catalog/food-catalog.ts       A04  8-item SYNTHETIC food fixture (food-fixture-v2; 6 retained under LEGACY_FOOD_CATALOG/food-fixture-v1, T-2024 adds a shellfish-tagged item to v2 only)
   catalog/exercise-catalog.ts   A04  3-item SYNTHETIC exercise fixture
   catalog/loader.ts             A04  getFoodItem / getExerciseItem (id+version lookup, rejects unknown/stale)
+  catalog/food-source.ts        T-2036 FoodCatalogSource interface, inCodeFoodCatalogSource, sourcedFoodCatalogSource
+  catalog/meal-template-schema.ts T-2036 mealTemplateSchema, portionRangeSchema, substitutionGroupSchema, superRefine
+  meal-composer.ts              T-2036 composeWeekFromTemplates and deterministic macro coordinate solver
+  grocery.ts                    T-2036 buildGroceryList and GroceryLine with purchase vs consumed quantities
   catalog/fdc/allowlist-schema.ts T-2035 Allowlist and coverage plan schemas with unique ID and name validations
   catalog/fdc/normalize.ts      T-2035 Pure normalization of USDA FoodData Central records without guessing or defaulting
   catalog/fdc/allergen-rules.ts T-2035 Fail-closed allergen rules across 9 frozen categories; emits PRESENT or UNKNOWN only (VERIFIED_ABSENT needs positive record evidence, which FDC cannot supply). Matches the food's own name/synonyms with generated plurals, never the USDA foodCategory
@@ -706,9 +710,9 @@ _Dependencies: A04, A06._
 
 Deterministic weekly composition, practical quantities, approved
 substitutions, grocery aggregation (`aggregateGramsByFood` in
-`nutrition-totals.ts` already gives raw per-food gram totals — A07 turns
-that into practical purchasable quantities, which A04 explicitly left
-undone). Mode switch (macro ⇄ meals) must keep exactly one prescription
+`nutrition-totals.ts` gives raw per-food gram totals; T-2036 provides
+`buildGroceryList` in `lib/ai-coach/grocery.ts` to turn that into practical
+purchasable quantities derived solely from reported source facts). Mode switch (macro ⇄ meals) must keep exactly one prescription
 active, never two. T-2035 provides the offline USDA FoodData Central ingestion
 tool (`scripts/ai-coach-ingest-fdc.ts`) and the pure mapping modules it drives,
 with mechanical tri-state allergen facts across the 9 frozen major categories.
@@ -724,8 +728,8 @@ repeated. A record the tool cannot map is written to
 records a source limitation and never a review decision — `reviewState` has
 exactly one writer, the RD. `VERIFIED_ABSENT` requires positive evidence in the source record,
 which no Foundation or SR Legacy record can supply, so ingestion emits only
-`PRESENT` or `UNKNOWN` and `UNKNOWN` fails closed downstream. **A09/A07 must
-read `allergenFactsV2`, not `allergenFacts`:** the legacy struct cannot express
+`PRESENT` or `UNKNOWN` and `UNKNOWN` fails closed downstream. **A09/A07 reads
+`allergenFactsV2`, not `allergenFacts`:** the legacy struct cannot express
 `UNKNOWN`, so a SOURCED_V2 item carries none and the schema rejects one that
 does. See `docs/ai-coach/catalog/README.md`.
 
@@ -738,10 +742,15 @@ search hits. **All three are engineer-proposed scaffolding until the RD review**
 (README §2.2). `patternTags` fails closed to `["OMNIVORE"]` whenever the category
 does not unambiguously establish the pattern set, and the record's own
 description can then only *narrow* the set further (never widen it), which is
-what keeps `Spinach souffle` out of a vegan client's catalog. So **A07/T-2036 must treat an
-empty pattern-filtered result as "nothing is tagged for this pattern yet" and
-degrade — never as "no foods exist", and never by rendering an empty screen**
-(`board/strategy/release-safety.md`). Nothing reads `patternTags` today.
+what keeps `Spinach souffle` out of a vegan client's catalog.
+
+T-2036 builds the meal-template model (`lib/ai-coach/catalog/meal-template-schema.ts`),
+checked-in draft template set (`lib/ai-coach/artifacts/drafts/meal-templates.draft-unsigned.v1.json`),
+deterministic coordinate solver (`lib/ai-coach/meal-composer.ts`), substitution
+group resolver (`lib/ai-coach/representation.ts:substitutionOptionsFor`), and
+grocery aggregator (`lib/ai-coach/grocery.ts`). When pattern or budget constraints
+produce no feasible slate, the composer returns structured failure reasons (`NO_FEASIBLE_MEALS`)
+with the affected slot and worst macro rather than an empty screen, degrading gracefully.
 
 ### A08 — Minimal structured weekly observations and session logs
 

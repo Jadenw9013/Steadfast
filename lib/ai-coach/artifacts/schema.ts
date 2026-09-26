@@ -680,6 +680,8 @@ export const foodCatalogContentSchema = z
     }
   });
 
+export type FoodCatalogContent = z.infer<typeof foodCatalogContentSchema>;
+
 export const exerciseCatalogContentSchema = z
   .object({
     ...contentIdentity,

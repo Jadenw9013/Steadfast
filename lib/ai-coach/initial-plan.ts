@@ -20,6 +20,9 @@ import {
   classifyPrescriptionReasonCodes,
   type PrescriptionReasonClass,
 } from "./prescription-reason-classes";
+import type { MealTemplateSet } from "./catalog/meal-template-schema";
+import type { FoodCatalogSource } from "./catalog/food-source";
+import { composeWeekFromTemplates, type ComposeConstraints } from "./meal-composer";
 
 /** All doses, targets and templates below are SYNTHETIC TEST FIXTURES (G01/G02).
  * The runtime must additionally require a synthetic subject and nonproduction
@@ -166,11 +169,40 @@ function solveLinear3x3(a: readonly (readonly number[])[], b: readonly number[])
  * value and never recomputes it from macros). Deterministic: the same
  * prescription always composes to the same rounded grams.
  */
+export type ComposeMealsToPrescriptionOptions = {
+  templateSet: MealTemplateSet;
+  source: FoodCatalogSource;
+  constraints: ComposeConstraints;
+};
+
 export function composeMealsToPrescription(
   answers: IntakeAnswers,
   prescription: Prescription,
-  foodCatalogVersion: string
+  foodCatalogVersion: string,
+  options?: ComposeMealsToPrescriptionOptions
 ): NonNullable<PlanPayload["meals"]> | null {
+  if (options) {
+    const carbTarget = midpoint(prescription.carbohydrateRangeG);
+    const fatTarget = midpoint(prescription.fatRangeG);
+    const result = composeWeekFromTemplates({
+      targets: {
+        energyKcal: prescription.targetEnergyKcal,
+        proteinG: prescription.proteinG,
+        carbsG: carbTarget,
+        fatG: fatTarget,
+      },
+      tolerancePercent: prescription.tolerancePercent,
+      mealsPerDay: 3,
+      constraints: options.constraints,
+      templateSet: options.templateSet,
+      source: options.source,
+      policyVersion: ACTIVE_POLICY_VERSION,
+      nutritionPermission: "ALLOW",
+      maxRepeatsPerWeek: 3,
+    });
+    return result.feasible ? { days: result.days } : null;
+  }
+
   // Same fixture-catalog dietary-restriction guard as composeFixtureMeals:
   // never silently drop an unknown restriction or claim feasibility that
   // isn't verified.

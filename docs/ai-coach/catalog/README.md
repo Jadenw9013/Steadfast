@@ -408,3 +408,27 @@ so the mapping cannot be re-verified against source without a new API key. The p
 left standing; recording a handful of responses is tracked as **T-2017**.
 
 A fixture is one or the other. A hand-built file that carries a provenance claim is the failure this ticket was rewritten to remove.
+
+---
+
+## 6. Meal templates and clinical accept/strike curation workflow (T-2036)
+
+Meal templates govern how individual food items from the catalog are assembled into practical, culinary meals (`lib/ai-coach/catalog/meal-template-schema.ts`). Like the food catalog itself, templates are checked in as a draft unsigned data artifact: `lib/ai-coach/artifacts/drafts/meal-templates.draft-unsigned.v1.json`.
+
+### 6.1 Initial state and engineering boundaries
+- Every template and substitution group ships in `reviewState: "PROPOSED"`. Engineering never authors `ACCEPTED`.
+- Engineering mechanically populates nominal portions from source household measures (`rangeBasis: "SOURCE_PORTION_SCALED"`), setting a 0.5–2.0× scaling band. When a food has no reported household measure, it receives a 100g nominal portion with `rangeBasis: "DEFAULT_100G_BAND"`, which automatically marks the template `requiresReviewerPortion: true`.
+- Preparation instructions contain only plain mechanical steps ("combine, simmer until tender"). They contain no cooking temperatures, holding times, health claims, or food-safety instructions.
+
+### 6.2 Reviewer accept / strike workflow
+During clinical review, the Registered Dietitian reviews each template and substitution group:
+1. **Template acceptance:**
+   - **`reviewState: "ACCEPTED"`**: The template is clinically approved for meal composition and live coaching plans once the draft bundle is signed.
+   - **`reviewState: "STRUCK"`**: The template is rejected (e.g. poor culinary match, unsuitable ingredient combination, or inappropriate preparation). The RD records the clinical rationale in `notes`.
+2. **Portion calibration:**
+   - For templates flagged `requiresReviewerPortion: true`, the RD establishes the clinically appropriate nominal portion and minimum/maximum bounds, switching `requiresReviewerPortion` to `false` and recording the calibrated basis.
+3. **Substitution groups:**
+   - Substitution groups group foods solely by culinary role in a meal (e.g. `Lean Poultry`, `Staple Grains`, `Green Vegetables`), never claiming nutritional equivalence.
+   - The RD accepts or strikes substitution groups and verifies that member foods are suitable culinary swaps for one another.
+4. **Draft sign-off:**
+   - Once review is complete, the `reviewMetadata` transitions to `APPROVED` with a qualified professional review signature, enabling registration and live execution.
