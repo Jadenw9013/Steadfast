@@ -4,9 +4,12 @@ vi.mock("@/lib/auth/roles", () => ({ getCurrentDbUser: vi.fn() }));
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: table-wide AI Coach state; runs alone. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("exclusive");
 const authMock = vi.mocked(getCurrentDbUser);
 
 import type { ArtifactDraftInput, ArtifactReviewMetadata } from "@/lib/ai-coach/artifacts/schema";
@@ -356,8 +359,14 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
   afterEach(async () => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
-    expect(await db.aiCoachReviewerGrant.count()).toBe(0);
+    // T-2014: read the invariant, ALWAYS tear the release down, then assert.
+    // Asserting before the teardown meant a single failure left the sole ACTIVE
+    // release in place, so every later test in this file died with a derived
+    // LIVE_ACTIVATION_ALREADY_EXISTS and the one real cause was buried under
+    // five consequences. The assertion itself is unchanged and still fails.
+    const reviewerGrants = await db.aiCoachReviewerGrant.count();
     await deactivateTestLiveRelease(actorId);
+    expect(reviewerGrants).toBe(0);
   });
   afterAll(() => db.$disconnect());
 

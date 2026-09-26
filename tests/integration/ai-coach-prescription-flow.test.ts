@@ -38,9 +38,12 @@ import { submitSafetyDisclosure } from "@/lib/ai-coach/safety";
 vi.mock("@/lib/auth/roles", () => ({ getCurrentDbUser: vi.fn() }));
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 const authMock = vi.mocked(getCurrentDbUser);
 
 const clearSafety = {

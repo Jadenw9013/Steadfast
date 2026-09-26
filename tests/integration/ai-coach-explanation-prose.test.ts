@@ -36,9 +36,12 @@ import type { ServerAutonomyGateInput } from "@/lib/ai-coach/autonomy/gate";
 vi.mock("@/lib/auth/roles", () => ({ getCurrentDbUser: vi.fn() }));
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: table-wide AI Coach state; runs alone. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("exclusive");
 const authMock = vi.mocked(getCurrentDbUser);
 
 const intake = {

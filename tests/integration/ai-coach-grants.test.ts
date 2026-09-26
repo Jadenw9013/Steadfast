@@ -33,10 +33,13 @@ import { resolveAiSafety } from "@/lib/ai-coach/safety-resolution";
 import { lockAiClient } from "@/lib/ai-coach/access";
 import { getClientProvider } from "@/lib/queries/client-provider";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: table-wide AI Coach state; runs alone. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("exclusive");
 
 suite("T-995 — AI Coach grant provisioning (lib/ai-coach/grants.ts)", () => {
   afterAll(() => db.$disconnect());

@@ -5,9 +5,12 @@ import { collectEvidence, evidenceIsCurrent } from "@/lib/ai-coach/evidence-snap
 import { submitAiCheckIn } from "@/lib/check-ins/ai-observation";
 import { lockAiClient } from "@/lib/ai-coach/access";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 suite("frozen evidence references", () => {
   beforeEach(() => vi.stubEnv("AI_COACH_FIXTURE_MODE", "true")); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() {
