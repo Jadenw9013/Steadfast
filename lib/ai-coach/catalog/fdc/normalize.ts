@@ -31,6 +31,45 @@ export type NormalizedFdcRecord = {
   portions: NormalizedFdcPortion[];
 };
 
+/**
+ * The record's own `foodCategory`, verbatim, or `null` when it carries none.
+ *
+ * Shaped differently in the two endpoints this pipeline reads, which is why it
+ * is one function rather than two copies: `/food/{id}` returns an object
+ * (`{ id, code, description }`) and `/foods/search` returns the description as
+ * a bare string. `--propose` reads the search shape and `--ingest` reads the
+ * record shape, and T-2016 derives `patternTags` and `categoryId` from this
+ * value, so the two must not disagree about what "no category" looks like.
+ */
+export function readFdcFoodCategory(raw: unknown): string | null {
+  if (!raw || typeof raw !== "object") return null;
+  const record = raw as Record<string, unknown>;
+
+  let value = "";
+  if (typeof record.foodCategory === "string") {
+    value = record.foodCategory.trim();
+  } else if (
+    record.foodCategory &&
+    typeof record.foodCategory === "object" &&
+    "description" in record.foodCategory &&
+    typeof (record.foodCategory as { description: unknown }).description === "string"
+  ) {
+    value = (record.foodCategory as { description: string }).description.trim();
+  } else if (
+    record.wweiaFoodCategory &&
+    typeof record.wweiaFoodCategory === "object" &&
+    "wweiaFoodCategoryDescription" in record.wweiaFoodCategory &&
+    typeof (record.wweiaFoodCategory as { wweiaFoodCategoryDescription: unknown })
+      .wweiaFoodCategoryDescription === "string"
+  ) {
+    value = (
+      record.wweiaFoodCategory as { wweiaFoodCategoryDescription: string }
+    ).wweiaFoodCategoryDescription.trim();
+  }
+
+  return value.length > 0 ? value : null;
+}
+
 export function normalizeFdcRecord(raw: unknown): NormalizedFdcRecord {
   if (!raw || typeof raw !== "object") {
     throw new Error("Invalid FDC record: expected an object");
@@ -54,27 +93,7 @@ export function normalizeFdcRecord(raw: unknown): NormalizedFdcRecord {
     throw new Error("Missing or invalid required field 'publicationDate'");
   }
 
-  let foodCategory = "";
-  if (typeof record.foodCategory === "string") {
-    foodCategory = record.foodCategory.trim();
-  } else if (
-    record.foodCategory &&
-    typeof record.foodCategory === "object" &&
-    "description" in record.foodCategory &&
-    typeof (record.foodCategory as { description: unknown }).description === "string"
-  ) {
-    foodCategory = (record.foodCategory as { description: string }).description.trim();
-  } else if (
-    record.wweiaFoodCategory &&
-    typeof record.wweiaFoodCategory === "object" &&
-    "wweiaFoodCategoryDescription" in record.wweiaFoodCategory &&
-    typeof (record.wweiaFoodCategory as { wweiaFoodCategoryDescription: unknown })
-      .wweiaFoodCategoryDescription === "string"
-  ) {
-    foodCategory = (
-      record.wweiaFoodCategory as { wweiaFoodCategoryDescription: string }
-    ).wweiaFoodCategoryDescription.trim();
-  }
+  const foodCategory = readFdcFoodCategory(record) ?? "";
 
   let ingredientStatement: string | null = null;
   if (typeof record.ingredients === "string" && record.ingredients.trim()) {

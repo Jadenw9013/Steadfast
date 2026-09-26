@@ -60,10 +60,14 @@ function entryFor(
     dataType: norm.dataType === "SR Legacy" ? "SR Legacy" : "Foundation",
     canonicalName: norm.description,
     synonyms: [],
+    sourceFoodCategory: null,
     categoryId: "VEGETABLE",
+    categoryIdBasis: "COVERAGE_PLAN_SEARCH_TERM",
     foodState: "RAW",
-    singleIngredientWholeFood: true,
     patternTags: ["OMNIVORE"],
+    patternTagsBasis: "FALLBACK_OMNIVORE_ONLY",
+    patternTagsNarrowedBy: [],
+    triageFlags: [],
     ownAllergenCategories: [],
     reviewState: "PROPOSED",
     reviewerNote: null,
@@ -114,37 +118,48 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
    * UNKNOWN. Before this rewrite the shipped artifact asserted 2,119
    * VERIFIED_ABSENT facts out of 2,340 (board/evidence/T-2035.md).
    */
-  it("No fixture yields VERIFIED_ABSENT for any category, under any entry flags", () => {
+  it("No fixture yields VERIFIED_ABSENT for any category, under any curation fields", () => {
     for (const file of ALL_FOOD_FIXTURES) {
       const norm = normalizeFdcRecord(loadFixture(file));
-      for (const singleIngredientWholeFood of [true, false]) {
-        const facts = proposeAllergenFacts(
-          entryFor(norm, { singleIngredientWholeFood }),
-          norm,
-          "2026-09-26T00:00:00.000Z"
-        );
-        for (const fact of facts.categories) {
-          expect(fact.presence).not.toBe("VERIFIED_ABSENT");
-          expect(["PRESENT", "UNKNOWN"]).toContain(fact.presence);
-        }
+      const facts = proposeAllergenFacts(entryFor(norm), norm, "2026-09-26T00:00:00.000Z");
+      for (const fact of facts.categories) {
+        expect(fact.presence).not.toBe("VERIFIED_ABSENT");
+        expect(["PRESENT", "UNKNOWN"]).toContain(fact.presence);
       }
     }
   });
 
-  it("singleIngredientWholeFood no longer changes a single fact", () => {
+  /**
+   * T-2016 replaces the old "the deleted single-ingredient flag no longer
+   * changes a single fact" case with its generalised form, because that field is
+   * now gone from the schema entirely. The only entry fields the allergen rule
+   * may read are the ones that name the food (`canonicalName`, `synonyms`) and
+   * the curator's explicit declaration (`ownAllergenCategories`). The curation
+   * values T-2016 derives from the USDA food category — `sourceFoodCategory`,
+   * `categoryId`, `patternTags`, the triage flags — must change no allergen
+   * fact, which is what keeps the food category out of the allergen rule
+   * (review r2 MB-2) now that another module reads it.
+   */
+  it("no curation field on the entry changes a single allergen fact", () => {
+    const variants: Array<Partial<AllowlistEntry>> = [
+      { sourceFoodCategory: "Finfish and Shellfish Products" },
+      { sourceFoodCategory: "Dairy and Egg Products" },
+      { sourceFoodCategory: "Cereal Grains and Pasta" },
+      { categoryId: "SEAFOOD", categoryIdBasis: "SOURCE_FOOD_CATEGORY" },
+      { patternTags: ["VEGAN"], patternTagsBasis: "REVIEWER_SET" },
+      { foodState: "PREPARED" },
+      { triageFlags: ["DESCRIPTION_CARRIES_AN_ALL_CAPS_BRAND_TOKEN"] },
+    ];
+
     for (const file of ALL_FOOD_FIXTURES) {
       const norm = normalizeFdcRecord(loadFixture(file));
-      const withFlag = proposeAllergenFacts(
-        entryFor(norm, { singleIngredientWholeFood: true }),
-        norm,
-        "2026-09-26T00:00:00.000Z"
-      );
-      const withoutFlag = proposeAllergenFacts(
-        entryFor(norm, { singleIngredientWholeFood: false }),
-        norm,
-        "2026-09-26T00:00:00.000Z"
-      );
-      expect(withFlag).toEqual(withoutFlag);
+      const baseline = proposeAllergenFacts(entryFor(norm), norm, "2026-09-26T00:00:00.000Z");
+      for (const overrides of variants) {
+        expect(
+          proposeAllergenFacts(entryFor(norm, overrides), norm, "2026-09-26T00:00:00.000Z"),
+          `${file} with ${JSON.stringify(overrides)}`
+        ).toEqual(baseline);
+      }
     }
   });
 
@@ -181,7 +196,7 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
     const norm = normalizeFdcRecord(loadFixture("multi-ingredient.json"));
     expect(norm.hasInputFoods).toBe(true);
     const facts = proposeAllergenFacts(
-      entryFor(norm, { canonicalName: "Synthetic Mixed Item", singleIngredientWholeFood: false }),
+      entryFor(norm, { canonicalName: "Synthetic Mixed Item" }),
       norm,
       "2026-09-26T00:00:00.000Z"
     );
@@ -192,7 +207,7 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
     }
   });
 
-  it("A spice-category record flagged singleIngredientWholeFood yields UNKNOWN for MILK, SESAME and TREE_NUT", () => {
+  it("A spice-category record yields UNKNOWN for MILK, SESAME and TREE_NUT", () => {
     // Previously MILK read VERIFIED_ABSENT here because "spices and herbs" sat
     // in the single-ingredient category set. A spice record states nothing
     // about milk.
@@ -211,7 +226,6 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
         canonicalName: "Synthetic Seasoning",
         categoryId: "CONDIMENT_AND_SEASONING",
         foodState: "NOT_APPLICABLE",
-        singleIngredientWholeFood: true,
       }),
       norm,
       "2026-09-26T00:00:00.000Z"
@@ -241,7 +255,6 @@ describe("T-2035 — FDC allergen tri-state rules (fail closed)", () => {
         canonicalName: "Synthetic Whole-Wheat Commercial Bread",
         categoryId: "GRAIN_STARCH",
         foodState: "PREPARED",
-        singleIngredientWholeFood: true,
       }),
       norm,
       "2026-09-26T00:00:00.000Z"

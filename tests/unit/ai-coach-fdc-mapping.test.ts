@@ -39,10 +39,17 @@ const mockAllowlistEntry: AllowlistEntry = {
   dataType: "Foundation",
   canonicalName: "Synthetic Plant Item, Raw",
   synonyms: ["synthetic plant item"],
+  // The synthetic fixtures carry a "SYNTHETIC CATEGORY - ..." string, which no
+  // derivation table recognises; these tags are the reviewer's, which is the
+  // only basis that may name a pattern the category did not establish.
+  sourceFoodCategory: "SYNTHETIC CATEGORY - plant item",
   categoryId: "VEGETABLE",
+  categoryIdBasis: "REVIEWER_SET",
   foodState: "RAW",
-  singleIngredientWholeFood: true,
   patternTags: ["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"],
+  patternTagsBasis: "REVIEWER_SET",
+  patternTagsNarrowedBy: [],
+  triageFlags: [],
   ownAllergenCategories: [],
   reviewState: "PROPOSED",
   reviewerNote: null,

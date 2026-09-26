@@ -11,6 +11,8 @@ import {
   mapFdcRecordToCatalogItem,
   redactUrl,
 } from "../lib/ai-coach/catalog/fdc/mapping";
+import { readFdcFoodCategory } from "../lib/ai-coach/catalog/fdc/normalize";
+import { proposeCuration, TRIAGE_FLAGS } from "../lib/ai-coach/catalog/fdc/curation";
 import {
   foodCatalogContentSchema,
   type SourcedFoodCatalogItem,
@@ -188,6 +190,9 @@ async function main(): Promise<void> {
               fdcId: number;
               description: string;
               dataType: "Foundation" | "SR Legacy";
+              // `/foods/search` carries the category as a bare string; read via
+              // readFdcFoodCategory so both endpoints are read one way.
+              foodCategory?: unknown;
             }>;
           };
 
@@ -203,15 +208,48 @@ async function main(): Promise<void> {
               seenFdcIds.add(food.fdcId);
               seenNames.add(lowerName);
 
+              // T-2016: `patternTags` and `categoryId` are derived from the
+              // record's own USDA food category, so the derivation needs that
+              // category. The search response usually carries it; when it does
+              // not, fetch the record rather than fall back silently, because a
+              // missing category means omnivore-only for that entry and an
+              // empty catalog for a vegan client is the defect this replaces.
+              let sourceFoodCategory = readFdcFoodCategory(food);
+              if (sourceFoodCategory === null) {
+                await sleep(250);
+                try {
+                  const detail = await fetchWithRetry(
+                    `https://api.nal.usda.gov/fdc/v1/food/${food.fdcId}?api_key=${API_KEY}`
+                  );
+                  sourceFoodCategory = readFdcFoodCategory(detail);
+                } catch (err) {
+                  safeError(
+                    `Could not read a food category for ${food.fdcId} ${canonicalName}: ` +
+                      `${err instanceof Error ? err.message : String(err)}. ` +
+                      `Its pattern tags fall back to omnivore-only.`
+                  );
+                }
+              }
+
+              const curation = proposeCuration({
+                description: canonicalName,
+                foodCategory: sourceFoodCategory,
+                planCategoryId: cat.categoryId,
+              });
+
               entries.push({
                 fdcId: food.fdcId,
                 dataType: food.dataType,
                 canonicalName,
                 synonyms: [canonicalName.toLowerCase()],
-                categoryId: cat.categoryId,
+                sourceFoodCategory,
+                categoryId: curation.categoryId,
+                categoryIdBasis: curation.categoryIdBasis,
                 foodState: canonicalName.toLowerCase().includes("raw") ? "RAW" : "COOKED",
-                singleIngredientWholeFood: true,
-                patternTags: ["OMNIVORE"],
+                patternTags: curation.patternTags,
+                patternTagsBasis: curation.patternTagsBasis,
+                patternTagsNarrowedBy: curation.patternTagsNarrowedBy,
+                triageFlags: curation.triageFlags,
                 ownAllergenCategories: [],
                 reviewState: "PROPOSED",
                 reviewerNote: null,
@@ -224,6 +262,57 @@ async function main(): Promise<void> {
           safeError(`Error searching for term '${term}': ${err instanceof Error ? err.message : String(err)}`);
         }
       }
+    }
+
+    // What the derivation actually produced, printed so an operator sees it
+    // without diffing the file. `patternTags` reaching a client is T-2036's
+    // concern; that every entry is omnivore-only is this ticket's defect, so it
+    // is reported at the end of every run.
+    const countBy = <K extends string>(values: readonly K[]): Map<K, number> => {
+      const counts = new Map<K, number>();
+      for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+      return counts;
+    };
+    const patternBases = countBy(entries.map((e) => e.patternTagsBasis));
+    const categoryBases = countBy(entries.map((e) => e.categoryIdBasis));
+    const withoutSourceCategory = entries.filter((e) => e.sourceFoodCategory === null).length;
+
+    safeLog("Curation derived from each record's own USDA food category:");
+    for (const [basis, count] of [...patternBases].sort()) {
+      safeLog(`  patternTagsBasis ${basis}: ${count}`);
+    }
+    for (const [basis, count] of [...categoryBases].sort()) {
+      safeLog(`  categoryIdBasis ${basis}: ${count}`);
+    }
+    for (const pattern of ["VEGAN", "LACTO_OVO_VEGETARIAN", "PESCATARIAN", "OMNIVORE"] as const) {
+      const count = entries.filter((e) => e.patternTags.includes(pattern)).length;
+      safeLog(`  entries tagged ${pattern}: ${count}`);
+    }
+    safeLog(`  entries with no food category on the record: ${withoutSourceCategory}`);
+    const narrowed = entries.filter((e) => e.patternTagsNarrowedBy.length > 0);
+    safeLog(`  entries narrowed by their own description: ${narrowed.length}`);
+    for (const entry of narrowed) {
+      safeLog(
+        `    ${entry.fdcId} ${entry.canonicalName} -> [${entry.patternTags.join(",")}] ` +
+          `(narrowed by ${entry.patternTagsNarrowedBy.join(", ")})`
+      );
+    }
+    for (const flag of TRIAGE_FLAGS) {
+      const count = entries.filter((e) => e.triageFlags.includes(flag)).length;
+      if (count > 0) safeLog(`  triageFlag ${flag}: ${count}`);
+    }
+
+    // If no entry carried a food category, nothing was derived from the source
+    // at all and every entry is omnivore-only — the exact state T-2016 exists to
+    // remove, and silent because the file still parses. Refuse instead.
+    if (entries.length > 0 && withoutSourceCategory === entries.length) {
+      safeError(
+        `None of the ${entries.length} proposed entries carried a USDA food category, so no ` +
+          `patternTags or categoryId could be derived from the source and every entry would be ` +
+          `omnivore-only. That is the defect T-2016 removed, so nothing was written. Check the ` +
+          `search response shape before re-running.`
+      );
+      process.exit(1);
     }
 
     const proposedAllowlist = {
@@ -411,6 +500,15 @@ async function main(): Promise<void> {
           `${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> STALE EXCLUSION (maps successfully)`
         );
         continue;
+      }
+
+      // Warnings are not refusals, but an invisible warning is not a warning.
+      // ENTRY_SOURCE_CATEGORY_MISMATCH means the entry's derived patternTags and
+      // categoryId came from a different category than the record carries.
+      for (const warning of mapResult.warnings) {
+        safeLog(
+          `${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> WARN:${warning.code}: ${warning.message}`
+        );
       }
 
       safeLog(`${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> OK`);
