@@ -1,0 +1,81 @@
+{
+  "planVersion": 1,
+  "market": "US",
+  "categories": [
+    {
+      "categoryId": "VEGETABLES",
+      "targetCount": 40,
+      "searchTerms": [
+        "broccoli", "spinach", "carrots", "kale", "bell pepper", "tomato",
+        "zucchini", "cauliflower", "sweet potato", "onion", "cucumber",
+        "green beans", "asparagus", "brussels sprouts", "mushrooms", "lettuce"
+      ]
+    },
+    {
+      "categoryId": "FRUITS",
+      "targetCount": 30,
+      "searchTerms": [
+        "apple", "banana", "orange", "strawberries", "blueberries", "grapes",
+        "pineapple", "mango", "pear", "peach", "watermelon", "avocado"
+      ]
+    },
+    {
+      "categoryId": "GRAINS_STARCHES",
+      "targetCount": 30,
+      "searchTerms": [
+        "brown rice", "white rice", "oats", "quinoa", "pasta", "whole wheat bread",
+        "potato", "couscous", "barley", "tortilla", "bulgur", "buckwheat"
+      ]
+    },
+    {
+      "categoryId": "LEGUMES",
+      "targetCount": 20,
+      "searchTerms": [
+        "black beans", "chickpeas", "lentils", "kidney beans", "pinto beans",
+        "soybeans", "green peas", "edamame"
+      ]
+    },
+    {
+      "categoryId": "POULTRY_AND_MEAT",
+      "targetCount": 30,
+      "searchTerms": [
+        "chicken breast", "chicken thigh", "turkey breast", "ground beef",
+        "beef steak", "pork loin", "lamb", "ground turkey", "beef sirloin", "pork chop"
+      ]
+    },
+    {
+      "categoryId": "SEAFOOD",
+      "targetCount": 25,
+      "searchTerms": [
+        "salmon", "tuna", "cod", "shrimp", "tilapia", "sardines",
+        "mackerel", "halibut", "trout"
+      ]
+    },
+    {
+      "categoryId": "DAIRY",
+      "targetCount": 25,
+      "searchTerms": [
+        "milk", "yogurt", "greek yogurt", "cheddar cheese", "cottage cheese",
+        "mozzarella", "butter", "cream cheese"
+      ]
+    },
+    {
+      "categoryId": "EGGS",
+      "targetCount": 8,
+      "searchTerms": ["whole egg", "egg white", "egg yolk"]
+    },
+    {
+      "categoryId": "NUTS_AND_SEEDS",
+      "targetCount": 22,
+      "searchTerms": [
+        "almonds", "walnuts", "peanuts", "cashews", "pistachios", "chia seeds",
+        "flaxseed", "sunflower seeds", "pumpkin seeds", "peanut butter"
+      ]
+    },
+    {
+      "categoryId": "FATS_AND_OILS",
+      "targetCount": 15,
+      "searchTerms": ["olive oil", "canola oil", "coconut oil", "avocado oil", "sesame oil"]
+    }
+  ]
+}

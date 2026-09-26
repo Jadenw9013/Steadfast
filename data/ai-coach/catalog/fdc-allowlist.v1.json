@@ -1,0 +1,4174 @@
+{
+  "allowlistVersion": 1,
+  "market": "US",
+  "curationState": "ENGINEER_DRAFT",
+  "generatedAt": "2026-09-26T08:37:06.819Z",
+  "coveragePlanDigest": "09ae30c7a5739e4c1af3c6814977c255c790905a1fc02cc24faf16da03f9fe91",
+  "entries": [
+    {
+      "fdcId": 747447,
+      "dataType": "Foundation",
+      "canonicalName": "Broccoli, raw",
+      "synonyms": [
+        "broccoli, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170382,
+      "dataType": "SR Legacy",
+      "canonicalName": "Broccoli raab, cooked",
+      "synonyms": [
+        "broccoli raab, cooked"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170381,
+      "dataType": "SR Legacy",
+      "canonicalName": "Broccoli raab, raw",
+      "synonyms": [
+        "broccoli raab, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169392,
+      "dataType": "SR Legacy",
+      "canonicalName": "Broccoli, chinese, cooked",
+      "synonyms": [
+        "broccoli, chinese, cooked"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170494,
+      "dataType": "SR Legacy",
+      "canonicalName": "Spinach souffle",
+      "synonyms": [
+        "spinach souffle"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 1999632,
+      "dataType": "Foundation",
+      "canonicalName": "Spinach, baby",
+      "synonyms": [
+        "spinach, baby"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 1999633,
+      "dataType": "Foundation",
+      "canonicalName": "Spinach, mature",
+      "synonyms": [
+        "spinach, mature"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168462,
+      "dataType": "SR Legacy",
+      "canonicalName": "Spinach, raw",
+      "synonyms": [
+        "spinach, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169400,
+      "dataType": "SR Legacy",
+      "canonicalName": "Malabar spinach, cooked",
+      "synonyms": [
+        "malabar spinach, cooked"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170500,
+      "dataType": "SR Legacy",
+      "canonicalName": "Carrot, dehydrated",
+      "synonyms": [
+        "carrot, dehydrated"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170393,
+      "dataType": "SR Legacy",
+      "canonicalName": "Carrots, raw",
+      "synonyms": [
+        "carrots, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169871,
+      "dataType": "SR Legacy",
+      "canonicalName": "Babyfood, carrots, toddler",
+      "synonyms": [
+        "babyfood, carrots, toddler"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170491,
+      "dataType": "SR Legacy",
+      "canonicalName": "Carrot juice, canned",
+      "synonyms": [
+        "carrot juice, canned"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2258587,
+      "dataType": "Foundation",
+      "canonicalName": "Carrots, baby, raw",
+      "synonyms": [
+        "carrots, baby, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168421,
+      "dataType": "SR Legacy",
+      "canonicalName": "Kale, raw",
+      "synonyms": [
+        "kale, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169239,
+      "dataType": "SR Legacy",
+      "canonicalName": "Kale, frozen, unprepared",
+      "synonyms": [
+        "kale, frozen, unprepared"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169355,
+      "dataType": "SR Legacy",
+      "canonicalName": "Kale, cooked, boiled, drained, with salt",
+      "synonyms": [
+        "kale, cooked, boiled, drained, with salt"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169238,
+      "dataType": "SR Legacy",
+      "canonicalName": "Kale, cooked, boiled, drained, without salt",
+      "synonyms": [
+        "kale, cooked, boiled, drained, without salt"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2258588,
+      "dataType": "Foundation",
+      "canonicalName": "Peppers, bell, green, raw",
+      "synonyms": [
+        "peppers, bell, green, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2258591,
+      "dataType": "Foundation",
+      "canonicalName": "Peppers, bell, orange, raw",
+      "synonyms": [
+        "peppers, bell, orange, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2258590,
+      "dataType": "Foundation",
+      "canonicalName": "Peppers, bell, red, raw",
+      "synonyms": [
+        "peppers, bell, red, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2258589,
+      "dataType": "Foundation",
+      "canonicalName": "Peppers, bell, yellow, raw",
+      "synonyms": [
+        "peppers, bell, yellow, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 170336,
+      "dataType": "SR Legacy",
+      "canonicalName": "TACO BELL, Nachos",
+      "synonyms": [
+        "taco bell, nachos"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170461,
+      "dataType": "SR Legacy",
+      "canonicalName": "Tomato powder",
+      "synonyms": [
+        "tomato powder"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 1999634,
+      "dataType": "Foundation",
+      "canonicalName": "Tomato, roma",
+      "synonyms": [
+        "tomato, roma"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 170463,
+      "dataType": "SR Legacy",
+      "canonicalName": "Tomato products, canned, sauce, with tomato tidbits",
+      "synonyms": [
+        "tomato products, canned, sauce, with tomato tidbits"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170051,
+      "dataType": "SR Legacy",
+      "canonicalName": "Tomatoes, red, ripe, canned, packed in tomato juice",
+      "synonyms": [
+        "tomatoes, red, ripe, canned, packed in tomato juice"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2685582,
+      "dataType": "Foundation",
+      "canonicalName": "Tomato, puree, canned",
+      "synonyms": [
+        "tomato, puree, canned"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168565,
+      "dataType": "SR Legacy",
+      "canonicalName": "Squash, zucchini, baby, raw",
+      "synonyms": [
+        "squash, zucchini, baby, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169291,
+      "dataType": "SR Legacy",
+      "canonicalName": "Squash, summer, zucchini, includes skin, raw",
+      "synonyms": [
+        "squash, summer, zucchini, includes skin, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168471,
+      "dataType": "SR Legacy",
+      "canonicalName": "Squash, summer, zucchini, italian style, canned",
+      "synonyms": [
+        "squash, summer, zucchini, italian style, canned"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2685568,
+      "dataType": "Foundation",
+      "canonicalName": "Squash, summer, green, zucchini, includes skin, raw",
+      "synonyms": [
+        "squash, summer, green, zucchini, includes skin, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168469,
+      "dataType": "SR Legacy",
+      "canonicalName": "Squash, summer, zucchini, includes skin, frozen, unprepared",
+      "synonyms": [
+        "squash, summer, zucchini, includes skin, frozen, unprepared"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2685573,
+      "dataType": "Foundation",
+      "canonicalName": "Cauliflower, raw",
+      "synonyms": [
+        "cauliflower, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 170398,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cauliflower, frozen, unprepared",
+      "synonyms": [
+        "cauliflower, frozen, unprepared"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169389,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cauliflower, green, raw",
+      "synonyms": [
+        "cauliflower, green, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169391,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cauliflower, green, cooked, with salt",
+      "synonyms": [
+        "cauliflower, green, cooked, with salt"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169303,
+      "dataType": "SR Legacy",
+      "canonicalName": "Sweet potato leaves, raw",
+      "synonyms": [
+        "sweet potato leaves, raw"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169305,
+      "dataType": "SR Legacy",
+      "canonicalName": "Sweet potato, canned, mashed",
+      "synonyms": [
+        "sweet potato, canned, mashed"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172317,
+      "dataType": "SR Legacy",
+      "canonicalName": "Babyfood, corn and sweet potatoes, strained",
+      "synonyms": [
+        "babyfood, corn and sweet potatoes, strained"
+      ],
+      "categoryId": "VEGETABLES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174988,
+      "dataType": "SR Legacy",
+      "canonicalName": "Croissants, apple",
+      "synonyms": [
+        "croissants, apple"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175032,
+      "dataType": "SR Legacy",
+      "canonicalName": "Strudel, apple",
+      "synonyms": [
+        "strudel, apple"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170959,
+      "dataType": "SR Legacy",
+      "canonicalName": "Babyfood, juice, apple",
+      "synonyms": [
+        "babyfood, juice, apple"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168816,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fruit butters, apple",
+      "synonyms": [
+        "fruit butters, apple"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168171,
+      "dataType": "SR Legacy",
+      "canonicalName": "Rose-apples, raw",
+      "synonyms": [
+        "rose-apples, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173945,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bananas, dehydrated, or banana powder",
+      "synonyms": [
+        "bananas, dehydrated, or banana powder"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173944,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bananas, raw",
+      "synonyms": [
+        "bananas, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 1105073,
+      "dataType": "Foundation",
+      "canonicalName": "Bananas, overripe, raw",
+      "synonyms": [
+        "bananas, overripe, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167629,
+      "dataType": "SR Legacy",
+      "canonicalName": "Melon, banana (Navajo)",
+      "synonyms": [
+        "melon, banana (navajo)"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169394,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pepper, banana, raw",
+      "synonyms": [
+        "pepper, banana, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168819,
+      "dataType": "SR Legacy",
+      "canonicalName": "Marmalade, orange",
+      "synonyms": [
+        "marmalade, orange"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167577,
+      "dataType": "SR Legacy",
+      "canonicalName": "Sherbet, orange",
+      "synonyms": [
+        "sherbet, orange"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171354,
+      "dataType": "SR Legacy",
+      "canonicalName": "Babyfood, juice, orange",
+      "synonyms": [
+        "babyfood, juice, orange"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174854,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beverages, carbonated, orange",
+      "synonyms": [
+        "beverages, carbonated, orange"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169103,
+      "dataType": "SR Legacy",
+      "canonicalName": "Orange peel, raw",
+      "synonyms": [
+        "orange peel, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167762,
+      "dataType": "SR Legacy",
+      "canonicalName": "Strawberries, raw",
+      "synonyms": [
+        "strawberries, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168758,
+      "dataType": "SR Legacy",
+      "canonicalName": "Toppings, strawberry",
+      "synonyms": [
+        "toppings, strawberry"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173045,
+      "dataType": "SR Legacy",
+      "canonicalName": "Guavas, strawberry, raw",
+      "synonyms": [
+        "guavas, strawberry, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168810,
+      "dataType": "SR Legacy",
+      "canonicalName": "Ice creams, strawberry",
+      "synonyms": [
+        "ice creams, strawberry"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2346411,
+      "dataType": "Foundation",
+      "canonicalName": "Blueberries, raw",
+      "synonyms": [
+        "blueberries, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168158,
+      "dataType": "SR Legacy",
+      "canonicalName": "Blueberries, dried, sweetened",
+      "synonyms": [
+        "blueberries, dried, sweetened"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173951,
+      "dataType": "SR Legacy",
+      "canonicalName": "Blueberries, frozen, sweetened",
+      "synonyms": [
+        "blueberries, frozen, sweetened"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172766,
+      "dataType": "SR Legacy",
+      "canonicalName": "Muffins, blueberry, dry mix",
+      "synonyms": [
+        "muffins, blueberry, dry mix"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169393,
+      "dataType": "SR Legacy",
+      "canonicalName": "Grape leaves, canned",
+      "synonyms": [
+        "grape leaves, canned"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168575,
+      "dataType": "SR Legacy",
+      "canonicalName": "Grape leaves, raw",
+      "synonyms": [
+        "grape leaves, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173040,
+      "dataType": "SR Legacy",
+      "canonicalName": "Grapes, muscadine, raw",
+      "synonyms": [
+        "grapes, muscadine, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 321360,
+      "dataType": "Foundation",
+      "canonicalName": "Tomatoes, grape, raw",
+      "synonyms": [
+        "tomatoes, grape, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171381,
+      "dataType": "SR Legacy",
+      "canonicalName": "Babyfood, juice, apple and grape",
+      "synonyms": [
+        "babyfood, juice, apple and grape"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2346398,
+      "dataType": "Foundation",
+      "canonicalName": "Pineapple, raw",
+      "synonyms": [
+        "pineapple, raw"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 169665,
+      "dataType": "SR Legacy",
+      "canonicalName": "Toppings, pineapple",
+      "synonyms": [
+        "toppings, pineapple"
+      ],
+      "categoryId": "FRUITS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 1104812,
+      "dataType": "Foundation",
+      "canonicalName": "Flour, rice, brown",
+      "synonyms": [
+        "flour, rice, brown"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168898,
+      "dataType": "SR Legacy",
+      "canonicalName": "Rice flour, brown",
+      "synonyms": [
+        "rice flour, brown"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167967,
+      "dataType": "SR Legacy",
+      "canonicalName": "Snacks, rice cakes, brown rice, buckwheat",
+      "synonyms": [
+        "snacks, rice cakes, brown rice, buckwheat"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169679,
+      "dataType": "SR Legacy",
+      "canonicalName": "Snacks, rice cakes, brown rice, corn",
+      "synonyms": [
+        "snacks, rice cakes, brown rice, corn"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169680,
+      "dataType": "SR Legacy",
+      "canonicalName": "Snacks, rice cakes, brown rice, multigrain",
+      "synonyms": [
+        "snacks, rice cakes, brown rice, multigrain"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 790214,
+      "dataType": "Foundation",
+      "canonicalName": "Flour, rice, white, unenriched",
+      "synonyms": [
+        "flour, rice, white, unenriched"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169714,
+      "dataType": "SR Legacy",
+      "canonicalName": "Rice flour, white, unenriched",
+      "synonyms": [
+        "rice flour, white, unenriched"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169711,
+      "dataType": "SR Legacy",
+      "canonicalName": "Rice, white, glutinous, unenriched, cooked",
+      "synonyms": [
+        "rice, white, glutinous, unenriched, cooked"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168883,
+      "dataType": "SR Legacy",
+      "canonicalName": "Rice, white, glutinous, unenriched, uncooked",
+      "synonyms": [
+        "rice, white, glutinous, unenriched, uncooked"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169712,
+      "dataType": "SR Legacy",
+      "canonicalName": "Rice, white, steamed, Chinese restaurant",
+      "synonyms": [
+        "rice, white, steamed, chinese restaurant"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173576,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, oat",
+      "synonyms": [
+        "oil, oat"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172666,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bagels, oat bran",
+      "synonyms": [
+        "bagels, oat bran"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172676,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bread, oat bran",
+      "synonyms": [
+        "bread, oat bran"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172769,
+      "dataType": "SR Legacy",
+      "canonicalName": "Muffins, oat bran",
+      "synonyms": [
+        "muffins, oat bran"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168873,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oat bran, cooked",
+      "synonyms": [
+        "oat bran, cooked"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168917,
+      "dataType": "SR Legacy",
+      "canonicalName": "Quinoa, cooked",
+      "synonyms": [
+        "quinoa, cooked"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168874,
+      "dataType": "SR Legacy",
+      "canonicalName": "Quinoa, uncooked",
+      "synonyms": [
+        "quinoa, uncooked"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2512372,
+      "dataType": "Foundation",
+      "canonicalName": "Flour, quinoa",
+      "synonyms": [
+        "flour, quinoa"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 172027,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pasta, gluten-free, corn flour and quinoa flour, cooked, ANCIENT HARVEST",
+      "synonyms": [
+        "pasta, gluten-free, corn flour and quinoa flour, cooked, ancient harvest"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169736,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pasta, dry, enriched",
+      "synonyms": [
+        "pasta, dry, enriched"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168927,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pasta, dry, unenriched",
+      "synonyms": [
+        "pasta, dry, unenriched"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172266,
+      "dataType": "SR Legacy",
+      "canonicalName": "Babyfood, dinner, pasta with vegetables",
+      "synonyms": [
+        "babyfood, dinner, pasta with vegetables"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2758998,
+      "dataType": "Foundation",
+      "canonicalName": "Pasta, dry, enriched, spaghetti",
+      "synonyms": [
+        "pasta, dry, enriched, spaghetti"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168954,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pasta mix, classic beef, unprepared",
+      "synonyms": [
+        "pasta mix, classic beef, unprepared"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174916,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bread, pita, whole-wheat",
+      "synonyms": [
+        "bread, pita, whole-wheat"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2758994,
+      "dataType": "Foundation",
+      "canonicalName": "Bread, 100% whole wheat, commercial",
+      "synonyms": [
+        "bread, 100% whole wheat, commercial"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 174091,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bread, french or vienna, whole wheat",
+      "synonyms": [
+        "bread, french or vienna, whole wheat"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172688,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bread, whole-wheat, commercially prepared",
+      "synonyms": [
+        "bread, whole-wheat, commercially prepared"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172689,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bread, whole-wheat, commercially prepared, toasted",
+      "synonyms": [
+        "bread, whole-wheat, commercially prepared, toasted"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167943,
+      "dataType": "SR Legacy",
+      "canonicalName": "Bread, potato",
+      "synonyms": [
+        "bread, potato"
+      ],
+      "categoryId": "GRAINS_STARCHES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173734,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beans, black, mature seeds, raw",
+      "synonyms": [
+        "beans, black, mature seeds, raw"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 747444,
+      "dataType": "Foundation",
+      "canonicalName": "Beans, Dry, Black (0% moisture)",
+      "synonyms": [
+        "beans, dry, black (0% moisture)"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168068,
+      "dataType": "SR Legacy",
+      "canonicalName": "Restaurant, Latino, black bean soup",
+      "synonyms": [
+        "restaurant, latino, black bean soup"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171141,
+      "dataType": "SR Legacy",
+      "canonicalName": "Soup, black bean, canned, condensed",
+      "synonyms": [
+        "soup, black bean, canned, condensed"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175188,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beans, black turtle, mature seeds, canned",
+      "synonyms": [
+        "beans, black turtle, mature seeds, canned"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174288,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chickpea flour (besan)",
+      "synonyms": [
+        "chickpea flour (besan)"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2644282,
+      "dataType": "Foundation",
+      "canonicalName": "Chickpeas, (garbanzo beans, bengal gram), dry",
+      "synonyms": [
+        "chickpeas, (garbanzo beans, bengal gram), dry"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 173756,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chickpeas (garbanzo beans, bengal gram), mature seeds, raw",
+      "synonyms": [
+        "chickpeas (garbanzo beans, bengal gram), mature seeds, raw"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2644288,
+      "dataType": "Foundation",
+      "canonicalName": "Chickpeas (garbanzo beans, bengal gram), canned, sodium added, drained and rinsed",
+      "synonyms": [
+        "chickpeas (garbanzo beans, bengal gram), canned, sodium added, drained and rinsed"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 173800,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids",
+      "synonyms": [
+        "chickpeas (garbanzo beans, bengal gram), mature seeds, canned, drained solids"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2644283,
+      "dataType": "Foundation",
+      "canonicalName": "Lentils, dry",
+      "synonyms": [
+        "lentils, dry"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 172420,
+      "dataType": "SR Legacy",
+      "canonicalName": "Lentils, raw",
+      "synonyms": [
+        "lentils, raw"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168427,
+      "dataType": "SR Legacy",
+      "canonicalName": "Lentils, sprouted, raw",
+      "synonyms": [
+        "lentils, sprouted, raw"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174284,
+      "dataType": "SR Legacy",
+      "canonicalName": "Lentils, pink or red, raw",
+      "synonyms": [
+        "lentils, pink or red, raw"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171577,
+      "dataType": "SR Legacy",
+      "canonicalName": "SMART SOUP, French Lentil",
+      "synonyms": [
+        "smart soup, french lentil"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169885,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beans, liquid from stewed kidney beans",
+      "synonyms": [
+        "beans, liquid from stewed kidney beans"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169213,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beans, kidney, mature seeds, sprouted, raw",
+      "synonyms": [
+        "beans, kidney, mature seeds, sprouted, raw"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173744,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beans, kidney, red, mature seeds, raw",
+      "synonyms": [
+        "beans, kidney, red, mature seeds, raw"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 747440,
+      "dataType": "Foundation",
+      "canonicalName": "Beans, Dry, Dark Red Kidney (0% moisture)",
+      "synonyms": [
+        "beans, dry, dark red kidney (0% moisture)"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 747438,
+      "dataType": "Foundation",
+      "canonicalName": "Beans, Dry, Light Red Kidney (0% moisture)",
+      "synonyms": [
+        "beans, dry, light red kidney (0% moisture)"
+      ],
+      "categoryId": "LEGUMES",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2759004,
+      "dataType": "Foundation",
+      "canonicalName": "Lunchmeat, chicken breast, sliced",
+      "synonyms": [
+        "lunchmeat, chicken breast, sliced"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 171515,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chicken breast tenders, breaded, uncooked",
+      "synonyms": [
+        "chicken breast tenders, breaded, uncooked"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174608,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chicken breast, roll, oven-roasted",
+      "synonyms": [
+        "chicken breast, roll, oven-roasted"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2646170,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken, breast, boneless, skinless, raw",
+      "synonyms": [
+        "chicken, breast, boneless, skinless, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2727569,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken, breast, meat and skin, raw",
+      "synonyms": [
+        "chicken, breast, meat and skin, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 172855,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chicken, skin (drumsticks and thighs), raw",
+      "synonyms": [
+        "chicken, skin (drumsticks and thighs), raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2646171,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken, thigh, boneless, skinless, raw",
+      "synonyms": [
+        "chicken, thigh, boneless, skinless, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2727567,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken, thigh, meat and skin, raw",
+      "synonyms": [
+        "chicken, thigh, meat and skin, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168961,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chicken, thighs, frozen, breaded, reheated",
+      "synonyms": [
+        "chicken, thighs, frozen, breaded, reheated"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172854,
+      "dataType": "SR Legacy",
+      "canonicalName": "Chicken, skin (drumsticks and thighs), cooked, braised",
+      "synonyms": [
+        "chicken, skin (drumsticks and thighs), cooked, braised"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172941,
+      "dataType": "SR Legacy",
+      "canonicalName": "Turkey breast, sliced, prepackaged",
+      "synonyms": [
+        "turkey breast, sliced, prepackaged"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171098,
+      "dataType": "SR Legacy",
+      "canonicalName": "Turkey, whole, breast, meat only, raw",
+      "synonyms": [
+        "turkey, whole, breast, meat only, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171093,
+      "dataType": "SR Legacy",
+      "canonicalName": "Turkey, all classes, breast, meat and skin, raw",
+      "synonyms": [
+        "turkey, all classes, breast, meat and skin, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171528,
+      "dataType": "SR Legacy",
+      "canonicalName": "Turkey, retail parts, breast, meat and skin, raw",
+      "synonyms": [
+        "turkey, retail parts, breast, meat and skin, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174515,
+      "dataType": "SR Legacy",
+      "canonicalName": "Turkey, retail parts, breast, meat only, raw",
+      "synonyms": [
+        "turkey, retail parts, breast, meat only, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168608,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beef, grass-fed, ground, raw",
+      "synonyms": [
+        "beef, grass-fed, ground, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169447,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beef, ground, patties, frozen, cooked, broiled",
+      "synonyms": [
+        "beef, ground, patties, frozen, cooked, broiled"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172161,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beef, ground, unspecified fat content, cooked",
+      "synonyms": [
+        "beef, ground, unspecified fat content, cooked"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167657,
+      "dataType": "SR Legacy",
+      "canonicalName": "ON THE BORDER, soft taco with ground beef, cheese and lettuce",
+      "synonyms": [
+        "on the border, soft taco with ground beef, cheese and lettuce"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168652,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beef, ground, 70% lean meat / 30% fat, raw",
+      "synonyms": [
+        "beef, ground, 70% lean meat / 30% fat, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2727573,
+      "dataType": "Foundation",
+      "canonicalName": "Beef,\u00a0tenderloin steak, raw",
+      "synonyms": [
+        "beef,\u00a0tenderloin steak, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2727574,
+      "dataType": "Foundation",
+      "canonicalName": "Beef, top sirloin steak, raw",
+      "synonyms": [
+        "beef, top sirloin steak, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2646175,
+      "dataType": "Foundation",
+      "canonicalName": "Beef, flank, steak, boneless, choice, raw",
+      "synonyms": [
+        "beef, flank, steak, boneless, choice, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2646172,
+      "dataType": "Foundation",
+      "canonicalName": "Beef, ribeye, steak, boneless, choice, raw",
+      "synonyms": [
+        "beef, ribeye, steak, boneless, choice, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2727572,
+      "dataType": "Foundation",
+      "canonicalName": "Beef, short loin (NY strip steak), raw",
+      "synonyms": [
+        "beef, short loin (ny strip steak), raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2646168,
+      "dataType": "Foundation",
+      "canonicalName": "Pork, loin, boneless, raw",
+      "synonyms": [
+        "pork, loin, boneless, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2646169,
+      "dataType": "Foundation",
+      "canonicalName": "Pork, loin, tenderloin, boneless, raw",
+      "synonyms": [
+        "pork, loin, tenderloin, boneless, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168320,
+      "dataType": "SR Legacy",
+      "canonicalName": "HORMEL ALWAYS TENDER, Boneless Pork Loin, Fresh Pork",
+      "synonyms": [
+        "hormel always tender, boneless pork loin, fresh pork"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168314,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pork, fresh, loin, top loin (roasts), boneless, separable lean and fat, raw",
+      "synonyms": [
+        "pork, fresh, loin, top loin (roasts), boneless, separable lean and fat, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168315,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pork, fresh, loin, top loin (roasts), boneless, separable lean only, raw",
+      "synonyms": [
+        "pork, fresh, loin, top loin (roasts), boneless, separable lean only, raw"
+      ],
+      "categoryId": "POULTRY_AND_MEAT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172343,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish oil, salmon",
+      "synonyms": [
+        "fish oil, salmon"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173688,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, salmon, chinook, raw",
+      "synonyms": [
+        "fish, salmon, chinook, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173687,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, salmon, chinook, smoked",
+      "synonyms": [
+        "fish, salmon, chinook, smoked"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173689,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, salmon, chum, raw",
+      "synonyms": [
+        "fish, salmon, chum, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175138,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, salmon, pink, raw",
+      "synonyms": [
+        "fish, salmon, pink, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175160,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, tuna salad",
+      "synonyms": [
+        "fish, tuna salad"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173706,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, tuna, fresh, bluefin, raw",
+      "synonyms": [
+        "fish, tuna, fresh, bluefin, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175156,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, tuna, fresh, skipjack, raw",
+      "synonyms": [
+        "fish, tuna, fresh, skipjack, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175159,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, tuna, fresh, yellowfin, raw",
+      "synonyms": [
+        "fish, tuna, fresh, yellowfin, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2747673,
+      "dataType": "Foundation",
+      "canonicalName": "Tuna, ahi or yellowfin, frozen, wild caught",
+      "synonyms": [
+        "tuna, ahi or yellowfin, frozen, wild caught"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 173577,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish oil, cod liver",
+      "synonyms": [
+        "fish oil, cod liver"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171955,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, cod, Atlantic, raw",
+      "synonyms": [
+        "fish, cod, atlantic, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175178,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, cod, Pacific, cooked",
+      "synonyms": [
+        "fish, cod, pacific, cooked"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174190,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, cod, Atlantic, dried and salted",
+      "synonyms": [
+        "fish, cod, atlantic, dried and salted"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2747654,
+      "dataType": "Foundation",
+      "canonicalName": "Cod, Pacific or Alaskan, frozen, wild caught",
+      "synonyms": [
+        "cod, pacific or alaskan, frozen, wild caught"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 175180,
+      "dataType": "SR Legacy",
+      "canonicalName": "Crustaceans, shrimp, cooked",
+      "synonyms": [
+        "crustaceans, shrimp, cooked"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175179,
+      "dataType": "SR Legacy",
+      "canonicalName": "Crustaceans, shrimp, raw",
+      "synonyms": [
+        "crustaceans, shrimp, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173160,
+      "dataType": "SR Legacy",
+      "canonicalName": "Snacks, shrimp cracker",
+      "synonyms": [
+        "snacks, shrimp cracker"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169008,
+      "dataType": "SR Legacy",
+      "canonicalName": "APPLEBEE'S, Double Crunch Shrimp",
+      "synonyms": [
+        "applebee's, double crunch shrimp"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168077,
+      "dataType": "SR Legacy",
+      "canonicalName": "DENNY'S, golden fried shrimp",
+      "synonyms": [
+        "denny's, golden fried shrimp"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175176,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, tilapia, raw",
+      "synonyms": [
+        "fish, tilapia, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175177,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, tilapia, cooked, dry heat",
+      "synonyms": [
+        "fish, tilapia, cooked, dry heat"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2684442,
+      "dataType": "Foundation",
+      "canonicalName": "Fish, tilapia, farm raised, raw",
+      "synonyms": [
+        "fish, tilapia, farm raised, raw"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 173578,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish oil, sardine",
+      "synonyms": [
+        "fish oil, sardine"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 175139,
+      "dataType": "SR Legacy",
+      "canonicalName": "Fish, sardine, Atlantic, canned in oil, drained solids with bone",
+      "synonyms": [
+        "fish, sardine, atlantic, canned in oil, drained solids with bone"
+      ],
+      "categoryId": "SEAFOOD",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 174980,
+      "dataType": "SR Legacy",
+      "canonicalName": "Crackers, milk",
+      "synonyms": [
+        "crackers, milk"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167686,
+      "dataType": "SR Legacy",
+      "canonicalName": "Milk dessert, frozen, milk-fat free, chocolate",
+      "synonyms": [
+        "milk dessert, frozen, milk-fat free, chocolate"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173459,
+      "dataType": "SR Legacy",
+      "canonicalName": "Protein supplement, milk based, Muscle Milk, powder",
+      "synonyms": [
+        "protein supplement, milk based, muscle milk, powder"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171942,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beverages, rice milk, unsweetened",
+      "synonyms": [
+        "beverages, rice milk, unsweetened"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167587,
+      "dataType": "SR Legacy",
+      "canonicalName": "Candies, milk chocolate",
+      "synonyms": [
+        "candies, milk chocolate"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167722,
+      "dataType": "SR Legacy",
+      "canonicalName": "Tofu yogurt",
+      "synonyms": [
+        "tofu yogurt"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 168104,
+      "dataType": "SR Legacy",
+      "canonicalName": "Frozen yogurts, chocolate",
+      "synonyms": [
+        "frozen yogurts, chocolate"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2647437,
+      "dataType": "Foundation",
+      "canonicalName": "Yogurt, plain, nonfat",
+      "synonyms": [
+        "yogurt, plain, nonfat"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168133,
+      "dataType": "SR Legacy",
+      "canonicalName": "Babyfood, dessert, peach yogurt",
+      "synonyms": [
+        "babyfood, dessert, peach yogurt"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167569,
+      "dataType": "SR Legacy",
+      "canonicalName": "Candies, confectioner's coating, yogurt",
+      "synonyms": [
+        "candies, confectioner's coating, yogurt"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170914,
+      "dataType": "SR Legacy",
+      "canonicalName": "Yogurt, Greek, Blueberry, CHOBANI",
+      "synonyms": [
+        "yogurt, greek, blueberry, chobani"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170903,
+      "dataType": "SR Legacy",
+      "canonicalName": "Yogurt, Greek, plain, lowfat",
+      "synonyms": [
+        "yogurt, greek, plain, lowfat"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 330137,
+      "dataType": "Foundation",
+      "canonicalName": "Yogurt, Greek, plain, nonfat",
+      "synonyms": [
+        "yogurt, greek, plain, nonfat"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171300,
+      "dataType": "SR Legacy",
+      "canonicalName": "Yogurt, Greek, strawberry, lowfat",
+      "synonyms": [
+        "yogurt, greek, strawberry, lowfat"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 330415,
+      "dataType": "Foundation",
+      "canonicalName": "Yogurt, Greek, strawberry, nonfat",
+      "synonyms": [
+        "yogurt, greek, strawberry, nonfat"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 328637,
+      "dataType": "Foundation",
+      "canonicalName": "Cheese, cheddar",
+      "synonyms": [
+        "cheese, cheddar"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169901,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cheese, american cheddar, imitation",
+      "synonyms": [
+        "cheese, american cheddar, imitation"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170899,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cheese, cheddar, sharp, sliced",
+      "synonyms": [
+        "cheese, cheddar, sharp, sliced"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171295,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cheese, cheddar, nonfat or fat free",
+      "synonyms": [
+        "cheese, cheddar, nonfat or fat free"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173439,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cheese, low fat, cheddar or colby",
+      "synonyms": [
+        "cheese, low fat, cheddar or colby"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169078,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cheese, cottage, with vegetables",
+      "synonyms": [
+        "cheese, cottage, with vegetables"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172180,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cheese, cottage, creamed, with fruit",
+      "synonyms": [
+        "cheese, cottage, creamed, with fruit"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173417,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cheese, cottage, lowfat, 1% milkfat",
+      "synonyms": [
+        "cheese, cottage, lowfat, 1% milkfat"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 328841,
+      "dataType": "Foundation",
+      "canonicalName": "Cheese, cottage, lowfat, 2% milkfat",
+      "synonyms": [
+        "cheese, cottage, lowfat, 2% milkfat"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169011,
+      "dataType": "SR Legacy",
+      "canonicalName": "APPLEBEE'S, mozzarella sticks",
+      "synonyms": [
+        "applebee's, mozzarella sticks"
+      ],
+      "categoryId": "DAIRY",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 748967,
+      "dataType": "Foundation",
+      "canonicalName": "Eggs, Grade A, Large, egg whole",
+      "synonyms": [
+        "eggs, grade a, large, egg whole"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172188,
+      "dataType": "SR Legacy",
+      "canonicalName": "Egg, whole, dried",
+      "synonyms": [
+        "egg, whole, dried"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173423,
+      "dataType": "SR Legacy",
+      "canonicalName": "Egg, whole, cooked, fried",
+      "synonyms": [
+        "egg, whole, cooked, fried"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172185,
+      "dataType": "SR Legacy",
+      "canonicalName": "Egg, whole, cooked, omelet",
+      "synonyms": [
+        "egg, whole, cooked, omelet"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 747997,
+      "dataType": "Foundation",
+      "canonicalName": "Eggs, Grade A, Large, egg white",
+      "synonyms": [
+        "eggs, grade a, large, egg white"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 323793,
+      "dataType": "Foundation",
+      "canonicalName": "Egg, white, dried",
+      "synonyms": [
+        "egg, white, dried"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172183,
+      "dataType": "SR Legacy",
+      "canonicalName": "Egg, white, raw, fresh",
+      "synonyms": [
+        "egg, white, raw, fresh"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172203,
+      "dataType": "SR Legacy",
+      "canonicalName": "Egg, white, raw, frozen, pasteurized",
+      "synonyms": [
+        "egg, white, raw, frozen, pasteurized"
+      ],
+      "categoryId": "EGGS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2261420,
+      "dataType": "Foundation",
+      "canonicalName": "Flour, almond",
+      "synonyms": [
+        "flour, almond"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 170567,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, almonds",
+      "synonyms": [
+        "nuts, almonds"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171031,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, almond",
+      "synonyms": [
+        "oil, almond"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2262074,
+      "dataType": "Foundation",
+      "canonicalName": "Almond butter, creamy",
+      "synonyms": [
+        "almond butter, creamy"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 169060,
+      "dataType": "SR Legacy",
+      "canonicalName": "Candies, nougat, with almonds",
+      "synonyms": [
+        "candies, nougat, with almonds"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171030,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, walnut",
+      "synonyms": [
+        "oil, walnut"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170187,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, walnuts, english",
+      "synonyms": [
+        "nuts, walnuts, english"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170593,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, walnuts, glazed",
+      "synonyms": [
+        "nuts, walnuts, glazed"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170186,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, walnuts, black, dried",
+      "synonyms": [
+        "nuts, walnuts, black, dried"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2346394,
+      "dataType": "Foundation",
+      "canonicalName": "Nuts, walnuts, English, halves, raw",
+      "synonyms": [
+        "nuts, walnuts, english, halves, raw"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 1750348,
+      "dataType": "Foundation",
+      "canonicalName": "Oil, peanut",
+      "synonyms": [
+        "oil, peanut"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2515376,
+      "dataType": "Foundation",
+      "canonicalName": "Peanuts, raw",
+      "synonyms": [
+        "peanuts, raw"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 169585,
+      "dataType": "SR Legacy",
+      "canonicalName": "Candies, peanut bar",
+      "synonyms": [
+        "candies, peanut bar"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 2262072,
+      "dataType": "Foundation",
+      "canonicalName": "Peanut butter, creamy",
+      "synonyms": [
+        "peanut butter, creamy"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 2515374,
+      "dataType": "Foundation",
+      "canonicalName": "Nuts, cashew nuts, raw",
+      "synonyms": [
+        "nuts, cashew nuts, raw"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 168597,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, cashew butter, plain, with salt added",
+      "synonyms": [
+        "nuts, cashew butter, plain, with salt added"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170163,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, cashew butter, plain, without salt added",
+      "synonyms": [
+        "nuts, cashew butter, plain, without salt added"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169421,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, cashew nuts, dry roasted, with salt added",
+      "synonyms": [
+        "nuts, cashew nuts, dry roasted, with salt added"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 170184,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, pistachio nuts, raw",
+      "synonyms": [
+        "nuts, pistachio nuts, raw"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172960,
+      "dataType": "SR Legacy",
+      "canonicalName": "Yachtwurst, with pistachio nuts, cooked",
+      "synonyms": [
+        "yachtwurst, with pistachio nuts, cooked"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 169426,
+      "dataType": "SR Legacy",
+      "canonicalName": "Nuts, pistachio nuts, dry roasted, with salt added",
+      "synonyms": [
+        "nuts, pistachio nuts, dry roasted, with salt added"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173925,
+      "dataType": "SR Legacy",
+      "canonicalName": "Cereals, QUAKER, oatmeal, REAL MEDLEYS, cherry pistachio, dry",
+      "synonyms": [
+        "cereals, quaker, oatmeal, real medleys, cherry pistachio, dry"
+      ],
+      "categoryId": "NUTS_AND_SEEDS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 167737,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, corn, peanut, and olive",
+      "synonyms": [
+        "oil, corn, peanut, and olive"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 1750351,
+      "dataType": "Foundation",
+      "canonicalName": "Oil, olive, extra light",
+      "synonyms": [
+        "oil, olive, extra light"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 748608,
+      "dataType": "Foundation",
+      "canonicalName": "Oil, olive, extra virgin",
+      "synonyms": [
+        "oil, olive, extra virgin"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 171413,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, olive, salad or cooking",
+      "synonyms": [
+        "oil, olive, salad or cooking"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171443,
+      "dataType": "SR Legacy",
+      "canonicalName": "Mayonnaise, reduced fat, with olive oil",
+      "synonyms": [
+        "mayonnaise, reduced fat, with olive oil"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 748278,
+      "dataType": "Foundation",
+      "canonicalName": "Oil, canola",
+      "synonyms": [
+        "oil, canola"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "STRUCK",
+      "reviewerNote": "Excluded by the 2026-09-26 ingestion run: the USDA source record does not carry the macronutrients this catalog requires. Reported by the tool as: Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount"
+    },
+    {
+      "fdcId": 169867,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, corn and canola",
+      "synonyms": [
+        "oil, corn and canola"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171042,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, industrial, canola, high oleic",
+      "synonyms": [
+        "oil, industrial, canola, high oleic"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172360,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, industrial, canola (partially hydrogenated) oil for deep fat frying",
+      "synonyms": [
+        "oil, industrial, canola (partially hydrogenated) oil for deep fat frying"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171412,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, coconut",
+      "synonyms": [
+        "oil, coconut"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173595,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, industrial, coconut, principal uses candy coatings, oil sprays, roasting nuts",
+      "synonyms": [
+        "oil, industrial, coconut, principal uses candy coatings, oil sprays, roasting nuts"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172367,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, industrial, coconut (hydrogenated), used for whipped toppings and coffee whiteners",
+      "synonyms": [
+        "oil, industrial, coconut (hydrogenated), used for whipped toppings and coffee whiteners"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 172365,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, industrial, coconut, confection fat, typical basis for ice cream coatings",
+      "synonyms": [
+        "oil, industrial, coconut, confection fat, typical basis for ice cream coatings"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 173573,
+      "dataType": "SR Legacy",
+      "canonicalName": "Oil, avocado",
+      "synonyms": [
+        "oil, avocado"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171706,
+      "dataType": "SR Legacy",
+      "canonicalName": "Avocados, raw, California",
+      "synonyms": [
+        "avocados, raw, california"
+      ],
+      "categoryId": "FATS_AND_OILS",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    }
+  ]
+}
