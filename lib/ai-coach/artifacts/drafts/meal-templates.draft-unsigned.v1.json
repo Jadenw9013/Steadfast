@@ -307,15 +307,15 @@
             "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 170,
-              "nominalGrams": 340,
-              "maxGrams": 680,
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 bunch"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 bunch",
-              "gramWeight": 340,
+              "text": "1 cup",
+              "gramWeight": 30,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -324,7 +324,7 @@
         ],
         "preparation": "Cook spinach in a pan until wilted.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -448,7 +448,7 @@
             "kind": "FOOD",
             "foodId": "fdc-2646170",
             "catalogVersion": "food-catalog:v1",
-            "state": "RAW",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
               "minGrams": 55,
@@ -495,7 +495,7 @@
             "kind": "FOOD",
             "foodId": "fdc-175138",
             "catalogVersion": "food-catalog:v1",
-            "state": "RAW",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
               "minGrams": 45,
@@ -568,15 +568,15 @@
             "state": "RAW",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 115,
-              "nominalGrams": 232,
-              "maxGrams": 465,
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 cup, pureed"
+              "sourcePortionText": "1 cup, halves"
             },
             "householdMeasure": {
-              "text": "1 cup, pureed",
-              "gramWeight": 232,
+              "text": "1 cup, halves",
+              "gramWeight": 152,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -585,7 +585,7 @@
         ],
         "preparation": "Warm cooked oat bran on stovetop and top with sliced strawberries.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -666,7 +666,7 @@
       {
         "id": "bf-vegan-flex-avocado-toast",
         "version": 1,
-        "name": "Whole Wheat Pita with Sliced Avocado and Tomato",
+        "name": "Warm Quinoa Breakfast Bowl with Sliced Avocado and Tomato",
         "isComponent": false,
         "slot": "BREAKFAST",
         "patternTags": [
@@ -687,24 +687,24 @@
         "ingredients": [
           {
             "kind": "FOOD",
-            "foodId": "fdc-174916",
+            "foodId": "fdc-168917",
             "catalogVersion": "food-catalog:v1",
-            "state": "READY_TO_EAT",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 30,
-              "nominalGrams": 64,
-              "maxGrams": 130,
+              "minGrams": 95,
+              "nominalGrams": 185,
+              "maxGrams": 370,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 pita, large (6-1/2\" dia)"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 pita, large (6-1/2\" dia)",
-              "gramWeight": 64,
+              "text": "1 cup",
+              "gramWeight": 185,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
-            "substitutionGroupId": null
+            "substitutionGroupId": "sub-group-grains"
           },
           {
             "kind": "FOOD",
@@ -749,7 +749,7 @@
             "substitutionGroupId": null
           }
         ],
-        "preparation": "Top whole wheat pita with sliced avocado and sliced roma tomato.",
+        "preparation": "Top warm cooked quinoa with sliced avocado and sliced roma tomato.",
         "reviewState": "PROPOSED",
         "requiresReviewerPortion": false,
         "notes": null
@@ -803,15 +803,15 @@
             "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 170,
-              "nominalGrams": 340,
-              "maxGrams": 680,
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 bunch"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 bunch",
-              "gramWeight": 340,
+              "text": "1 cup",
+              "gramWeight": 30,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -820,7 +820,7 @@
         ],
         "preparation": "Whisk eggs, cook on stovetop pan, and fold in fresh spinach.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -872,15 +872,15 @@
             "state": "RAW",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 115,
-              "nominalGrams": 232,
-              "maxGrams": 465,
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 cup, pureed"
+              "sourcePortionText": "1 cup, halves"
             },
             "householdMeasure": {
-              "text": "1 cup, pureed",
-              "gramWeight": 232,
+              "text": "1 cup, halves",
+              "gramWeight": 152,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -910,13 +910,13 @@
         ],
         "preparation": "Layer plain greek yogurt in a bowl with sliced strawberries and almonds.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
         "id": "bf-lacto-flex-egg-pita-melt",
         "version": 1,
-        "name": "Egg White and Pita Scramble with Avocado",
+        "name": "Egg White and Quinoa Breakfast Bowl with Avocado",
         "isComponent": false,
         "slot": "BREAKFAST",
         "patternTags": [
@@ -957,24 +957,24 @@
           },
           {
             "kind": "FOOD",
-            "foodId": "fdc-174916",
+            "foodId": "fdc-168917",
             "catalogVersion": "food-catalog:v1",
-            "state": "READY_TO_EAT",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 30,
-              "nominalGrams": 64,
-              "maxGrams": 130,
+              "minGrams": 95,
+              "nominalGrams": 185,
+              "maxGrams": 370,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 pita, large (6-1/2\" dia)"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 pita, large (6-1/2\" dia)",
-              "gramWeight": 64,
+              "text": "1 cup",
+              "gramWeight": 185,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
-            "substitutionGroupId": null
+            "substitutionGroupId": "sub-group-grains"
           },
           {
             "kind": "FOOD",
@@ -998,7 +998,7 @@
             "substitutionGroupId": null
           }
         ],
-        "preparation": "Scramble egg whites on stovetop and fill whole wheat pita with sliced avocado.",
+        "preparation": "Scramble egg whites on stovetop and serve over warm quinoa with sliced avocado.",
         "reviewState": "PROPOSED",
         "requiresReviewerPortion": false,
         "notes": null
@@ -1047,18 +1047,18 @@
             "kind": "FOOD",
             "foodId": "fdc-174515",
             "catalogVersion": "food-catalog:v1",
-            "state": "RAW",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 575,
-              "nominalGrams": 1150,
-              "maxGrams": 2300,
+              "minGrams": 55,
+              "nominalGrams": 113,
+              "maxGrams": 225,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 breast"
+              "sourcePortionText": "4 oz"
             },
             "householdMeasure": {
-              "text": "1 breast",
-              "gramWeight": 1150,
+              "text": "4 oz",
+              "gramWeight": 113,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -1088,7 +1088,7 @@
         ],
         "preparation": "Cook whole egg and turkey breast in pan, then serve with whole wheat pita.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -1143,15 +1143,15 @@
             "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 170,
-              "nominalGrams": 340,
-              "maxGrams": 680,
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 bunch"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 bunch",
-              "gramWeight": 340,
+              "text": "1 cup",
+              "gramWeight": 30,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -1160,7 +1160,7 @@
         ],
         "preparation": "Scramble egg whites with chicken breast pieces and baby spinach in a pan.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -1170,8 +1170,7 @@
         "isComponent": false,
         "slot": "BREAKFAST",
         "patternTags": [
-          "OMNIVORE",
-          "PESCATARIAN"
+          "OMNIVORE"
         ],
         "budgetBand": "FLEXIBLE",
         "prepTimeBand": "MIN_15_30",
@@ -1485,7 +1484,7 @@
       {
         "id": "lu-lacto-low-egg-pita-salad",
         "version": 1,
-        "name": "Egg and Spinach Stuffed Pita",
+        "name": "Hard-Boiled Egg and Spinach Rice Bowl",
         "isComponent": false,
         "slot": "LUNCH",
         "patternTags": [
@@ -1526,24 +1525,24 @@
           },
           {
             "kind": "FOOD",
-            "foodId": "fdc-174916",
+            "foodId": "fdc-169712",
             "catalogVersion": "food-catalog:v1",
-            "state": "READY_TO_EAT",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 30,
-              "nominalGrams": 64,
-              "maxGrams": 130,
+              "minGrams": 65,
+              "nominalGrams": 132,
+              "maxGrams": 265,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 pita, large (6-1/2\" dia)"
+              "sourcePortionText": "1 cup, loosely packed"
             },
             "householdMeasure": {
-              "text": "1 pita, large (6-1/2\" dia)",
-              "gramWeight": 64,
+              "text": "1 cup, loosely packed",
+              "gramWeight": 132,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
-            "substitutionGroupId": null
+            "substitutionGroupId": "sub-group-grains"
           },
           {
             "kind": "FOOD",
@@ -1552,24 +1551,24 @@
             "state": "RAW",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 170,
-              "nominalGrams": 340,
-              "maxGrams": 680,
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 bunch"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 bunch",
-              "gramWeight": 340,
+              "text": "1 cup",
+              "gramWeight": 30,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
             "substitutionGroupId": "sub-group-green-vegetables"
           }
         ],
-        "preparation": "Cook egg in pan, slice, and place inside whole wheat pita with fresh baby spinach.",
+        "preparation": "Cook egg in pan, slice, and serve over steamed white rice with fresh baby spinach.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -1836,18 +1835,18 @@
             "kind": "FOOD",
             "foodId": "fdc-174515",
             "catalogVersion": "food-catalog:v1",
-            "state": "RAW",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 575,
-              "nominalGrams": 1150,
-              "maxGrams": 2300,
+              "minGrams": 55,
+              "nominalGrams": 113,
+              "maxGrams": 225,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 breast"
+              "sourcePortionText": "4 oz"
             },
             "householdMeasure": {
-              "text": "1 breast",
-              "gramWeight": 1150,
+              "text": "4 oz",
+              "gramWeight": 113,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -1865,15 +1864,15 @@
             "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 170,
-              "nominalGrams": 340,
-              "maxGrams": 680,
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 bunch"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 bunch",
-              "gramWeight": 340,
+              "text": "1 cup",
+              "gramWeight": 30,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -1882,7 +1881,7 @@
         ],
         "preparation": "Cook turkey breast in pan, slice, and serve over cooked quinoa and steamed spinach.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -1908,7 +1907,7 @@
             "kind": "FOOD",
             "foodId": "fdc-2727574",
             "catalogVersion": "food-catalog:v1",
-            "state": "RAW",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
               "minGrams": 55,
@@ -2189,15 +2188,15 @@
             "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 160,
-              "nominalGrams": 323,
-              "maxGrams": 645,
+              "minGrams": 60,
+              "nominalGrams": 124,
+              "maxGrams": 250,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 large"
+              "sourcePortionText": "1 cup, chopped"
             },
             "householdMeasure": {
-              "text": "1 large",
-              "gramWeight": 323,
+              "text": "1 cup, chopped",
+              "gramWeight": 124,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -2206,7 +2205,7 @@
         ],
         "preparation": "Roast sliced zucchini in oven, arrange over quinoa and chickpeas, and top with avocado.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -2263,15 +2262,15 @@
             "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 170,
-              "nominalGrams": 340,
-              "maxGrams": 680,
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 bunch"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 bunch",
-              "gramWeight": 340,
+              "text": "1 cup",
+              "gramWeight": 30,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -2280,7 +2279,7 @@
         ],
         "preparation": "Cook whole eggs in skillet and serve over warm steamed rice with sauteed spinach.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -2545,15 +2544,15 @@
             "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 170,
-              "nominalGrams": 340,
-              "maxGrams": 680,
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 bunch"
+              "sourcePortionText": "1 cup"
             },
             "householdMeasure": {
-              "text": "1 bunch",
-              "gramWeight": 340,
+              "text": "1 cup",
+              "gramWeight": 30,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -2562,7 +2561,7 @@
         ],
         "preparation": "Pan-sear salmon fillet on stovetop and plate with cooked quinoa and steamed spinach.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -2589,7 +2588,7 @@
             "kind": "FOOD",
             "foodId": "fdc-2727574",
             "catalogVersion": "food-catalog:v1",
-            "state": "RAW",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
               "minGrams": 55,
@@ -2721,15 +2720,15 @@
             "state": "RAW",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 115,
-              "nominalGrams": 232,
-              "maxGrams": 465,
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 cup, pureed"
+              "sourcePortionText": "1 cup, halves"
             },
             "householdMeasure": {
-              "text": "1 cup, pureed",
-              "gramWeight": 232,
+              "text": "1 cup, halves",
+              "gramWeight": 152,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -2759,7 +2758,7 @@
         ],
         "preparation": "Rinse strawberries and serve alongside whole almonds.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -2950,15 +2949,15 @@
             "state": "RAW",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 115,
-              "nominalGrams": 232,
-              "maxGrams": 465,
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 cup, pureed"
+              "sourcePortionText": "1 cup, halves"
             },
             "householdMeasure": {
-              "text": "1 cup, pureed",
-              "gramWeight": 232,
+              "text": "1 cup, halves",
+              "gramWeight": 152,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -2988,7 +2987,7 @@
         ],
         "preparation": "Combine plain greek yogurt with sliced strawberries and crushed peanuts.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {
@@ -3239,18 +3238,18 @@
             "kind": "FOOD",
             "foodId": "fdc-174515",
             "catalogVersion": "food-catalog:v1",
-            "state": "RAW",
+            "state": "COOKED",
             "scaling": "SCALES",
             "portion": {
-              "minGrams": 575,
-              "nominalGrams": 1150,
-              "maxGrams": 2300,
+              "minGrams": 55,
+              "nominalGrams": 113,
+              "maxGrams": 225,
               "rangeBasis": "SOURCE_PORTION_SCALED",
-              "sourcePortionText": "1 breast"
+              "sourcePortionText": "4 oz"
             },
             "householdMeasure": {
-              "text": "1 breast",
-              "gramWeight": 1150,
+              "text": "4 oz",
+              "gramWeight": 113,
               "provenance": "SOURCE_PORTION"
             },
             "purchaseUnit": null,
@@ -3280,7 +3279,7 @@
         ],
         "preparation": "Sear turkey breast slices lightly in pan and wrap around avocado slices.",
         "reviewState": "PROPOSED",
-        "requiresReviewerPortion": false,
+        "requiresReviewerPortion": true,
         "notes": null
       },
       {

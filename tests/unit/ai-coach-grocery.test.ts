@@ -381,15 +381,13 @@ describe("A07 — grocery aggregation and purchase vs consumed quantities", () =
     expect(line2.purchaseUnknownReason).toBeNull();
 
     // 3. missing-unit-food-3: gramsPerUnit is null -> units is null, purchaseUnknownReason is NO_PURCHASE_UNIT
-    // purchase is still non-null because grams (300g) are known
+    // purchase is null to strictly enforce the exactly-one-non-null invariant
     const line3 = result.lines.find((l) => l.foodId === "missing-unit-food-3")!;
-    expect(line3.purchase).not.toBeNull();
-    expect(line3.purchase?.grams).toBe(300);
-    expect(line3.purchase?.units).toBeNull();
+    expect(line3.purchase).toBeNull();
     expect(line3.purchaseUnknownReason).toBe("NO_PURCHASE_UNIT");
 
-    // Invariant check across lines without the NO_PURCHASE_UNIT special-case:
-    for (const line of [line1, line2]) {
+    // Invariant check across all lines with zero exclusions:
+    for (const line of result.lines) {
       const isExactlyOneNonNull =
         (line.purchase === null && line.purchaseUnknownReason !== null) ||
         (line.purchase !== null && line.purchaseUnknownReason === null);

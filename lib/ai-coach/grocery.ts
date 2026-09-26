@@ -73,7 +73,7 @@ export function buildGroceryList(
     const recordState = foodState ?? "RAW";
 
     // Cooking state transition check
-    if (item.consumedState === "COOKED" && recordState === "RAW") {
+    if ((item.consumedState === "COOKED" || item.consumedState === "READY_TO_EAT") && recordState === "RAW") {
       const yieldMethod = amountBasis.yieldMethod as string;
       if (yieldMethod !== "SOURCE_REPORTED") {
         // v1 carries yieldMethod: "NONE_APPLIED", so yield factor is unavailable
@@ -126,20 +126,32 @@ export function buildGroceryList(
       }
     }
 
-    lines.push({
-      foodId: item.foodId,
-      catalogVersion: item.catalogVersion,
-      name,
-      consumedGrams: item.consumedGrams,
-      consumedState: item.consumedState,
-      purchase: {
-        grams: purchaseGrams,
-        unit,
-        units,
-        basis,
-      },
-      purchaseUnknownReason,
-    });
+    if (purchaseUnknownReason !== null) {
+      lines.push({
+        foodId: item.foodId,
+        catalogVersion: item.catalogVersion,
+        name,
+        consumedGrams: item.consumedGrams,
+        consumedState: item.consumedState,
+        purchase: null,
+        purchaseUnknownReason,
+      });
+    } else {
+      lines.push({
+        foodId: item.foodId,
+        catalogVersion: item.catalogVersion,
+        name,
+        consumedGrams: item.consumedGrams,
+        consumedState: item.consumedState,
+        purchase: {
+          grams: purchaseGrams,
+          unit,
+          units,
+          basis,
+        },
+        purchaseUnknownReason: null,
+      });
+    }
   }
 
   // Stable sort by foodId ASC

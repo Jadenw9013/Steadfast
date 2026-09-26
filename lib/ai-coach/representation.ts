@@ -10,6 +10,7 @@ import { checkMealComposition } from "./composition-feasibility";
 import { contentHash } from "./canonical-json";
 import type { MealTemplateSet } from "./catalog/meal-template-schema";
 import type { FoodCatalogSource } from "./catalog/food-source";
+import { isWithinMacroTolerance } from "./meal-composer";
 export const substitutionSchema = z.object({ day: z.number().int().min(1).max(7), mealId: z.string().min(1).max(120), foodId: z.string().min(1).max(120), replacementId: z.string().min(1).max(120) }).strict();
 export type Substitution = z.infer<typeof substitutionSchema>;
 
@@ -42,7 +43,7 @@ export function mealTargetsMatch(
     if (!calculated.success) return false;
     for (const key of ["energyKcal", "proteinG", "carbsG", "fatG"] as const) {
       const target = plan.nutrition.targets[key];
-      if (Math.abs(calculated.totals[key] - target) > Math.max(0.1, target * plan.nutrition.tolerancePercent / 100)) return false;
+      if (!isWithinMacroTolerance(calculated.totals[key], target, plan.nutrition.tolerancePercent)) return false;
     }
   }
   return true;

@@ -17,6 +17,11 @@ import { mealTargetsMatch } from "@/lib/ai-coach/representation";
 import type { PlanPayload } from "@/lib/ai-coach/plan-contract";
 import type { IntakeAnswers } from "@/lib/ai-coach/intake";
 import type { MealTemplateSet } from "@/lib/ai-coach/catalog/meal-template-schema";
+import {
+  composeMealsToPrescription,
+  composeMealsToPrescriptionWithReasons,
+} from "@/lib/ai-coach/initial-plan";
+import type { Prescription } from "@/lib/ai-coach/prescription";
 
 const draftCatalog = loadDraftUnsignedFoodCatalog();
 const catalogSource = sourcedFoodCatalogSource(draftCatalog.content);
@@ -144,7 +149,7 @@ describe("A07 — meal template composer and solver", () => {
 
   it("fails at rounding boundary when exact solution rounds to 5g outside tolerance", () => {
     const input = makeBaseInput();
-    // Tiny tolerance (0.01%) so that 5g rounding必然 pushes macros outside tolerance
+    // Tiny tolerance (0.01%) so that 5g rounding inevitably pushes macros outside tolerance
     input.tolerancePercent = 0.01;
 
     const result = composeWeekFromTemplates(input);
@@ -273,14 +278,27 @@ describe("A07 — meal template composer and solver", () => {
       get(id: string, version: string) {
         const res = catalogSource.get(id, version);
         if (!res.success) return res;
-        // fdc-330137 is Greek yogurt
-        const allergens = id === "fdc-330137" ? ["MILK" as any] : [];
+        const categories = (res.item.allergenFactsV2?.categories ?? []).map((cat) => {
+          if (cat.category === "MILK") {
+            return {
+              ...cat,
+              presence: id === "fdc-330137" ? ("PRESENT" as const) : ("VERIFIED_ABSENT" as const),
+              crossContact: "VERIFIED_ABSENT" as const,
+            };
+          }
+          return cat;
+        });
         return {
           success: true,
           item: {
             ...res.item,
-            allergens,
-            allergenFactsV2: undefined, // Test direct allergen matching
+            allergens: id === "fdc-330137" ? (["MILK"] as any) : [],
+            allergenFactsV2: res.item.allergenFactsV2
+              ? {
+                  ...res.item.allergenFactsV2,
+                  categories,
+                }
+              : undefined,
           },
         };
       },
@@ -304,51 +322,68 @@ describe("A07 — meal template composer and solver", () => {
   });
 
   it("excludes parent template when a nested component template contains an allergen", () => {
-    // comp-steamed-broccoli is nested in several dinners
-    // Declare an allergy on broccoli
-    const input = makeBaseInput();
-    input.constraints.dietaryRestrictions = [];
-    input.constraints.patternTags = ["OMNIVORE"];
-    input.constraints.dietaryRestrictions = ["broccoli allergy test"];
+    // Create a stub template set with only din-omni-low-chicken-broccoli in DINNER slot
+    const stubTemplateSet: MealTemplateSet = {
+      ...templateSet,
+      templates: templateSet.templates.filter(
+        (t) => t.slot !== "DINNER" || t.id === "din-omni-low-chicken-broccoli" || t.isComponent
+      ),
+    };
 
-    // Use a stub source where broccoli has an allergy conflict
     const stubSource: FoodCatalogSource = {
       catalogVersion: catalogSource.catalogVersion,
       get(id: string, version: string) {
         const res = catalogSource.get(id, version);
         if (!res.success) return res;
-        if (id === "fdc-747447") {
-          // Broccoli
-          return {
-            success: true,
-            item: {
-              ...res.item,
-              allergens: ["PEANUT" as any],
-            },
-          };
-        }
-        return res;
+        const categories = (res.item.allergenFactsV2?.categories ?? []).map((cat) => {
+          if (cat.category === "PEANUT") {
+            return {
+              ...cat,
+              presence: id === "fdc-747447" ? ("PRESENT" as const) : ("VERIFIED_ABSENT" as const),
+              crossContact: "VERIFIED_ABSENT" as const,
+            };
+          }
+          return cat;
+        });
+        return {
+          success: true,
+          item: {
+            ...res.item,
+            allergenFactsV2: res.item.allergenFactsV2
+              ? {
+                  ...res.item.allergenFactsV2,
+                  categories,
+                }
+              : undefined,
+          },
+        };
       },
     };
 
     const stubInput: ComposeTemplatesInput = {
-      ...input,
+      ...makeBaseInput(),
+      templateSet: stubTemplateSet,
       source: stubSource,
       constraints: {
-        ...input.constraints,
+        ...makeBaseInput().constraints,
+        patternTags: ["OMNIVORE"],
+        patternMandatory: false,
+        dietaryRestrictions: [],
         allergies: ["peanut"],
       },
     };
 
-    // Any template nesting comp-steamed-broccoli (e.g. din-vegan-mod-black-bean-quinoa) must be excluded
     const result = composeWeekFromTemplates(stubInput);
-    if (result.feasible) {
-      for (const day of result.days) {
-        for (const meal of day.meals) {
-          expect(meal.ingredients.some((i) => i.foodId === "fdc-747447")).toBe(false);
-        }
-      }
-    }
+    // Unconditional assertion: must fail because dinner slot has zero survivors
+    expect(result.feasible).toBe(false);
+    if (result.feasible) throw new Error("unreachable");
+
+    // Assert the failure reasons explicitly name the parent template ID
+    const parentReason = result.reasons.find(
+      (r) => (r.detail as any)?.templateId === "din-omni-low-chicken-broccoli"
+    );
+    expect(parentReason).toBeDefined();
+    expect(parentReason?.code).toBe("ALLERGEN_CONFLICT");
   });
 
   it("tri-state UNKNOWN presence excludes food with UNVERIFIABLE_ALLERGY", () => {
@@ -442,34 +477,46 @@ describe("A07 — meal template composer and solver", () => {
     const templatesById = new Map(templateSet.templates.map((t) => [t.id, t]));
     for (const day of result.days) {
       for (const meal of day.meals) {
-        const t = templatesById.get(meal.id);
-        if (t) {
-          expect(t.patternTags).toContain("VEGAN");
-        }
+        const templateId = meal.id.replace(/^template-meal-\d+-/, "");
+        const t = templatesById.get(templateId);
+        expect(t, `Template ${templateId} must exist`).toBeDefined();
+        expect(t!.patternTags).toContain("VEGAN");
       }
     }
   });
 
-  it("enforces budget and prep time bands so LOW/UNDER_15 client never receives FLEXIBLE or MIN_30_60", () => {
+  it("enforces budget and prep time bands so LOW/MIN_15_30 client never receives FLEXIBLE or MIN_30_60", () => {
     const input = makeBaseInput();
     input.constraints.budgetBand = "LOW";
-    input.constraints.prepTimeBand = "UNDER_15";
+    input.constraints.prepTimeBand = "MIN_15_30";
 
     const result = composeWeekFromTemplates(input);
-    // If feasible, assert none of the meals have FLEXIBLE or MIN_30_60
-    if (result.feasible) {
-      const templatesById = new Map(templateSet.templates.map((t) => [t.id, t]));
-      for (const day of result.days) {
-        for (const meal of day.meals) {
-          const t = templatesById.get(meal.id);
-          if (t) {
-            expect(t.budgetBand).not.toBe("FLEXIBLE");
-            expect(t.prepTimeBand).not.toBe("MIN_30_60");
-            expect(t.prepTimeBand).not.toBe("OVER_60");
-          }
-        }
+    expect(result.feasible).toBe(true);
+    if (!result.feasible) throw new Error("unreachable");
+
+    const templatesById = new Map(templateSet.templates.map((t) => [t.id, t]));
+    for (const day of result.days) {
+      for (const meal of day.meals) {
+        const templateId = meal.id.replace(/^template-meal-\d+-/, "");
+        const t = templatesById.get(templateId);
+        expect(t, `Template ${templateId} must exist`).toBeDefined();
+        expect(t!.budgetBand).not.toBe("FLEXIBLE");
+        expect(t!.budgetBand).not.toBe("MODERATE");
+        expect(t!.prepTimeBand).not.toBe("MIN_30_60");
+        expect(t!.prepTimeBand).not.toBe("OVER_60");
       }
     }
+
+    // Also assert that requesting UNDER_15 when no VEGAN dinner satisfies it fails closed cleanly
+    const under15Input = {
+      ...input,
+      constraints: {
+        ...input.constraints,
+        prepTimeBand: "UNDER_15" as const,
+      },
+    };
+    const under15Result = composeWeekFromTemplates(under15Input);
+    expect(under15Result.feasible).toBe(false);
   });
 
   it("uses disliked food ids for ranking only, never hard exclusion when it is the only survivor", () => {
@@ -487,4 +534,78 @@ describe("A07 — meal template composer and solver", () => {
     );
     expect(hasOatBran).toBe(true);
   });
+
+  it("composeMealsToPrescriptionWithReasons merges answers allergies and enforces permission", () => {
+    const testRx: Prescription = {
+      method: "REVIEWED_PRESCRIPTION_V1",
+      energyMethodStructureId: "test",
+      parameterSetDigest: "test",
+      targetEnergyKcal: 1050,
+      maintenanceEnergyKcal: 2000,
+      projectedWeeklyWeightChangeKg: 0,
+      appliedBoundIds: [],
+      proteinG: 45,
+      carbohydrateRangeG: { min: 200, max: 220 },
+      fatRangeG: { min: 5, max: 15 },
+      tolerancePercent: 20,
+      assumptions: [],
+    };
+
+    const answersWithPeanut: IntakeAnswers = {
+      ...baseAnswers,
+      allergies: ["peanut"],
+      dietaryRestrictions: ["VEGAN"],
+    };
+
+    // Caller passes empty constraints.allergies, but answers has "peanut"
+    const options = {
+      templateSet,
+      source: catalogSource,
+      constraints: {
+        patternTags: ["VEGAN"] as ("OMNIVORE" | "LACTO_OVO_VEGETARIAN" | "VEGAN" | "PESCATARIAN")[],
+        patternMandatory: true,
+        budgetBand: "LOW" as const,
+        prepTimeBand: "MIN_15_30" as const,
+        equipment: ["NONE", "MICROWAVE", "STOVETOP", "OVEN", "FULL_KITCHEN"] as ("NONE" | "MICROWAVE" | "STOVETOP" | "OVEN" | "FULL_KITCHEN")[],
+        refrigeration: "FRIDGE_AND_FREEZER" as const,
+        allergies: [],
+        dietaryRestrictions: ["VEGAN"],
+        dislikedFoodIds: [],
+      },
+      nutritionPermission: "ALLOW" as const,
+    };
+
+    const res = composeMealsToPrescriptionWithReasons(
+      answersWithPeanut,
+      testRx,
+      catalogSource.catalogVersion,
+      options
+    );
+
+    // If peanut allergy was merged, peanut butter (DEFAULT_100G_BAND snack) should not be selected
+    if (res.meals) {
+      for (const day of res.meals.days) {
+        for (const meal of day.meals) {
+          for (const ing of meal.ingredients) {
+            expect(ing.foodId).not.toBe("fdc-2262072");
+          }
+        }
+      }
+    }
+
+    // When nutritionPermission is PAUSED, it must return meals: null with structured reasons
+    const pausedRes = composeMealsToPrescriptionWithReasons(
+      answersWithPeanut,
+      testRx,
+      catalogSource.catalogVersion,
+      {
+        ...options,
+        nutritionPermission: "PAUSED",
+      }
+    );
+    expect(pausedRes.meals).toBeNull();
+    expect(pausedRes.reasons.length).toBeGreaterThan(0);
+    expect(pausedRes.reasons.some((r) => r.code === "NUTRITION_DOMAIN_NOT_ALLOWED")).toBe(true);
+  });
 });
+

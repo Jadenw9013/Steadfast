@@ -22,7 +22,7 @@ import {
 } from "./prescription-reason-classes";
 import type { MealTemplateSet } from "./catalog/meal-template-schema";
 import type { FoodCatalogSource } from "./catalog/food-source";
-import { composeWeekFromTemplates, type ComposeConstraints } from "./meal-composer";
+import { composeWeekFromTemplates, type ComposeConstraints, type ComposeReason } from "./meal-composer";
 
 /** All doses, targets and templates below are SYNTHETIC TEST FIXTURES (G01/G02).
  * The runtime must additionally require a synthetic subject and nonproduction
@@ -173,17 +173,47 @@ export type ComposeMealsToPrescriptionOptions = {
   templateSet: MealTemplateSet;
   source: FoodCatalogSource;
   constraints: ComposeConstraints;
+  nutritionPermission?: "ALLOW" | "PAUSED" | "REVOKED";
 };
 
-export function composeMealsToPrescription(
+export type ComposeMealsWithReasonsResult = {
+  meals: NonNullable<PlanPayload["meals"]> | null;
+  reasons: ComposeReason[];
+};
+
+export function composeMealsToPrescriptionWithReasons(
   answers: IntakeAnswers,
   prescription: Prescription,
   foodCatalogVersion: string,
   options?: ComposeMealsToPrescriptionOptions
-): NonNullable<PlanPayload["meals"]> | null {
+): ComposeMealsWithReasonsResult {
+  const carbTarget = midpoint(prescription.carbohydrateRangeG);
+  const fatTarget = midpoint(prescription.fatRangeG);
+
   if (options) {
-    const carbTarget = midpoint(prescription.carbohydrateRangeG);
-    const fatTarget = midpoint(prescription.fatRangeG);
+    // Cross-check & merge allergies and dietaryRestrictions from answers into constraints (BLOCK-5)
+    const combinedAllergies = Array.from(
+      new Set([...answers.allergies, ...(options.constraints.allergies ?? [])])
+    );
+    const combinedRestrictions = Array.from(
+      new Set([...answers.dietaryRestrictions, ...(options.constraints.dietaryRestrictions ?? [])])
+    );
+    const mergedConstraints: ComposeConstraints = {
+      ...options.constraints,
+      allergies: combinedAllergies,
+      dietaryRestrictions: combinedRestrictions,
+      allergenDeclarations:
+        options.constraints.allergenDeclarations ?? (answers as any).allergenDeclarations,
+    };
+
+    const permission = options.nutritionPermission ?? "ALLOW";
+    if (permission !== "ALLOW") {
+      return {
+        meals: null,
+        reasons: [{ code: "NUTRITION_DOMAIN_NOT_ALLOWED", detail: { permission } }],
+      };
+    }
+
     const result = composeWeekFromTemplates({
       targets: {
         energyKcal: prescription.targetEnergyKcal,
@@ -193,15 +223,74 @@ export function composeMealsToPrescription(
       },
       tolerancePercent: prescription.tolerancePercent,
       mealsPerDay: 3,
-      constraints: options.constraints,
+      constraints: mergedConstraints,
       templateSet: options.templateSet,
       source: options.source,
       policyVersion: ACTIVE_POLICY_VERSION,
-      nutritionPermission: "ALLOW",
+      nutritionPermission: permission,
       maxRepeatsPerWeek: 3,
     });
-    return result.feasible ? { days: result.days } : null;
+
+    if (!result.feasible) {
+      return { meals: null, reasons: result.reasons };
+    }
+
+    const meals: NonNullable<PlanPayload["meals"]> = { days: result.days };
+    const verification: PlanPayload = {
+      schemaVersion: 1,
+      contentKind: "SYNTHETIC_FIXTURE",
+      nutrition: {
+        prescriptionId: "verification-only",
+        method: "REVIEWED_PRESCRIPTION_V1",
+        targets: {
+          energyKcal: prescription.targetEnergyKcal,
+          proteinG: prescription.proteinG,
+          carbsG: carbTarget,
+          fatG: fatTarget,
+        },
+        tolerancePercent: prescription.tolerancePercent,
+        assumptions: prescription.assumptions,
+      },
+      meals,
+      strength: [],
+      cardio: [],
+      policyVersion: ACTIVE_POLICY_VERSION,
+      catalogVersions: { food: foodCatalogVersion, exercise: EXERCISE_CATALOG_VERSION },
+    };
+
+    if (!mealTargetsMatch(verification, answers, options.source)) {
+      return {
+        meals: null,
+        reasons: [{ code: "NO_FEASIBLE_MEALS", detail: { reason: "VERIFICATION_FAILED" } }],
+      };
+    }
+
+    return { meals, reasons: [] };
   }
+
+  const legacyMeals = composeLegacyMealsInternal(answers, prescription, foodCatalogVersion, carbTarget, fatTarget);
+  return {
+    meals: legacyMeals,
+    reasons: legacyMeals ? [] : [{ code: "NO_FEASIBLE_MEALS", detail: { reason: "LEGACY_COMPOSITION_FAILED" } }],
+  };
+}
+
+export function composeMealsToPrescription(
+  answers: IntakeAnswers,
+  prescription: Prescription,
+  foodCatalogVersion: string,
+  options?: ComposeMealsToPrescriptionOptions
+): NonNullable<PlanPayload["meals"]> | null {
+  return composeMealsToPrescriptionWithReasons(answers, prescription, foodCatalogVersion, options).meals;
+}
+
+function composeLegacyMealsInternal(
+  answers: IntakeAnswers,
+  prescription: Prescription,
+  foodCatalogVersion: string,
+  carbTarget: number,
+  fatTarget: number
+): NonNullable<PlanPayload["meals"]> | null {
 
   // Same fixture-catalog dietary-restriction guard as composeFixtureMeals:
   // never silently drop an unknown restriction or claim feasibility that
@@ -218,8 +307,6 @@ export function composeMealsToPrescription(
     fat: item.fatGPerServing / item.servingGrams,
   }));
 
-  const carbTarget = midpoint(prescription.carbohydrateRangeG);
-  const fatTarget = midpoint(prescription.fatRangeG);
   const matrix = [
     perGram.map((c) => c.protein),
     perGram.map((c) => c.carbs),

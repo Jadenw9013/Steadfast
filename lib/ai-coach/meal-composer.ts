@@ -45,6 +45,15 @@ export type ComposeTemplatesResult =
     }
   | { feasible: false; reasons: ComposeReason[] };
 
+export function isWithinMacroTolerance(
+  achieved: number,
+  target: number,
+  tolerancePercent: number
+): boolean {
+  const allowed = Math.max(0.1, (target * tolerancePercent) / 100);
+  return Math.abs(achieved - target) <= allowed;
+}
+
 const BUDGET_LEVEL: Record<string, number> = {
   LOW: 1,
   MODERATE: 2,
@@ -343,9 +352,34 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
     const allDayIngredients = dayIngredientsByMeal.flat();
     const scalable = allDayIngredients.filter((i) => i.scaling === "SCALES");
 
-    // Solver loop (up to 8 iterations)
+    // Multi-macro coordinate solver (up to 8 iterations)
+    const computeCurrentMacros = () => {
+      let energyKcal = 0;
+      let proteinG = 0;
+      let carbsG = 0;
+      let fatG = 0;
+      for (const i of allDayIngredients) {
+        const factor = i.currentGrams / i.item.servingGrams;
+        energyKcal += factor * i.item.energyKcalPerServing;
+        proteinG += factor * i.item.proteinGPerServing;
+        carbsG += factor * i.item.carbsGPerServing;
+        fatG += factor * i.item.fatGPerServing;
+      }
+      return { energyKcal, proteinG, carbsG, fatG };
+    };
+
     for (let iter = 0; iter < 8; iter++) {
-      // Step a: Energy scaling
+      const cur = computeCurrentMacros();
+      if (
+        isWithinMacroTolerance(cur.energyKcal, input.targets.energyKcal, input.tolerancePercent) &&
+        isWithinMacroTolerance(cur.proteinG, input.targets.proteinG, input.tolerancePercent) &&
+        isWithinMacroTolerance(cur.carbsG, input.targets.carbsG, input.tolerancePercent) &&
+        isWithinMacroTolerance(cur.fatG, input.targets.fatG, input.tolerancePercent)
+      ) {
+        break;
+      }
+
+      // Step a: Energy scaling from current state
       let fixedEnergy = 0;
       for (const i of allDayIngredients) {
         if (i.scaling === "FIXED") {
@@ -354,65 +388,142 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
       }
 
       const neededEnergy = Math.max(0, input.targets.energyKcal - fixedEnergy);
-      let nominalScalableEnergy = 0;
+      let curScalableEnergy = 0;
       for (const i of scalable) {
-        nominalScalableEnergy += (i.nominalGrams / i.item.servingGrams) * i.item.energyKcalPerServing;
+        curScalableEnergy += (i.currentGrams / i.item.servingGrams) * i.item.energyKcalPerServing;
       }
 
-      if (nominalScalableEnergy > 0) {
-        const s = neededEnergy / nominalScalableEnergy;
+      if (curScalableEnergy > 0) {
+        const s = neededEnergy / curScalableEnergy;
         for (const i of scalable) {
-          i.currentGrams = Math.min(i.maxGrams, Math.max(i.minGrams, i.nominalGrams * s));
+          i.currentGrams = Math.min(i.maxGrams, Math.max(i.minGrams, i.currentGrams * s));
         }
       }
 
       // Step b: Bounded coordinate pass for protein
-      let currentProtein = 0;
-      for (const i of allDayIngredients) {
-        currentProtein += (i.currentGrams / i.item.servingGrams) * i.item.proteinGPerServing;
+      const pTotals = computeCurrentMacros();
+      let proteinGap = input.targets.proteinG - pTotals.proteinG;
+      if (!isWithinMacroTolerance(pTotals.proteinG, input.targets.proteinG, input.tolerancePercent)) {
+        // Sort scalable by protein density descending
+        scalable.sort((a, b) => {
+          const aRatio =
+            a.item.energyKcalPerServing > 0 ? a.item.proteinGPerServing / a.item.energyKcalPerServing : 0;
+          const bRatio =
+            b.item.energyKcalPerServing > 0 ? b.item.proteinGPerServing / b.item.energyKcalPerServing : 0;
+          return bRatio - aRatio;
+        });
+
+        if (proteinGap > 0) {
+          for (const i of scalable) {
+            const proteinPerGram = i.item.proteinGPerServing / i.item.servingGrams;
+            if (proteinPerGram <= 0.05) continue;
+            const availableGrams = i.maxGrams - i.currentGrams;
+            if (availableGrams <= 0.5) continue;
+            const gramsNeeded = proteinGap / proteinPerGram;
+            const increase = Math.min(availableGrams, gramsNeeded);
+            i.currentGrams += increase;
+            proteinGap -= increase * proteinPerGram;
+            if (proteinGap <= 0.1) break;
+          }
+        } else if (proteinGap < 0) {
+          let absGap = -proteinGap;
+          for (const i of scalable) {
+            const proteinPerGram = i.item.proteinGPerServing / i.item.servingGrams;
+            if (proteinPerGram <= 0.05) continue;
+            const reducibleGrams = i.currentGrams - i.minGrams;
+            if (reducibleGrams <= 0.5) continue;
+            const gramsToReduce = absGap / proteinPerGram;
+            const decrease = Math.min(reducibleGrams, gramsToReduce);
+            i.currentGrams -= decrease;
+            absGap -= decrease * proteinPerGram;
+            if (absGap <= 0.1) break;
+          }
+        }
       }
 
-      let proteinGap = input.targets.proteinG - currentProtein;
-      // Sort scalable by protein-per-kcal descending
-      scalable.sort((a, b) => {
-        const aRatio =
-          a.item.energyKcalPerServing > 0 ? a.item.proteinGPerServing / a.item.energyKcalPerServing : 0;
-        const bRatio =
-          b.item.energyKcalPerServing > 0 ? b.item.proteinGPerServing / b.item.energyKcalPerServing : 0;
-        return bRatio - aRatio;
-      });
+      // Step c: Bounded coordinate pass for fat
+      const fTotals = computeCurrentMacros();
+      let fatGap = input.targets.fatG - fTotals.fatG;
+      if (!isWithinMacroTolerance(fTotals.fatG, input.targets.fatG, input.tolerancePercent)) {
+        scalable.sort((a, b) => {
+          const aRatio =
+            a.item.energyKcalPerServing > 0 ? a.item.fatGPerServing / a.item.energyKcalPerServing : 0;
+          const bRatio =
+            b.item.energyKcalPerServing > 0 ? b.item.fatGPerServing / b.item.energyKcalPerServing : 0;
+          return bRatio - aRatio;
+        });
 
-      if (proteinGap > 0) {
-        for (const i of scalable) {
-          const proteinPerGram = i.item.proteinGPerServing / i.item.servingGrams;
-          if (proteinPerGram <= 0) continue;
-          const availableGrams = i.maxGrams - i.currentGrams;
-          if (availableGrams <= 0) continue;
-          const gramsNeeded = proteinGap / proteinPerGram;
-          const increase = Math.min(availableGrams, gramsNeeded);
-          i.currentGrams += increase;
-          proteinGap -= increase * proteinPerGram;
-          if (proteinGap <= 0.1) break;
+        if (fatGap < 0) {
+          // Reduce high-fat items
+          let absGap = -fatGap;
+          for (const i of scalable) {
+            const fatPerGram = i.item.fatGPerServing / i.item.servingGrams;
+            if (fatPerGram <= 0.02) continue;
+            const reducibleGrams = i.currentGrams - i.minGrams;
+            if (reducibleGrams <= 0.5) continue;
+            const gramsToReduce = absGap / fatPerGram;
+            const decrease = Math.min(reducibleGrams, gramsToReduce);
+            i.currentGrams -= decrease;
+            absGap -= decrease * fatPerGram;
+            if (absGap <= 0.1) break;
+          }
+        } else if (fatGap > 0) {
+          for (const i of scalable) {
+            const fatPerGram = i.item.fatGPerServing / i.item.servingGrams;
+            if (fatPerGram <= 0.02) continue;
+            const availableGrams = i.maxGrams - i.currentGrams;
+            if (availableGrams <= 0.5) continue;
+            const gramsNeeded = fatGap / fatPerGram;
+            const increase = Math.min(availableGrams, gramsNeeded);
+            i.currentGrams += increase;
+            fatGap -= increase * fatPerGram;
+            if (fatGap <= 0.1) break;
+          }
         }
-      } else if (proteinGap < 0) {
-        let absGap = -proteinGap;
-        // Reduce from the bottom (lowest protein/kcal or highest)
-        for (let idx = scalable.length - 1; idx >= 0; idx--) {
-          const i = scalable[idx];
-          const proteinPerGram = i.item.proteinGPerServing / i.item.servingGrams;
-          if (proteinPerGram <= 0) continue;
-          const reducibleGrams = i.currentGrams - i.minGrams;
-          if (reducibleGrams <= 0) continue;
-          const gramsToReduce = absGap / proteinPerGram;
-          const decrease = Math.min(reducibleGrams, gramsToReduce);
-          i.currentGrams -= decrease;
-          absGap -= decrease * proteinPerGram;
-          if (absGap <= 0.1) break;
+      }
+
+      // Step d: Bounded coordinate pass for carbs
+      const cTotals = computeCurrentMacros();
+      let carbsGap = input.targets.carbsG - cTotals.carbsG;
+      if (!isWithinMacroTolerance(cTotals.carbsG, input.targets.carbsG, input.tolerancePercent)) {
+        scalable.sort((a, b) => {
+          const aRatio =
+            a.item.energyKcalPerServing > 0 ? a.item.carbsGPerServing / a.item.energyKcalPerServing : 0;
+          const bRatio =
+            b.item.energyKcalPerServing > 0 ? b.item.carbsGPerServing / b.item.energyKcalPerServing : 0;
+          return bRatio - aRatio;
+        });
+
+        if (carbsGap > 0) {
+          for (const i of scalable) {
+            const carbsPerGram = i.item.carbsGPerServing / i.item.servingGrams;
+            if (carbsPerGram <= 0.05) continue;
+            const availableGrams = i.maxGrams - i.currentGrams;
+            if (availableGrams <= 0.5) continue;
+            const gramsNeeded = carbsGap / carbsPerGram;
+            const increase = Math.min(availableGrams, gramsNeeded);
+            i.currentGrams += increase;
+            carbsGap -= increase * carbsPerGram;
+            if (carbsGap <= 0.1) break;
+          }
+        } else if (carbsGap < 0) {
+          let absGap = -carbsGap;
+          for (const i of scalable) {
+            const carbsPerGram = i.item.carbsGPerServing / i.item.servingGrams;
+            if (carbsPerGram <= 0.05) continue;
+            const reducibleGrams = i.currentGrams - i.minGrams;
+            if (reducibleGrams <= 0.5) continue;
+            const gramsToReduce = absGap / carbsPerGram;
+            const decrease = Math.min(reducibleGrams, gramsToReduce);
+            i.currentGrams -= decrease;
+            absGap -= decrease * carbsPerGram;
+            if (absGap <= 0.1) break;
+          }
         }
       }
     }
 
-    // Step c: Round every gram to the nearest 5, clamped to [minGrams, maxGrams]
+    // Post-loop rounding: round every gram to nearest 5, clamped to [minGrams, maxGrams]
     for (const i of allDayIngredients) {
       if (i.scaling === "SCALES") {
         const rounded = Math.round(i.currentGrams / 5) * 5;
@@ -438,7 +549,7 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
       };
     }
 
-    // Check all four macros against tolerancePercent using mealTargetsMatch logic
+    // Check all four macros against tolerancePercent using isWithinMacroTolerance
     const dayTotals = totalsResult.totals;
     const macroKeys = ["energyKcal", "proteinG", "carbsG", "fatG"] as const;
     let worstMacro = "";
@@ -449,14 +560,16 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
     for (const key of macroKeys) {
       const target = input.targets[key];
       const achieved = dayTotals[key];
-      const allowed = Math.max(0.1, (target * input.tolerancePercent) / 100);
-      const diff = Math.abs(achieved - target);
-      const ratio = diff / allowed;
-      if (diff > allowed && ratio > worstDeviationRatio) {
-        worstDeviationRatio = ratio;
-        worstMacro = key;
-        worstAchieved = achieved;
-        worstTarget = target;
+      if (!isWithinMacroTolerance(achieved, target, input.tolerancePercent)) {
+        const allowed = Math.max(0.1, (target * input.tolerancePercent) / 100);
+        const diff = Math.abs(achieved - target);
+        const ratio = diff / allowed;
+        if (ratio > worstDeviationRatio) {
+          worstDeviationRatio = ratio;
+          worstMacro = key;
+          worstAchieved = achieved;
+          worstTarget = target;
+        }
       }
     }
 

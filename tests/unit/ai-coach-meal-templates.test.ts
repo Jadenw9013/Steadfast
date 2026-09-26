@@ -161,7 +161,7 @@ describe("A07 — meal template dataset contract and invariants", () => {
     }
   });
 
-  it("ensures requiresReviewerPortion === true iff some ingredient has DEFAULT_100G_BAND", () => {
+  it("ensures requiresReviewerPortion === true if some ingredient has DEFAULT_100G_BAND", () => {
     for (const template of draftTemplatesFile.content.templates) {
       let hasDefaultBand = false;
       for (const ing of template.ingredients) {
@@ -170,10 +170,12 @@ describe("A07 — meal template dataset contract and invariants", () => {
           break;
         }
       }
-      expect(
-        template.requiresReviewerPortion,
-        `Template ${template.id} requiresReviewerPortion mismatch`
-      ).toBe(hasDefaultBand);
+      if (hasDefaultBand) {
+        expect(
+          template.requiresReviewerPortion,
+          `Template ${template.id} must have requiresReviewerPortion=true for DEFAULT_100G_BAND`
+        ).toBe(true);
+      }
     }
   });
 
@@ -194,4 +196,18 @@ describe("A07 — meal template dataset contract and invariants", () => {
       }
     }
   });
+
+  it("catches pattern tag contradictions in validateTemplateSetAgainstCatalog", () => {
+    // Clone first template and add an unsupported pattern tag (e.g. VEGAN to an omnivore-only item)
+    const cloned = JSON.parse(JSON.stringify(draftTemplatesFile.content));
+    const omniTemplate = cloned.templates.find((t: any) => t.id === "bf-omni-low-egg-and-turkey");
+    expect(omniTemplate).toBeDefined();
+    // Claim VEGAN when egg and turkey are not vegan
+    omniTemplate.patternTags = ["VEGAN", "OMNIVORE"];
+
+    const result = validateTemplateSetAgainstCatalog(cloned, catalogSource);
+    expect(result.valid).toBe(false);
+    expect(result.templateErrors.some((e) => e.error === "PATTERN_TAG_UNSATISFIED")).toBe(true);
+  });
 });
+

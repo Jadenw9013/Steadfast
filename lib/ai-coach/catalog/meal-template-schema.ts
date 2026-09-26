@@ -75,8 +75,8 @@ export const mealTemplateSchema = z
     yieldMethod: z.enum(["SOURCE_REPORTED", "UNKNOWN"]),
     ingredients: z.array(z.union([templateIngredientSchema, nestedComponentSchema])).min(1).max(20),
     preparation: z.string().max(500), // plain steps; no food-safety or health claim
-    reviewState: z.enum(["PROPOSED", "ACCEPTED"]),
-    requiresReviewerPortion: z.boolean(), // true when any range is DEFAULT_100G_BAND
+    reviewState: z.enum(["PROPOSED", "ACCEPTED", "STRUCK"]),
+    requiresReviewerPortion: z.boolean(), // true when any range is DEFAULT_100G_BAND or requires human portion calibration
     notes: z.string().max(500).nullable(),
   })
   .strict();
@@ -90,7 +90,7 @@ export const substitutionGroupSchema = z
     basis: z.enum(["ROLE_IN_MEAL"]), // grouping is culinary role, never "nutritionally equivalent"
     memberFoodIds: z.array(z.string().min(1).max(120)).min(2).max(30),
     patternTags: z.array(z.enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"])).min(1),
-    reviewState: z.enum(["PROPOSED", "ACCEPTED"]),
+    reviewState: z.enum(["PROPOSED", "ACCEPTED", "STRUCK"]),
     note: z.string().max(300).nullable(),
   })
   .strict();
@@ -209,12 +209,12 @@ export const mealTemplateSetSchema = z
         }
       }
 
-      // requiresReviewerPortion true iff some range is DEFAULT_100G_BAND
-      if (t.requiresReviewerPortion !== hasDefault100gBand) {
+      // requiresReviewerPortion must be true if some range is DEFAULT_100G_BAND
+      if (hasDefault100gBand && !t.requiresReviewerPortion) {
         ctx.addIssue({
           code: "custom",
           path: ["templates", i, "requiresReviewerPortion"],
-          message: `requiresReviewerPortion must be ${hasDefault100gBand} because hasDefault100gBand is ${hasDefault100gBand}`,
+          message: `requiresReviewerPortion must be true because some ingredient has rangeBasis DEFAULT_100G_BAND`,
         });
       }
     }
@@ -226,14 +226,16 @@ export type TemplateValidationError = {
   templateId: string;
   foodId: string;
   catalogVersion: string;
-  error: CatalogLookupError;
+  error: CatalogLookupError | "PATTERN_TAG_UNSATISFIED";
+  detail?: string;
 };
 
 export type SubstitutionGroupValidationError = {
   groupId: string;
   foodId: string;
   catalogVersion: string;
-  error: CatalogLookupError;
+  error: CatalogLookupError | "PATTERN_TAG_UNSATISFIED";
+  detail?: string;
 };
 
 export type TemplateSetValidationResult = {
@@ -257,15 +259,25 @@ export function validateTemplateSetAgainstCatalog(
   }
 
   for (const template of set.templates) {
+    const flatFoodItems: { foodId: string; catalogVersion: string; patternTags: string[] }[] = [];
+    let templateResolutionFailed = false;
+
     for (const ing of template.ingredients) {
       if (ing.kind === "FOOD") {
         const lookup = source.get(ing.foodId, ing.catalogVersion);
         if (!lookup.success) {
+          templateResolutionFailed = true;
           templateErrors.push({
             templateId: template.id,
             foodId: ing.foodId,
             catalogVersion: ing.catalogVersion,
             error: lookup.error,
+          });
+        } else {
+          flatFoodItems.push({
+            foodId: ing.foodId,
+            catalogVersion: ing.catalogVersion,
+            patternTags: lookup.item.patternTags ?? ["OMNIVORE"],
           });
         }
       } else if (ing.kind === "COMPONENT_TEMPLATE") {
@@ -275,11 +287,18 @@ export function validateTemplateSetAgainstCatalog(
             if (nestedIng.kind === "FOOD") {
               const lookup = source.get(nestedIng.foodId, nestedIng.catalogVersion);
               if (!lookup.success) {
+                templateResolutionFailed = true;
                 templateErrors.push({
                   templateId: template.id,
                   foodId: nestedIng.foodId,
                   catalogVersion: nestedIng.catalogVersion,
                   error: lookup.error,
+                });
+              } else {
+                flatFoodItems.push({
+                  foodId: nestedIng.foodId,
+                  catalogVersion: nestedIng.catalogVersion,
+                  patternTags: lookup.item.patternTags ?? ["OMNIVORE"],
                 });
               }
             }
@@ -287,19 +306,86 @@ export function validateTemplateSetAgainstCatalog(
         }
       }
     }
+
+    // Cross-check template claimed patternTags against ingredient intersection (BLOCK-2)
+    if (!templateResolutionFailed && flatFoodItems.length > 0) {
+      let intersection: Set<string> | null = null;
+      for (const item of flatFoodItems) {
+        const tags = new Set(item.patternTags);
+        if (intersection === null) {
+          intersection = new Set(tags);
+        } else {
+          const prev = intersection;
+          intersection = new Set<string>();
+          for (const x of prev) {
+            if (tags.has(x)) intersection.add(x);
+          }
+        }
+      }
+      if (intersection) {
+        const disallowed = template.patternTags.filter((tag) => !intersection!.has(tag));
+        if (disallowed.length > 0) {
+          templateErrors.push({
+            templateId: template.id,
+            foodId: flatFoodItems.map((i) => i.foodId).join(","),
+            catalogVersion: source.catalogVersion,
+            error: "PATTERN_TAG_UNSATISFIED",
+            detail: `Template claims [${template.patternTags.join(", ")}] but ingredient intersection is [${[...intersection].join(", ")}]; disallowed: [${disallowed.join(", ")}]`,
+          });
+        }
+      }
+    }
   }
 
   const substitutionGroupErrors: SubstitutionGroupValidationError[] = [];
   for (const group of set.substitutionGroups) {
+    const memberItems: { foodId: string; patternTags: string[] }[] = [];
+    let groupResolutionFailed = false;
+
     for (const foodId of group.memberFoodIds) {
       const lookup = source.get(foodId, source.catalogVersion);
       if (!lookup.success) {
+        groupResolutionFailed = true;
         substitutionGroupErrors.push({
           groupId: group.id,
           foodId,
           catalogVersion: source.catalogVersion,
           error: lookup.error,
         });
+      } else {
+        memberItems.push({
+          foodId,
+          patternTags: lookup.item.patternTags ?? ["OMNIVORE"],
+        });
+      }
+    }
+
+    // Cross-check substitution group claimed patternTags against member intersection
+    if (!groupResolutionFailed && memberItems.length > 0) {
+      let intersection: Set<string> | null = null;
+      for (const item of memberItems) {
+        const tags = new Set(item.patternTags);
+        if (intersection === null) {
+          intersection = new Set(tags);
+        } else {
+          const prev = intersection;
+          intersection = new Set<string>();
+          for (const x of prev) {
+            if (tags.has(x)) intersection.add(x);
+          }
+        }
+      }
+      if (intersection) {
+        const disallowed = group.patternTags.filter((tag) => !intersection!.has(tag));
+        if (disallowed.length > 0) {
+          substitutionGroupErrors.push({
+            groupId: group.id,
+            foodId: group.memberFoodIds.join(","),
+            catalogVersion: source.catalogVersion,
+            error: "PATTERN_TAG_UNSATISFIED",
+            detail: `Group claims [${group.patternTags.join(", ")}] but member intersection is [${[...intersection].join(", ")}]; disallowed: [${disallowed.join(", ")}]`,
+          });
+        }
       }
     }
   }

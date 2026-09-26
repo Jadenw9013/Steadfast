@@ -17,6 +17,7 @@ export type ResolvedFoodItem = FoodItem & {
     packSizeGrams: number | null;
     provenance?: "SOURCE_PORTION" | "UNKNOWN";
   } | null;
+  patternTags?: ("OMNIVORE" | "LACTO_OVO_VEGETARIAN" | "VEGAN" | "PESCATARIAN")[];
 };
 
 export interface FoodCatalogSource {
@@ -28,7 +29,16 @@ export interface FoodCatalogSource {
 export const inCodeFoodCatalogSource: FoodCatalogSource = {
   catalogVersion: FOOD_CATALOG_VERSION,
   get(id: string, catalogVersion: string): CatalogLookupResult<ResolvedFoodItem> {
-    return getFoodItem(id, catalogVersion);
+    const res = getFoodItem(id, catalogVersion);
+    if (!res.success) return res;
+    const dietary = res.item.dietaryTags;
+    const patternTags: ("OMNIVORE" | "LACTO_OVO_VEGETARIAN" | "VEGAN" | "PESCATARIAN")[] = ["OMNIVORE"];
+    if (dietary.includes("VEGAN")) {
+      patternTags.push("LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN");
+    } else if (dietary.includes("VEGETARIAN")) {
+      patternTags.push("LACTO_OVO_VEGETARIAN", "PESCATARIAN");
+    }
+    return { success: true, item: { ...res.item, patternTags } };
   },
 };
 
@@ -77,6 +87,7 @@ export function sourcedFoodCatalogSource(content: FoodCatalogContent): FoodCatal
         foodState: rawItem.foodState,
         allergenFactsV2: rawItem.allergenFactsV2,
         amountBasis: rawItem.amountBasis,
+        patternTags: (rawItem.patternTags as ("OMNIVORE" | "LACTO_OVO_VEGETARIAN" | "VEGAN" | "PESCATARIAN")[]) ?? ["OMNIVORE"],
       };
 
       return { success: true, item: resolved };
