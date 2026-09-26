@@ -1,0 +1,120 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "mapping.ts rejection path: a record whose carbohydrate is negative is refused with NEGATIVE_CARBOHYDRATE and flows through the source exclusions channel, rather than being clamped to zero or aborting the run at the final schema parse.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented - including the negative carbohydrate, which is NOT any real record's value. Real records do carry small negative 'Carbohydrate, by difference' figures because that quantity is 100 minus the other components; this fixture reproduces the shape, not any particular food. No source, no license, no retrieval date and no attribution is claimed."
+  },
+  "dataType": "Foundation",
+  "description": "SYNTHETIC FIXTURE 10 - record with a negative by-difference carbohydrate",
+  "fdcId": 9000000010,
+  "foodCategory": {
+    "id": 9010,
+    "code": "9010",
+    "description": "SYNTHETIC CATEGORY - animal item"
+  },
+  "foodClass": "FinalFood",
+  "foodComponents": [],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 20010208,
+      "nutrient": {
+        "id": 1008,
+        "number": "208",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "KCAL"
+      },
+      "amount": 210,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20010203,
+      "nutrient": {
+        "id": 1003,
+        "number": "203",
+        "name": "Protein",
+        "rank": 201,
+        "unitName": "G"
+      },
+      "amount": 18.4,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20010204,
+      "nutrient": {
+        "id": 1004,
+        "number": "204",
+        "name": "Total lipid (fat)",
+        "rank": 204,
+        "unitName": "G"
+      },
+      "amount": 15.2,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20010205,
+      "nutrient": {
+        "id": 1005,
+        "number": "205",
+        "name": "Carbohydrate, by difference",
+        "rank": 205,
+        "unitName": "G"
+      },
+      "amount": -0.1234,
+      "foodNutrientDerivation": {
+        "id": 2,
+        "code": "NC",
+        "description": "Calculated",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    }
+  ],
+  "foodPortions": [
+    {
+      "id": 10,
+      "gramWeight": 100,
+      "portionDescription": "1 synthetic unit",
+      "sequenceNumber": 1
+    }
+  ],
+  "inputFoods": [],
+  "isHistoricalReference": false,
+  "ndbNumber": 99010,
+  "publicationDate": "01/01/1903",
+  "scientificName": "Synthetica fixtura"
+}

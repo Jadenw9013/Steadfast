@@ -13,6 +13,7 @@ import {
   type SourceExclusion,
 } from "@/lib/ai-coach/catalog/fdc/source-exclusions";
 import { mapFdcRecordToCatalogItem } from "@/lib/ai-coach/catalog/fdc/mapping";
+import { foodCatalogContentSchema } from "@/lib/ai-coach/artifacts/schema";
 import { allowlistSchema } from "@/lib/ai-coach/catalog/fdc/allowlist-schema";
 import type { AllowlistEntry } from "@/lib/ai-coach/catalog/fdc/allowlist-schema";
 
@@ -253,6 +254,116 @@ describe("T-2035 — FDC source exclusions (the tool's channel, not the reviewer
       });
       expect(decision).toEqual({ kind: "PROCEED", skippedFdcIds: [] });
     });
+  });
+
+
+  /**
+   * The negative-carbohydrate case end to end through the channel: the entry is
+   * refused with the real value in its reason, it becomes an exclusion, and the
+   * other entries still produce catalog items. Three real records hit this —
+   * `2727567`, `2747673` and `2727569` — and before the refusal moved into the
+   * mapper it aborted the entire run at the final `foodCatalogContentSchema`
+   * parse, after 235 records had been fetched.
+   */
+  it("A negative carbohydrate becomes a source exclusion carrying the real value, and the rest of the run proceeds", () => {
+    const mapOne = (fdcId: number, name: string, record: unknown) => {
+      const result = mapFdcRecordToCatalogItem({
+        entry: {
+          fdcId,
+          dataType: "Foundation",
+          canonicalName: name,
+          synonyms: [],
+          categoryId: "POULTRY_AND_MEAT",
+          foodState: "RAW",
+          singleIngredientWholeFood: true,
+          patternTags: ["OMNIVORE"],
+          ownAllergenCategories: [],
+          reviewState: "PROPOSED",
+          reviewerNote: null,
+        },
+        record,
+        retrievedAt: RUN_DATE,
+        allowlistVersion: 1,
+      });
+      return { fdcId, name, result };
+    };
+
+    const negativeRecord = JSON.parse(
+      fs.readFileSync(
+        path.resolve("tests/fixtures/ai-coach/fdc-synthetic/negative-carbohydrate.json"),
+        "utf8"
+      )
+    ) as { fdcId: number; foodNutrients: Array<{ nutrient: { number: string }; amount: number }> };
+    // Same record, a reported zero instead of the negative, and its own fdcId so
+    // the two usable items do not collide on `fdc-<id>`.
+    const healthyRecord = (fdcId: number) => ({
+      ...negativeRecord,
+      fdcId,
+      foodNutrients: negativeRecord.foodNutrients.map((row) =>
+        row.nutrient.number === "205" ? { ...row, amount: 0 } : row
+      ),
+    });
+
+    const runs = [
+      mapOne(9000000701, "Synthetic Mappable One", healthyRecord(9000000701)),
+      mapOne(9000000010, "Synthetic Negative-Carbohydrate Item", negativeRecord),
+      mapOne(9000000702, "Synthetic Mappable Two", healthyRecord(9000000702)),
+    ];
+
+    const outcomes: EntryIngestOutcome[] = runs.map(({ fdcId, name, result }) =>
+      result.ok
+        ? { fdcId, canonicalName: name, status: "MAPPED" }
+        : {
+            fdcId,
+            canonicalName: name,
+            status: "UNMAPPABLE",
+            reason: result.errors.map((e) => e.message).join("; "),
+            errorCodes: result.errors.map((e) => e.code),
+          }
+    );
+
+    // Pass 1: the negative record is not yet recorded, so the run refuses and
+    // hands back the exclusion to write.
+    const firstPass = decideExclusionRun({
+      outcomes,
+      existing: new Set<number>(),
+      runDate: RUN_DATE,
+    });
+    expect(firstPass.kind).toBe("WRITE_EXCLUSIONS");
+    if (firstPass.kind !== "WRITE_EXCLUSIONS") return;
+    expect(firstPass.newlyExcluded.map((e) => e.fdcId)).toEqual([9000000010]);
+
+    const recorded = firstPass.newlyExcluded[0];
+    expect(recorded.errorCodes).toEqual(["NEGATIVE_CARBOHYDRATE"]);
+    // The real number reaches the RD, not a generic refusal.
+    expect(recorded.reason).toContain("-0.1234");
+    expect(recorded.reason).toContain("Refused rather than clamped to zero");
+    expect(() =>
+      buildSourceExclusionsFile({ generatedAt: RUN_DATE, exclusions: firstPass.allExclusions })
+    ).not.toThrow();
+
+    // Pass 2: with it recorded, the run proceeds and the other two entries are
+    // still usable catalog items.
+    const secondPass = decideExclusionRun({
+      outcomes,
+      existing: new Set([9000000010]),
+      runDate: RUN_DATE,
+    });
+    expect(secondPass.kind).toBe("PROCEED");
+    if (secondPass.kind !== "PROCEED") return;
+    expect(secondPass.skippedFdcIds).toEqual([9000000010]);
+
+    const items = runs.filter((r) => r.result.ok).map((r) => (r.result as { item: unknown }).item);
+    expect(items).toHaveLength(2);
+    expect(() =>
+      foodCatalogContentSchema.parse({
+        artifactKey: "food-catalog",
+        version: 1,
+        catalogProfile: "SOURCED_V2" as const,
+        market: "US" as const,
+        items,
+      })
+    ).not.toThrow();
   });
 
   it("indexSourceExclusions handles an absent file as 'nothing is excluded'", () => {

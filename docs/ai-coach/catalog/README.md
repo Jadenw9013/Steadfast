@@ -111,7 +111,8 @@ It is fail-closed in both directions:
 **When an entry lands here, the first question is whether the tool is wrong.** The 48 entries of 2026-09-26
 were a lookup that read FDC nutrient *ids* where the record carries nutrient *numbers*. Fix the mapper first;
 this file is for records that genuinely do not carry the data — oils with only a lipid profile, zero-moisture
-research samples, a spaghetti record with 19 nutrient rows and no macro among them.
+research samples, a spaghetti record with 19 nutrient rows and no macro among them — and for records whose
+value the catalog cannot represent honestly, such as the negative by-difference carbohydrates in §4.
 
 Re-run ingestion after review:
 
@@ -232,6 +233,30 @@ T-2002 allows a client to declare `category: "OTHER"` with free-text specificity
   refusal is recorded.
 - **Derivation.** Analytical means *measured*. FDC codes `AS` ("Atwater specific factors") and `AG` ("Atwater general factors") are **calculations** and map to `CALCULATED`; only genuinely analytical codes map to `ANALYTICAL`; an unmapped code maps to `UNKNOWN` with the raw code preserved in `derivationDetail`. The Atwater information lives in `energyFact.method`, which is its right home.
 - **Reported zero vs UNKNOWN.** An unreported nutrient is `{ value: null, status: "UNKNOWN" }`. Zero is written only when the record explicitly reports zero.
+- **A negative by-difference carbohydrate is a known source artefact, and we exclude rather than clamp.**
+  "Carbohydrate, by difference" is 100 minus the other measured components, so it lands slightly below zero
+  whenever those sum to a little over 100. Three records in the current allowlist do:
+  `2727567 Chicken, thigh, meat and skin, raw` reports `-0.17255`, `2747673 Tuna, ahi or yellowfin, frozen`
+  reports `-0.1045`, and `2727569 Chicken, breast, meat and skin, raw` the same. These are genuine USDA
+  values, not corruption. Physically they mean "effectively zero", and most nutrition software clamps them.
+
+  We do not. Clamping writes a number USDA did not report — a small instance of the failure this whole ticket
+  exists to remove. A negative energy, protein, fat or carbohydrate is a **mapping** error
+  (`NEGATIVE_ENERGY` / `NEGATIVE_PROTEIN` / `NEGATIVE_FAT` / `NEGATIVE_CARBOHYDRATE`, and
+  `NEGATIVE_NUTRIENT_VALUE` for any other row), so the record flows through the source exclusions channel
+  (§2.1) with the real figure in its reason. Zero remains valid; only a strictly negative value is refused.
+
+  **The RD may well decide that a near-zero negative is acceptable to treat as zero, and that is their call to
+  make with the number in front of them** — not ours to make silently in the mapper. If they decide it, the
+  change is a reviewer-set value, not a clamp in the ingestion code. Coverage cost today is nil:
+  `Chicken, breast, boneless, skinless, raw` and four other tuna records map cleanly, so the catalog keeps
+  both foods.
+
+  It is a mapping error rather than a schema error deliberately. `nutrients.carbohydrateGrams` and
+  `nutrientFacts[].value` are both `nonnegative`, so before this the run aborted at the final
+  `foodCatalogContentSchema.parse` after all 245 records had been fetched, with
+  `["items",118,"nutrients","carbohydrateGrams"] Too small: expected number to be >=0`. **The final schema
+  parse should only ever fail on a bug, never on data.**
 - **Macro-energy discrepancy.** `macroEnergyDiscrepancyKcal = reported kcal - (4·protein + 4·carbohydrate + 9·fat)`, recorded as an observation. It is never used to correct a value and never compared to a threshold.
 
 ---

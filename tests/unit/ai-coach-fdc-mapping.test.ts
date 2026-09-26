@@ -789,6 +789,108 @@ describe("T-2035 — FDC mapping pure module", () => {
     expect(res.item.nutrientFacts?.some((n) => n.nutrientId === "2048")).toBe(false);
   });
 
+
+  /**
+   * A negative macro is refused, never clamped.
+   *
+   * Three real records carry one: `2727567 Chicken, thigh, meat and skin, raw`
+   * reports carbohydrate `-0.17255`, `2747673 Tuna, ahi or yellowfin, frozen`
+   * `-0.1045`, and `2727569 Chicken, breast, meat and skin, raw` the same.
+   * "Carbohydrate, by difference" is 100 minus the other components, so it
+   * drops below zero when those sum to a little over 100. Physically it means
+   * "effectively zero" and most nutrition software clamps it — clamping writes
+   * a number USDA did not report, which is the failure this ticket exists to
+   * remove. The record is refused and the real figure goes into the exclusions
+   * file for the RD to judge.
+   *
+   * The fixture's `-0.1234` is invented and is not any real record's value; it
+   * reproduces the shape.
+   */
+  it("A negative macro is refused with the actual value in the message, not clamped to zero", () => {
+    const res = mapFdcRecordToCatalogItem({
+      entry: {
+        ...mockAllowlistEntry,
+        fdcId: 9000000010,
+        canonicalName: "Synthetic Negative-Carbohydrate Item",
+      },
+      record: loadFixture("negative-carbohydrate.json"),
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+
+    const negative = res.errors.find((e) => e.code === "NEGATIVE_CARBOHYDRATE");
+    expect(negative).toBeDefined();
+    // The real number, so the exclusions file shows the RD what the source said
+    // rather than a generic refusal.
+    expect(negative!.message).toContain("-0.1234");
+    expect(negative!.message.toLowerCase()).toContain("carbohydrate");
+    expect(negative!.message).toContain("Refused rather than clamped to zero");
+
+    // It is a mapping refusal, not a missing value: the record reported one.
+    expect(res.errors.some((e) => e.code === "MISSING_CARBOHYDRATE")).toBe(false);
+    // And only the offending macro is named.
+    expect(res.errors.map((e) => e.code)).toEqual(["NEGATIVE_CARBOHYDRATE"]);
+  });
+
+  it("Zero stays valid: only a strictly negative macro is refused", () => {
+    const zeroCarb = {
+      ...(loadFixture("negative-carbohydrate.json") as Record<string, unknown>),
+    };
+    const rows = (zeroCarb.foodNutrients as Array<{ nutrient: { number: string }; amount: number }>)
+      .map((row) => (row.nutrient.number === "205" ? { ...row, amount: 0 } : row));
+    const res = mapFdcRecordToCatalogItem({
+      entry: {
+        ...mockAllowlistEntry,
+        fdcId: 9000000010,
+        canonicalName: "Synthetic Zero-Carbohydrate Item",
+      },
+      record: { ...zeroCarb, foodNutrients: rows },
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.item.nutrients.carbohydrateGrams).toBe(0);
+    const carbFact = res.item.nutrientFacts?.find((n) => n.nutrientId === "205");
+    // Zero is a reported zero, not an unknown.
+    expect(carbFact?.status).toBe("REPORTED");
+    expect(carbFact?.value).toBe(0);
+  });
+
+  it("A negative value in a non-macro nutrient row is refused too, so the final schema parse never fails on data", () => {
+    // Nothing is known to trip this — only a by-difference quantity goes below
+    // zero and carbohydrate is the only one tracked. But `nutrientFacts[].value`
+    // is `nonnegative`, so if one ever appeared it would abort the whole run at
+    // the final parse after every record had been fetched. Excluding one food
+    // is the better failure.
+    const record = loadFixture("foundation-single-ingredient.json") as {
+      foodNutrients: Array<{ nutrient?: { number?: string }; amount?: number }>;
+    };
+    const withNegativeFiber = {
+      ...record,
+      foodNutrients: record.foodNutrients.map((row) =>
+        row.nutrient?.number === "291" ? { ...row, amount: -0.5 } : row
+      ),
+    };
+
+    const res = mapFdcRecordToCatalogItem({
+      entry: mockAllowlistEntry,
+      record: withNegativeFiber,
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    const error = res.errors.find((e) => e.code === "NEGATIVE_NUTRIENT_VALUE");
+    expect(error).toBeDefined();
+    expect(error!.message).toContain("291");
+    expect(error!.message).toContain("-0.5");
+  });
+
   it("householdMeasures are carried through with provenance 'SOURCE_PORTION' and empty array if no portions", () => {
     const rawFoundation = loadFixture("foundation-single-ingredient.json");
     const resWithPortions = mapFdcRecordToCatalogItem({

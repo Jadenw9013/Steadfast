@@ -346,6 +346,73 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
     });
   }
 
+  /**
+   * A negative macro is refused, never clamped.
+   *
+   * Three real records carry one: `2727567 Chicken, thigh, meat and skin, raw`
+   * reports carbohydrate `-0.17255`, `2747673 Tuna, ahi or yellowfin, frozen`
+   * reports `-0.1045`, and `2727569 Chicken, breast, meat and skin, raw` the
+   * same. These are genuine USDA values, not corruption: "Carbohydrate, by
+   * difference" is 100 minus the other components, so it drops just below zero
+   * when those sum to a little over 100. Physically it means "effectively
+   * zero", and most nutrition software clamps it to 0.
+   *
+   * Clamping writes a number USDA did not report, which is the failure this
+   * whole ticket exists to remove — a smaller one than a fabricated catalog,
+   * and the same kind. So the record is refused and flows through the source
+   * exclusions channel with the real figure in the reason, where the RD can see
+   * `-0.17255` and decide. Treating a near-zero negative as zero may well be
+   * the right call; it is theirs to make with the number in front of them, not
+   * ours to make silently.
+   *
+   * This is a **mapping** error rather than a schema error on purpose. The
+   * final `foodCatalogContentSchema.parse` in the CLI should only ever fail on
+   * a bug, never on data: a refusal here excludes one food and the run
+   * completes, while a `nonnegative` violation at the end aborts everything
+   * after 235 records were fetched.
+   *
+   * Zero is valid and untouched. Only a strictly negative value is refused.
+   */
+  const refuseNegative = (
+    code: string,
+    label: string,
+    unit: string,
+    nutrient: NormalizedFdcRecord["nutrients"][number] | undefined
+  ) => {
+    if (nutrient && nutrient.amount !== null && nutrient.amount < 0) {
+      errors.push({
+        code,
+        message: `${label} value is negative in the source record: ${nutrient.amount} ${unit}. Refused rather than clamped to zero.`,
+      });
+    }
+  };
+
+  refuseNegative("NEGATIVE_ENERGY", "Energy", "kcal", energyNutrient);
+  refuseNegative("NEGATIVE_PROTEIN", "Protein", "g", proteinNutrient);
+  refuseNegative("NEGATIVE_FAT", "Fat", "g", fatNutrient);
+  refuseNegative("NEGATIVE_CARBOHYDRATE", "Carbohydrate", "g", carbNutrient);
+
+  /**
+   * The same rule for every other nutrient row the artifact will carry, because
+   * `nutrientFacts[].value` is `nonnegative` too. Nothing is known to trip this
+   * — only a by-difference quantity goes below zero and carbohydrate is the
+   * only one tracked — but if something does, excluding one food beats aborting
+   * a whole run at the final parse, which is the outcome this branch exists to
+   * prevent. The macro rows are skipped: they are already reported above.
+   */
+  const macroNutrients = new Set(
+    [energyNutrient, proteinNutrient, fatNutrient, carbNutrient].filter(Boolean)
+  );
+  for (const nutrient of norm.nutrients) {
+    if (macroNutrients.has(nutrient)) continue;
+    if (nutrient.amount === null || nutrient.amount >= 0) continue;
+    if (normalizeUnit(nutrient.unitName) === null) continue; // skipped from nutrientFacts anyway
+    errors.push({
+      code: "NEGATIVE_NUTRIENT_VALUE",
+      message: `Nutrient ${nutrient.nutrientNumber} (${nutrient.nutrientName}) is negative in the source record: ${nutrient.amount}. Refused rather than clamped to zero.`,
+    });
+  }
+
   if (errors.length > 0) {
     return { ok: false, errors };
   }
