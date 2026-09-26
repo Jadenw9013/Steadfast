@@ -3,8 +3,21 @@ import type {
   ArtifactDraftInput,
   ArtifactKind,
   ArtifactReference,
-  ArtifactReviewMetadata,
+  SignedArtifactReviewMetadata,
 } from "./schema";
+import {
+  PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID,
+  PRESCRIPTION_MACRO_COMPOSITION_ID,
+  PRESCRIPTION_METHOD_STRUCTURE_ID,
+  PRESCRIPTION_PARAMETER_SPECS,
+  PRESCRIPTION_PROTEIN_WEIGHT_BASIS_ID,
+  PRESCRIPTION_ROUNDING_ORDER_ID,
+  energyCoefficientParameterId,
+  energyDensityParameterId,
+  goalAdjustmentParameterId,
+  inputRangeParameterId,
+  proteinParameterId,
+} from "../prescription/parameters";
 
 /**
  * T-1005 engineering fixtures only. Every fact, threshold, identity and review
@@ -13,7 +26,86 @@ import type {
 
 export const SYNTHETIC_ARTIFACT_ENGINE_VERSION = "ai-coach-artifact-engine-v1";
 
-function reviewMetadata(namespace: string): ArtifactReviewMetadata {
+const SYNTHETIC_ENERGY_BASE = {
+  MALE_ADULT: { intercept: 700, ageCoefficient: -5, weightCoefficient: 10, heightCoefficient: 500 },
+  FEMALE_ADULT: {
+    intercept: 600,
+    ageCoefficient: -5,
+    weightCoefficient: 9,
+    heightCoefficient: 450,
+  },
+} as const;
+const SYNTHETIC_ACTIVITY_MULTIPLIER: Record<
+  "INACTIVE" | "LOW_ACTIVE" | "ACTIVE" | "VERY_ACTIVE",
+  number
+> = {
+  INACTIVE: 1,
+  LOW_ACTIVE: 1.1,
+  ACTIVE: 1.2,
+  VERY_ACTIVE: 1.3,
+};
+
+const SYNTHETIC_PROTEIN_BASE: Record<
+  "NONE" | "OCCASIONAL" | "REGULAR",
+  { min: number; target: number; max: number }
+> = {
+  NONE: { min: 0.5, target: 1, max: 1.5 },
+  OCCASIONAL: { min: 1, target: 1.5, max: 2 },
+  REGULAR: { min: 1.5, target: 2.5, max: 3.5 },
+};
+
+export function syntheticPrescriptionParameterValue(id: string): number {
+  for (const population of ["MALE_ADULT", "FEMALE_ADULT"] as const) {
+    for (const activity of ["INACTIVE", "LOW_ACTIVE", "ACTIVE", "VERY_ACTIVE"] as const) {
+      const base = SYNTHETIC_ENERGY_BASE[population];
+      if (id === energyCoefficientParameterId(population, activity, "INTERCEPT"))
+        return base.intercept;
+      if (id === energyCoefficientParameterId(population, activity, "AGE_COEFFICIENT"))
+        return base.ageCoefficient;
+      if (id === energyCoefficientParameterId(population, activity, "WEIGHT_COEFFICIENT"))
+        return base.weightCoefficient;
+      if (id === energyCoefficientParameterId(population, activity, "HEIGHT_COEFFICIENT"))
+        return base.heightCoefficient;
+      if (id === energyCoefficientParameterId(population, activity, "ACTIVITY_COEFFICIENT"))
+        return SYNTHETIC_ACTIVITY_MULTIPLIER[activity];
+    }
+  }
+  if (id === inputRangeParameterId("AGE_YEARS", "MIN")) return 18;
+  if (id === inputRangeParameterId("AGE_YEARS", "MAX")) return 79;
+  if (id === inputRangeParameterId("HEIGHT_CM", "MIN")) return 140;
+  if (id === inputRangeParameterId("HEIGHT_CM", "MAX")) return 220;
+  if (id === inputRangeParameterId("WEIGHT_KG", "MIN")) return 40;
+  if (id === inputRangeParameterId("WEIGHT_KG", "MAX")) return 200;
+  if (id === "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS") return 14;
+  if (id === "ENERGY.BODY_MASS.ENERGY_PER_KG") return 5000;
+  if (id === goalAdjustmentParameterId("LOSE", "GRADUAL")) return -0.1;
+  if (id === goalAdjustmentParameterId("LOSE", "MODERATE")) return -0.2;
+  if (id === goalAdjustmentParameterId("GAIN", "GRADUAL")) return 0.1;
+  if (id === goalAdjustmentParameterId("GAIN", "MODERATE")) return 0.2;
+  if (id === "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION") return 0;
+  if (id === "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION") return 0.25;
+  if (id === "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION") return 0.25;
+  for (const context of ["NONE", "OCCASIONAL", "REGULAR"] as const) {
+    const base = SYNTHETIC_PROTEIN_BASE[context];
+    if (id === proteinParameterId(context, "MIN")) return base.min;
+    if (id === proteinParameterId(context, "TARGET")) return base.target;
+    if (id === proteinParameterId(context, "MAX")) return base.max;
+  }
+  if (id === "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MIN") return 38;
+  if (id === "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MAX") return 66;
+  if (id === "MACRO.FAT.PERCENT_ENERGY.MIN") return 12;
+  if (id === "MACRO.FAT.PERCENT_ENERGY.MAX") return 30;
+  if (id === energyDensityParameterId("PROTEIN")) return 5;
+  if (id === energyDensityParameterId("CARBOHYDRATE")) return 5;
+  if (id === energyDensityParameterId("FAT")) return 10;
+  if (id === "ROUNDING.ENERGY_KCAL.STEP") return 10;
+  if (id === "ROUNDING.MACRO_GRAMS.DECIMALS") return 0;
+  if (id === "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS") return 2;
+  if (id === "COMPOSITION.TOLERANCE_PERCENT") return 10;
+  throw new Error(`No synthetic value defined for prescription parameter ${id}`);
+}
+
+function reviewMetadata(namespace: string): SignedArtifactReviewMetadata {
   return {
     accountableOwner: { name: "SYNTHETIC_FIXTURE_OWNER", role: "TEST_ONLY" },
     reviewer: {
@@ -59,7 +151,7 @@ function artifact(
   content: ArtifactDraftInput["content"],
   dependencies: ArtifactReference[] = [],
   version = 1
-): ArtifactDraftInput {
+): ArtifactDraftInput<SignedArtifactReviewMetadata> {
   return {
     id: `${artifactKey}:v${version}`,
     artifactKey,
@@ -74,7 +166,7 @@ function artifact(
   };
 }
 
-function reference(value: ArtifactDraftInput): ArtifactReference {
+function reference(value: ArtifactDraftInput<SignedArtifactReviewMetadata>): ArtifactReference {
   return {
     id: value.id,
     artifactKey: value.artifactKey,
@@ -356,15 +448,26 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
         "SYNTHETIC_MINIMUM_DAILY_ENERGY_RULE",
         "SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
         "SYNTHETIC_NO_CONSECUTIVE_DEFICIT_RULE",
+        PRESCRIPTION_METHOD_STRUCTURE_ID,
+        PRESCRIPTION_PROTEIN_WEIGHT_BASIS_ID,
+        PRESCRIPTION_ROUNDING_ORDER_ID,
+        PRESCRIPTION_MACRO_COMPOSITION_ID,
+        PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID,
       ],
-      calculationMethodIds: ["SYNTHETIC_CALCULATION_METHOD"],
-      adjustmentRuleIds: ["SYNTHETIC_ADJUSTMENT_RULE"],
+      calculationMethodIds: [
+        "SYNTHETIC_CALCULATION_METHOD",
+        PRESCRIPTION_METHOD_STRUCTURE_ID,
+        PRESCRIPTION_PROTEIN_WEIGHT_BASIS_ID,
+        PRESCRIPTION_ROUNDING_ORDER_ID,
+        PRESCRIPTION_MACRO_COMPOSITION_ID,
+      ],
+      adjustmentRuleIds: ["SYNTHETIC_ADJUSTMENT_RULE", PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID],
       cooldownRuleIds: ["SYNTHETIC_COOLDOWN_RULE"],
       cumulativeLimitRuleIds: ["SYNTHETIC_CUMULATIVE_LIMIT_RULE"],
       contraindicationRuleIds: ["SYNTHETIC_CONTRAINDICATION_RULE"],
       evidenceRuleIds: ["SYNTHETIC_EVIDENCE_RULE"],
       escalationTemplateIds: ["synthetic-pause-refer-template"],
-      explanationTemplateIds: ["SYNTHETIC_EXPLANATION_TEMPLATE"],
+      explanationTemplateIds: ["synthetic-pause-refer-template", "SYNTHETIC_EXPLANATION_TEMPLATE"],
       safetyControls: {
         schemaVersion: 1,
         screening: {
@@ -434,6 +537,14 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
           applicabilityRuleIds: ["SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_RULE"],
           evidenceClaimIds: ["synthetic-evidence-claim"],
         },
+        // Deliberately synthetic test value. It is not approved guidance.
+        ...PRESCRIPTION_PARAMETER_SPECS.map((spec) => ({
+          id: spec.id,
+          value: syntheticPrescriptionParameterValue(spec.id),
+          unit: spec.unit,
+          applicabilityRuleIds: [spec.groupRuleId],
+          evidenceClaimIds: ["synthetic-evidence-claim"],
+        })),
       ],
       unknownAnswerBehavior: "FAIL_CLOSED",
       outOfScopeOutcome: "PAUSE_REFER",

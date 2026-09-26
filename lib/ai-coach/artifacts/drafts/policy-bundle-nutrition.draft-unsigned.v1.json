@@ -1,0 +1,1251 @@
+{
+  "fileSchemaVersion": 1,
+  "reviewMetadata": {
+    "decision": "DRAFT_UNSIGNED",
+    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
+    "preparedAt": "2026-09-25T00:00:00.000Z",
+    "draftRecordId": "draft-nutrition-bundle-v1",
+    "worksheetSectionIds": [
+      "D03",
+      "D04",
+      "D05"
+    ],
+    "proposalProvenance": [
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MIN",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MAX",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MIN",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MAX",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MIN",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MAX",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MIN",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MAX",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.FAT.PERCENT_ENERGY.MIN",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.FAT.PERCENT_ENERGY.MAX",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.ENERGY_DENSITY.PROTEIN.KCAL_PER_G",
+        "sourceClaimId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+      },
+      {
+        "parameterId": "MACRO.ENERGY_DENSITY.CARBOHYDRATE.KCAL_PER_G",
+        "sourceClaimId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+      },
+      {
+        "parameterId": "MACRO.ENERGY_DENSITY.FAT.KCAL_PER_G",
+        "sourceClaimId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.NONE.MIN",
+        "sourceClaimId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 10 (Protein and Amino Acids), p. 589"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.NONE.TARGET",
+        "sourceClaimId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 10 (Protein and Amino Acids), p. 589"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.NONE.MAX",
+        "sourceClaimId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 10 (Protein and Amino Acids), p. 589"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MIN",
+        "sourceClaimId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceId": "AND-DC-ACSM-2016",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "sourceLocator": "Section: Protein Requirements, pp. 547-548"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.TARGET",
+        "sourceClaimId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceId": "AND-DC-ACSM-2016",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "sourceLocator": "Section: Protein Requirements, pp. 547-548"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MAX",
+        "sourceClaimId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceId": "AND-DC-ACSM-2016",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "sourceLocator": "Section: Protein Requirements, pp. 547-548"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.REGULAR.MIN",
+        "sourceClaimId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceId": "MORTON-PROTEIN-META-2018",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.REGULAR.TARGET",
+        "sourceClaimId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceId": "MORTON-PROTEIN-META-2018",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.REGULAR.MAX",
+        "sourceClaimId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceId": "MORTON-PROTEIN-META-2018",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      }
+    ],
+    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+  },
+  "content": {
+    "artifactKey": "policy-bundle-nutrition",
+    "version": 1,
+    "supportedPopulation": "Adult general-fitness population (non-pregnant, non-lactating).",
+    "supportedGoals": [
+      "GENERAL_FITNESS",
+      "WEIGHT_MANAGEMENT"
+    ],
+    "requiredInputIds": [
+      "AGE_ELIGIBILITY",
+      "PREGNANCY_POSTPARTUM",
+      "EATING_DISORDER_HISTORY_OR_CONCERN",
+      "TYPE_1_DIABETES",
+      "CARDIAC_CONDITION",
+      "SYNTHETIC_SCREEN_RESULT"
+    ],
+    "ruleIds": [
+      "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+      "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1",
+      "GOAL.ADJUSTMENT.BOUNDED.V1",
+      "MACRO.COMPOSITION.DRI_AMDR.V1",
+      "PRESCRIPTION.ROUNDING.ORDER.V1",
+      "NUTRITION_MINIMUM_DAILY_ENERGY_RULE",
+      "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
+      "NUTRITION_NO_CONSECUTIVE_DEFICIT_RULE",
+      "NUTRITION_INTAKE_SCREEN_RULE",
+      "NUTRITION_CONTRAINDICATION_RULE",
+      "NUTRITION_EVIDENCE_RULE",
+      "NUTRITION_COOLDOWN_RULE",
+      "NUTRITION_CUMULATIVE_LIMIT_RULE"
+    ],
+    "calculationMethodIds": [
+      "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+      "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1",
+      "MACRO.COMPOSITION.DRI_AMDR.V1",
+      "PRESCRIPTION.ROUNDING.ORDER.V1"
+    ],
+    "adjustmentRuleIds": [
+      "GOAL.ADJUSTMENT.BOUNDED.V1"
+    ],
+    "cooldownRuleIds": [
+      "NUTRITION_COOLDOWN_RULE"
+    ],
+    "cumulativeLimitRuleIds": [
+      "NUTRITION_CUMULATIVE_LIMIT_RULE"
+    ],
+    "contraindicationRuleIds": [
+      "NUTRITION_CONTRAINDICATION_RULE"
+    ],
+    "evidenceRuleIds": [
+      "NUTRITION_EVIDENCE_RULE"
+    ],
+    "escalationTemplateIds": [
+      "synthetic-pause-refer-template"
+    ],
+    "explanationTemplateIds": [
+      "synthetic-pause-refer-template"
+    ],
+    "safetyControls": {
+      "schemaVersion": 1,
+      "screening": {
+        "instrumentId": "NUTRITION_SCREENING_V1",
+        "resultInputId": "SYNTHETIC_SCREEN_RESULT",
+        "ruleId": "NUTRITION_INTAKE_SCREEN_RULE",
+        "flaggedReasonCode": "SCREEN_FLAGGED",
+        "unknownReasonCode": "SCREEN_UNKNOWN",
+        "escalationTemplateId": "synthetic-pause-refer-template"
+      },
+      "contraindications": [
+        {
+          "inputId": "AGE_ELIGIBILITY",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_AGE_ELIGIBILITY",
+          "escalationTemplateId": "synthetic-pause-refer-template"
+        },
+        {
+          "inputId": "PREGNANCY_POSTPARTUM",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_PREGNANCY_POSTPARTUM",
+          "escalationTemplateId": "synthetic-pause-refer-template"
+        },
+        {
+          "inputId": "EATING_DISORDER_HISTORY_OR_CONCERN",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_EATING_DISORDER",
+          "escalationTemplateId": "synthetic-pause-refer-template"
+        },
+        {
+          "inputId": "TYPE_1_DIABETES",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_TYPE_1_DIABETES",
+          "escalationTemplateId": "synthetic-pause-refer-template"
+        },
+        {
+          "inputId": "CARDIAC_CONDITION",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_CARDIAC_CONDITION",
+          "escalationTemplateId": "synthetic-pause-refer-template"
+        }
+      ],
+      "nutritionLimits": {
+        "minimumDailyEnergyParameterId": "PENDING_RD_DECISION_MIN_DAILY_ENERGY",
+        "maximumWeeklyLossRateParameterId": "PENDING_RD_DECISION_MAX_WEEKLY_LOSS_RATE",
+        "minimumDailyEnergyRuleId": "NUTRITION_MINIMUM_DAILY_ENERGY_RULE",
+        "maximumWeeklyLossRateRuleId": "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
+        "noConsecutiveDeficitRuleId": "NUTRITION_NO_CONSECUTIVE_DEFICIT_RULE",
+        "minimumDailyEnergyReasonCode": "MINIMUM_DAILY_ENERGY_LIMIT",
+        "maximumWeeklyLossRateReasonCode": "MAXIMUM_WEEKLY_LOSS_RATE_LIMIT",
+        "noConsecutiveDeficitReasonCode": "CONSECUTIVE_DEFICIT_BLOCKED",
+        "missingRateInputReasonCode": "RATE_INPUT_MISSING",
+        "unverifiableHistoryReasonCode": "HISTORY_UNVERIFIABLE"
+      }
+    },
+    "numericParameters": [
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.INTERCEPT",
+        "value": 753.07,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "value": 14.1,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "value": 650,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "value": 581.47,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 14.94,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 830,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.INTERCEPT",
+        "value": 1004.82,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 15.91,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 652,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "value": -517.88,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 19.11,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 1561,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.INTERCEPT",
+        "value": 584.9,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "value": 11.71,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "value": 572,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "value": 575.77,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 12.14,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 660,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.INTERCEPT",
+        "value": 710.25,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 12.34,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 654,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "value": 511.83,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 12.56,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 907,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MIN",
+        "value": 19,
+        "unit": "YEARS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MAX",
+        "value": 80,
+        "unit": "YEARS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MIN",
+        "value": 140,
+        "unit": "CENTIMETRES",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MAX",
+        "value": 220,
+        "unit": "CENTIMETRES",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MIN",
+        "value": 40,
+        "unit": "KILOGRAMS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MAX",
+        "value": 200,
+        "unit": "KILOGRAMS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MIN",
+        "value": 45,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MAX",
+        "value": 65,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.FAT.PERCENT_ENERGY.MIN",
+        "value": 20,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.FAT.PERCENT_ENERGY.MAX",
+        "value": 35,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.ENERGY_DENSITY.PROTEIN.KCAL_PER_G",
+        "value": 4,
+        "unit": "KCAL_PER_GRAM",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY"
+        ]
+      },
+      {
+        "id": "MACRO.ENERGY_DENSITY.CARBOHYDRATE.KCAL_PER_G",
+        "value": 4,
+        "unit": "KCAL_PER_GRAM",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY"
+        ]
+      },
+      {
+        "id": "MACRO.ENERGY_DENSITY.FAT.KCAL_PER_G",
+        "value": 9,
+        "unit": "KCAL_PER_GRAM",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.NONE.MIN",
+        "value": 0.8,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.PROTEIN.BASELINE"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.NONE.TARGET",
+        "value": 0.8,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.PROTEIN.BASELINE"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.NONE.MAX",
+        "value": 1.2,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.PROTEIN.BASELINE"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MIN",
+        "value": 1.2,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.TARGET",
+        "value": 1.4,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MAX",
+        "value": 1.6,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.MIN",
+        "value": 1.6,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.TARGET",
+        "value": 2,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.MAX",
+        "value": 2.4,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING"
+        ]
+      }
+    ],
+    "unknownAnswerBehavior": "FAIL_CLOSED",
+    "outOfScopeOutcome": "PAUSE_REFER"
+  }
+}

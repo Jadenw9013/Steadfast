@@ -1,7 +1,11 @@
 import { contentHash } from "../canonical-json";
-import { type ArtifactDraftInput, parseArtifactDraftInput } from "./schema";
+import {
+  type ArtifactDraftInput,
+  type ArtifactReviewMetadata,
+  parseArtifactDraftInput,
+} from "./schema";
 
-export function artifactDigestPayload(input: ArtifactDraftInput) {
+export function artifactDigestPayload(input: ArtifactDraftInput<ArtifactReviewMetadata>) {
   return {
     id: input.id,
     artifactKey: input.artifactKey,

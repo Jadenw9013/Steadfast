@@ -9,7 +9,7 @@ if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 const authMock = vi.mocked(getCurrentDbUser);
 
-import type { ArtifactDraftInput } from "@/lib/ai-coach/artifacts/schema";
+import type { ArtifactDraftInput, ArtifactReviewMetadata } from "@/lib/ai-coach/artifacts/schema";
 import {
   publishArtifactVersion,
   registerArtifactVersion,
@@ -67,7 +67,10 @@ const clearSafety = {
  * reserved key never collides with that fixture's own `id`. See
  * `buildLiveTrainingArtifacts` for why this is only safe for
  * EXERCISE_CATALOG, not POLICY_BUNDLE. */
-function bumpVersion(artifact: ArtifactDraftInput, version: number): ArtifactDraftInput {
+function bumpVersion<T extends ArtifactDraftInput<ArtifactReviewMetadata>>(
+  artifact: T,
+  version: number
+): T {
   const clone = structuredClone(artifact);
   clone.version = version;
   clone.id = `${clone.artifactKey}:v${version}`;
@@ -250,9 +253,7 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     // period" against a policy whose own now-based window has moved forward.
     // activateTestLiveRelease's own `ensurePublished` skips re-publishing
     // once a row is already PUBLISHED, so this window sticks.
-    const customExercise = sharedArtifacts.leaves.find(
-      (leaf) => leaf.kind === "EXERCISE_CATALOG"
-    )!;
+    const customExercise = sharedArtifacts.leaves.find((leaf) => leaf.kind === "EXERCISE_CATALOG")!;
     const existing = await db.aiCoachArtifactVersion.findUnique({
       where: { id: customExercise.id },
     });
@@ -387,7 +388,9 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
       safetyRevision: number;
       activePlanVersionId: string | null;
     },
-    overrides: Partial<{ reviewerStatus: "PENDING" | "APPROVED" | "REJECTED" | "NOT_REQUIRED" }> = {}
+    overrides: Partial<{
+      reviewerStatus: "PENDING" | "APPROVED" | "REJECTED" | "NOT_REQUIRED";
+    }> = {}
   ) {
     const payload = planPayloadSchema.parse({
       schemaVersion: 1,
@@ -550,9 +553,9 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     // future regression that reaches FOCUSED_CLARIFICATION for an unrelated
     // reason (e.g. only the evidence branch firing) cannot pass silently.
     expect(result.reasonCodes).toContain("GATE_REQUIRED_INPUT_MISSING");
-    expect(
-      await db.aiAutomaticPlanApproval.count({ where: { planVersionId: candidate.id } })
-    ).toBe(0);
+    expect(await db.aiAutomaticPlanApproval.count({ where: { planVersionId: candidate.id } })).toBe(
+      0
+    );
   });
 
   it("T-2000 review round 2 nit 2: a real (non-synthetic) evidence-rule id alone — with every required-input id known — fails closed to FOCUSED_CLARIFICATION via the evidence branch", async () => {
@@ -642,9 +645,9 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     const result = await finalizeCurrentClientPlan(candidate.id);
     expect(result.outcome).toBe("FOCUSED_CLARIFICATION");
     expect(result.reasonCodes).toContain("GATE_EVIDENCE_MISSING");
-    expect(
-      await db.aiAutomaticPlanApproval.count({ where: { planVersionId: candidate.id } })
-    ).toBe(0);
+    expect(await db.aiAutomaticPlanApproval.count({ where: { planVersionId: candidate.id } })).toBe(
+      0
+    );
   });
 
   it("zero-reviewer happy path: finalizes and accepts a live training-only candidate with no AiCoachReviewerGrant anywhere", async () => {
@@ -664,11 +667,7 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     expect(proposal).toMatchObject({ status: "READY" });
     expect(proposal?.payload).not.toBeNull();
 
-    const result = await acceptPlanVersionAtomic(
-      user.id,
-      candidate.id,
-      acceptInputFor(candidate)
-    );
+    const result = await acceptPlanVersionAtomic(user.id, candidate.id, acceptInputFor(candidate));
     expect(result).toMatchObject({
       success: true,
       alreadyAccepted: false,
@@ -777,11 +776,7 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
       data: { strengthPermission: "HOLD_ONLY" },
     });
 
-    const result = await acceptPlanVersionAtomic(
-      user.id,
-      candidate.id,
-      acceptInputFor(candidate)
-    );
+    const result = await acceptPlanVersionAtomic(user.id, candidate.id, acceptInputFor(candidate));
     expect(result.success).toBe(false);
     expect(["SAFETY_RESTRICTED", "REVISION_CONFLICT"]).toContain(
       !result.success ? result.code : null
@@ -885,9 +880,9 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     await expect(finalizeCurrentClientPlan(candidate.id)).resolves.toMatchObject({
       outcome: "APPROVE_AUTOMATICALLY",
     });
-    expect((await getAiWorkspace(user.id)).proposals.find((p) => p.id === candidate.id)).toMatchObject(
-      { status: "READY" }
-    );
+    expect(
+      (await getAiWorkspace(user.id)).proposals.find((p) => p.id === candidate.id)
+    ).toMatchObject({ status: "READY" });
 
     // Changing safetyRevision changes every fresh evaluationKey computed from
     // current profile state, without touching the persisted approval.
@@ -934,11 +929,7 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
 
     await expect(finalizeCurrentClientPlan(candidate.id)).rejects.toThrow();
 
-    const result = await acceptPlanVersionAtomic(
-      user.id,
-      candidate.id,
-      acceptInputFor(candidate)
-    );
+    const result = await acceptPlanVersionAtomic(user.id, candidate.id, acceptInputFor(candidate));
     expect(result).toMatchObject({ success: false, code: "POLICY_UNAVAILABLE" });
     expect(
       await db.aiPlanActivationAttempt.findFirst({

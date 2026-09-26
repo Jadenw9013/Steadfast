@@ -16,6 +16,8 @@ its source file and is not fit to show a real user.
 
 ## Current takeover status — read before the historical log
 
+**T-2034 draft unsigned review metadata, checked-in draft nutrition bundle, and RD parameter catalogue, 2026-09-26:** splits `artifactReviewMetadataSchema` into `signedArtifactReviewMetadataSchema` and `draftUnsignedReviewMetadataSchema` discriminated on `decision` (`APPROVED` vs `DRAFT_UNSIGNED`). Draft unsigned review metadata does not require jurisdiction or clinical sign-off, but is refused by `assertUsable`, `publishArtifactVersion`, and `loadLiveArtifactSetForLaunchValidation` with `ARTIFACT_UNSIGNED_DRAFT`, ensuring that unreviewed clinical/nutrition content cannot be published or served to real clients. Adds all 75 parameters with fake values to synthetic fixtures. Checks in `lib/ai-coach/artifacts/drafts/policy-bundle-nutrition.draft-unsigned.v1.json` with 62 source-backed proposed parameters with provenance and 13 omitted under the omit-don't-guess rule (per Amendment 1 §A1.3). Adds loader `lib/ai-coach/artifacts/drafts/loader.ts` (throws if `NODE_ENV === "production"`) and `docs/ai-coach/17-Policy-Parameter-Catalogue.md` with complete rule groupings and tables.
+
 **T-2030 bounded explanation prose (web), 2026-09-25:** the constrained
 provider may now also return `explanationText`/`clarificationText` — two
 short, bounded sentences — alongside the existing IDs-only output

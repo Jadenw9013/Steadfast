@@ -93,7 +93,7 @@ const REQUIRED_EXCLUSIONS = [
   "CLINICIAN_INSTRUCTION_OVERRIDE",
 ] as const;
 
-export const artifactReviewMetadataSchema = z
+export const signedArtifactReviewMetadataSchema = z
   .object({
     accountableOwner: z
       .object({
@@ -145,7 +145,48 @@ export const artifactReviewMetadataSchema = z
       });
     }
   });
+
+export const draftUnsignedReviewMetadataSchema = z
+  .object({
+    decision: z.literal("DRAFT_UNSIGNED"),
+    preparedBy: z.literal("ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE"),
+    preparedAt: dateTimeSchema,
+    draftRecordId: identifierSchema,
+    worksheetSectionIds: z.array(identifierSchema).min(1).max(50),
+    proposalProvenance: z
+      .array(
+        z
+          .object({
+            parameterId: identifierSchema,
+            sourceClaimId: identifierSchema,
+            sourceId: identifierSchema,
+            sourceUrl: z.string().url(),
+            sourceLocator: z.string().min(1).max(240),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(1000),
+    unsignedNotice: z.literal(
+      "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+    ),
+  })
+  .strict();
+
+export const artifactReviewMetadataSchema = z.discriminatedUnion("decision", [
+  signedArtifactReviewMetadataSchema,
+  draftUnsignedReviewMetadataSchema,
+]);
+
+export type SignedArtifactReviewMetadata = z.infer<typeof signedArtifactReviewMetadataSchema>;
+export type DraftUnsignedReviewMetadata = z.infer<typeof draftUnsignedReviewMetadataSchema>;
 export type ArtifactReviewMetadata = z.infer<typeof artifactReviewMetadataSchema>;
+
+export function isDraftUnsignedReviewMetadata(
+  value: unknown
+): value is DraftUnsignedReviewMetadata {
+  return draftUnsignedReviewMetadataSchema.safeParse(value).success;
+}
 
 const reviewedSourceSchema = z
   .object({
@@ -309,11 +350,12 @@ export const policyBundleContentSchema = z
       ["safetyControls"],
       "Safety control rule"
     );
+    const safetyNumericParameters = [
+      policy.safetyControls.nutritionLimits.minimumDailyEnergyParameterId,
+      policy.safetyControls.nutritionLimits.maximumWeeklyLossRateParameterId,
+    ].filter((id) => !id.startsWith("PENDING_RD_DECISION"));
     reportUnknownIds(
-      [
-        policy.safetyControls.nutritionLimits.minimumDailyEnergyParameterId,
-        policy.safetyControls.nutritionLimits.maximumWeeklyLossRateParameterId,
-      ],
+      safetyNumericParameters,
       knownParameterIds,
       ctx,
       ["safetyControls", "nutritionLimits"],
@@ -561,8 +603,12 @@ const artifactDraftBaseSchema = z
   })
   .strict();
 
-export type ArtifactDraftInput = Omit<z.infer<typeof artifactDraftBaseSchema>, "content"> & {
+export type ArtifactDraftInput<TReview = SignedArtifactReviewMetadata> = Omit<
+  z.infer<typeof artifactDraftBaseSchema>,
+  "content" | "reviewMetadata"
+> & {
   content: ArtifactContent;
+  reviewMetadata: TReview;
 };
 
 const REQUIRED_POLICY_DEPENDENCIES: ArtifactKind[] = [
@@ -572,7 +618,7 @@ const REQUIRED_POLICY_DEPENDENCIES: ArtifactKind[] = [
   "ESCALATION_TEMPLATES",
 ];
 
-export function parseArtifactDraftInput(raw: unknown): ArtifactDraftInput {
+export function parseArtifactDraftInput(raw: unknown): ArtifactDraftInput<ArtifactReviewMetadata> {
   const base = artifactDraftBaseSchema.parse(raw);
   const content = contentSchemas[base.kind].parse(base.content) as ArtifactContent;
   if (content.artifactKey !== base.artifactKey || content.version !== base.version) {
@@ -594,14 +640,23 @@ export function parseArtifactDraftInput(raw: unknown): ArtifactDraftInput {
   } else if (base.dependencies.length !== 0) {
     throw new Error("Only policy bundles may declare artifact dependencies in schema version 1.");
   }
-  if (
-    base.synthetic &&
-    base.reviewMetadata.jurisdictionReview.legalReviewStatus !== "SYNTHETIC_TEST_ONLY"
-  ) {
-    throw new Error("Synthetic artifacts must carry synthetic-only jurisdiction review status.");
-  }
-  if (!base.synthetic && base.reviewMetadata.jurisdictionReview.legalReviewStatus !== "APPROVED") {
-    throw new Error("Non-synthetic artifacts require approved jurisdiction/legal review.");
+  if (isDraftUnsignedReviewMetadata(base.reviewMetadata)) {
+    if (base.synthetic) {
+      throw new Error("Draft unsigned artifacts cannot be synthetic.");
+    }
+  } else {
+    if (
+      base.synthetic &&
+      base.reviewMetadata.jurisdictionReview.legalReviewStatus !== "SYNTHETIC_TEST_ONLY"
+    ) {
+      throw new Error("Synthetic artifacts must carry synthetic-only jurisdiction review status.");
+    }
+    if (
+      !base.synthetic &&
+      base.reviewMetadata.jurisdictionReview.legalReviewStatus !== "APPROVED"
+    ) {
+      throw new Error("Non-synthetic artifacts require approved jurisdiction/legal review.");
+    }
   }
   return { ...base, content };
 }
