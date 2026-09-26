@@ -8,6 +8,7 @@ import {
 } from "../nutrition-safety";
 import { sourceRefSchema, type SourceRef } from "../plan-contract";
 import { validatedManagedPayload } from "../validated-plan";
+import { buildPrescriptionInput, nutritionRequiredForGoal } from "../prescription";
 import {
   ArtifactLoadError,
   getReviewedExerciseItem,
@@ -44,6 +45,7 @@ export const autonomyGateReasonCodeSchema = z.enum([
   "GATE_SAFETY_RESTRICTED",
   "GATE_REQUIRED_INPUT_INVALID",
   "GATE_REQUIRED_INPUT_MISSING",
+  "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
   "GATE_NUTRITION_SAFETY_UNAVAILABLE",
   "GATE_NUTRITION_SAFETY_HOLD",
   "GATE_NUTRITION_SAFETY_PAUSE_REFER",
@@ -140,6 +142,12 @@ export type AutonomyGateFacts = {
   evidenceRuleIds: readonly string[];
   permissions: Record<z.infer<typeof domainSchema>, "ALLOW" | "HOLD_ONLY" | "PAUSED">;
   safetyDisposition: "CLEAR" | "CLARIFY" | "RESTRICTED" | "REFER" | "URGENT";
+  /** T-2033 (T-2003 Amendment: gate.ts:415-427 lead ruling). `null` means a
+   * legacy candidate (no `prescriptionOutcome` on the payload) and is read as
+   * `{required:false, available:true}` so no historical candidate changes
+   * meaning. Populated by the server entry point below from the candidate
+   * payload's `prescriptionOutcome` plus `nutritionRequiredForGoal(intake)`. */
+  prescription: { required: boolean; available: boolean; reasonCodes: string[] } | null;
   nutritionSafety: VerifiedNutritionSafety | null;
   evidenceCurrent: boolean;
   candidateValid: boolean;
@@ -174,6 +182,44 @@ function stoppedEvaluation(
     })),
     approvedCandidatePlanVersionId: null,
   };
+}
+
+/** T-2033 (T-2003 Contract "Gate") — client can fix by answering. */
+const PRESCRIPTION_CLIENT_FIXABLE_REASON_CODES = new Set([
+  "PRESCRIPTION_INPUT_MISSING",
+  "PRESCRIPTION_GOAL_PACE_UNDECIDED",
+  "PRESCRIPTION_WEIGHT_MEASUREMENT_STALE",
+]);
+/** Out of reviewed scope. */
+const PRESCRIPTION_OUT_OF_SCOPE_REASON_CODES = new Set([
+  "PRESCRIPTION_POPULATION_UNSUPPORTED",
+  "PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED",
+  "PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE",
+  "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE",
+]);
+/** Policy/engineering not ready. Every other named `PrescriptionReasonCode`
+ * (`PARAMETER_MISSING`, `PARAMETER_INCOMPATIBLE`, `METHOD_UNSUPPORTED`,
+ * `MACRO_RANGES_INFEASIBLE`, `MAINTENANCE_BELOW_MINIMUM`,
+ * `EXPLANATION_TEMPLATE_UNAVAILABLE`, `INTAKE_VERSION_UNSUPPORTED`) plus any
+ * *unknown* code (forward compatibility) falls through to this class by
+ * `outcomeFor`'s default, so the set below is documentation, not a second
+ * source of truth the map must be kept in sync with.
+ */
+
+/**
+ * T-2033 — frozen total map over `PrescriptionReasonCode` (T-2003 Contract
+ * "Gate"). An unknown code (forward compatibility) is `HOLD`. Multiple codes
+ * resolve to the most protective outcome: `PAUSE_REFER` > `HOLD` >
+ * `FOCUSED_CLARIFICATION`.
+ */
+function outcomeFor(reasonCodes: readonly string[]): Exclude<AutonomyOutcome, "APPROVE_AUTOMATICALLY"> {
+  if (reasonCodes.length === 0) return "HOLD";
+  let outcome: Exclude<AutonomyOutcome, "APPROVE_AUTOMATICALLY"> = "FOCUSED_CLARIFICATION";
+  for (const code of reasonCodes) {
+    if (PRESCRIPTION_OUT_OF_SCOPE_REASON_CODES.has(code)) return "PAUSE_REFER";
+    if (!PRESCRIPTION_CLIENT_FIXABLE_REASON_CODES.has(code)) outcome = "HOLD";
+  }
+  return outcome;
 }
 
 /**
@@ -219,6 +265,22 @@ export function evaluateAutonomyGate(
     return stoppedEvaluation("REQUIRED_INPUTS", "FOCUSED_CLARIFICATION", [
       "GATE_REQUIRED_INPUT_MISSING",
     ]);
+  }
+
+  // T-2033: placed before the nutritionSafety checks below (T-2003 Contract
+  // "Gate"), so GATE_ORDER and the validationReport.checks shape are
+  // unchanged — this still runs inside the TARGET_AND_LIMITS stage. Makes
+  // APPROVE_AUTOMATICALLY unreachable whenever the goal needs an energy
+  // target and the engine did not produce one, closing the hole where a
+  // candidate with `payload.nutrition === null` could satisfy `domainsMatch`
+  // simply by NUTRITION being absent from `requestedDomains`.
+  if (facts.prescription && facts.prescription.required && !facts.prescription.available) {
+    return stoppedEvaluation(
+      "TARGET_AND_LIMITS",
+      outcomeFor(facts.prescription.reasonCodes),
+      ["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", ...facts.prescription.reasonCodes],
+      []
+    );
   }
 
   if (!facts.nutritionSafety) {
@@ -377,6 +439,15 @@ async function loadVerifiedNutritionSafety(
   };
 }
 
+/** T-2033 — server-derived, not trusted from the candidate payload: recomputed
+ * from the account's *current* confirmed intake, the same way
+ * `buildPrescriptionInput` would see it. `evaluatedOn` does not affect
+ * `bodyWeightIntent`, so any valid calendar date string is fine here. */
+function nutritionRequiredFromConfirmedIntake(confirmedIntake: unknown): boolean {
+  const built = buildPrescriptionInput(confirmedIntake, "1970-01-01");
+  return built.ok && nutritionRequiredForGoal(built.input);
+}
+
 async function validateCandidate(
   tx: Prisma.TransactionClient,
   clientId: string,
@@ -391,13 +462,13 @@ async function validateCandidate(
   nutritionSafety: VerifiedNutritionSafety | null
 ) {
   if (!input.candidatePlanVersionId) {
-    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[] };
+    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[], payload: null };
   }
   const candidate = await tx.aiPlanVersion.findFirst({
     where: { id: input.candidatePlanVersionId, clientId },
   });
   if (!candidate || candidate.status !== "PROPOSED") {
-    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[] };
+    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[], payload: null };
   }
   const payload = validatedManagedPayload(candidate);
   const sourceRefs = z
@@ -409,7 +480,12 @@ async function validateCandidate(
     .strict()
     .safeParse(candidate.catalogVersions);
   if (!payload || !sourceRefs.success || !catalogVersions.success) {
-    return { valid: false, payloadHash: candidate.payloadHash, sourceRefs: [] as SourceRef[] };
+    return {
+      valid: false,
+      payloadHash: candidate.payloadHash,
+      sourceRefs: [] as SourceRef[],
+      payload: null,
+    };
   }
 
   const touchedDomains = new Set<string>(
@@ -473,6 +549,7 @@ async function validateCandidate(
       catalogItemsValid,
     payloadHash: candidate.payloadHash,
     sourceRefs: sourceRefs.data,
+    payload,
   };
 }
 
@@ -508,6 +585,7 @@ export async function evaluateCurrentClientAutonomyGate(
             nutritionPermission: true,
             strengthPermission: true,
             cardioPermission: true,
+            confirmedIntake: true,
           },
         }),
         tx.aiCoachEntitlement.findUnique({
@@ -544,6 +622,20 @@ export async function evaluateCurrentClientAutonomyGate(
       );
       const evidenceRefs = input.evidence.flatMap((item) => item.sourceRefs);
       const evidenceCurrent = await evidenceIsCurrent(tx, clientId, evidenceRefs);
+      // T-2033: `null` when the candidate payload carries no
+      // `prescriptionOutcome` (a legacy row, or one that failed to load at
+      // all) — read as {required:false, available:true} so no historical
+      // candidate changes meaning. `required` is recomputed from the
+      // account's *current* confirmed intake rather than trusted from the
+      // stored payload, matching this function's existing pattern of
+      // server-derived, not candidate-supplied, facts.
+      const prescription = candidate.payload?.prescriptionOutcome
+        ? {
+            required: nutritionRequiredFromConfirmedIntake(profile.confirmedIntake),
+            available: candidate.payload.prescriptionOutcome.status === "PRESCRIBED",
+            reasonCodes: candidate.payload.prescriptionOutcome.reasonCodes,
+          }
+        : null;
       const evaluation = evaluateAutonomyGate(input, {
         authorityEligible,
         allowedScopeClasses: artifacts.policy.reviewMetadata.allowedScope,
@@ -556,6 +648,7 @@ export async function evaluateCurrentClientAutonomyGate(
           CARDIO: profile.cardioPermission,
         },
         safetyDisposition: profile.safetyDisposition,
+        prescription,
         nutritionSafety,
         evidenceCurrent,
         candidateValid: candidate.valid,

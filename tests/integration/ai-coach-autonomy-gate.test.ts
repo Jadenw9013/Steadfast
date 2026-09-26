@@ -52,6 +52,8 @@ function pureFixture() {
     evidenceRuleIds: ["EVIDENCE_RULE"],
     permissions: { NUTRITION: "ALLOW", STRENGTH: "ALLOW", CARDIO: "ALLOW" },
     safetyDisposition: "CLEAR",
+    // T-2033: additive field. `null` == legacy candidate, unchanged behavior.
+    prescription: null,
     nutritionSafety: {
       id: "safety-decision",
       outcome: "PASS",

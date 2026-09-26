@@ -921,3 +921,29 @@ export function reviewedCatalogDisplayNames(artifacts: ReviewedArtifactSet): str
   }
   return names;
 }
+
+/**
+ * T-2033 (board/tickets/T-2003.md prescription step 16) — the reviewed
+ * `nextStepText` for each id in `policy.explanationTemplateIds` that
+ * resolves to a template in the loaded ESCALATION_TEMPLATES artifact, in
+ * bundle-declared order. An id with no matching template is skipped, not an
+ * error: `resolvePrescriptionParameters`/`computePrescription` fail closed
+ * to `PRESCRIPTION_EXPLANATION_TEMPLATE_UNAVAILABLE` when the resulting list
+ * is empty. One reader: both `finalization.ts` (recomputing a candidate's
+ * prescription for the digest/target check) and `managed-executor.ts`
+ * (generation) call this instead of each re-deriving the mapping.
+ */
+export function resolveReviewedPrescriptionExplanationTexts(
+  artifacts: ReviewedArtifactSet,
+  policy: PolicyBundleContent
+): string[] {
+  assertVerifiedLoadedArtifact(artifacts.escalationTemplates);
+  const content = escalationTemplatesContentSchema.parse(artifacts.escalationTemplates.content);
+  const byId = new Map(content.templates.map((template) => [template.id, template]));
+  const texts: string[] = [];
+  for (const id of policy.explanationTemplateIds) {
+    const template = byId.get(id);
+    if (template) texts.push(template.nextStepText);
+  }
+  return texts;
+}
