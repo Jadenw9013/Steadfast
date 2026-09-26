@@ -220,14 +220,13 @@ function boundViolationIds(
     parameters.rounding.projectedWeeklyChangeKgDecimals
   );
   if (publishedProjectedKg < 0) {
-    // Deficit compared in kg, not converted to a rate percentage first:
-    // `publishedProjectedKg` is already a clean rounded decimal (its
-    // representation error is bounded by one ULP of a number ≤2 decimal
-    // places, utterly negligible against a 0.01 kg rounding granularity),
-    // so — unlike the unrounded rate check in `evaluateBoundsOnce` — no
-    // domain change is needed to avoid amplifying cancellation error here.
-    const maxDeficitKg = (parameters.safetyFloors.maximumWeeklyLossRatePercent * weightKg) / 100;
-    if (exceeds(-publishedProjectedKg, maxDeficitKg)) {
+    // Deficit compared using the exact rate calculation of nutrition-safety.ts:200-205:
+    // `projectedWeeklyLossRatePercent = (Math.max(0, -projectedWeeklyWeightChangeKg) / currentWeightKg) * 100`
+    // followed by strict `>`. Comparing in kg with `exceeds()` introduces an epsilon tolerance
+    // that masks IEEE 754 float representation differences, allowing values where
+    // `(-publishedProjectedKg / weightKg) * 100 > cap` to pass the engine and fail downstream in safety evaluation.
+    const projectedLossRatePercent = (-publishedProjectedKg / weightKg) * 100;
+    if (projectedLossRatePercent > parameters.safetyFloors.maximumWeeklyLossRatePercent) {
       ids.push(parameters.safetyFloors.maximumWeeklyLossRateParameterId);
     }
   }
