@@ -20,7 +20,11 @@ import {
   evaluateCurrentClientAutonomyGate,
   type ServerAutonomyGateInput,
 } from "@/lib/ai-coach/autonomy/gate";
-import { policyBundleContentSchema } from "@/lib/ai-coach/artifacts/schema";
+import {
+  escalationTemplatesContentSchema,
+  policyBundleContentSchema,
+} from "@/lib/ai-coach/artifacts/schema";
+import { confirmIntake } from "@/lib/ai-coach/intake";
 import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
 import { planPayloadSchema, type PlanPayload } from "@/lib/ai-coach/plan-contract";
 import { finalizeCurrentClientPlan } from "@/lib/ai-coach/finalization";
@@ -67,6 +71,55 @@ function v2Intake(overrides: Record<string, unknown> = {}) {
     trackingPreference: "NUMBERS_VISIBLE",
     unitsPreference: "METRIC",
     capturedAt: `${today}T00:00:00.000Z`,
+    ageYears: 30,
+    ageStatus: "CONFIRMED",
+    energyMethodPopulationCategory: "MALE_ADULT",
+    energyMethodPopulationCategoryStatus: "CONFIRMED",
+    physicalActivityCategory: "ACTIVE",
+    physicalActivityCategoryStatus: "CONFIRMED",
+    bodyMeasurementStatus: "CONFIRMED",
+    heightCm: 180,
+    weightKg: 80,
+    weightMeasuredOn: today,
+    bodyWeightIntent: "LOSE",
+    goalPaceClass: "GRADUAL",
+    goalStatus: "CONFIRMED",
+    resistanceTrainingContext: "NONE",
+    trainingContextStatus: "CONFIRMED",
+    dietaryPattern: {
+      pattern: "OMNIVORE",
+      reason: "PREFERENCE",
+      status: "CONFIRMED",
+      otherLabel: null,
+      mandatory: false,
+    },
+    ...overrides,
+  };
+}
+
+/** The same client, expressed in the *write* schema `confirmIntake` accepts
+ * (`intakeV2ConfirmSchema`, `.strict()`): it derives `allergies`/
+ * `dietaryRestrictions` and stamps `capturedAt` itself, so those three are
+ * not supplied here. Every CONFIRMED status carries its jointly-required
+ * fields (`weightNeutralAccepted` with the goal, `sessionLengthBand` with the
+ * training context). */
+function v2ConfirmAnswers(overrides: Record<string, unknown> = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  return {
+    intakeVersion: 2,
+    experienceLevel: "NEW",
+    trainingDaysPerWeek: 3,
+    equipmentAccess: ["NONE"],
+    trackingPreference: "NUMBERS_VISIBLE",
+    unitsPreference: "METRIC",
+    cookingAccessStatus: "UNKNOWN",
+    dislikes: [],
+    cuisinePreferences: [],
+    allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+    weightNeutralAccepted: false,
+    sessionLengthBand: "MIN_30_45",
+    goal: "BODY_COMPOSITION",
+    foodBudgetLevel: "MODERATE",
     ageYears: 30,
     ageStatus: "CONFIRMED",
     energyMethodPopulationCategory: "MALE_ADULT",
@@ -232,6 +285,148 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
       );
     }
   });
+
+  // -------------------------------------------------------------------------
+  // Review r1 MAJOR 1 / MINOR 7 — finalization replays the engine against the
+  // *live* intake at *today's* date. Neither an intake edit nor a weigh-in
+  // ageing is a change to the reviewed policy, and Amendment 1 §A1.5 exists so
+  // an ordinary unrelated change does not 422 an outstanding proposal.
+  // -------------------------------------------------------------------------
+
+  it("MAJOR 1: a re-confirmed intake (new weigh-in) between generate and finalize is a graceful HOLD naming the inputs, never the 422 'no longer matches the reviewed policy'", async () => {
+    const user = await v2ClientFixture();
+    const candidate = await runToCompletion(user.id, "MACROS");
+    const payload = planPayloadSchema.parse(candidate.payload);
+    expect(payload.nutrition?.method).toBe("REVIEWED_PRESCRIPTION_V1");
+
+    // Exactly the review's scenario: the client re-confirms intake with a new
+    // weigh-in while the proposal is on screen. `confirmIntake` overwrites
+    // `confirmedIntake` and bumps `profileRevision`; it does not supersede the
+    // outstanding PROPOSED row.
+    const confirmed = await confirmIntake(user.id, v2ConfirmAnswers({ weightKg: 88 }));
+    expect(confirmed).toMatchObject({ success: true });
+    const reloaded = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: user.id } });
+    expect(reloaded.profileRevision).not.toBe(candidate.profileRevision);
+    expect((reloaded.confirmedIntake as { weightKg: number }).weightKg).toBe(88);
+
+    const result = await finalizeCurrentClientPlan(candidate.id);
+    expect(result.outcome).toBe("HOLD");
+    expect("reasonCodes" in result ? result.reasonCodes : []).toEqual([
+      "PRESCRIPTION_CANDIDATE_INPUTS_CHANGED",
+    ]);
+  });
+
+  it("MINOR 7: a weight measurement that ages past MAX_AGE_DAYS between generate and finalize reports the aged input, not PRESCRIPTION_PARAMETER_SET_CHANGED", async () => {
+    const user = await v2ClientFixture();
+    const candidate = await runToCompletion(user.id, "MACROS");
+
+    // The clock moving forward past ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS
+    // and the measurement date moving equally far back are the same input to
+    // the engine (`daysBetween(weightMeasuredOn, evaluatedOn)`), and the
+    // date-shift form leaves the artifact effective window alone. Written
+    // without a `profileRevision` bump on purpose: this is the equal-revision
+    // case, where the *only* thing that changed is elapsed time.
+    await db.aiCoachProfile.update({
+      where: { clientId: user.id },
+      data: { confirmedIntake: v2Intake({ weightMeasuredOn: "2020-01-01" }) },
+    });
+    const unchanged = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: user.id } });
+    expect(unchanged.profileRevision).toBe(candidate.profileRevision);
+
+    const result = await finalizeCurrentClientPlan(candidate.id);
+    expect(result.outcome).toBe("HOLD");
+    const reasonCodes = "reasonCodes" in result ? result.reasonCodes : [];
+    expect(reasonCodes).toEqual([
+      "PRESCRIPTION_CANDIDATE_INPUTS_NOT_REPRODUCIBLE",
+      "PRESCRIPTION_WEIGHT_MEASUREMENT_STALE",
+    ]);
+    expect(reasonCodes).not.toContain("PRESCRIPTION_PARAMETER_SET_CHANGED");
+  });
+
+  it("MAJOR 2: a reason code no reviewed escalation template declares still resolves a template — the gate writes a HOLD decision row instead of throwing ARTIFACT_INCOMPATIBLE (503, no row)", async () => {
+    const user = await v2ClientFixture();
+    const set = await ensureRuntimeArtifacts();
+    const request = { policyArtifactKey: set.policyKey, engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION };
+    // A code this bundle has no obligation to declare: a future
+    // PrescriptionReasonCode, or a row written by a newer deploy. The
+    // synthetic ESCALATION_TEMPLATES artifact declares the 15 codes that
+    // exist today and nothing else.
+    const unknownReasonCode = "PRESCRIPTION_FUTURE_CODE_NOT_IN_BUNDLE";
+    const escalation = escalationTemplatesContentSchema.parse(set.escalationTemplates.content);
+    expect(escalation.templates.flatMap((template) => template.reasonCodes)).not.toContain(
+      unknownReasonCode
+    );
+
+    const payload = planPayloadSchema.parse({
+      schemaVersion: 1,
+      contentKind: "SYNTHETIC_FIXTURE",
+      nutrition: null,
+      meals: null,
+      strength: [],
+      cardio: [],
+      policyVersion: set.policyBundle.artifactKey,
+      catalogVersions: { food: set.foodCatalog.artifactKey, exercise: set.exerciseCatalog.artifactKey },
+      prescriptionOutcome: {
+        status: "UNAVAILABLE",
+        reasonCodes: [unknownReasonCode],
+        nutritionRequired: true,
+        parameterSetDigest: null,
+      },
+    });
+    const plan = await db.aiPlanVersion.create({
+      data: {
+        clientId: user.id,
+        version: 1,
+        status: "PROPOSED",
+        changeClass: "INITIAL",
+        payload,
+        payloadHash: contentHash(payload),
+        contextRevision: 0,
+        profileRevision: 0,
+        observationRevision: 0,
+        safetyRevision: 0,
+        policyVersion: payload.policyVersion,
+        catalogVersions: payload.catalogVersions,
+        reviewerStatus: "NOT_REQUIRED",
+        sourceRefs: [],
+        validationReport: { engine: "managed-v1", passed: true, inputHash: contentHash({ fixture: "t2033-unknown-code" }) },
+      },
+    });
+    const policyContent = policyBundleContentSchema.parse(set.policyBundle.content);
+    const gateInput: ServerAutonomyGateInput = {
+      requestedScopeClasses: ["GENERAL_BEHAVIOR_NUTRITION_EDUCATION"],
+      requestedDomains: ["NUTRITION"],
+      requiredInputs: policyContent.requiredInputIds.map((id) => ({ id, status: "CONFIRMED" })),
+      evidence: policyContent.evidenceRuleIds.map((ruleId) => ({ ruleId, status: "SUFFICIENT", sourceRefs: [] })),
+      candidatePlanVersionId: plan.id,
+    };
+    const result = await evaluateCurrentClientAutonomyGate(request, gateInput);
+    // outcomeFor's documented unknown-code-is-a-HOLD, all the way through to a
+    // persisted decision row with a reviewed next-action template.
+    expect(result.outcome).toBe("HOLD");
+    expect(result.orderedReasonCodes).toEqual(
+      expect.arrayContaining(["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", unknownReasonCode])
+    );
+    const row = await db.aiAutonomyGateDecision.findFirstOrThrow({
+      where: { clientId: user.id },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+    expect(row.outcome).toBe("HOLD");
+    expect(row.nextActionTemplateId).toBeTruthy();
+  });
+
+  // MAJOR 2(b) — `loadLiveArtifactSetForLaunchValidation` now asserts that a
+  // packet's reviewed escalation templates declare
+  // GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE and all 14 PrescriptionReasonCodes
+  // (artifacts/repository.ts). It is deliberately NOT covered by a test here:
+  // reaching that assertion requires a *non-synthetic* packet, and
+  // `parseArtifactDraftInput` (artifacts/schema.ts) only accepts one whose
+  // reviewMetadata carries `jurisdictionReview.legalReviewStatus: "APPROVED"`.
+  // Fabricating an approved legal review over synthetic content is exactly
+  // what the G01-G09 gates forbid, so the assertion is left to the first real
+  // live packet (which is a human gate) rather than proven with invented
+  // reviewer metadata. Every synthetic path is unaffected: the validator
+  // rejects synthetic artifacts (SYNTHETIC_ARTIFACT_FORBIDDEN) before it.
 
   it("regression, historical rows: a pre-existing SYNTHETIC_CATALOG_MATCH candidate with no prescriptionOutcome still parses, finalizes and reaches APPROVE_AUTOMATICALLY exactly as before", async () => {
     const user = await v2ClientFixture();

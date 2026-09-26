@@ -9,6 +9,7 @@ import {
 import { sourceRefSchema, type SourceRef } from "../plan-contract";
 import { validatedManagedPayload } from "../validated-plan";
 import { buildPrescriptionInput, nutritionRequiredForGoal } from "../prescription";
+import { classifyPrescriptionReasonCodes } from "../prescription-reason-classes";
 import {
   ArtifactLoadError,
   getReviewedExerciseItem,
@@ -184,42 +185,20 @@ function stoppedEvaluation(
   };
 }
 
-/** T-2033 (T-2003 Contract "Gate") — client can fix by answering. */
-const PRESCRIPTION_CLIENT_FIXABLE_REASON_CODES = new Set([
-  "PRESCRIPTION_INPUT_MISSING",
-  "PRESCRIPTION_GOAL_PACE_UNDECIDED",
-  "PRESCRIPTION_WEIGHT_MEASUREMENT_STALE",
-]);
-/** Out of reviewed scope. */
-const PRESCRIPTION_OUT_OF_SCOPE_REASON_CODES = new Set([
-  "PRESCRIPTION_POPULATION_UNSUPPORTED",
-  "PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED",
-  "PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE",
-  "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE",
-]);
-/** Policy/engineering not ready. Every other named `PrescriptionReasonCode`
- * (`PARAMETER_MISSING`, `PARAMETER_INCOMPATIBLE`, `METHOD_UNSUPPORTED`,
- * `MACRO_RANGES_INFEASIBLE`, `MAINTENANCE_BELOW_MINIMUM`,
- * `EXPLANATION_TEMPLATE_UNAVAILABLE`, `INTAKE_VERSION_UNSUPPORTED`) plus any
- * *unknown* code (forward compatibility) falls through to this class by
- * `outcomeFor`'s default, so the set below is documentation, not a second
- * source of truth the map must be kept in sync with.
- */
-
 /**
  * T-2033 — frozen total map over `PrescriptionReasonCode` (T-2003 Contract
- * "Gate"). An unknown code (forward compatibility) is `HOLD`. Multiple codes
- * resolve to the most protective outcome: `PAUSE_REFER` > `HOLD` >
- * `FOCUSED_CLARIFICATION`.
+ * "Gate"). The three reason classes live in one place
+ * (`prescription/reason-classes.ts`) because `initial-plan.ts` and
+ * `finalization.ts` route off the same split (review r1 MINOR 5/7). An
+ * unknown code (forward compatibility) is `POLICY_NOT_READY` -> `HOLD`.
+ * Multiple codes resolve to the most protective outcome: `PAUSE_REFER` >
+ * `HOLD` > `FOCUSED_CLARIFICATION`.
  */
 function outcomeFor(reasonCodes: readonly string[]): Exclude<AutonomyOutcome, "APPROVE_AUTOMATICALLY"> {
-  if (reasonCodes.length === 0) return "HOLD";
-  let outcome: Exclude<AutonomyOutcome, "APPROVE_AUTOMATICALLY"> = "FOCUSED_CLARIFICATION";
-  for (const code of reasonCodes) {
-    if (PRESCRIPTION_OUT_OF_SCOPE_REASON_CODES.has(code)) return "PAUSE_REFER";
-    if (!PRESCRIPTION_CLIENT_FIXABLE_REASON_CODES.has(code)) outcome = "HOLD";
-  }
-  return outcome;
+  const reasonClass = classifyPrescriptionReasonCodes(reasonCodes);
+  if (reasonClass === "OUT_OF_SCOPE") return "PAUSE_REFER";
+  if (reasonClass === "POLICY_NOT_READY") return "HOLD";
+  return "FOCUSED_CLARIFICATION";
 }
 
 /**
@@ -353,6 +332,26 @@ function artifactReference(artifact: LoadedArtifact) {
   };
 }
 
+/**
+ * T-2033 review r1 (MAJOR 2) — degrades instead of throwing.
+ *
+ * `orderedReasonCodes` can carry codes read off a persisted candidate payload
+ * (`facts.prescription.reasonCodes`, typed as arbitrary strings in
+ * `plan-contract.ts`), so a code a reviewed bundle has no obligation to
+ * declare — a future `PrescriptionReasonCode`, or a row written by a newer
+ * deploy and read by an older one — can reach here. Throwing on that aborts
+ * the transaction *before* the `AiAutonomyGateDecision` row is written and
+ * turns the client's request into a 503, which defeats `outcomeFor`'s
+ * documented unknown-code-is-a-HOLD forward compatibility one call later.
+ *
+ * So: prefer a template covering the whole set; otherwise fall back to one
+ * covering the leading `GATE_*` code, which the bundle must declare (the
+ * live-launch validator in `artifacts/repository.ts` asserts that coverage at
+ * publication). Only when even that is absent is the bundle genuinely
+ * incompatible. The persisted decision row keeps the full
+ * `orderedReasonCodes` alongside the resolved template id, so a degraded
+ * resolution stays auditable.
+ */
 function resolveNextActionTemplateId(
   artifacts: ReviewedArtifactSet,
   policy: PolicyBundleContent,
@@ -360,18 +359,23 @@ function resolveNextActionTemplateId(
 ) {
   const content = escalationTemplatesContentSchema.parse(artifacts.escalationTemplates.content);
   const allowedIds = new Set(policy.escalationTemplateIds);
-  const template = content.templates.find(
-    (candidate) =>
-      allowedIds.has(candidate.id) &&
-      reasonCodes.every((reason) => candidate.reasonCodes.includes(reason))
-  );
-  if (!template) {
+  const templateCovering = (codes: readonly string[]) =>
+    content.templates.find(
+      (candidate) =>
+        allowedIds.has(candidate.id) &&
+        codes.every((reason) => candidate.reasonCodes.includes(reason))
+    );
+  const template = templateCovering(reasonCodes);
+  if (template) return template.id;
+  const leadingGateReasonCode = reasonCodes.find((code) => code.startsWith("GATE_"));
+  const degraded = leadingGateReasonCode ? templateCovering([leadingGateReasonCode]) : undefined;
+  if (!degraded) {
     throw new ArtifactLoadError(
       "ARTIFACT_INCOMPATIBLE",
       "No reviewed next-action template supports the deterministic gate outcome."
     );
   }
-  return template.id;
+  return degraded.id;
 }
 
 function assertEvidenceRulesHaveClaims(

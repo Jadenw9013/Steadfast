@@ -28,8 +28,14 @@ export type ResolvePrescriptionParametersForArtifactsResult =
  * here": this function does not catch anything `resolveNutritionSafetyPolicy`
  * or `getReviewedPolicyBundleContent` throw. A bundle with broken T-1003
  * hooks must fail the run, never yield a prescription computed without
- * floors — the caller's existing `ArtifactLoadError` handling (already
- * present for `loadReviewedArtifactSet`) covers it.
+ * floors. Review r1 NIT: the callers' existing `ArtifactLoadError` try/catch
+ * blocks wrap only their `loadReviewedArtifactSet` call, **not** this one, so
+ * a throw from here propagates uncaught — in `managed-executor.ts` to
+ * `processManagedRun`'s catch (the run is recorded as a failed attempt) and
+ * in `finalization.ts` out through `aiHttp` as a 503 anomaly. That is the
+ * pre-existing behaviour of the `evaluateCurrentClientNutritionSafety` path
+ * this reuses and is still the correct fail-closed outcome; it is documented
+ * here so nobody reads this comment as a guarantee it does not make.
  */
 export function resolvePrescriptionParametersForArtifacts(
   artifacts: ReviewedArtifactSet

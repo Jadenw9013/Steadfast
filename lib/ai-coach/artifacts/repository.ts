@@ -3,6 +3,7 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { contentHash } from "../canonical-json";
 import { requireGovernanceGrant } from "../operations";
+import { PRESCRIPTION_REASON_CODES } from "../prescription-reason-classes";
 import { artifactContentDigest } from "./digest";
 import {
   type ArtifactContent,
@@ -296,6 +297,45 @@ function assertAccountClassification(
   }
 }
 
+/**
+ * T-2033 review r1 (MAJOR 2) — live-launch readiness only.
+ *
+ * `autonomy/gate.ts` resolves a reviewed next-action template for the gate's
+ * `orderedReasonCodes`, which on the nutrition-prescription branch is
+ * `GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE` plus the engine's
+ * `PrescriptionReasonCode`s. A bundle that declares none of them still
+ * resolves a template at runtime (that call degrades to the leading `GATE_*`
+ * code), but the client then reads next-step copy written for a different
+ * reason. Fail at *publication* instead: a live packet must declare a
+ * reviewed template for every code the deterministic gate can emit here.
+ *
+ * Deliberately not part of `assertArtifactSetReferences`: that function also
+ * runs on the live *client-request* load path (`withReviewedArtifactSetFor...`),
+ * where a new assertion would turn an already-ACTIVE packet into a 503 for a
+ * real client — the failure mode this finding is about.
+ */
+function assertPrescriptionReasonCodesHaveTemplates(set: ReviewedArtifactSet) {
+  const policy = policyBundleContentSchema.parse(set.policy.content);
+  const escalation = escalationTemplatesContentSchema.parse(set.escalationTemplates.content);
+  const allowedIds = new Set(policy.escalationTemplateIds);
+  const declared = new Set(
+    escalation.templates
+      .filter((template) => allowedIds.has(template.id))
+      .flatMap((template) => template.reasonCodes)
+  );
+  for (const reasonCode of [
+    "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+    ...PRESCRIPTION_REASON_CODES,
+  ]) {
+    if (!declared.has(reasonCode)) {
+      throw new ArtifactLoadError(
+        "ARTIFACT_INCOMPATIBLE",
+        `No reviewed escalation template declares the deterministic gate reason code: ${reasonCode}`
+      );
+    }
+  }
+}
+
 function assertArtifactSetReferences(set: ReviewedArtifactSet) {
   const policy = policyBundleContentSchema.parse(set.policy.content);
   const exercise = exerciseCatalogContentSchema.parse(set.exerciseCatalog.content);
@@ -511,6 +551,7 @@ export async function loadLiveArtifactSetForLaunchValidation(
   }
   const set = artifactSetFromDependencies(policy, dependencies);
   assertArtifactSetReferences(set);
+  assertPrescriptionReasonCodesHaveTemplates(set);
   deepFreeze(set);
   return set;
 }

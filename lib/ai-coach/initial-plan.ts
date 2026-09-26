@@ -16,6 +16,10 @@ import {
   type PrescriptionResult,
   type ResolvedPrescriptionParameters,
 } from "./prescription";
+import {
+  classifyPrescriptionReasonCodes,
+  type PrescriptionReasonClass,
+} from "./prescription-reason-classes";
 
 /** All doses, targets and templates below are SYNTHETIC TEST FIXTURES (G01/G02).
  * The runtime must additionally require a synthetic subject and nonproduction
@@ -318,6 +322,42 @@ function assembleV2Plan(
   });
 }
 
+/**
+ * T-2033 review r1 (MINOR 5) — the decision is routed off the same three
+ * reason classes the autonomy gate uses (`prescription/reason-classes.ts`),
+ * so a client is only ever asked to fix their intake for a reason their
+ * intake can fix. `PRESCRIPTION_PARAMETER_MISSING` /
+ * `PRESCRIPTION_METHOD_UNSUPPORTED` / `PRESCRIPTION_EXPLANATION_TEMPLATE_UNAVAILABLE`
+ * mean the RD has not signed the content this needs; no client action
+ * resolves those, and the decision must not claim otherwise. All three texts
+ * are operational status, not clinical advice, and invent no policy: the
+ * client-facing escalation copy for a HOLD/PAUSE_REFER still comes from the
+ * reviewed escalation template the gate resolves.
+ */
+const UNAVAILABLE_DECISION_BY_REASON_CLASS: Record<
+  PrescriptionReasonClass,
+  Pick<ReviewDecision, "action" | "reasonCodes" | "explanation" | "nextAction">
+> = {
+  CLIENT_FIXABLE: {
+    action: "CLARIFY",
+    reasonCodes: ["MISSING_INPUT"],
+    explanation: "Nutrition remains unavailable because a required prescription input is missing or no longer current.",
+    nextAction: "Review and confirm the requested intake fields.",
+  },
+  OUT_OF_SCOPE: {
+    action: "PAUSE_REFER",
+    reasonCodes: ["SAFETY_CONCERN"],
+    explanation: "Nutrition remains unavailable because this request falls outside the reviewed scope of this program.",
+    nextAction: "This request is outside the reviewed scope of this program; changing your intake answers will not make it available.",
+  },
+  POLICY_NOT_READY: {
+    action: "HOLD",
+    reasonCodes: ["WEEKLY_POLICY_PARAMETERS_UNAVAILABLE"],
+    explanation: "Nutrition remains unavailable because the reviewed policy content this prescription needs is not available.",
+    nextAction: "No action is needed from you. This is waiting on reviewed policy content, not on your answers.",
+  },
+};
+
 function unavailableV2Result(
   binding: ComposeInitialPlanInput["binding"],
   mode: "MACROS" | "MEALS",
@@ -326,6 +366,7 @@ function unavailableV2Result(
   nutritionRequired: boolean,
   reasonCodes: PrescriptionResult["reasonCodes"]
 ): ComposeInitialPlanResult {
+  const decision = UNAVAILABLE_DECISION_BY_REASON_CLASS[classifyPrescriptionReasonCodes(reasonCodes)];
   return {
     payload: assembleV2Plan(binding, mode, strength, cardio, null, null, {
       status: "UNAVAILABLE",
@@ -334,12 +375,8 @@ function unavailableV2Result(
       parameterSetDigest: null,
     }),
     decision: {
-      action: "CLARIFY",
-      reasonCodes: ["MISSING_INPUT"],
-      explanation:
-        "Nutrition remains unavailable because a required prescription input, population support or reviewed policy parameter is missing.",
+      ...decision,
       limitations: ["Synthetic controller and catalog; this result does not establish clinical suitability."],
-      nextAction: "Review and confirm the requested intake fields, or wait for reviewed policy content to become available.",
       changeClass: "INITIAL",
     },
     prescription: { status: "UNAVAILABLE", prescription: null, reasonCodes },

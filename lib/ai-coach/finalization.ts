@@ -13,6 +13,7 @@ import { isV2Intake, intakeAnswersSchema } from "./intake";
 import { evaluateCurrentClientNutritionSafety } from "./nutrition-safety";
 import { assertAiCoachOperationEnabled } from "./operations";
 import { buildPrescriptionInput, computePrescription } from "./prescription";
+import { classifyPrescriptionReasonCodes } from "./prescription-reason-classes";
 import { resolvePrescriptionParametersForArtifacts } from "./prescription-binding";
 import { resolveAiCoachRuntimeBinding, runRuntimeConstrainedProviderBoundary } from "./runtime-binding";
 import { sourceRefSchema } from "./plan-contract";
@@ -135,27 +136,75 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
       // intake and the currently loaded bundle — never trusted from the
       // persisted number — then asserted against the stored
       // `targetEnergyKcal` and `parameterSetDigest`.
+      //
+      // Review r1 MAJOR 1 / MINOR 7: the replay reads the *live*
+      // `confirmedIntake` at *today's* date, so it can differ from the
+      // candidate's own generation input for two reasons that are not a
+      // policy change at all — the client re-confirmed intake (a new
+      // weigh-in), or a weight measurement simply aged past
+      // `ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS` while the proposal
+      // sat on screen. Neither means "the reviewed policy moved", and
+      // Amendment 1 §A1.5 exists so an ordinary unrelated change does not
+      // 422 an outstanding proposal. Each case therefore reports its own
+      // reason code, and only a genuine target mismatch *at an equal
+      // profileRevision* — i.e. the same inputs producing a different
+      // number — is a hard 422.
+      const holdWith = (reasonCodes: string[], nextAction: string) => ({
+        outcome: "HOLD" as const,
+        reasonCodes,
+        nextAction,
+        clarificationId: null,
+      });
+      const staleCandidateResult = holdWith(
+        ["PRESCRIPTION_PARAMETER_SET_CHANGED"],
+        "This proposal is stale against the current reviewed policy. Request a new plan."
+      );
+      if (candidate.profileRevision !== profile.profileRevision) {
+        // The client's own inputs changed after this proposal was prepared
+        // (`confirmIntake` bumps `profileRevision`), so the candidate is
+        // stale against them and there is nothing to compare. This is the
+        // graceful HOLD the gate's own `revisionsMatch` check
+        // (`autonomy/gate.ts`, `GATE_CANDIDATE_INVALID`) would reach anyway.
+        return holdWith(
+          ["PRESCRIPTION_CANDIDATE_INPUTS_CHANGED"],
+          "Your answers changed after this proposal was prepared. Request a new plan to use your latest answers."
+        );
+      }
       const evaluatedOn = new Date().toISOString().slice(0, 10);
       const built = buildPrescriptionInput(profile.confirmedIntake, evaluatedOn);
       const parametersResolution = built.ok
         ? resolvePrescriptionParametersForArtifacts(artifacts)
         : null;
+      if (parametersResolution && !parametersResolution.ok) {
+        // The currently loaded reviewed bundle can no longer supply the
+        // engine's parameter set: the policy really did move.
+        return staleCandidateResult;
+      }
       const recomputed =
         built.ok && parametersResolution?.ok
           ? computePrescription(parametersResolution.parameters, built.input)
           : null;
-      const staleCandidateResult = {
-        outcome: "HOLD" as const,
-        reasonCodes: ["PRESCRIPTION_PARAMETER_SET_CHANGED"],
-        nextAction: "This proposal is stale against the current reviewed policy. Request a new plan.",
-        clarificationId: null,
-      };
+      const replayReasonCodes = !built.ok
+        ? built.reasonCodes
+        : recomputed?.status === "UNAVAILABLE"
+          ? recomputed.reasonCodes
+          : [];
       if (!recomputed || recomputed.status === "UNAVAILABLE") {
-        // The engine can no longer reproduce *any* comparable target from
-        // the currently loaded bundle and the stored intake, so there is no
-        // targetEnergyKcal to compare against "no longer matches" — this is
-        // a stale candidate (the existing HOLD path), never a hard 422.
-        return staleCandidateResult;
+        // The engine can no longer reproduce *any* comparable target, so
+        // there is no `targetEnergyKcal` to compare against "no longer
+        // matches" — always a HOLD, never a hard 422. Which HOLD depends on
+        // *why*: a `POLICY_NOT_READY` class code means the reviewed content
+        // this needs is unavailable; anything else means the client's own
+        // inputs no longer satisfy the engine (MINOR 7's aged weigh-in is
+        // `PRESCRIPTION_WEIGHT_MEASUREMENT_STALE`, a `CLIENT_FIXABLE` code),
+        // which is not a parameter-set change and must not say it is.
+        if (classifyPrescriptionReasonCodes(replayReasonCodes) === "POLICY_NOT_READY") {
+          return staleCandidateResult;
+        }
+        return holdWith(
+          ["PRESCRIPTION_CANDIDATE_INPUTS_NOT_REPRODUCIBLE", ...replayReasonCodes],
+          "This proposal can no longer be reproduced from your current answers. Request a new plan."
+        );
       }
       if (recomputed.prescription.targetEnergyKcal !== payload.nutrition.targets.energyKcal) {
         throw new AiCoachError(

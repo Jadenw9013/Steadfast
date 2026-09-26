@@ -25,6 +25,7 @@ import {
   resolvePrescriptionParameters,
   computePrescription,
   type Prescription,
+  type PrescriptionResult,
 } from "@/lib/ai-coach/prescription";
 import { buildPrescriptionInput } from "@/lib/ai-coach/prescription/inputs";
 import { intakeAnswersSchema, intakeV2ConfirmObjectSchema } from "@/lib/ai-coach/intake-contract";
@@ -326,6 +327,62 @@ describe("composeInitialPlan — v2 prescription-first", () => {
     expect(result.payload.prescriptionOutcome?.reasonCodes).toEqual(["PRESCRIPTION_METHOD_UNSUPPORTED"]);
     expect(result.payload.strength.length).toBeGreaterThan(0);
   });
+
+  // Review r1 MINOR 5: before this, every UNAVAILABLE reason produced
+  // `CLARIFY` / `MISSING_INPUT` / "Review and confirm the requested intake
+  // fields" — including the cases where the RD has not signed the content and
+  // the client can do nothing. The decision now routes off the same three
+  // reason classes the gate uses (`prescription/reason-classes.ts`).
+  it.each([
+    [
+      "CLIENT_FIXABLE",
+      ["PRESCRIPTION_INPUT_MISSING"] as const,
+      "CLARIFY",
+      "MISSING_INPUT",
+    ],
+    [
+      "OUT_OF_SCOPE",
+      ["PRESCRIPTION_POPULATION_UNSUPPORTED"] as const,
+      "PAUSE_REFER",
+      "SAFETY_CONCERN",
+    ],
+    [
+      "POLICY_NOT_READY",
+      ["PRESCRIPTION_PARAMETER_MISSING"] as const,
+      "HOLD",
+      "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE",
+    ],
+    [
+      "POLICY_NOT_READY (method unsupported)",
+      ["PRESCRIPTION_METHOD_UNSUPPORTED"] as const,
+      "HOLD",
+      "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE",
+    ],
+    [
+      "POLICY_NOT_READY (unknown/forward-compatible code)",
+      ["PRESCRIPTION_SOME_FUTURE_CODE"] as const,
+      "HOLD",
+      "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE",
+    ],
+  ])(
+    "the UNAVAILABLE decision follows the %s reason class, not a hardcoded 'go fix your intake'",
+    (_label, reasonCodes, action, decisionReasonCode) => {
+      const result = composeUnavailablePrescriptionPlan(
+        v2Answers(),
+        "MACROS",
+        BINDING,
+        reasonCodes as unknown as PrescriptionResult["reasonCodes"]
+      );
+      expect(result.decision.action).toBe(action);
+      expect(result.decision.reasonCodes).toEqual([decisionReasonCode]);
+      // Only the client-fixable class may ask the client to change anything.
+      expect(result.decision.nextAction.includes("Review and confirm")).toBe(
+        action === "CLARIFY"
+      );
+      // The payload still carries the engine's real codes either way.
+      expect(result.payload.prescriptionOutcome?.reasonCodes).toEqual([...reasonCodes]);
+    }
+  );
 
   it("prescriptionOutcome is present on every payload the composer returns, including the legacy path", () => {
     const legacyWithTargets = composeLegacySyntheticPlan(
@@ -730,26 +787,43 @@ describe("evaluateAutonomyGate — prescription fact, one case per reason class 
 //   2. Below: the hash of the payload *excluding* `prescriptionOutcome` is
 //      pinned as a golden constant for the exact answer fixtures used by
 //      ai-coach-plan-contract.test.ts / ai-coach-representation.test.ts
-//      ("A") and ai-coach-weekly-controller.test.ts ("B") — by (1), that
-//      sub-hash is mathematically identical to what the pre-T-2033 code's
-//      full-payload hash was. The full (new) hash is also pinned, going
+//      ("A"), ai-coach-weekly-controller.test.ts ("B") and
+//      ai-coach-experience.test.ts ("C", which composes with prescriptionId
+//      "rx" in MEALS mode). The full (new) hash is also pinned, going
 //      forward, as a regression guard against a future accidental change to
 //      this now-frozen legacy path.
+//
+// Review r1 MINOR 8: every `withoutOutcomeHash` literal below is *measured*,
+// not argued. It was produced by checking out the pre-T-2033
+// `buildInitialFixturePlan` (`git show 6c4487b:lib/ai-coach/initial-plan.ts`)
+// into a temporary module and hashing its payload for each row. Output
+// (legacyFull == the literal pinned here as withoutOutcomeHash):
+//   A MACROS  1c7f680eb3ac7306652fd393256510f8e12682b975f7fd6b0d33e4f96ba2cc4f
+//   A MEALS   a455c924bcf0c65506f22f3dd06dcec21db904a9ccb2553ff998940ce7b06235
+//   B MACROS  f41c1211d9a980c9cbb89d8e942b723f751e0d54121740ded681b6963d72cecf
+//   B MEALS   87d989170162f65b7513d8e507cb7449d49e0d7ea4e0c738a3b30106f7cc6ab5
+//   C MEALS   888c050d55ce74a8bebb63d84f905a996842897231d94928ba43d63326b57301
+// So this test now fails if the legacy path moves by so much as a byte,
+// independently of argument (1).
 // ---------------------------------------------------------------------------
 
 describe("T-2033 regression: synthetic v1 corpus is unchanged except the additive prescriptionOutcome field", () => {
   const ANSWERS_A = { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], dietaryRestrictions: [], allergies: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
   const ANSWERS_B = { goal: "BODY_COMPOSITION", experienceLevel: "NEW", trainingDaysPerWeek: 2, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
+  // Verbatim from ai-coach-experience.test.ts:56-72 / :184-200, including its
+  // "rx" prescriptionId and MEALS mode — the fourth corpus file the spec named.
+  const ANSWERS_C = { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
 
   it.each([
-    ["A (plan-contract/representation corpus)", ANSWERS_A, "MACROS" as const, "3d27280a1e0ca039b8754580915bf849b969936a21891fd12e2e4c410f06178e", "1c7f680eb3ac7306652fd393256510f8e12682b975f7fd6b0d33e4f96ba2cc4f"],
-    ["A (plan-contract/representation corpus)", ANSWERS_A, "MEALS" as const, "2c0695febd5d845f4002a279c88750f64804ae7ed35d02c64f3bb2acd32d6704", "a455c924bcf0c65506f22f3dd06dcec21db904a9ccb2553ff998940ce7b06235"],
-    ["B (weekly-controller corpus)", ANSWERS_B, "MACROS" as const, "7c931fa2079ec01f794721bff9ce85c89121805b9970658874a6ee5794e4f147", "f41c1211d9a980c9cbb89d8e942b723f751e0d54121740ded681b6963d72cecf"],
-    ["B (weekly-controller corpus)", ANSWERS_B, "MEALS" as const, "7a92fba8f16ae6dfe57f428d442cf758ca751a95c45f8f8e4b5878171779795f", "87d989170162f65b7513d8e507cb7449d49e0d7ea4e0c738a3b30106f7cc6ab5"],
+    ["A (plan-contract/representation corpus)", ANSWERS_A, "golden-rx", "MACROS" as const, "3d27280a1e0ca039b8754580915bf849b969936a21891fd12e2e4c410f06178e", "1c7f680eb3ac7306652fd393256510f8e12682b975f7fd6b0d33e4f96ba2cc4f"],
+    ["A (plan-contract/representation corpus)", ANSWERS_A, "golden-rx", "MEALS" as const, "2c0695febd5d845f4002a279c88750f64804ae7ed35d02c64f3bb2acd32d6704", "a455c924bcf0c65506f22f3dd06dcec21db904a9ccb2553ff998940ce7b06235"],
+    ["B (weekly-controller corpus)", ANSWERS_B, "golden-rx", "MACROS" as const, "7c931fa2079ec01f794721bff9ce85c89121805b9970658874a6ee5794e4f147", "f41c1211d9a980c9cbb89d8e942b723f751e0d54121740ded681b6963d72cecf"],
+    ["B (weekly-controller corpus)", ANSWERS_B, "golden-rx", "MEALS" as const, "7a92fba8f16ae6dfe57f428d442cf758ca751a95c45f8f8e4b5878171779795f", "87d989170162f65b7513d8e507cb7449d49e0d7ea4e0c738a3b30106f7cc6ab5"],
+    ["C (experience corpus)", ANSWERS_C, "rx", "MEALS" as const, "12e47e7b70b30e618e27739ec4aeda5080348bd14bc3dfaa095a059fa66ab359", "888c050d55ce74a8bebb63d84f905a996842897231d94928ba43d63326b57301"],
   ] as const)(
     "%s / %s: pinned golden hash, and the hash excluding prescriptionOutcome is the pre-T-2033 hash",
-    (_label, answers, mode, fullHash, withoutOutcomeHash) => {
-      const { payload } = buildInitialFixturePlan(answers, "golden-rx", mode);
+    (_label, answers, prescriptionId, mode, fullHash, withoutOutcomeHash) => {
+      const { payload } = buildInitialFixturePlan(answers, prescriptionId, mode);
       expect(contentHash(payload)).toBe(fullHash);
       const rest: Record<string, unknown> = { ...payload };
       delete rest.prescriptionOutcome;
