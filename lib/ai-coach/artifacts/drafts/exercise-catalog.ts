@@ -10,6 +10,7 @@ import {
   isDraftUnsignedReviewMetadata,
   signedArtifactReviewMetadataSchema,
 } from "../schema";
+import { DRAFT_EXERCISE_CATALOG_VERSION } from "../../catalog/draft-catalog-version";
 import rawDraftExerciseCatalog from "./exercise-catalog.draft-unsigned.v1.json";
 
 /**
@@ -44,10 +45,27 @@ import rawDraftExerciseCatalog from "./exercise-catalog.draft-unsigned.v1.json";
  * production, and T-2034's four refusal points (`assertUsable`,
  * `publishArtifactVersion`, `loadLiveArtifactSetForLaunchValidation` and
  * `parseArtifactDraftInput`) reject the metadata if it were ever registered.
+ *
+ * **This module is server-side and test-side only, and it is what keeps the
+ * draft out of the browser.** It statically imports the 123 KB JSON, so any
+ * module that imports it carries the whole draft into its bundle. The first
+ * version of this ticket was imported by `lib/ai-coach/catalog/exercise-catalog.ts`,
+ * which `catalog/loader.ts` imports, which `components/ai-coach/evidence-forms.tsx`
+ * ("use client") imports — and 120 KB of unsigned draft movements, instructions
+ * included, shipped to every client that loaded that route. Nothing under
+ * `app/` or `components/` may import this module; a unit test asserts it, and
+ * `lib/ai-coach/catalog/exercise-catalog.ts` reaches the content only through
+ * {@link loadDraftUnsignedExerciseCatalog}, so the production refusal below is
+ * the single door into the data.
  */
 
-/** Equals the file's `content.artifactKey`, asserted at load. */
-export const DRAFT_EXERCISE_CATALOG_VERSION = "exercise-beginner-v1";
+/**
+ * Re-exported from `lib/ai-coach/catalog/draft-catalog-version.ts`, which has no
+ * imports, so the client-reachable catalog loader can route on the version
+ * without pulling this module (and the JSON) into a browser chunk. The name is
+ * exported from here because T-2005 froze it here.
+ */
+export { DRAFT_EXERCISE_CATALOG_VERSION };
 
 /**
  * Per-item review marks, so the reviewer can strike a movement without deleting

@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { getFoodItem, getExerciseItem, getCurrentFoodCatalogVersion, getCurrentExerciseCatalogVersion } from "@/lib/ai-coach/catalog/loader";
 import { DRAFT_EXERCISE_CATALOG_VERSION } from "@/lib/ai-coach/artifacts/drafts/exercise-catalog";
+import { enableDraftExerciseCatalog } from "@/lib/ai-coach/catalog/draft-exercise-catalog";
 import { computeNutrientTotals, aggregateGramsByFood, type RecipeComponent } from "@/lib/ai-coach/nutrition-totals";
 import { checkPolicyVersionUsable, ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { checkMealComposition } from "@/lib/ai-coach/composition-feasibility";
@@ -32,6 +33,13 @@ describe("A04 — catalog loaders", () => {
 
 describe("T-2038 — exercise catalog version routing", () => {
   const DRAFT_ID = "chair-squat";
+
+  // The draft resolves only where a server-side module has deliberately enabled
+  // it through the guarded loader; it is never in a client bundle and never in
+  // production. See tests/unit/ai-coach-exercise-catalog-draft.test.ts.
+  beforeAll(() => {
+    enableDraftExerciseCatalog();
+  });
 
   it("still serves the three fixture items unchanged under exercise-fixture-v1", () => {
     // T-2005 decision (2): EXERCISE_CATALOG_VERSION is pinned by

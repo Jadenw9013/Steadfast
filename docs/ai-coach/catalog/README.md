@@ -444,14 +444,35 @@ session templates the T-2039 composer selects from. It is a worksheet with conte
   `loadDraftUnsignedExerciseCatalog()` throws when `NODE_ENV === "production"`;
   `draftExerciseCatalogToArtifactDraftInput(file, signed, dependencies)` cannot be called without signed
   review metadata, at the type level and at runtime.
-- In-code projection: `DRAFT_EXERCISE_CATALOG` in `lib/ai-coach/catalog/exercise-catalog.ts`, served by
-  `getExerciseItem(id, "exercise-beginner-v1")`. It is a **projection of the JSON**, never a second list:
-  add or correct a movement in the JSON and both readers change together.
+- In-code projection: `projectDraftExerciseCatalog()` in `lib/ai-coach/catalog/exercise-catalog.ts`,
+  served by `getExerciseItem(id, "exercise-beginner-v1")`. It is a **projection of the JSON**, never a
+  second list: add or correct a movement in the JSON and both readers change together.
+- Server-side wiring: `lib/ai-coach/catalog/draft-exercise-catalog.ts`. `enableDraftExerciseCatalog()`
+  loads the file through the guarded loader and registers the projection. Until something calls it — and
+  always in production — `getExerciseItem(id, "exercise-beginner-v1")` reports `UNKNOWN_ID`.
 - Tests: `tests/unit/ai-coach-exercise-catalog-draft.test.ts`.
 
+**Why the wiring is split across four small modules.** `components/ai-coach/plan-display.tsx` and
+`components/ai-coach/evidence-forms.tsx` are `"use client"` and both import `catalog/loader.ts`, so
+everything `catalog/loader.ts` reaches is downloaded by every client on those routes. The first version of
+this ticket had `catalog/exercise-catalog.ts` statically import the draft JSON, and a build check found
+**120 KB of unsigned draft movements, instructions and cues, in a browser chunk** — content no client can
+use and no reviewer has signed. The structure now keeps three properties at once:
+
+| Module | Imports | Why |
+|---|---|---|
+| `catalog/draft-catalog-version.ts` | nothing | the version string the client-side loader routes on, with no path to the content |
+| `artifacts/drafts/exercise-catalog.ts` | the JSON | server/test only; holds the production refusal |
+| `catalog/exercise-catalog.ts` | `import type` only | the projection, with no runtime link to the JSON |
+| `catalog/draft-exercise-catalog.ts` | both of the above | the single, server-side wiring point |
+
+So the draft content has exactly **one** door — the guarded loader — rather than a guarded one and an
+unguarded static import beside it, and the bytes never leave the server.
+
 **It cannot reach a client.** `EXERCISE_CATALOG_VERSION` is unchanged (`exercise-fixture-v1`), nothing
-stamps `exercise-beginner-v1` into a plan payload, and the autonomy gate requires the stamped catalog
-version to equal a **published** artifact's key. There is no published exercise artifact, and T-2034's four
+stamps `exercise-beginner-v1` into a plan payload — asserted by a test that scans every module under
+`lib/`, `app/` and `components/`, so wiring it turns red — and the autonomy gate requires the stamped
+catalog version to equal a **published** artifact's key. There is no published exercise artifact, and T-2034's four
 refusal points reject `DRAFT_UNSIGNED` metadata at `assertUsable`, `publishArtifactVersion`,
 `loadLiveArtifactSetForLaunchValidation` and `parseArtifactDraftInput`.
 

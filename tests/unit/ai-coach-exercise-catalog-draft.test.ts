@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   DRAFT_EXERCISE_CATALOG_VERSION,
@@ -11,6 +13,12 @@ import {
   type SignedArtifactReviewMetadata,
 } from "@/lib/ai-coach/artifacts/schema";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import { getDraftExerciseCatalog } from "@/lib/ai-coach/catalog/exercise-catalog";
+import {
+  disableDraftExerciseCatalog,
+  enableDraftExerciseCatalog,
+} from "@/lib/ai-coach/catalog/draft-exercise-catalog";
+import { getExerciseItem } from "@/lib/ai-coach/catalog/loader";
 
 /**
  * T-2038 — the draft beginner exercise catalog.
@@ -362,6 +370,46 @@ describe("T-2038 — the draft cannot be loaded or registered unsigned", () => {
     }
   });
 
+  it("does not resolve until a server-side module deliberately enables it", () => {
+    disableDraftExerciseCatalog();
+    try {
+      expect(getDraftExerciseCatalog()).toBeNull();
+      expect(getExerciseItem("chair-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toEqual({
+        success: false,
+        error: "UNKNOWN_ID",
+      });
+    } finally {
+      enableDraftExerciseCatalog();
+    }
+    expect(getExerciseItem("chair-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toMatchObject({
+      success: true,
+    });
+  });
+
+  it("is not resolvable at all in production, and degrades rather than throwing", () => {
+    // getExerciseItem runs inside planPayloadSchema's superRefine on every parse
+    // of every stored plan, so the production refusal must present as
+    // UNKNOWN_ID, not as an exception on a read path.
+    enableDraftExerciseCatalog();
+    expect(getExerciseItem("chair-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toMatchObject({
+      success: true,
+    });
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      expect(getDraftExerciseCatalog()).toBeNull();
+      expect(getExerciseItem("chair-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toEqual({
+        success: false,
+        error: "UNKNOWN_ID",
+      });
+      // The fixture catalog is unaffected: no client loses a plan over this.
+      expect(getExerciseItem("bodyweight-squat", "exercise-fixture-v1")).toMatchObject({
+        success: true,
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("refuses to build an artifact draft input from the file's own draft metadata", () => {
     expect(() =>
       draftExerciseCatalogToArtifactDraftInput(
@@ -370,5 +418,132 @@ describe("T-2038 — the draft cannot be loaded or registered unsigned", () => {
         []
       )
     ).toThrow(/signed review metadata/i);
+  });
+});
+
+describe("T-2038 — nothing wires the draft catalog into a client-visible payload", () => {
+  /**
+   * The only thing standing between unsigned draft content and a real client is
+   * that no module stamps `exercise-beginner-v1` into a plan payload or a
+   * catalog reference. That was true but written down nowhere and enforced by
+   * nothing, which is the shape that let a fabricated food catalog sit one
+   * wiring change away from a client (board/evidence/T-2035.md). This test is
+   * the enforcement: wiring it makes this red, and the reviewer of that change
+   * has to justify it here.
+   *
+   * These four files are the whole legitimate surface:
+   *   - the import-free leaf that declares the constant;
+   *   - the draft loader, which re-exports it and guards the only read;
+   *   - the in-code projection, which the server-side wiring registers;
+   *   - the catalog loader, which routes `getExerciseItem` on it.
+   */
+  const ALLOWED_PRODUCTION_REFERENCES = new Set([
+    "lib/ai-coach/artifacts/drafts/exercise-catalog.ts",
+    "lib/ai-coach/catalog/draft-catalog-version.ts",
+    "lib/ai-coach/catalog/exercise-catalog.ts",
+    "lib/ai-coach/catalog/loader.ts",
+  ]);
+
+  /** The two modules that carry the draft content itself. */
+  const DRAFT_CONTENT_MODULES = [
+    "artifacts/drafts/exercise-catalog",
+    "catalog/draft-exercise-catalog",
+  ];
+
+  const SCANNED_ROOTS = ["lib", "app", "components"];
+
+  function sourceFiles(root: string): string[] {
+    const absolute = path.join(process.cwd(), root);
+    if (!fs.existsSync(absolute)) return [];
+    const found: string[] = [];
+    const walk = (directory: string) => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const full = path.join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (entry.name === "node_modules" || entry.name === "generated") continue;
+          walk(full);
+        } else if (/\.(ts|tsx)$/.test(entry.name)) {
+          found.push(path.relative(process.cwd(), full));
+        }
+      }
+    };
+    walk(absolute);
+    return found;
+  }
+
+  const files = SCANNED_ROOTS.flatMap(sourceFiles);
+
+  it("scans a real, non-empty set of production modules", () => {
+    // A silently empty scan would make every assertion below vacuous.
+    expect(files.length).toBeGreaterThan(200);
+    expect(files).toContain("lib/ai-coach/initial-plan.ts");
+    expect(files).toContain("lib/ai-coach/run-command.ts");
+    expect(files).toContain("components/ai-coach/evidence-forms.tsx");
+  });
+
+  it("names the draft catalog version only in the catalog wiring, never in a payload writer", () => {
+    const referencing = files.filter((file) => {
+      const source = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      return (
+        source.includes(DRAFT_EXERCISE_CATALOG_VERSION) ||
+        source.includes("DRAFT_EXERCISE_CATALOG_VERSION")
+      );
+    });
+    expect([...referencing].sort()).toEqual([...ALLOWED_PRODUCTION_REFERENCES].sort());
+  });
+
+  it("stamps only EXERCISE_CATALOG_VERSION into catalogVersions", () => {
+    const writers = files.filter((file) =>
+      fs.readFileSync(path.join(process.cwd(), file), "utf8").includes("catalogVersions")
+    );
+    expect(writers.length).toBeGreaterThan(0);
+    for (const file of writers) {
+      const source = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      expect({ file, stampsDraft: source.includes(DRAFT_EXERCISE_CATALOG_VERSION) }).toMatchObject({
+        stampsDraft: false,
+      });
+    }
+  });
+
+  it("keeps the draft content out of every client-reachable module", () => {
+    // catalog/loader.ts is imported by components/ai-coach/plan-display.tsx and
+    // components/ai-coach/evidence-forms.tsx, both "use client". Anything those
+    // reach transitively is downloaded by every client on that route.
+    const clientReachable = files.filter(
+      (file) => file.startsWith("app/") || file.startsWith("components/")
+    );
+    expect(clientReachable.length).toBeGreaterThan(0);
+    for (const file of clientReachable) {
+      const source = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      for (const contentModule of DRAFT_CONTENT_MODULES) {
+        expect({ file, contentModule, imports: source.includes(contentModule) }).toMatchObject({
+          imports: false,
+        });
+      }
+    }
+
+    // The client-reachable catalog modules may name the version, but must not
+    // import anything that carries the content.
+    for (const file of ["lib/ai-coach/catalog/loader.ts", "lib/ai-coach/catalog/exercise-catalog.ts"]) {
+      const source = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+      for (const contentModule of DRAFT_CONTENT_MODULES) {
+        const runtimeImport = new RegExp(`^import\\s+(?!type\\s)[^;]*${contentModule}`, "m");
+        expect({ file, contentModule, runtimeImport: runtimeImport.test(source) }).toMatchObject({
+          runtimeImport: false,
+        });
+      }
+    }
+  });
+
+  it("keeps the draft JSON out of every statically imported module", () => {
+    // A static `import ... from "./exercise-catalog.draft-unsigned.v1.json"`
+    // puts the whole file into any bundle that can reach the importer, and
+    // catalog/loader.ts is reachable from a "use client" component.
+    const importers = files.filter((file) =>
+      /from\s+["'][^"']*exercise-catalog\.draft-unsigned\.v1\.json["']/.test(
+        fs.readFileSync(path.join(process.cwd(), file), "utf8")
+      )
+    );
+    expect(importers).toEqual(["lib/ai-coach/artifacts/drafts/exercise-catalog.ts"]);
   });
 });
