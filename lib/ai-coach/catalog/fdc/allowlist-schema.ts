@@ -39,7 +39,7 @@ export const coveragePlanSchema = z
 
 export type CoveragePlan = z.infer<typeof coveragePlanSchema>;
 
-export const allowlistSchema = z
+const allowlistBaseSchema = z
   .object({
     allowlistVersion: z.literal(1),
     market: z.literal("US"),
@@ -48,33 +48,69 @@ export const allowlistSchema = z
     coveragePlanDigest: z.string().regex(/^[a-f0-9]{64}$/),
     entries: z.array(allowlistEntrySchema).min(1).max(400),
   })
-  .strict()
-  .superRefine((val, ctx) => {
-    const seenFdcIds = new Set<number>();
-    const seenNames = new Set<string>();
+  .strict();
 
-    for (let i = 0; i < val.entries.length; i++) {
-      const entry = val.entries[i];
+/**
+ * Structural allowlist validation: unique `fdcId`, unique `canonicalName`.
+ * `categoryId` is only checked for *shape* here, because this module is pure
+ * (no fs) and the coverage plan lives in a file. Use
+ * {@link allowlistSchemaForPlan} wherever the plan is available — the CLI
+ * always has it — so an entry pointing at a category the plan does not define
+ * is rejected rather than silently ingested.
+ */
+export const allowlistSchema = allowlistBaseSchema.superRefine((val, ctx) => {
+  checkAllowlistInvariants(val, ctx, null);
+});
 
-      if (seenFdcIds.has(entry.fdcId)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["entries", i, "fdcId"],
-          message: `Duplicate fdcId: ${entry.fdcId}`,
-        });
-      }
-      seenFdcIds.add(entry.fdcId);
-
-      const normalizedName = entry.canonicalName.toLowerCase();
-      if (seenNames.has(normalizedName)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["entries", i, "canonicalName"],
-          message: `Duplicate canonicalName: ${entry.canonicalName}`,
-        });
-      }
-      seenNames.add(normalizedName);
-    }
+/**
+ * The same schema plus the spec's "categoryId is known" check, bound to a
+ * parsed coverage plan (review r1, MINOR 2).
+ */
+export function allowlistSchemaForPlan(plan: CoveragePlan) {
+  const knownCategoryIds = new Set(plan.categories.map((category) => category.categoryId));
+  return allowlistBaseSchema.superRefine((val, ctx) => {
+    checkAllowlistInvariants(val, ctx, knownCategoryIds);
   });
+}
+
+function checkAllowlistInvariants(
+  val: z.infer<typeof allowlistBaseSchema>,
+  ctx: z.RefinementCtx,
+  knownCategoryIds: ReadonlySet<string> | null
+): void {
+  const seenFdcIds = new Set<number>();
+  const seenNames = new Set<string>();
+
+  for (let i = 0; i < val.entries.length; i++) {
+    const entry = val.entries[i];
+
+    if (knownCategoryIds && !knownCategoryIds.has(entry.categoryId)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["entries", i, "categoryId"],
+        message: `Unknown categoryId '${entry.categoryId}': not defined in the coverage plan`,
+      });
+    }
+
+    if (seenFdcIds.has(entry.fdcId)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["entries", i, "fdcId"],
+        message: `Duplicate fdcId: ${entry.fdcId}`,
+      });
+    }
+    seenFdcIds.add(entry.fdcId);
+
+    const normalizedName = entry.canonicalName.toLowerCase();
+    if (seenNames.has(normalizedName)) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["entries", i, "canonicalName"],
+        message: `Duplicate canonicalName: ${entry.canonicalName}`,
+      });
+    }
+    seenNames.add(normalizedName);
+  }
+}
 
 export type Allowlist = z.infer<typeof allowlistSchema>;

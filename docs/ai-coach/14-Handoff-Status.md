@@ -525,7 +525,7 @@ lib/ai-coach/
   catalog/loader.ts             A04  getFoodItem / getExerciseItem (id+version lookup, rejects unknown/stale)
   catalog/fdc/allowlist-schema.ts T-2035 Allowlist and coverage plan schemas with unique ID and name validations
   catalog/fdc/normalize.ts      T-2035 Pure normalization of USDA FoodData Central records without guessing or defaulting
-  catalog/fdc/allergen-rules.ts T-2035 Mechanical tri-state allergen rules (PRESENT, VERIFIED_ABSENT, UNKNOWN) across 9 frozen categories
+  catalog/fdc/allergen-rules.ts T-2035 Fail-closed allergen rules across 9 frozen categories; emits PRESENT or UNKNOWN only (VERIFIED_ABSENT needs positive record evidence, which FDC cannot supply)
   catalog/fdc/mapping.ts        T-2035 Pure FDC record to SourcedFoodCatalogItem mapper, derivation/energy method tables, URL redaction
   policy/policy-version.ts      A04  checkPolicyVersionUsable (SYNTHETIC single active version + one revoked version)
   nutrition-totals.ts           A04  computeNutrientTotals / aggregateGramsByFood
@@ -707,9 +707,17 @@ substitutions, grocery aggregation (`aggregateGramsByFood` in
 that into practical purchasable quantities, which A04 explicitly left
 undone). Mode switch (macro ⇄ meals) must keep exactly one prescription
 active, never two. T-2035 provides the offline USDA FoodData Central ingestion
-tool (`scripts/ai-coach-ingest-fdc.ts`), checked-in allowlist (`data/ai-coach/catalog/fdc-allowlist.v1.json`),
-and a `DRAFT_UNSIGNED` food catalog artifact (`lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json`)
+tool (`scripts/ai-coach-ingest-fdc.ts`) and the pure mapping modules it drives,
 with mechanical tri-state allergen facts across the 9 frozen major categories.
+The allowlist (`data/ai-coach/catalog/fdc-allowlist.v1.json`) and the
+`DRAFT_UNSIGNED` catalog artifact
+(`lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json`) are
+**outputs of a real operator run and are not checked in**: the hand-written
+versions shipped in 1ec2588 were fabricated and were deleted
+(`board/evidence/T-2035.md`). `VERIFIED_ABSENT` now requires positive evidence
+in the source record, which no Foundation or SR Legacy record can supply, so
+ingestion emits only `PRESENT` or `UNKNOWN` and `UNKNOWN` fails closed
+downstream. See `docs/ai-coach/catalog/README.md`.
 
 ### A08 — Minimal structured weekly observations and session logs
 

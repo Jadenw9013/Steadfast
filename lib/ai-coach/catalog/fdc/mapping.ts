@@ -1,6 +1,8 @@
 import type {
+  AllergenCategory,
   SourcedFoodCatalogItem,
 } from "@/lib/ai-coach/artifacts/schema";
+import { LEGACY_TOKEN_BY_CATEGORY } from "@/lib/ai-coach/intake-allergens";
 import type { AllowlistEntry } from "./allowlist-schema";
 import { normalizeFdcRecord, type NormalizedFdcRecord } from "./normalize";
 import { proposeAllergenFacts } from "./allergen-rules";
@@ -51,17 +53,25 @@ export function redactUrl(rawUrl: string): string {
   }
 }
 
+/**
+ * Analytical means *measured*. `AS` ("calculated using Atwater specific
+ * factors") and `AG` ("calculated using Atwater general factors") are
+ * calculations, not measurements, so they belong below and not here — review
+ * r1 finding B4: every shipped item read `derivation: "ANALYTICAL"` next to a
+ * `derivationDetail` that said "Calculated". The Atwater information is not
+ * lost: it is carried by `energyFact.method`, which is its right home.
+ */
 const KNOWN_ANALYTICAL_CODES = new Set([
   "A",
-  "AS",
   "AD",
   "FLA",
   "FS",
-  "AG",
   "ANALYTICAL",
 ]);
 
 const KNOWN_CALCULATED_CODES = new Set([
+  "AS",
+  "AG",
   "NC",
   "C",
   "CALC",
@@ -148,6 +158,49 @@ export const CORE_TRACKED_NUTRIENTS: ReadonlyArray<{
   { nutrientNumber: "1093", altNumber: "307", nutrientName: "Sodium, Na", unit: "MG" },
   { nutrientNumber: "1110", altNumber: "324", nutrientName: "Vitamin D (D2 + D3)", unit: "UG" },
 ];
+
+/**
+ * `allergenFacts.contains` is written in the **legacy** exclusion-token
+ * vocabulary (`lib/ai-coach/catalog/schema.ts` `allergenSchema` plus `SESAME`),
+ * not in the nine-value catalog category vocabulary, because that is what every
+ * existing consumer of an allergen token speaks: `deriveLegacyAllergyTokens`
+ * projects a client's declarations into it and `matchAllergen`
+ * (`composition-feasibility.ts`) matches against it. Writing `"SOYBEAN"` here
+ * while a declaration derives `"SOY"` would make the first comparison in T-2036
+ * miss — i.e. fail *open* on an allergen (review r1, finding F1).
+ *
+ * `LEGACY_TOKEN_BY_CATEGORY` is imported, never re-declared: one translation
+ * table, one truth. `SESAME` has no value in the legacy `allergenSchema` enum
+ * and is emitted anyway, because omitting it would make a sesame-containing
+ * food look sesame-free; a `SESAME` declaration derives the same `"SESAME"`
+ * token, so the comparison matches and fails closed.
+ *
+ * The result is sorted and de-duplicated so the artifact digest is stable.
+ */
+export function toLegacyAllergenTokens(categories: readonly AllergenCategory[]): string[] {
+  const tokens = categories
+    .map((category) => LEGACY_TOKEN_BY_CATEGORY[category])
+    .filter((token): token is string => Boolean(token && token.length > 0));
+  return Array.from(new Set(tokens)).sort();
+}
+
+/**
+ * The single definition of "this allowlist entry reaches the catalog". A
+ * `STRUCK` entry is one the reviewer removed: it is never fetched and never
+ * emitted. `scripts/ai-coach-ingest-fdc.ts` calls this rather than repeating
+ * the predicate, so the test of this function is a test of the tool's
+ * behaviour rather than of a filter re-written inside the test.
+ */
+export function isIngestableEntry(entry: Pick<AllowlistEntry, "reviewState">): boolean {
+  return entry.reviewState !== "STRUCK";
+}
+
+/** Convenience wrapper over {@link isIngestableEntry} for a whole allowlist. */
+export function selectIngestableEntries<T extends Pick<AllowlistEntry, "reviewState">>(
+  entries: readonly T[]
+): T[] {
+  return entries.filter((entry) => isIngestableEntry(entry));
+}
 
 export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRecordResult {
   const warnings: MappingWarning[] = [];
@@ -320,9 +373,9 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
   // 6. Propose allergen facts
   const allergenFactsV2 = proposeAllergenFacts(input.entry, norm, input.retrievedAt);
 
-  const presentCategories = allergenFactsV2.categories
-    .filter((c) => c.presence === "PRESENT")
-    .map((c) => c.category);
+  const presentLegacyTokens = toLegacyAllergenTokens(
+    allergenFactsV2.categories.filter((c) => c.presence === "PRESENT").map((c) => c.category)
+  );
 
   // 7. Assemble SourcedFoodCatalogItem
   const recordUrl = redactUrl(
@@ -355,7 +408,7 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
       missingNutrientIds,
     },
     allergenFacts: {
-      contains: presentCategories,
+      contains: presentLegacyTokens,
       evidenceSourceId: "USDA-FDC",
       verificationStatus: "REVIEWED_SOURCE",
       crossContactRequiresCurrentVerification: true,

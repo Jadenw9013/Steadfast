@@ -1,12 +1,13 @@
 import fs from "node:fs";
-import path from "node:path";
 import { contentHash } from "../lib/ai-coach/canonical-json";
 import {
-  allowlistSchema,
+  allowlistSchemaForPlan,
   coveragePlanSchema,
   type AllowlistEntry,
+  type CoveragePlan,
 } from "../lib/ai-coach/catalog/fdc/allowlist-schema";
 import {
+  isIngestableEntry,
   mapFdcRecordToCatalogItem,
   redactUrl,
 } from "../lib/ai-coach/catalog/fdc/mapping";
@@ -44,6 +45,25 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+class HttpStatusError extends Error {
+  readonly status: number;
+
+  constructor(status: number, statusText: string) {
+    super(`HTTP ${status}: ${statusText}`);
+    this.name = "HttpStatusError";
+    this.status = status;
+  }
+}
+
+/**
+ * 429 and 5xx are transient. Everything else is not: a 403 is a rejected or
+ * missing API key and a 404 is a record that does not exist, and retrying
+ * either one four times just makes the operator wait (review r1, MINOR 3).
+ */
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status >= 500;
+}
+
 async function fetchWithRetry(url: string, retries = 3): Promise<unknown> {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -51,12 +71,16 @@ async function fetchWithRetry(url: string, retries = 3): Promise<unknown> {
       if (res.ok) {
         return await res.json();
       }
-      if ((res.status === 429 || res.status >= 500) && attempt < retries) {
-        await sleep(1000 * Math.pow(2, attempt));
-        continue;
+      const statusError = new HttpStatusError(res.status, res.statusText);
+      if (!isRetryableStatus(res.status) || attempt >= retries) {
+        throw statusError;
       }
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      await sleep(1000 * Math.pow(2, attempt));
+      continue;
     } catch (err) {
+      if (err instanceof HttpStatusError && !isRetryableStatus(err.status)) {
+        throw err;
+      }
       if (attempt >= retries) {
         throw new Error(
           `Request failed after ${retries + 1} attempts: ${
@@ -70,6 +94,13 @@ async function fetchWithRetry(url: string, retries = 3): Promise<unknown> {
   throw new Error("Request retries exhausted");
 }
 
+const DEFAULT_COVERAGE_PLAN_PATH = "data/ai-coach/catalog/fdc-coverage-plan.v1.json";
+
+function readCoveragePlan(planPath: string): CoveragePlan {
+  const rawPlan = fs.readFileSync(planPath, "utf8");
+  return coveragePlanSchema.parse(JSON.parse(rawPlan));
+}
+
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
@@ -77,7 +108,7 @@ async function main(): Promise<void> {
     safeLog(
       "Usage:\n" +
         "  ai-coach-ingest-fdc --plan <path> --out <path>\n" +
-        "  ai-coach-ingest-fdc --allowlist <path> --out <path> [--dry-run]\n"
+        "  ai-coach-ingest-fdc --allowlist <path> --out <path> [--plan <path>] [--dry-run]\n"
     );
     process.exit(2);
   }
@@ -105,17 +136,17 @@ async function main(): Promise<void> {
     process.exit(2);
   }
 
-  // MODE 1: PROPOSE ALLOWLIST
-  if (planPath) {
+  // MODE 1: PROPOSE ALLOWLIST (selected only when no --allowlist was supplied,
+  // so that --ingest may take a --plan for its coveragePlanDigest re-check).
+  if (planPath && !allowlistPath) {
     if (!fs.existsSync(planPath)) {
       safeError(`Coverage plan file not found: ${planPath}`);
       process.exit(2);
     }
 
-    const rawPlan = fs.readFileSync(planPath, "utf8");
     let plan;
     try {
-      plan = coveragePlanSchema.parse(JSON.parse(rawPlan));
+      plan = readCoveragePlan(planPath);
     } catch (err) {
       safeError(`Failed to parse coverage plan: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
@@ -194,7 +225,7 @@ async function main(): Promise<void> {
     };
 
     try {
-      allowlistSchema.parse(proposedAllowlist);
+      allowlistSchemaForPlan(plan).parse(proposedAllowlist);
     } catch (err) {
       safeError(`Generated allowlist failed validation: ${err instanceof Error ? err.message : String(err)}`);
       process.exit(1);
@@ -212,12 +243,42 @@ async function main(): Promise<void> {
       process.exit(2);
     }
 
+    // The allowlist names a coverage plan by digest. Re-check it here: an
+    // allowlist generated against an older plan must not ingest silently
+    // (review r1, MINOR 2). The check fails closed — a missing or unreadable
+    // plan stops the run rather than skipping the comparison.
+    const ingestPlanPath = planPath ?? DEFAULT_COVERAGE_PLAN_PATH;
+    if (!fs.existsSync(ingestPlanPath)) {
+      safeError(
+        `Coverage plan file not found: ${ingestPlanPath}. --ingest re-verifies the allowlist's ` +
+          `coveragePlanDigest against it; pass --plan <path> if it lives elsewhere.`
+      );
+      process.exit(1);
+    }
+
+    let ingestPlan: CoveragePlan;
+    try {
+      ingestPlan = readCoveragePlan(ingestPlanPath);
+    } catch (err) {
+      safeError(`Failed to parse coverage plan: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+
     const rawAllowlist = fs.readFileSync(allowlistPath, "utf8");
     let allowlist;
     try {
-      allowlist = allowlistSchema.parse(JSON.parse(rawAllowlist));
+      allowlist = allowlistSchemaForPlan(ingestPlan).parse(JSON.parse(rawAllowlist));
     } catch (err) {
       safeError(`Failed to parse allowlist: ${err instanceof Error ? err.message : String(err)}`);
+      process.exit(1);
+    }
+
+    const expectedPlanDigest = contentHash(ingestPlan);
+    if (allowlist.coveragePlanDigest !== expectedPlanDigest) {
+      safeError(
+        `Allowlist coveragePlanDigest ${allowlist.coveragePlanDigest} does not match ` +
+          `${ingestPlanPath} (${expectedPlanDigest}). Re-run --propose against the current plan.`
+      );
       process.exit(1);
     }
 
@@ -236,7 +297,7 @@ async function main(): Promise<void> {
     let errorCount = 0;
 
     for (const entry of allowlist.entries) {
-      if (entry.reviewState === "STRUCK") {
+      if (!isIngestableEntry(entry)) {
         safeLog(`${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> STRUCK`);
         struckCount++;
         continue;

@@ -1,0 +1,172 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "normalize.ts `hasInputFoods` detection and the allergen rule's multi-ingredient case: the record lists component inputs, so nothing about any allergen category can be established from it.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented. No source, no license, no retrieval date and no attribution is claimed. Key structure mirrors a real /food/{id} response so the mapping code is exercised against a representative shape."
+  },
+  "dataType": "Foundation",
+  "description": "SYNTHETIC FIXTURE 05 - multi-ingredient record with inputFoods",
+  "fdcId": 9000000005,
+  "foodAttributes": [
+    {
+      "id": 1,
+      "value": "SYNTHETIC ATTRIBUTE",
+      "name": "SYNTHETIC ATTRIBUTE NAME",
+      "foodAttributeType": {
+        "id": 1,
+        "name": "SYNTHETIC ATTRIBUTE TYPE",
+        "description": "synthetic"
+      }
+    }
+  ],
+  "foodCategory": {
+    "id": 9001,
+    "code": "9001",
+    "description": "SYNTHETIC CATEGORY - mixed item"
+  },
+  "foodClass": "FinalFood",
+  "foodComponents": [
+    {
+      "id": 1,
+      "name": "SYNTHETIC COMPONENT A",
+      "dataPoints": 3,
+      "gramWeight": 150,
+      "isRefuse": false,
+      "minYearAcquired": 1900,
+      "percentWeight": 75.0
+    }
+  ],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 20001008,
+      "nutrient": {
+        "id": 1008,
+        "number": "1008",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "KCAL"
+      },
+      "amount": 45,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "AS",
+        "description": "Calculated using Atwater specific factors",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001003,
+      "nutrient": {
+        "id": 1003,
+        "number": "1003",
+        "name": "Protein",
+        "rank": 201,
+        "unitName": "G"
+      },
+      "amount": 2,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001004,
+      "nutrient": {
+        "id": 1004,
+        "number": "1004",
+        "name": "Total lipid (fat)",
+        "rank": 204,
+        "unitName": "G"
+      },
+      "amount": 1,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001005,
+      "nutrient": {
+        "id": 1005,
+        "number": "1005",
+        "name": "Carbohydrate, by difference",
+        "rank": 205,
+        "unitName": "G"
+      },
+      "amount": 7,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "NC",
+        "description": "Calculated",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    }
+  ],
+  "foodPortions": [
+    {
+      "id": 5,
+      "gramWeight": 240,
+      "portionDescription": "1 synthetic cup",
+      "sequenceNumber": 1
+    }
+  ],
+  "footnote": "SYNTHETIC FOOTNOTE - not a USDA footnote",
+  "inputFoods": [
+    {
+      "id": 1,
+      "foodDescription": "SYNTHETIC COMPONENT A",
+      "gramWeight": 150,
+      "unit": "g",
+      "portionCode": "1"
+    },
+    {
+      "id": 2,
+      "foodDescription": "SYNTHETIC COMPONENT B",
+      "gramWeight": 50,
+      "unit": "g",
+      "portionCode": "1"
+    }
+  ],
+  "isHistoricalReference": false,
+  "ndbNumber": 99001,
+  "nutrientConversionFactors": [
+    {
+      "id": 1,
+      "type": ".ProteinConversionFactor",
+      "value": 6.25
+    },
+    {
+      "id": 2,
+      "type": ".CalorieConversionFactor",
+      "proteinValue": 4.0,
+      "fatValue": 9.0,
+      "carbohydrateValue": 4.0
+    }
+  ],
+  "publicationDate": "01/01/1900",
+  "scientificName": "Synthetica fixtura"
+}

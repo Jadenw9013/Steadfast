@@ -1,0 +1,169 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "allergen-rules.ts PRESENT path: the allergen is named in the record's own identity, which is the only thing an FDC record can positively establish about an allergen.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented. No source, no license, no retrieval date and no attribution is claimed. Key structure mirrors a real /food/{id} response so the mapping code is exercised against a representative shape."
+  },
+  "dataType": "Foundation",
+  "description": "SYNTHETIC FIXTURE 06 - milk identity record, allergen term in the description",
+  "fdcId": 9000000006,
+  "foodAttributes": [
+    {
+      "id": 1,
+      "value": "SYNTHETIC ATTRIBUTE",
+      "name": "SYNTHETIC ATTRIBUTE NAME",
+      "foodAttributeType": {
+        "id": 1,
+        "name": "SYNTHETIC ATTRIBUTE TYPE",
+        "description": "synthetic"
+      }
+    }
+  ],
+  "foodCategory": {
+    "id": 9001,
+    "code": "9001",
+    "description": "SYNTHETIC CATEGORY - dairy item"
+  },
+  "foodClass": "FinalFood",
+  "foodComponents": [],
+  "foodNutrients": [
+    {
+      "type": "FoodNutrient",
+      "id": 20001008,
+      "nutrient": {
+        "id": 1008,
+        "number": "1008",
+        "name": "Energy",
+        "rank": 300,
+        "unitName": "KCAL"
+      },
+      "amount": 60,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "AS",
+        "description": "Calculated using Atwater specific factors",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001003,
+      "nutrient": {
+        "id": 1003,
+        "number": "1003",
+        "name": "Protein",
+        "rank": 201,
+        "unitName": "G"
+      },
+      "amount": 3,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001004,
+      "nutrient": {
+        "id": 1004,
+        "number": "1004",
+        "name": "Total lipid (fat)",
+        "rank": 204,
+        "unitName": "G"
+      },
+      "amount": 3,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001005,
+      "nutrient": {
+        "id": 1005,
+        "number": "1005",
+        "name": "Carbohydrate, by difference",
+        "rank": 205,
+        "unitName": "G"
+      },
+      "amount": 5,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "NC",
+        "description": "Calculated",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    },
+    {
+      "type": "FoodNutrient",
+      "id": 20001087,
+      "nutrient": {
+        "id": 1087,
+        "number": "1087",
+        "name": "Calcium, Ca",
+        "rank": 300,
+        "unitName": "MG"
+      },
+      "amount": 120,
+      "foodNutrientDerivation": {
+        "id": 1,
+        "code": "A",
+        "description": "Analytical",
+        "foodNutrientSource": {
+          "id": 1,
+          "code": "1",
+          "description": "SYNTHETIC SOURCE - not a USDA source"
+        }
+      }
+    }
+  ],
+  "foodPortions": [
+    {
+      "id": 6,
+      "gramWeight": 244,
+      "portionDescription": "1 synthetic cup",
+      "sequenceNumber": 1
+    }
+  ],
+  "footnote": "SYNTHETIC FOOTNOTE - not a USDA footnote",
+  "inputFoods": [],
+  "isHistoricalReference": false,
+  "ndbNumber": 99001,
+  "nutrientConversionFactors": [
+    {
+      "id": 1,
+      "type": ".ProteinConversionFactor",
+      "value": 6.25
+    },
+    {
+      "id": 2,
+      "type": ".CalorieConversionFactor",
+      "proteinValue": 4.0,
+      "fatValue": 9.0,
+      "carbohydrateValue": 4.0
+    }
+  ],
+  "publicationDate": "01/01/1900",
+  "scientificName": "Synthetica fixtura"
+}

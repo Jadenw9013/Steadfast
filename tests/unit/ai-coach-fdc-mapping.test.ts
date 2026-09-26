@@ -2,15 +2,27 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
+  isIngestableEntry,
   mapFdcRecordToCatalogItem,
   mapNutrientDerivation,
   redactUrl,
-  type MapFoodRecordInput,
+  selectIngestableEntries,
+  toLegacyAllergenTokens,
 } from "@/lib/ai-coach/catalog/fdc/mapping";
 import type { AllowlistEntry } from "@/lib/ai-coach/catalog/fdc/allowlist-schema";
-import { foodCatalogContentSchema } from "@/lib/ai-coach/artifacts/schema";
+import {
+  allergenCategorySchema,
+  foodCatalogContentSchema,
+} from "@/lib/ai-coach/artifacts/schema";
+import { allergenSchema } from "@/lib/ai-coach/catalog/schema";
+import { LEGACY_TOKEN_BY_CATEGORY } from "@/lib/ai-coach/intake-allergens";
 
-const FIXTURES_DIR = path.resolve("tests/fixtures/ai-coach/fdc");
+/**
+ * SYNTHETIC fixtures — hand-built to exercise code paths, not recorded USDA
+ * responses. See `tests/fixtures/ai-coach/fdc-synthetic/*.json`'s own
+ * `_synthetic` block and `docs/ai-coach/catalog/README.md` §5.
+ */
+const FIXTURES_DIR = path.resolve("tests/fixtures/ai-coach/fdc-synthetic");
 
 function loadFixture(filename: string): unknown {
   const filePath = path.join(FIXTURES_DIR, filename);
@@ -18,10 +30,10 @@ function loadFixture(filename: string): unknown {
 }
 
 const mockAllowlistEntry: AllowlistEntry = {
-  fdcId: 171688,
+  fdcId: 9000000001,
   dataType: "Foundation",
-  canonicalName: "Broccoli, Raw",
-  synonyms: ["raw broccoli"],
+  canonicalName: "Synthetic Plant Item, Raw",
+  synonyms: ["synthetic plant item"],
   categoryId: "VEGETABLE",
   foodState: "RAW",
   singleIngredientWholeFood: true,
@@ -51,6 +63,13 @@ describe("T-2035 — FDC mapping pure module", () => {
     expect(res.item.sourceRecord?.retrievedAt).toBe(retrievedAt);
     expect(res.item.amountBasis?.basisGrams).toBe(100);
 
+    // A nutrient row whose unit cannot be mapped is skipped with a warning, not
+    // guessed at and not silently dropped.
+    expect(res.warnings.some((w) => w.code === "UNRECOGNIZED_NUTRIENT_UNIT")).toBe(true);
+    expect(res.item.nutrientFacts?.some((n) => n.unit === ("SP_GR" as never))).toBe(false);
+    // The kJ energy row must not be mistaken for the kcal energy row.
+    expect(res.item.nutrients.energyKcal).toBe(100);
+
     // Validate that the item satisfies SOURCED_V2 food catalog schema
     const container = {
       artifactKey: "food-catalog",
@@ -66,9 +85,9 @@ describe("T-2035 — FDC mapping pure module", () => {
     const rawSr = loadFixture("sr-legacy-single-ingredient.json");
     const entry: AllowlistEntry = {
       ...mockAllowlistEntry,
-      fdcId: 167746,
+      fdcId: 9000000002,
       dataType: "SR Legacy",
-      canonicalName: "Chicken Breast, Roasted",
+      canonicalName: "Synthetic Animal Item, Cooked",
       categoryId: "PROTEIN_ANIMAL",
       foodState: "COOKED",
     };
@@ -84,15 +103,15 @@ describe("T-2035 — FDC mapping pure module", () => {
     if (!res.ok) return;
 
     expect(res.item.sourceRecord?.dataType).toBe("SR_LEGACY");
-    expect(res.item.name).toBe("Chicken Breast, Roasted");
+    expect(res.item.name).toBe("Synthetic Animal Item, Cooked");
   });
 
   it("A Branded fixture is rejected with a named error and no item is produced", () => {
     const rawBranded = loadFixture("branded-disallowed.json");
     const entry: AllowlistEntry = {
       ...mockAllowlistEntry,
-      fdcId: 177000,
-      canonicalName: "Commercial Brand Snack Bar",
+      fdcId: 9000000008,
+      canonicalName: "Synthetic Branded Item",
     };
 
     const res = mapFdcRecordToCatalogItem({
@@ -112,8 +131,8 @@ describe("T-2035 — FDC mapping pure module", () => {
     const rawMissing = loadFixture("missing-nutrient.json");
     const entry: AllowlistEntry = {
       ...mockAllowlistEntry,
-      fdcId: 173000,
-      canonicalName: "Apples, Raw, with Skin",
+      fdcId: 9000000003,
+      canonicalName: "Synthetic Item With No Fiber Row",
       categoryId: "FRUIT",
     };
 
@@ -141,9 +160,9 @@ describe("T-2035 — FDC mapping pure module", () => {
     const rawZero = loadFixture("reported-zero.json");
     const entry: AllowlistEntry = {
       ...mockAllowlistEntry,
-      fdcId: 174000,
+      fdcId: 9000000004,
       dataType: "SR Legacy",
-      canonicalName: "Olive Oil",
+      canonicalName: "Synthetic Pressed Plant Liquid",
       categoryId: "FAT_AND_OIL",
       foodState: "NOT_APPLICABLE",
     };
@@ -181,6 +200,129 @@ describe("T-2035 — FDC mapping pure module", () => {
     expect(unknown.derivationDetail).toBe("UNKNOWN_CODE_99");
   });
 
+  it("Atwater codes AS and AG are CALCULATED, not ANALYTICAL (review r1 B4)", () => {
+    // "Analytical" means measured. AS/AG are Atwater *calculations*, and the
+    // shipped artifact read derivation ANALYTICAL next to a derivationDetail
+    // that said "Calculated using Atwater specific factors".
+    for (const code of ["AS", "AG", "as", "ag"]) {
+      const mapped = mapNutrientDerivation("Foundation", code, "Calculated using Atwater factors");
+      expect(mapped.derivation).toBe("CALCULATED");
+    }
+
+    const rawFoundation = loadFixture("foundation-single-ingredient.json");
+    const res = mapFdcRecordToCatalogItem({
+      entry: mockAllowlistEntry,
+      record: rawFoundation,
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+
+    const energyNutrientFact = res.item.nutrientFacts?.find(
+      (n) => n.nutrientId === "1008" && n.unit === "KCAL"
+    );
+    expect(energyNutrientFact?.derivation).toBe("CALCULATED");
+    expect(energyNutrientFact?.derivationDetail).toContain("Atwater");
+    // The Atwater information is not lost — energyFact.method is its home.
+    expect(res.item.energyFact?.method).toBe("ATWATER_SPECIFIC");
+
+    // No item may claim a measured value next to a "Calculated" detail string.
+    for (const fact of res.item.nutrientFacts ?? []) {
+      if (fact.derivation === "ANALYTICAL") {
+        expect(fact.derivationDetail?.toLowerCase() ?? "").not.toContain("calculated");
+      }
+    }
+  });
+
+  it("allergenFacts.contains is written in the legacy exclusion-token vocabulary (review r1 F1)", () => {
+    // The nine catalog categories and the legacy tokens are two different
+    // vocabularies. `contains` must carry the legacy one, because that is what
+    // a client's declared allergy is projected into
+    // (`deriveLegacyAllergyTokens`) and what `matchAllergen` compares against.
+    // Writing "SOYBEAN" where a declaration says "SOY" fails OPEN on an allergen.
+    expect(toLegacyAllergenTokens(["SOYBEAN"])).toEqual(["SOY"]);
+    expect(toLegacyAllergenTokens(["CRUSTACEAN_SHELLFISH"])).toEqual(["SHELLFISH"]);
+    expect(toLegacyAllergenTokens(["SESAME"])).toEqual(["SESAME"]);
+
+    // Pin the exact string set, so a future divergence is a red test and not a
+    // silent miss. Both directions are pinned: the nine categories, and the
+    // token each one becomes.
+    expect(allergenCategorySchema.options).toEqual([
+      "MILK",
+      "EGG",
+      "FISH",
+      "CRUSTACEAN_SHELLFISH",
+      "TREE_NUT",
+      "PEANUT",
+      "WHEAT",
+      "SOYBEAN",
+      "SESAME",
+    ]);
+    expect(toLegacyAllergenTokens(allergenCategorySchema.options)).toEqual([
+      "EGG",
+      "FISH",
+      "MILK",
+      "PEANUT",
+      "SESAME",
+      "SHELLFISH",
+      "SOY",
+      "TREE_NUT",
+      "WHEAT",
+    ]);
+    // One translation table, not two: the mapper imports the intake contract's.
+    for (const category of allergenCategorySchema.options) {
+      expect(toLegacyAllergenTokens([category])).toEqual([LEGACY_TOKEN_BY_CATEGORY[category]]);
+    }
+
+    // Every emitted token except SESAME is a legacy `allergenSchema` value.
+    // SESAME has no legacy catalog token (a known, documented gap: a SESAME
+    // declaration derives the same "SESAME" string, so the comparison still
+    // matches and fails closed) and is emitted anyway, because dropping it
+    // would make a sesame-containing food look sesame-free.
+    const legacyValues = new Set<string>(allergenSchema.options);
+    for (const token of toLegacyAllergenTokens(allergenCategorySchema.options)) {
+      if (token === "SESAME") continue;
+      expect(legacyValues.has(token)).toBe(true);
+    }
+
+    // End to end through the mapper: a record whose identity names an allergen
+    // emits the legacy token, never the category name.
+    const rawMilk = loadFixture("allergen-milk.json");
+    const res = mapFdcRecordToCatalogItem({
+      entry: {
+        ...mockAllowlistEntry,
+        fdcId: 9000000006,
+        canonicalName: "Synthetic Dairy Item",
+        categoryId: "DAIRY_AND_ALTERNATIVE",
+        ownAllergenCategories: ["MILK", "SOYBEAN", "CRUSTACEAN_SHELLFISH"],
+      },
+      record: rawMilk,
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.item.allergenFacts.contains).toEqual(["MILK", "SHELLFISH", "SOY"]);
+    expect(res.item.allergenFacts.contains).not.toContain("SOYBEAN");
+    expect(res.item.allergenFacts.contains).not.toContain("CRUSTACEAN_SHELLFISH");
+  });
+
+  it("isIngestableEntry / selectIngestableEntries skip STRUCK entries and only STRUCK entries", () => {
+    // The predicate the CLI actually uses (`scripts/ai-coach-ingest-fdc.ts`),
+    // tested directly rather than re-implemented in the test.
+    const base = { ...mockAllowlistEntry };
+    const proposed: AllowlistEntry = { ...base, fdcId: 9000000201, canonicalName: "A", reviewState: "PROPOSED" };
+    const accepted: AllowlistEntry = { ...base, fdcId: 9000000202, canonicalName: "B", reviewState: "ACCEPTED" };
+    const struck: AllowlistEntry = { ...base, fdcId: 9000000203, canonicalName: "C", reviewState: "STRUCK" };
+
+    expect(isIngestableEntry(proposed)).toBe(true);
+    expect(isIngestableEntry(accepted)).toBe(true);
+    expect(isIngestableEntry(struck)).toBe(false);
+    expect(selectIngestableEntries([proposed, accepted, struck])).toEqual([proposed, accepted]);
+    expect(selectIngestableEntries([struck])).toEqual([]);
+  });
+
   it("Energy method: Atwater-specific -> ATWATER_SPECIFIC; unreadable method -> SOURCE_REPORTED_UNSPECIFIED; missing energy -> rejected", () => {
     const rawFoundation = loadFixture("foundation-single-ingredient.json");
     const resSpecific = mapFdcRecordToCatalogItem({
@@ -196,7 +338,7 @@ describe("T-2035 — FDC mapping pure module", () => {
 
     const rawSr = loadFixture("sr-legacy-single-ingredient.json");
     const resUnspecified = mapFdcRecordToCatalogItem({
-      entry: { ...mockAllowlistEntry, fdcId: 167746, dataType: "SR Legacy" },
+      entry: { ...mockAllowlistEntry, fdcId: 9000000002, dataType: "SR Legacy" },
       record: rawSr,
       retrievedAt: "2026-09-26T00:00:00.000Z",
       allowlistVersion: 1,
@@ -208,7 +350,7 @@ describe("T-2035 — FDC mapping pure module", () => {
 
     const rawNoEnergy = loadFixture("no-energy-nutrient.json");
     const resNoEnergy = mapFdcRecordToCatalogItem({
-      entry: { ...mockAllowlistEntry, fdcId: 176000 },
+      entry: { ...mockAllowlistEntry, fdcId: 9000000007 },
       record: rawNoEnergy,
       retrievedAt: "2026-09-26T00:00:00.000Z",
       allowlistVersion: 1,
@@ -221,9 +363,8 @@ describe("T-2035 — FDC mapping pure module", () => {
 
   it("macroEnergyDiscrepancyKcal is computed and non-zero for a record where it is non-zero, and kcal is not adjusted", () => {
     const rawFoundation = loadFixture("foundation-single-ingredient.json");
-    // Broccoli raw: kcal = 34, p = 2.82, fat = 0.37, carb = 6.64.
-    // 4*2.82 + 4*6.64 + 9*0.37 = 11.28 + 26.56 + 3.33 = 41.17.
-    // Discrepancy: 34 - 41.17 = -7.17.
+    // Fixture 01: kcal = 100, protein = 5, fat = 2, carb = 10.
+    // 4*5 + 4*10 + 9*2 = 20 + 40 + 18 = 78. Discrepancy: 100 - 78 = 22.
     const res = mapFdcRecordToCatalogItem({
       entry: mockAllowlistEntry,
       record: rawFoundation,
@@ -234,15 +375,16 @@ describe("T-2035 — FDC mapping pure module", () => {
     expect(res.ok).toBe(true);
     if (!res.ok) return;
 
+    expect(res.item.energyFact?.macroEnergyDiscrepancyKcal).toBe(22);
     expect(res.item.energyFact?.macroEnergyDiscrepancyKcal).not.toBe(0);
-    expect(res.item.energyFact?.kcal).toBe(34); // unadjusted
-    expect(res.item.nutrients.energyKcal).toBe(34);
+    expect(res.item.energyFact?.kcal).toBe(100); // unadjusted
+    expect(res.item.nutrients.energyKcal).toBe(100);
   });
 
   it("An item whose protein/carb/fat is UNKNOWN is rejected rather than emitted with zero", () => {
     const rawNoProtein = {
-      fdcId: 178000,
-      description: "No protein food",
+      fdcId: 9000000102,
+      description: "SYNTHETIC FIXTURE - record with no protein row",
       dataType: "Foundation",
       publicationDate: "10/28/2020",
       foodNutrients: [
@@ -262,7 +404,7 @@ describe("T-2035 — FDC mapping pure module", () => {
     };
 
     const res = mapFdcRecordToCatalogItem({
-      entry: { ...mockAllowlistEntry, fdcId: 178000 },
+      entry: { ...mockAllowlistEntry, fdcId: 9000000102 },
       record: rawNoProtein,
       retrievedAt: "2026-09-26T00:00:00.000Z",
       allowlistVersion: 1,
@@ -308,11 +450,11 @@ describe("T-2035 — FDC mapping pure module", () => {
 
   it("redactUrl removes api_key query param and leaves rest of URL intact, preventing SECRET-KEY-FIXTURE leakage", () => {
     const secretKey = "SECRET-KEY-FIXTURE";
-    const sampleUrl = `https://api.nal.usda.gov/fdc/v1/food/171688?api_key=${secretKey}&format=full`;
+    const sampleUrl = `https://api.nal.usda.gov/fdc/v1/food/9000000001?api_key=${secretKey}&format=full`;
 
     const redacted = redactUrl(sampleUrl);
     expect(redacted).not.toContain(secretKey);
-    expect(redacted).toContain("https://api.nal.usda.gov/fdc/v1/food/171688");
+    expect(redacted).toContain("https://api.nal.usda.gov/fdc/v1/food/9000000001");
     expect(redacted).toContain("format=full");
 
     // Assert secret key never leaks from any exported function

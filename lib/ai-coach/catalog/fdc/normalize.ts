@@ -19,6 +19,14 @@ export type NormalizedFdcRecord = {
   publicationDate: string;
   foodCategory: string;
   hasInputFoods: boolean;
+  /**
+   * The record's own ingredient statement, verbatim, or `null` when the record
+   * carries none. Only Branded FDC records have an `ingredients` field; a
+   * Foundation or SR Legacy record never does. Read here so that
+   * `allergenFactsV2.ingredientStatementAvailable` is a fact off the record
+   * rather than a hardcoded assumption (T-2035 review r1, finding B3).
+   */
+  ingredientStatement: string | null;
   nutrients: NormalizedFdcNutrient[];
   portions: NormalizedFdcPortion[];
 };
@@ -66,6 +74,11 @@ export function normalizeFdcRecord(raw: unknown): NormalizedFdcRecord {
     foodCategory = (
       record.wweiaFoodCategory as { wweiaFoodCategoryDescription: string }
     ).wweiaFoodCategoryDescription.trim();
+  }
+
+  let ingredientStatement: string | null = null;
+  if (typeof record.ingredients === "string" && record.ingredients.trim()) {
+    ingredientStatement = record.ingredients.trim();
   }
 
   const hasInputFoods =
@@ -171,6 +184,7 @@ export function normalizeFdcRecord(raw: unknown): NormalizedFdcRecord {
     publicationDate: record.publicationDate.trim(),
     foodCategory,
     hasInputFoods,
+    ingredientStatement,
     nutrients,
     portions,
   };

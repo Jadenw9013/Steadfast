@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
 import { afterAll, describe, expect, it, vi } from "vitest";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { artifactContentDigest } from "@/lib/ai-coach/artifacts/digest";
@@ -17,10 +19,9 @@ import {
   buildSyntheticArtifactSet,
   SYNTHETIC_ARTIFACT_ENGINE_VERSION,
 } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
-import {
-  loadDraftUnsignedPolicyBundle,
-  loadDraftUnsignedFoodCatalog,
-} from "@/lib/ai-coach/artifacts/drafts/loader";
+import { loadDraftUnsignedPolicyBundle } from "@/lib/ai-coach/artifacts/drafts/loader";
+import { mapFdcRecordToCatalogItem } from "@/lib/ai-coach/catalog/fdc/mapping";
+import type { AllowlistEntry } from "@/lib/ai-coach/catalog/fdc/allowlist-schema";
 import { PRESCRIPTION_PARAMETER_SPECS } from "@/lib/ai-coach/prescription/parameters";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -32,6 +33,63 @@ const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 const getCurrentDbUserMock = vi.mocked(getCurrentDbUser);
+
+/**
+ * A SOURCED_V2 catalog item built from a SYNTHETIC fixture by the same mapper
+ * the CLI uses. The fixtures are hand-built and say so (`_synthetic`); the real
+ * DRAFT_UNSIGNED catalog artifact is the output of an operator run against
+ * FoodData Central and is not checked in, so these cases construct their own
+ * input rather than reading a file that must not be hand-written.
+ */
+function buildSourcedCatalogItem(itemId: string) {
+  const record = JSON.parse(
+    fs.readFileSync(
+      path.resolve("tests/fixtures/ai-coach/fdc-synthetic/foundation-single-ingredient.json"),
+      "utf8"
+    )
+  );
+  const entry: AllowlistEntry = {
+    fdcId: 9000000001,
+    dataType: "Foundation",
+    canonicalName: "Synthetic Plant Item, Raw",
+    synonyms: ["synthetic plant item"],
+    categoryId: "VEGETABLE",
+    foodState: "RAW",
+    singleIngredientWholeFood: true,
+    patternTags: ["OMNIVORE"],
+    ownAllergenCategories: [],
+    reviewState: "PROPOSED",
+    reviewerNote: null,
+  };
+  const result = mapFdcRecordToCatalogItem({
+    entry,
+    record,
+    retrievedAt: "2026-09-26T00:00:00.000Z",
+    allowlistVersion: 1,
+  });
+  if (!result.ok) throw new Error(`synthetic fixture failed to map: ${result.errors[0]?.message}`);
+  return { ...result.item, id: itemId };
+}
+
+/** DRAFT_UNSIGNED review metadata for a food catalog, claiming no external source. */
+function syntheticDraftFoodCatalogReviewMetadata(itemIds: string[]) {
+  return {
+    decision: "DRAFT_UNSIGNED" as const,
+    preparedBy: "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE" as const,
+    preparedAt: "2026-09-26T00:00:00.000Z",
+    draftRecordId: "synthetic-food-catalog-draft",
+    worksheetSectionIds: ["D07", "D08", "D12"],
+    proposalProvenance: itemIds.map((id) => ({
+      parameterId: id,
+      sourceClaimId: "SYNTHETIC-FIXTURE",
+      sourceId: "SYNTHETIC-FIXTURE",
+      sourceUrl: "https://example.invalid/synthetic-fixture",
+      sourceLocator: "synthetic fixture; no external source",
+    })),
+    unsignedNotice:
+      "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE.",
+  };
+}
 
 suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", () => {
   afterAll(() => db.$disconnect());
@@ -733,10 +791,9 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
   it("registers and publishes a SOURCED_V2 food catalog, loads it, and returns reviewed item with allergenFactsV2 intact", async () => {
     const account = await createAccount(true);
     authenticateAs(account);
-    const draftCatalog = loadDraftUnsignedFoodCatalog();
     const set = buildSyntheticArtifactSet(namespace("sourced-catalog"));
 
-    const item0 = draftCatalog.content.items[0];
+    const sourcedItem = buildSourcedCatalogItem("fdc-sourced-test-item");
     const foodArtifactKey = namespace("sourced-food-cat");
     const sourcedFoodCatalog = {
       id: `${foodArtifactKey}:v1`,
@@ -753,12 +810,7 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
         version: 1,
         catalogProfile: "SOURCED_V2" as const,
         market: "US" as const,
-        items: [
-          {
-            ...item0,
-            id: "fdc-sourced-test-item",
-          },
-        ],
+        items: [sourcedItem],
       },
     };
 
@@ -807,9 +859,14 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
     expect(reviewedItem.allergenFactsV2?.categories).toHaveLength(9);
   });
 
-  it("registerArtifactVersion applied to the checked-in draft food-catalog file rejects with ARTIFACT_UNSIGNED_DRAFT when publishing", async () => {
-    const draftFile = loadDraftUnsignedFoodCatalog();
+  it("registerArtifactVersion accepts a DRAFT_UNSIGNED food catalog as DRAFT, then publishArtifactVersion rejects it with ARTIFACT_UNSIGNED_DRAFT", async () => {
+    // Title fixed in the T-2035 repair pass (review r1, F4): the previous title
+    // said "rejects" while the body asserted a successful registration. The
+    // behaviour is right — T-2034 refuses an unsigned draft at publish,
+    // assertUsable and launch validation, not at register — so both halves are
+    // now named and asserted.
     const artifactKey = namespace("draft-food-catalog");
+    const draftItem = buildSourcedCatalogItem("fdc-draft-test-item");
     const draftInput = {
       id: `${artifactKey}:v1`,
       artifactKey,
@@ -819,10 +876,13 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
       engineVersions: [SYNTHETIC_ARTIFACT_ENGINE_VERSION],
       dependencies: [],
       synthetic: false,
-      reviewMetadata: draftFile.reviewMetadata,
+      reviewMetadata: syntheticDraftFoodCatalogReviewMetadata([draftItem.id]),
       content: {
-        ...draftFile.content,
         artifactKey,
+        version: 1,
+        catalogProfile: "SOURCED_V2" as const,
+        market: "US" as const,
+        items: [draftItem],
       },
     };
 

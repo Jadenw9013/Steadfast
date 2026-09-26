@@ -1,0 +1,70 @@
+{
+  "_synthetic": {
+    "label": "SYNTHETIC FIXTURE - NOT A USDA RECORD",
+    "exercises": "mapping.ts explicit-zero path: protein and carbohydrate are reported as 0, which must map to { value: 0, status: \"REPORTED\" } and stay distinguishable from an unreported nutrient.",
+    "note": "Hand-built for T-2035 unit tests. The fdcId is outside any FoodData Central id range, the description and category are not USDA strings, and every number is invented. No source, no license, no retrieval date and no attribution is claimed. Key structure mirrors a real /food/{id} response so the mapping code is exercised against a representative shape."
+  },
+  "dataType": "SR Legacy",
+  "description": "SYNTHETIC FIXTURE 04 - record reporting explicit zeros",
+  "fdcId": 9000000004,
+  "foodAttributes": [],
+  "foodCategory": {
+    "id": 9002,
+    "code": "9002",
+    "description": "SYNTHETIC CATEGORY - pressed plant liquid"
+  },
+  "foodClass": "FinalFood",
+  "foodNutrients": [
+    {
+      "nutrientNumber": "208",
+      "nutrientName": "Energy",
+      "unitName": "KCAL",
+      "value": 900
+    },
+    {
+      "nutrientNumber": "203",
+      "nutrientName": "Protein",
+      "unitName": "G",
+      "value": 0
+    },
+    {
+      "nutrientNumber": "204",
+      "nutrientName": "Total lipid (fat)",
+      "unitName": "G",
+      "value": 100
+    },
+    {
+      "nutrientNumber": "205",
+      "nutrientName": "Carbohydrate, by difference",
+      "unitName": "G",
+      "value": 0
+    }
+  ],
+  "foodPortions": [
+    {
+      "id": 4,
+      "gramWeight": 15,
+      "modifier": "1 synthetic spoon",
+      "amount": 1,
+      "sequenceNumber": 1
+    }
+  ],
+  "isHistoricalReference": true,
+  "ndbNumber": 99002,
+  "nutrientConversionFactors": [
+    {
+      "id": 1,
+      "type": ".ProteinConversionFactor",
+      "value": 6.25
+    },
+    {
+      "id": 2,
+      "type": ".CalorieConversionFactor",
+      "proteinValue": 4.0,
+      "fatValue": 9.0,
+      "carbohydrateValue": 4.0
+    }
+  ],
+  "publicationDate": "01/01/1901",
+  "scientificName": "Synthetica fixtura"
+}

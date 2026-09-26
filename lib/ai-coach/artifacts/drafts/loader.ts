@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import { z } from "zod";
 import type {
   ArtifactDraftInput,
@@ -10,7 +11,6 @@ import {
   policyBundleContentSchema,
 } from "../schema";
 import rawDraftBundle from "./policy-bundle-nutrition.draft-unsigned.v1.json";
-import rawDraftFoodCatalog from "./food-catalog-fdc.draft-unsigned.v1.json";
 
 export const draftPolicyBundleFileSchema = z
   .object({
@@ -67,13 +67,36 @@ export const draftFoodCatalogFileSchema = z
 
 export type DraftFoodCatalogFile = z.infer<typeof draftFoodCatalogFileSchema>;
 
+export const DRAFT_FOOD_CATALOG_FILENAME = "food-catalog-fdc.draft-unsigned.v1.json";
+
+export const FOOD_CATALOG_DRAFT_NOT_GENERATED =
+  "The DRAFT_UNSIGNED food catalog has not been generated. It is the output of a real USDA " +
+  "FoodData Central run (pnpm ai-coach:fdc:ingest) and is never hand-written; see " +
+  "docs/ai-coach/catalog/README.md.";
+
 /**
- * Loads and strictly parses the checked-in DRAFT_UNSIGNED food catalog file.
- * Throws in production environments — draft artifacts must never be loaded in production.
+ * Loads and strictly parses the DRAFT_UNSIGNED food catalog file that a real
+ * `--ingest` run writes next to this module.
+ *
+ * Read at call time rather than statically imported, because the file is absent
+ * until an operator has run the tool against the live API. The first version of
+ * this ticket shipped a hand-written 260-item catalog in its place; that data
+ * was deleted (`board/evidence/T-2035.md`) and nothing stands in for it. When
+ * the real run commits the artifact this function starts returning it with no
+ * code change; until then it throws {@link FOOD_CATALOG_DRAFT_NOT_GENERATED}.
+ *
+ * Throws in production environments — draft artifacts must never be loaded in
+ * production. This module is imported only by `scripts/` and `tests/`; no
+ * `app/` or `lib/` runtime path reaches it, so the `node:fs` read is never
+ * bundled.
  */
 export function loadDraftUnsignedFoodCatalog(): DraftFoodCatalogFile {
   if (process.env.NODE_ENV === "production") {
     throw new Error("Draft unsigned artifacts cannot be loaded in production environments.");
   }
-  return draftFoodCatalogFileSchema.parse(rawDraftFoodCatalog);
+  const fileUrl = new URL(`./${DRAFT_FOOD_CATALOG_FILENAME}`, import.meta.url);
+  if (!fs.existsSync(fileUrl)) {
+    throw new Error(FOOD_CATALOG_DRAFT_NOT_GENERATED);
+  }
+  return draftFoodCatalogFileSchema.parse(JSON.parse(fs.readFileSync(fileUrl, "utf8")));
 }
