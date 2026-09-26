@@ -1,0 +1,42 @@
+{
+  "_attribution": "fdcId: 174000, retrievalDate: 2026-09-24, attribution: USDA FoodData Central CC0 Public Domain",
+  "fdcId": 174000,
+  "description": "Oil, olive, salad or cooking",
+  "dataType": "SR Legacy",
+  "publicationDate": "4/1/2019",
+  "foodCategory": {
+    "description": "Fats and Oils"
+  },
+  "foodPortions": [
+    {
+      "gramWeight": 14,
+      "modifier": "1 tablespoon"
+    }
+  ],
+  "foodNutrients": [
+    {
+      "nutrientNumber": "208",
+      "nutrientName": "Energy",
+      "unitName": "KCAL",
+      "value": 884
+    },
+    {
+      "nutrientNumber": "203",
+      "nutrientName": "Protein",
+      "unitName": "G",
+      "value": 0
+    },
+    {
+      "nutrientNumber": "204",
+      "nutrientName": "Total lipid (fat)",
+      "unitName": "G",
+      "value": 100
+    },
+    {
+      "nutrientNumber": "205",
+      "nutrientName": "Carbohydrate, by difference",
+      "unitName": "G",
+      "value": 0
+    }
+  ]
+}

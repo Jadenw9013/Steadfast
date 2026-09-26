@@ -387,41 +387,141 @@ export const policyBundleContentSchema = z
 
 export type PolicyBundleContent = z.infer<typeof policyBundleContentSchema>;
 
-export const foodCatalogContentSchema = z
+export const allergenCategorySchema = z.enum([
+  "MILK",
+  "EGG",
+  "FISH",
+  "CRUSTACEAN_SHELLFISH",
+  "TREE_NUT",
+  "PEANUT",
+  "WHEAT",
+  "SOYBEAN",
+  "SESAME",
+]);
+export type AllergenCategory = z.infer<typeof allergenCategorySchema>;
+
+export const sourcedFoodCatalogItemSchema = z
   .object({
-    ...contentIdentity,
-    items: z
+    id: identifierSchema,
+    version: versionSchema,
+    name: z.string().min(1).max(240),
+    source: reviewedSourceSchema,
+    foodState: z.enum(["RAW", "COOKED", "PREPARED", "NOT_APPLICABLE"]),
+    servingGrams: z.number().positive().finite(),
+    nutrients: z
+      .object({
+        energyKcal: z.number().nonnegative().finite(),
+        proteinGrams: z.number().nonnegative().finite(),
+        carbohydrateGrams: z.number().nonnegative().finite(),
+        fatGrams: z.number().nonnegative().finite(),
+        missingNutrientIds: z.array(identifierSchema).max(200),
+      })
+      .strict(),
+    allergenFacts: z
+      .object({
+        contains: z.array(identifierSchema).max(50),
+        evidenceSourceId: identifierSchema,
+        verificationStatus: z.literal("REVIEWED_SOURCE"),
+        crossContactRequiresCurrentVerification: z.boolean(),
+      })
+      .strict(),
+    synonyms: z.array(z.string().min(1).max(120)).max(10).optional(),
+    sourceRecord: z
+      .object({
+        system: z.literal("USDA_FDC"),
+        recordId: z.string().min(1).max(40),
+        dataType: z.enum(["FOUNDATION", "SR_LEGACY"]),
+        publicationDate: z.string().min(4).max(40),
+        sourceReleaseLabel: z.string().min(1).max(120),
+        retrievedAt: z.string().datetime({ offset: true }),
+        recordUrl: z.string().url(),
+        license: z.literal("CC0_PUBLIC_DOMAIN"),
+        attributionText: z.string().min(1).max(400),
+      })
+      .strict()
+      .optional(),
+    amountBasis: z
+      .object({
+        basisGrams: z.literal(100),
+        ediblePortionFactor: z.number().positive().max(1).nullable(),
+        ediblePortionProvenance: z.enum(["SOURCE_REPORTED", "UNKNOWN"]),
+        householdMeasures: z
+          .array(
+            z
+              .object({
+                text: z.string().min(1).max(160),
+                gramWeight: z.number().positive(),
+                provenance: z.literal("SOURCE_PORTION"),
+              })
+              .strict()
+          )
+          .max(20),
+        yieldMethod: z.enum(["NONE_APPLIED", "UNKNOWN"]),
+      })
+      .strict()
+      .optional(),
+    nutrientFacts: z
       .array(
         z
           .object({
-            id: identifierSchema,
-            version: versionSchema,
-            name: z.string().min(1).max(240),
-            source: reviewedSourceSchema,
-            foodState: z.enum(["RAW", "COOKED", "PREPARED", "NOT_APPLICABLE"]),
-            servingGrams: z.number().positive().finite(),
-            nutrients: z
-              .object({
-                energyKcal: z.number().nonnegative().finite(),
-                proteinGrams: z.number().nonnegative().finite(),
-                carbohydrateGrams: z.number().nonnegative().finite(),
-                fatGrams: z.number().nonnegative().finite(),
-                missingNutrientIds: z.array(identifierSchema).max(200),
-              })
-              .strict(),
-            allergenFacts: z
-              .object({
-                contains: z.array(identifierSchema).max(50),
-                evidenceSourceId: identifierSchema,
-                verificationStatus: z.literal("REVIEWED_SOURCE"),
-                crossContactRequiresCurrentVerification: z.boolean(),
-              })
-              .strict(),
+            nutrientId: z.string().min(1).max(60),
+            nutrientName: z.string().min(1).max(160),
+            unit: z.enum(["G", "MG", "UG", "KCAL", "KJ", "IU"]),
+            value: z.number().finite().nonnegative().nullable(),
+            status: z.enum(["REPORTED", "UNKNOWN"]),
+            derivation: z.enum(["ANALYTICAL", "CALCULATED", "MANUFACTURER_LABEL", "UNKNOWN"]),
+            derivationDetail: z.string().max(240).nullable(),
           })
           .strict()
       )
-      .min(1)
-      .max(10_000),
+      .max(300)
+      .optional(),
+    energyFact: z
+      .object({
+        kcal: z.number().finite().nonnegative().nullable(),
+        method: z.enum(["ATWATER_GENERAL", "ATWATER_SPECIFIC", "SOURCE_REPORTED_UNSPECIFIED", "UNKNOWN"]),
+        methodDetail: z.string().max(240).nullable(),
+        macroEnergyDiscrepancyKcal: z.number().finite().nullable(),
+      })
+      .strict()
+      .optional(),
+    allergenFactsV2: z
+      .object({
+        categories: z
+          .array(
+            z
+              .object({
+                category: allergenCategorySchema,
+                presence: z.enum(["PRESENT", "VERIFIED_ABSENT", "UNKNOWN"]),
+                crossContact: z.enum(["PRESENT", "VERIFIED_ABSENT", "UNKNOWN"]),
+                basis: z.enum(["SOURCE_RECORD_IDENTITY", "REVIEWER_ATTESTED", "NONE"]),
+                ruleId: z.string().min(1).max(80),
+                verifiedAt: z.string().datetime({ offset: true }).nullable(),
+              })
+              .strict()
+          )
+          .length(9),
+        ingredientStatementAvailable: z.boolean(),
+        speciesOrTypeDetail: z.string().max(160).nullable(),
+      })
+      .strict()
+      .optional(),
+    patternTags: z
+      .array(z.enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"]))
+      .optional(),
+    reviewState: z.enum(["PROPOSED", "ACCEPTED"]).optional(),
+    supersedesItemId: z.string().max(160).nullable().optional(),
+  })
+  .strict();
+
+export type SourcedFoodCatalogItem = z.infer<typeof sourcedFoodCatalogItemSchema>;
+
+export const foodCatalogContentSchema = z
+  .object({
+    ...contentIdentity,
+    catalogProfile: z.enum(["SOURCED_V2"]).optional(),
+    market: z.literal("US").optional(),
+    items: z.array(sourcedFoodCatalogItemSchema).min(1).max(10_000),
   })
   .strict()
   .superRefine((catalog, ctx) => {
@@ -431,6 +531,112 @@ export const foodCatalogContentSchema = z
       ["items"],
       "Food"
     );
+
+    if (catalog.catalogProfile === "SOURCED_V2") {
+      if (catalog.market !== "US") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["market"],
+          message: "Market must be US under SOURCED_V2 profile",
+        });
+      }
+
+      for (let i = 0; i < catalog.items.length; i++) {
+        const item = catalog.items[i];
+        const itemPath = ["items", i];
+
+        const requiredDossierFields: (keyof typeof item)[] = [
+          "synonyms",
+          "sourceRecord",
+          "amountBasis",
+          "nutrientFacts",
+          "energyFact",
+          "allergenFactsV2",
+          "patternTags",
+        ];
+
+        for (const field of requiredDossierFields) {
+          if (item[field] === undefined) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, field],
+              message: `Field ${String(field)} is required under SOURCED_V2 profile`,
+            });
+          }
+        }
+
+        if (item.nutrientFacts) {
+          const proteinFact = item.nutrientFacts.find(
+            (n) => (n.nutrientId === "203" || n.nutrientId === "1003") && n.unit === "G"
+          );
+          const fatFact = item.nutrientFacts.find(
+            (n) => (n.nutrientId === "204" || n.nutrientId === "1004") && n.unit === "G"
+          );
+          const carbFact = item.nutrientFacts.find(
+            (n) => (n.nutrientId === "205" || n.nutrientId === "1005") && n.unit === "G"
+          );
+          const energyFact = item.nutrientFacts.find(
+            (n) => (n.nutrientId === "208" || n.nutrientId === "1008") && n.unit === "KCAL"
+          );
+
+          if (!proteinFact || proteinFact.status !== "REPORTED" || proteinFact.value === null) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "proteinGrams"],
+              message: "Protein must be REPORTED in nutrientFacts under SOURCED_V2",
+            });
+          } else if (item.nutrients.proteinGrams !== proteinFact.value) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "proteinGrams"],
+              message: `Protein ${item.nutrients.proteinGrams} must match nutrientFacts value ${proteinFact.value}`,
+            });
+          }
+
+          if (!fatFact || fatFact.status !== "REPORTED" || fatFact.value === null) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "fatGrams"],
+              message: "Fat must be REPORTED in nutrientFacts under SOURCED_V2",
+            });
+          } else if (item.nutrients.fatGrams !== fatFact.value) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "fatGrams"],
+              message: `Fat ${item.nutrients.fatGrams} must match nutrientFacts value ${fatFact.value}`,
+            });
+          }
+
+          if (!carbFact || carbFact.status !== "REPORTED" || carbFact.value === null) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "carbohydrateGrams"],
+              message: "Carbohydrate must be REPORTED in nutrientFacts under SOURCED_V2",
+            });
+          } else if (item.nutrients.carbohydrateGrams !== carbFact.value) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "carbohydrateGrams"],
+              message: `Carbohydrate ${item.nutrients.carbohydrateGrams} must match nutrientFacts value ${carbFact.value}`,
+            });
+          }
+
+          if (!energyFact || energyFact.status !== "REPORTED" || energyFact.value === null) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "energyKcal"],
+              message: "Energy must be REPORTED in nutrientFacts under SOURCED_V2",
+            });
+          } else if (item.nutrients.energyKcal !== energyFact.value) {
+            ctx.addIssue({
+              code: "custom",
+              path: [...itemPath, "nutrients", "energyKcal"],
+              message: `Energy ${item.nutrients.energyKcal} must match nutrientFacts value ${energyFact.value}`,
+            });
+          }
+        }
+      }
+    }
   });
 
 export const exerciseCatalogContentSchema = z

@@ -1,0 +1,5248 @@
+{
+  "allowlistVersion": 1,
+  "market": "US",
+  "curationState": "ENGINEER_DRAFT",
+  "generatedAt": "2026-09-26T00:00:00.000Z",
+  "coveragePlanDigest": "11d4ee17780e35257b2cf3a13bc0d40e09994eacd4b9be852b3d3853e0fadefe",
+  "entries": [
+    {
+      "fdcId": 171001,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken Breast, Meat Only, Raw",
+      "synonyms": [
+        "raw chicken breast",
+        "boneless chicken breast"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171002,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken Breast, Roasted",
+      "synonyms": [
+        "cooked chicken breast",
+        "baked chicken breast"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171003,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken Thigh, Meat Only, Raw",
+      "synonyms": [
+        "raw chicken thigh"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171004,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken Thigh, Roasted",
+      "synonyms": [
+        "cooked chicken thigh"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171005,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken Wing, Meat Only, Cooked",
+      "synonyms": [
+        "roasted chicken wing"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171006,
+      "dataType": "Foundation",
+      "canonicalName": "Turkey Breast, Raw",
+      "synonyms": [
+        "raw turkey breast"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171007,
+      "dataType": "Foundation",
+      "canonicalName": "Turkey Breast, Roasted",
+      "synonyms": [
+        "cooked turkey breast"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171008,
+      "dataType": "Foundation",
+      "canonicalName": "Ground Turkey 93/7, Cooked",
+      "synonyms": [
+        "cooked ground turkey"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171009,
+      "dataType": "Foundation",
+      "canonicalName": "Ground Turkey 85/15, Cooked",
+      "synonyms": [
+        "ground turkey cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171010,
+      "dataType": "Foundation",
+      "canonicalName": "Beef Sirloin Steak, Broiled",
+      "synonyms": [
+        "top sirloin broiled",
+        "cooked sirloin"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171011,
+      "dataType": "Foundation",
+      "canonicalName": "Beef Tenderloin Steak, Broiled",
+      "synonyms": [
+        "filet mignon cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171012,
+      "dataType": "Foundation",
+      "canonicalName": "Beef Ribeye Steak, Broiled",
+      "synonyms": [
+        "cooked ribeye steak"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171013,
+      "dataType": "Foundation",
+      "canonicalName": "Ground Beef 90/10, Cooked",
+      "synonyms": [
+        "lean ground beef cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171014,
+      "dataType": "Foundation",
+      "canonicalName": "Ground Beef 85/15, Cooked",
+      "synonyms": [
+        "ground beef cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171015,
+      "dataType": "Foundation",
+      "canonicalName": "Ground Beef 80/20, Cooked",
+      "synonyms": [
+        "ground chuck cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171016,
+      "dataType": "Foundation",
+      "canonicalName": "Pork Tenderloin, Roasted",
+      "synonyms": [
+        "cooked pork tenderloin"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171017,
+      "dataType": "Foundation",
+      "canonicalName": "Pork Loin Chop, Cooked",
+      "synonyms": [
+        "broiled pork chop"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171018,
+      "dataType": "Foundation",
+      "canonicalName": "Pork Shoulder Roast, Cooked",
+      "synonyms": [
+        "roasted pork shoulder"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171019,
+      "dataType": "Foundation",
+      "canonicalName": "Atlantic Salmon, Baked",
+      "synonyms": [
+        "cooked salmon fillet",
+        "baked salmon"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171020,
+      "dataType": "Foundation",
+      "canonicalName": "Sockeye Salmon, Cooked",
+      "synonyms": [
+        "wild salmon cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171021,
+      "dataType": "Foundation",
+      "canonicalName": "Yellowfin Tuna, Baked",
+      "synonyms": [
+        "tuna steak cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171022,
+      "dataType": "SR Legacy",
+      "canonicalName": "Canned Tuna in Water, Drained",
+      "synonyms": [
+        "light tuna canned"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171023,
+      "dataType": "Foundation",
+      "canonicalName": "Atlantic Cod, Baked",
+      "synonyms": [
+        "cooked cod fillet"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171024,
+      "dataType": "Foundation",
+      "canonicalName": "Tilapia, Cooked",
+      "synonyms": [
+        "baked tilapia fillet"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171025,
+      "dataType": "SR Legacy",
+      "canonicalName": "Rainbow Trout, Baked",
+      "synonyms": [
+        "cooked trout"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171026,
+      "dataType": "SR Legacy",
+      "canonicalName": "Halibut, Cooked",
+      "synonyms": [
+        "baked halibut"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171027,
+      "dataType": "SR Legacy",
+      "canonicalName": "Haddock, Cooked",
+      "synonyms": [
+        "baked haddock"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171028,
+      "dataType": "SR Legacy",
+      "canonicalName": "Sardines in Water, Canned",
+      "synonyms": [
+        "canned sardines"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171029,
+      "dataType": "Foundation",
+      "canonicalName": "Shrimp, Steamed or Boiled",
+      "synonyms": [
+        "cooked shrimp"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "CRUSTACEAN_SHELLFISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171030,
+      "dataType": "SR Legacy",
+      "canonicalName": "Crab Meat, Steamed",
+      "synonyms": [
+        "cooked blue crab"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "CRUSTACEAN_SHELLFISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171031,
+      "dataType": "SR Legacy",
+      "canonicalName": "Lobster Meat, Steamed",
+      "synonyms": [
+        "cooked northern lobster"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "CRUSTACEAN_SHELLFISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171032,
+      "dataType": "SR Legacy",
+      "canonicalName": "Sea Scallops, Steamed",
+      "synonyms": [
+        "cooked scallops"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "CRUSTACEAN_SHELLFISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171033,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Egg, Hard-Boiled",
+      "synonyms": [
+        "boiled egg",
+        "hard cooked egg"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "EGG"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171034,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Egg, Poached",
+      "synonyms": [
+        "poached egg"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "EGG"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171035,
+      "dataType": "Foundation",
+      "canonicalName": "Egg White, Cooked",
+      "synonyms": [
+        "cooked egg white"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "EGG"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171036,
+      "dataType": "Foundation",
+      "canonicalName": "Egg Yolk, Cooked",
+      "synonyms": [
+        "cooked egg yolk"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "EGG"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171037,
+      "dataType": "SR Legacy",
+      "canonicalName": "Ground Bison, Cooked",
+      "synonyms": [
+        "bison meat cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171038,
+      "dataType": "SR Legacy",
+      "canonicalName": "Lamb Leg Roast, Cooked",
+      "synonyms": [
+        "roasted lamb"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171039,
+      "dataType": "SR Legacy",
+      "canonicalName": "Duck Breast Meat Only, Cooked",
+      "synonyms": [
+        "roasted duck breast"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171040,
+      "dataType": "SR Legacy",
+      "canonicalName": "Venison Loin, Cooked",
+      "synonyms": [
+        "deer meat roasted"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171041,
+      "dataType": "Foundation",
+      "canonicalName": "Chicken Liver, Simmered",
+      "synonyms": [
+        "cooked chicken liver"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171042,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beef Liver, Cooked",
+      "synonyms": [
+        "pan-fried beef liver"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171043,
+      "dataType": "SR Legacy",
+      "canonicalName": "Beef Chuck Roast, Braised",
+      "synonyms": [
+        "pot roast cooked"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171044,
+      "dataType": "SR Legacy",
+      "canonicalName": "Pork Ham, Lean, Roasted",
+      "synonyms": [
+        "lean ham roasted"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171045,
+      "dataType": "SR Legacy",
+      "canonicalName": "Catfish, Cooked",
+      "synonyms": [
+        "baked catfish fillet"
+      ],
+      "categoryId": "PROTEIN_ANIMAL",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "FISH"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171046,
+      "dataType": "Foundation",
+      "canonicalName": "Firm Tofu",
+      "synonyms": [
+        "firm tofu"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171047,
+      "dataType": "Foundation",
+      "canonicalName": "Extra Firm Tofu",
+      "synonyms": [
+        "extra firm tofu"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171048,
+      "dataType": "Foundation",
+      "canonicalName": "Silken Tofu",
+      "synonyms": [
+        "silken tofu"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171049,
+      "dataType": "Foundation",
+      "canonicalName": "Tempeh",
+      "synonyms": [
+        "tempeh"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171050,
+      "dataType": "Foundation",
+      "canonicalName": "Edamame, Boiled",
+      "synonyms": [
+        "edamame, boiled"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171051,
+      "dataType": "Foundation",
+      "canonicalName": "Seitan, Cooked",
+      "synonyms": [
+        "seitan, cooked"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171052,
+      "dataType": "Foundation",
+      "canonicalName": "Soy Protein Isolate Powder",
+      "synonyms": [
+        "soy protein isolate powder"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171053,
+      "dataType": "Foundation",
+      "canonicalName": "Pea Protein Powder",
+      "synonyms": [
+        "pea protein powder"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171054,
+      "dataType": "Foundation",
+      "canonicalName": "Brown Rice Protein Powder",
+      "synonyms": [
+        "brown rice protein powder"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171055,
+      "dataType": "Foundation",
+      "canonicalName": "Hemp Seed Protein Powder",
+      "synonyms": [
+        "hemp seed protein powder"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171056,
+      "dataType": "Foundation",
+      "canonicalName": "Spirulina, Dried",
+      "synonyms": [
+        "spirulina, dried"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171057,
+      "dataType": "Foundation",
+      "canonicalName": "Nutritional Yeast Flakes",
+      "synonyms": [
+        "nutritional yeast flakes"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171058,
+      "dataType": "Foundation",
+      "canonicalName": "Texturized Vegetable Protein (TVP)",
+      "synonyms": [
+        "texturized vegetable protein (tvp)"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171059,
+      "dataType": "Foundation",
+      "canonicalName": "Soy Curls, Dehydrated",
+      "synonyms": [
+        "soy curls, dehydrated"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171060,
+      "dataType": "Foundation",
+      "canonicalName": "Roasted Soybeans (Soynuts)",
+      "synonyms": [
+        "roasted soybeans (soynuts)"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171061,
+      "dataType": "Foundation",
+      "canonicalName": "Green Peas, Boiled",
+      "synonyms": [
+        "green peas, boiled"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171062,
+      "dataType": "Foundation",
+      "canonicalName": "Split Green Peas, Boiled",
+      "synonyms": [
+        "split green peas, boiled"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171063,
+      "dataType": "Foundation",
+      "canonicalName": "Roasted Chickpeas",
+      "synonyms": [
+        "roasted chickpeas"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171064,
+      "dataType": "Foundation",
+      "canonicalName": "Miso Paste",
+      "synonyms": [
+        "miso paste"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171065,
+      "dataType": "Foundation",
+      "canonicalName": "Natto",
+      "synonyms": [
+        "natto"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171066,
+      "dataType": "Foundation",
+      "canonicalName": "Lupini Beans, Boiled",
+      "synonyms": [
+        "lupini beans, boiled"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171067,
+      "dataType": "Foundation",
+      "canonicalName": "Sprouted Lentils, Raw",
+      "synonyms": [
+        "sprouted lentils, raw"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171068,
+      "dataType": "Foundation",
+      "canonicalName": "Sprouted Tofu",
+      "synonyms": [
+        "sprouted tofu"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171069,
+      "dataType": "Foundation",
+      "canonicalName": "Hemp Hearts",
+      "synonyms": [
+        "hemp hearts"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171070,
+      "dataType": "Foundation",
+      "canonicalName": "Pumpkin Seed Protein Powder",
+      "synonyms": [
+        "pumpkin seed protein powder"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171071,
+      "dataType": "Foundation",
+      "canonicalName": "Sunflower Seed Butter",
+      "synonyms": [
+        "sunflower seed butter"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171072,
+      "dataType": "Foundation",
+      "canonicalName": "Sacha Inchi Seed Powder",
+      "synonyms": [
+        "sacha inchi seed powder"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171073,
+      "dataType": "Foundation",
+      "canonicalName": "Black Bean Patty, Cooked",
+      "synonyms": [
+        "black bean patty, cooked"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171074,
+      "dataType": "Foundation",
+      "canonicalName": "Lentil Patty, Cooked",
+      "synonyms": [
+        "lentil patty, cooked"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171075,
+      "dataType": "Foundation",
+      "canonicalName": "Falafel Patty, Baked",
+      "synonyms": [
+        "falafel patty, baked"
+      ],
+      "categoryId": "PROTEIN_PLANT",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171076,
+      "dataType": "Foundation",
+      "canonicalName": "Brown Rice, Long Grain, Cooked",
+      "synonyms": [
+        "brown rice, long grain, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171077,
+      "dataType": "Foundation",
+      "canonicalName": "White Basmati Rice, Cooked",
+      "synonyms": [
+        "white basmati rice, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171078,
+      "dataType": "Foundation",
+      "canonicalName": "White Jasmine Rice, Cooked",
+      "synonyms": [
+        "white jasmine rice, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171079,
+      "dataType": "Foundation",
+      "canonicalName": "Wild Rice, Cooked",
+      "synonyms": [
+        "wild rice, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171080,
+      "dataType": "Foundation",
+      "canonicalName": "Rolled Oats, Dry",
+      "synonyms": [
+        "rolled oats, dry"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171081,
+      "dataType": "Foundation",
+      "canonicalName": "Steel Cut Oats, Cooked",
+      "synonyms": [
+        "steel cut oats, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171082,
+      "dataType": "Foundation",
+      "canonicalName": "Quinoa, Cooked",
+      "synonyms": [
+        "quinoa, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171083,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Wheat Bread",
+      "synonyms": [
+        "whole wheat bread"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171084,
+      "dataType": "Foundation",
+      "canonicalName": "Sourdough Bread",
+      "synonyms": [
+        "sourdough bread"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171085,
+      "dataType": "Foundation",
+      "canonicalName": "Rye Bread",
+      "synonyms": [
+        "rye bread"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171086,
+      "dataType": "Foundation",
+      "canonicalName": "Sweet Potato, Baked",
+      "synonyms": [
+        "sweet potato, baked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171087,
+      "dataType": "Foundation",
+      "canonicalName": "Russet Potato, Baked with Skin",
+      "synonyms": [
+        "russet potato, baked with skin"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171088,
+      "dataType": "Foundation",
+      "canonicalName": "Red Potato, Boiled",
+      "synonyms": [
+        "red potato, boiled"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171089,
+      "dataType": "Foundation",
+      "canonicalName": "Yukon Gold Potato, Boiled",
+      "synonyms": [
+        "yukon gold potato, boiled"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171090,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Wheat Pasta, Cooked",
+      "synonyms": [
+        "whole wheat pasta, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171091,
+      "dataType": "Foundation",
+      "canonicalName": "Semolina Pasta, Cooked",
+      "synonyms": [
+        "semolina pasta, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171092,
+      "dataType": "Foundation",
+      "canonicalName": "Pearl Barley, Cooked",
+      "synonyms": [
+        "pearl barley, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171093,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Grain Sorghum, Cooked",
+      "synonyms": [
+        "whole grain sorghum, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171094,
+      "dataType": "Foundation",
+      "canonicalName": "Buckwheat Groats, Cooked",
+      "synonyms": [
+        "buckwheat groats, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171095,
+      "dataType": "Foundation",
+      "canonicalName": "Millet, Cooked",
+      "synonyms": [
+        "millet, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171096,
+      "dataType": "Foundation",
+      "canonicalName": "Farro, Cooked",
+      "synonyms": [
+        "farro, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171097,
+      "dataType": "Foundation",
+      "canonicalName": "Bulgur, Cooked",
+      "synonyms": [
+        "bulgur, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171098,
+      "dataType": "Foundation",
+      "canonicalName": "Couscous, Cooked",
+      "synonyms": [
+        "couscous, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171099,
+      "dataType": "Foundation",
+      "canonicalName": "Cornmeal / Polenta, Cooked",
+      "synonyms": [
+        "cornmeal / polenta, cooked"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171100,
+      "dataType": "Foundation",
+      "canonicalName": "Corn Tortilla",
+      "synonyms": [
+        "corn tortilla"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171101,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Wheat Tortilla",
+      "synonyms": [
+        "whole wheat tortilla"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171102,
+      "dataType": "Foundation",
+      "canonicalName": "English Muffin, Whole Wheat",
+      "synonyms": [
+        "english muffin, whole wheat"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171103,
+      "dataType": "Foundation",
+      "canonicalName": "Plain Bagel",
+      "synonyms": [
+        "plain bagel"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171104,
+      "dataType": "Foundation",
+      "canonicalName": "Popcorn, Air-Popped",
+      "synonyms": [
+        "popcorn, air-popped"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171105,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Wheat Pita Bread",
+      "synonyms": [
+        "whole wheat pita bread"
+      ],
+      "categoryId": "GRAIN_STARCH",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "WHEAT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171106,
+      "dataType": "Foundation",
+      "canonicalName": "Broccoli, Raw",
+      "synonyms": [
+        "broccoli, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171107,
+      "dataType": "Foundation",
+      "canonicalName": "Broccoli, Steamed",
+      "synonyms": [
+        "broccoli, steamed"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171108,
+      "dataType": "Foundation",
+      "canonicalName": "Spinach, Raw",
+      "synonyms": [
+        "spinach, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171109,
+      "dataType": "Foundation",
+      "canonicalName": "Spinach, Boiled",
+      "synonyms": [
+        "spinach, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171110,
+      "dataType": "Foundation",
+      "canonicalName": "Kale, Raw",
+      "synonyms": [
+        "kale, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171111,
+      "dataType": "Foundation",
+      "canonicalName": "Kale, Cooked",
+      "synonyms": [
+        "kale, cooked"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171112,
+      "dataType": "Foundation",
+      "canonicalName": "Baby Carrots, Raw",
+      "synonyms": [
+        "baby carrots, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171113,
+      "dataType": "Foundation",
+      "canonicalName": "Carrots, Boiled",
+      "synonyms": [
+        "carrots, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171114,
+      "dataType": "Foundation",
+      "canonicalName": "Red Bell Pepper, Raw",
+      "synonyms": [
+        "red bell pepper, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171115,
+      "dataType": "Foundation",
+      "canonicalName": "Green Bell Pepper, Raw",
+      "synonyms": [
+        "green bell pepper, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171116,
+      "dataType": "Foundation",
+      "canonicalName": "Yellow Bell Pepper, Raw",
+      "synonyms": [
+        "yellow bell pepper, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171117,
+      "dataType": "Foundation",
+      "canonicalName": "Asparagus, Boiled",
+      "synonyms": [
+        "asparagus, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171118,
+      "dataType": "Foundation",
+      "canonicalName": "Green Beans, Boiled",
+      "synonyms": [
+        "green beans, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171119,
+      "dataType": "Foundation",
+      "canonicalName": "Cauliflower, Raw",
+      "synonyms": [
+        "cauliflower, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171120,
+      "dataType": "Foundation",
+      "canonicalName": "Cauliflower, Steamed",
+      "synonyms": [
+        "cauliflower, steamed"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171121,
+      "dataType": "Foundation",
+      "canonicalName": "Zucchini, Raw with Skin",
+      "synonyms": [
+        "zucchini, raw with skin"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171122,
+      "dataType": "Foundation",
+      "canonicalName": "Zucchini, Boiled",
+      "synonyms": [
+        "zucchini, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171123,
+      "dataType": "Foundation",
+      "canonicalName": "Yellow Summer Squash, Boiled",
+      "synonyms": [
+        "yellow summer squash, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171124,
+      "dataType": "Foundation",
+      "canonicalName": "Red Ripe Tomatoes, Raw",
+      "synonyms": [
+        "red ripe tomatoes, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171125,
+      "dataType": "Foundation",
+      "canonicalName": "Cherry Tomatoes, Raw",
+      "synonyms": [
+        "cherry tomatoes, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171126,
+      "dataType": "Foundation",
+      "canonicalName": "Cucumber with Peel, Raw",
+      "synonyms": [
+        "cucumber with peel, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171127,
+      "dataType": "Foundation",
+      "canonicalName": "Celery, Raw",
+      "synonyms": [
+        "celery, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171128,
+      "dataType": "Foundation",
+      "canonicalName": "Red Cabbage, Raw",
+      "synonyms": [
+        "red cabbage, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171129,
+      "dataType": "Foundation",
+      "canonicalName": "Green Cabbage, Cooked",
+      "synonyms": [
+        "green cabbage, cooked"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171130,
+      "dataType": "Foundation",
+      "canonicalName": "Brussels Sprouts, Roasted",
+      "synonyms": [
+        "brussels sprouts, roasted"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171131,
+      "dataType": "Foundation",
+      "canonicalName": "White Button Mushrooms, Raw",
+      "synonyms": [
+        "white button mushrooms, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171132,
+      "dataType": "Foundation",
+      "canonicalName": "White Button Mushrooms, Cooked",
+      "synonyms": [
+        "white button mushrooms, cooked"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171133,
+      "dataType": "Foundation",
+      "canonicalName": "Portobello Mushrooms, Grilled",
+      "synonyms": [
+        "portobello mushrooms, grilled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171134,
+      "dataType": "Foundation",
+      "canonicalName": "Shiitake Mushrooms, Cooked",
+      "synonyms": [
+        "shiitake mushrooms, cooked"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171135,
+      "dataType": "Foundation",
+      "canonicalName": "Yellow Onion, Raw",
+      "synonyms": [
+        "yellow onion, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171136,
+      "dataType": "Foundation",
+      "canonicalName": "Yellow Onion, Sautéed",
+      "synonyms": [
+        "yellow onion, sautéed"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171137,
+      "dataType": "Foundation",
+      "canonicalName": "Red Onion, Raw",
+      "synonyms": [
+        "red onion, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171138,
+      "dataType": "Foundation",
+      "canonicalName": "Garlic, Raw",
+      "synonyms": [
+        "garlic, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171139,
+      "dataType": "Foundation",
+      "canonicalName": "Romaine Lettuce, Raw",
+      "synonyms": [
+        "romaine lettuce, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171140,
+      "dataType": "Foundation",
+      "canonicalName": "Iceberg Lettuce, Raw",
+      "synonyms": [
+        "iceberg lettuce, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171141,
+      "dataType": "Foundation",
+      "canonicalName": "Arugula, Raw",
+      "synonyms": [
+        "arugula, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171142,
+      "dataType": "Foundation",
+      "canonicalName": "Swiss Chard, Boiled",
+      "synonyms": [
+        "swiss chard, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171143,
+      "dataType": "Foundation",
+      "canonicalName": "Collard Greens, Boiled",
+      "synonyms": [
+        "collard greens, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171144,
+      "dataType": "Foundation",
+      "canonicalName": "Beets, Boiled",
+      "synonyms": [
+        "beets, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171145,
+      "dataType": "Foundation",
+      "canonicalName": "Radishes, Raw",
+      "synonyms": [
+        "radishes, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171146,
+      "dataType": "Foundation",
+      "canonicalName": "Eggplant, Cooked",
+      "synonyms": [
+        "eggplant, cooked"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171147,
+      "dataType": "Foundation",
+      "canonicalName": "Okra, Boiled",
+      "synonyms": [
+        "okra, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171148,
+      "dataType": "Foundation",
+      "canonicalName": "Artichoke Hearts, Boiled",
+      "synonyms": [
+        "artichoke hearts, boiled"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171149,
+      "dataType": "Foundation",
+      "canonicalName": "Bok Choy, Cooked",
+      "synonyms": [
+        "bok choy, cooked"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171150,
+      "dataType": "Foundation",
+      "canonicalName": "Snap Peas, Raw",
+      "synonyms": [
+        "snap peas, raw"
+      ],
+      "categoryId": "VEGETABLE",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171151,
+      "dataType": "Foundation",
+      "canonicalName": "Gala Apple with Skin, Raw",
+      "synonyms": [
+        "gala apple with skin, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171152,
+      "dataType": "Foundation",
+      "canonicalName": "Granny Smith Apple with Skin, Raw",
+      "synonyms": [
+        "granny smith apple with skin, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171153,
+      "dataType": "Foundation",
+      "canonicalName": "Banana, Raw",
+      "synonyms": [
+        "banana, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171154,
+      "dataType": "Foundation",
+      "canonicalName": "Blueberries, Raw",
+      "synonyms": [
+        "blueberries, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171155,
+      "dataType": "Foundation",
+      "canonicalName": "Strawberries, Raw",
+      "synonyms": [
+        "strawberries, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171156,
+      "dataType": "Foundation",
+      "canonicalName": "Raspberries, Raw",
+      "synonyms": [
+        "raspberries, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171157,
+      "dataType": "Foundation",
+      "canonicalName": "Blackberries, Raw",
+      "synonyms": [
+        "blackberries, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171158,
+      "dataType": "Foundation",
+      "canonicalName": "Navel Orange, Raw",
+      "synonyms": [
+        "navel orange, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171159,
+      "dataType": "Foundation",
+      "canonicalName": "Pink Grapefruit, Raw",
+      "synonyms": [
+        "pink grapefruit, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171160,
+      "dataType": "Foundation",
+      "canonicalName": "Hass Avocado, Raw",
+      "synonyms": [
+        "hass avocado, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171161,
+      "dataType": "Foundation",
+      "canonicalName": "Red Seedless Grapes, Raw",
+      "synonyms": [
+        "red seedless grapes, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171162,
+      "dataType": "Foundation",
+      "canonicalName": "Watermelon, Raw",
+      "synonyms": [
+        "watermelon, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171163,
+      "dataType": "Foundation",
+      "canonicalName": "Yellow Peach, Raw",
+      "synonyms": [
+        "yellow peach, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171164,
+      "dataType": "Foundation",
+      "canonicalName": "Nectarine, Raw",
+      "synonyms": [
+        "nectarine, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171165,
+      "dataType": "Foundation",
+      "canonicalName": "Sweet Cherries, Raw",
+      "synonyms": [
+        "sweet cherries, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171166,
+      "dataType": "Foundation",
+      "canonicalName": "Bartlett Pear with Skin, Raw",
+      "synonyms": [
+        "bartlett pear with skin, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171167,
+      "dataType": "Foundation",
+      "canonicalName": "Plum, Raw",
+      "synonyms": [
+        "plum, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171168,
+      "dataType": "Foundation",
+      "canonicalName": "Pineapple, Raw",
+      "synonyms": [
+        "pineapple, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171169,
+      "dataType": "Foundation",
+      "canonicalName": "Mango, Raw",
+      "synonyms": [
+        "mango, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171170,
+      "dataType": "Foundation",
+      "canonicalName": "Cantaloupe Melon, Raw",
+      "synonyms": [
+        "cantaloupe melon, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171171,
+      "dataType": "Foundation",
+      "canonicalName": "Honeydew Melon, Raw",
+      "synonyms": [
+        "honeydew melon, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171172,
+      "dataType": "Foundation",
+      "canonicalName": "Kiwi Fruit, Raw",
+      "synonyms": [
+        "kiwi fruit, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171173,
+      "dataType": "Foundation",
+      "canonicalName": "Papaya, Raw",
+      "synonyms": [
+        "papaya, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171174,
+      "dataType": "Foundation",
+      "canonicalName": "Pomegranate Arils, Raw",
+      "synonyms": [
+        "pomegranate arils, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171175,
+      "dataType": "Foundation",
+      "canonicalName": "Fresh Figs, Raw",
+      "synonyms": [
+        "fresh figs, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171176,
+      "dataType": "Foundation",
+      "canonicalName": "Guava, Raw",
+      "synonyms": [
+        "guava, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171177,
+      "dataType": "Foundation",
+      "canonicalName": "Apricot, Raw",
+      "synonyms": [
+        "apricot, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171178,
+      "dataType": "Foundation",
+      "canonicalName": "Cranberries, Raw",
+      "synonyms": [
+        "cranberries, raw"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171179,
+      "dataType": "Foundation",
+      "canonicalName": "Deglet Noor Dates",
+      "synonyms": [
+        "deglet noor dates"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171180,
+      "dataType": "Foundation",
+      "canonicalName": "Seedless Raisins",
+      "synonyms": [
+        "seedless raisins"
+      ],
+      "categoryId": "FRUIT",
+      "foodState": "RAW",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171181,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Milk 3.25%",
+      "synonyms": [
+        "whole milk 3.25%"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171182,
+      "dataType": "Foundation",
+      "canonicalName": "Reduced Fat Milk 2%",
+      "synonyms": [
+        "reduced fat milk 2%"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171183,
+      "dataType": "Foundation",
+      "canonicalName": "Lowfat Milk 1%",
+      "synonyms": [
+        "lowfat milk 1%"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171184,
+      "dataType": "Foundation",
+      "canonicalName": "Nonfat Skim Milk",
+      "synonyms": [
+        "nonfat skim milk"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171185,
+      "dataType": "Foundation",
+      "canonicalName": "Plain Greek Yogurt, Nonfat",
+      "synonyms": [
+        "plain greek yogurt, nonfat"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171186,
+      "dataType": "Foundation",
+      "canonicalName": "Plain Greek Yogurt, Whole Milk",
+      "synonyms": [
+        "plain greek yogurt, whole milk"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171187,
+      "dataType": "Foundation",
+      "canonicalName": "Lowfat Cottage Cheese 2%",
+      "synonyms": [
+        "lowfat cottage cheese 2%"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171188,
+      "dataType": "Foundation",
+      "canonicalName": "Nonfat Cottage Cheese",
+      "synonyms": [
+        "nonfat cottage cheese"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171189,
+      "dataType": "Foundation",
+      "canonicalName": "Cheddar Cheese",
+      "synonyms": [
+        "cheddar cheese"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171190,
+      "dataType": "Foundation",
+      "canonicalName": "Part-Skim Mozzarella Cheese",
+      "synonyms": [
+        "part-skim mozzarella cheese"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171191,
+      "dataType": "Foundation",
+      "canonicalName": "Parmesan Cheese, Grated",
+      "synonyms": [
+        "parmesan cheese, grated"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171192,
+      "dataType": "Foundation",
+      "canonicalName": "Swiss Cheese",
+      "synonyms": [
+        "swiss cheese"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171193,
+      "dataType": "Foundation",
+      "canonicalName": "Feta Cheese",
+      "synonyms": [
+        "feta cheese"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171194,
+      "dataType": "Foundation",
+      "canonicalName": "Ricotta Cheese, Part-Skim",
+      "synonyms": [
+        "ricotta cheese, part-skim"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171195,
+      "dataType": "Foundation",
+      "canonicalName": "Goat Cheese, Soft",
+      "synonyms": [
+        "goat cheese, soft"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171196,
+      "dataType": "Foundation",
+      "canonicalName": "Plain Kefir, Lowfat",
+      "synonyms": [
+        "plain kefir, lowfat"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171197,
+      "dataType": "Foundation",
+      "canonicalName": "Soy Milk, Unsweetened",
+      "synonyms": [
+        "soy milk, unsweetened"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171198,
+      "dataType": "Foundation",
+      "canonicalName": "Almond Milk, Unsweetened",
+      "synonyms": [
+        "almond milk, unsweetened"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171199,
+      "dataType": "Foundation",
+      "canonicalName": "Oat Milk, Unsweetened",
+      "synonyms": [
+        "oat milk, unsweetened"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171200,
+      "dataType": "Foundation",
+      "canonicalName": "Coconut Milk Beverage, Unsweetened",
+      "synonyms": [
+        "coconut milk beverage, unsweetened"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171201,
+      "dataType": "Foundation",
+      "canonicalName": "Soy Yogurt, Plain",
+      "synonyms": [
+        "soy yogurt, plain"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171202,
+      "dataType": "Foundation",
+      "canonicalName": "Almond Yogurt, Plain",
+      "synonyms": [
+        "almond yogurt, plain"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171203,
+      "dataType": "Foundation",
+      "canonicalName": "Provolone Cheese",
+      "synonyms": [
+        "provolone cheese"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171204,
+      "dataType": "Foundation",
+      "canonicalName": "Cream Cheese, Regular",
+      "synonyms": [
+        "cream cheese, regular"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171205,
+      "dataType": "Foundation",
+      "canonicalName": "Buttermilk, Lowfat 1%",
+      "synonyms": [
+        "buttermilk, lowfat 1%"
+      ],
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "foodState": "PREPARED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171206,
+      "dataType": "Foundation",
+      "canonicalName": "Extra Virgin Olive Oil",
+      "synonyms": [
+        "extra virgin olive oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171207,
+      "dataType": "Foundation",
+      "canonicalName": "Canola Oil",
+      "synonyms": [
+        "canola oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171208,
+      "dataType": "Foundation",
+      "canonicalName": "Virgin Coconut Oil",
+      "synonyms": [
+        "virgin coconut oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171209,
+      "dataType": "Foundation",
+      "canonicalName": "Unsalted Butter",
+      "synonyms": [
+        "unsalted butter"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171210,
+      "dataType": "Foundation",
+      "canonicalName": "Salted Butter",
+      "synonyms": [
+        "salted butter"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171211,
+      "dataType": "Foundation",
+      "canonicalName": "Ghee Clarified Butter",
+      "synonyms": [
+        "ghee clarified butter"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "MILK"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171212,
+      "dataType": "Foundation",
+      "canonicalName": "Avocado Oil",
+      "synonyms": [
+        "avocado oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171213,
+      "dataType": "Foundation",
+      "canonicalName": "Flaxseed Oil",
+      "synonyms": [
+        "flaxseed oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171214,
+      "dataType": "Foundation",
+      "canonicalName": "Toasted Sesame Oil",
+      "synonyms": [
+        "toasted sesame oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SESAME"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171215,
+      "dataType": "Foundation",
+      "canonicalName": "Walnut Oil",
+      "synonyms": [
+        "walnut oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171216,
+      "dataType": "Foundation",
+      "canonicalName": "Peanut Oil",
+      "synonyms": [
+        "peanut oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "PEANUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171217,
+      "dataType": "Foundation",
+      "canonicalName": "Sunflower Oil",
+      "synonyms": [
+        "sunflower oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171218,
+      "dataType": "Foundation",
+      "canonicalName": "Safflower Oil",
+      "synonyms": [
+        "safflower oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171219,
+      "dataType": "Foundation",
+      "canonicalName": "Corn Oil",
+      "synonyms": [
+        "corn oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171220,
+      "dataType": "Foundation",
+      "canonicalName": "Soybean Oil",
+      "synonyms": [
+        "soybean oil"
+      ],
+      "categoryId": "FAT_AND_OIL",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SOYBEAN"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171221,
+      "dataType": "Foundation",
+      "canonicalName": "Black Beans, Boiled",
+      "synonyms": [
+        "black beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171222,
+      "dataType": "Foundation",
+      "canonicalName": "Red Kidney Beans, Boiled",
+      "synonyms": [
+        "red kidney beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171223,
+      "dataType": "Foundation",
+      "canonicalName": "Pinto Beans, Boiled",
+      "synonyms": [
+        "pinto beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171224,
+      "dataType": "Foundation",
+      "canonicalName": "Chickpeas, Boiled",
+      "synonyms": [
+        "chickpeas, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171225,
+      "dataType": "Foundation",
+      "canonicalName": "Brown Lentils, Boiled",
+      "synonyms": [
+        "brown lentils, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171226,
+      "dataType": "Foundation",
+      "canonicalName": "Green Lentils, Boiled",
+      "synonyms": [
+        "green lentils, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171227,
+      "dataType": "Foundation",
+      "canonicalName": "Red Lentils, Boiled",
+      "synonyms": [
+        "red lentils, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171228,
+      "dataType": "Foundation",
+      "canonicalName": "Black-Eyed Peas, Boiled",
+      "synonyms": [
+        "black-eyed peas, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171229,
+      "dataType": "Foundation",
+      "canonicalName": "Navy Beans, Boiled",
+      "synonyms": [
+        "navy beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171230,
+      "dataType": "Foundation",
+      "canonicalName": "Great Northern Beans, Boiled",
+      "synonyms": [
+        "great northern beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171231,
+      "dataType": "Foundation",
+      "canonicalName": "Cannellini White Beans, Boiled",
+      "synonyms": [
+        "cannellini white beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171232,
+      "dataType": "Foundation",
+      "canonicalName": "Lima Beans, Boiled",
+      "synonyms": [
+        "lima beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171233,
+      "dataType": "Foundation",
+      "canonicalName": "Split Yellow Peas, Boiled",
+      "synonyms": [
+        "split yellow peas, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171234,
+      "dataType": "Foundation",
+      "canonicalName": "Mung Beans, Boiled",
+      "synonyms": [
+        "mung beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171235,
+      "dataType": "Foundation",
+      "canonicalName": "Fava Broad Beans, Boiled",
+      "synonyms": [
+        "fava broad beans, boiled"
+      ],
+      "categoryId": "LEGUME",
+      "foodState": "COOKED",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171236,
+      "dataType": "Foundation",
+      "canonicalName": "Raw Almonds",
+      "synonyms": [
+        "raw almonds"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171237,
+      "dataType": "Foundation",
+      "canonicalName": "Dry Roasted Almonds",
+      "synonyms": [
+        "dry roasted almonds"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171238,
+      "dataType": "Foundation",
+      "canonicalName": "English Walnuts, Halves",
+      "synonyms": [
+        "english walnuts, halves"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171239,
+      "dataType": "Foundation",
+      "canonicalName": "Raw Cashews",
+      "synonyms": [
+        "raw cashews"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171240,
+      "dataType": "Foundation",
+      "canonicalName": "Dry Roasted Cashews",
+      "synonyms": [
+        "dry roasted cashews"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171241,
+      "dataType": "Foundation",
+      "canonicalName": "Pecans, Halves",
+      "synonyms": [
+        "pecans, halves"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171242,
+      "dataType": "Foundation",
+      "canonicalName": "Pistachio Nuts, Dry Roasted",
+      "synonyms": [
+        "pistachio nuts, dry roasted"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "TREE_NUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171243,
+      "dataType": "Foundation",
+      "canonicalName": "Chia Seeds, Dried",
+      "synonyms": [
+        "chia seeds, dried"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171244,
+      "dataType": "Foundation",
+      "canonicalName": "Ground Flaxseed Meal",
+      "synonyms": [
+        "ground flaxseed meal"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171245,
+      "dataType": "Foundation",
+      "canonicalName": "Whole Flaxseed",
+      "synonyms": [
+        "whole flaxseed"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171246,
+      "dataType": "Foundation",
+      "canonicalName": "Sunflower Seed Kernels, Roasted",
+      "synonyms": [
+        "sunflower seed kernels, roasted"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171247,
+      "dataType": "Foundation",
+      "canonicalName": "Pumpkin Seed Pepitas, Raw",
+      "synonyms": [
+        "pumpkin seed pepitas, raw"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171248,
+      "dataType": "Foundation",
+      "canonicalName": "Creamy Peanut Butter, Natural",
+      "synonyms": [
+        "creamy peanut butter, natural"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "PEANUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171249,
+      "dataType": "Foundation",
+      "canonicalName": "Crunchy Peanut Butter, Natural",
+      "synonyms": [
+        "crunchy peanut butter, natural"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "PEANUT"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171250,
+      "dataType": "Foundation",
+      "canonicalName": "Sesame Seeds, Whole Raw",
+      "synonyms": [
+        "sesame seeds, whole raw"
+      ],
+      "categoryId": "NUT_AND_SEED",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [
+        "SESAME"
+      ],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171251,
+      "dataType": "Foundation",
+      "canonicalName": "Black Pepper, Ground",
+      "synonyms": [
+        "black pepper, ground"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171252,
+      "dataType": "Foundation",
+      "canonicalName": "Cinnamon, Ground",
+      "synonyms": [
+        "cinnamon, ground"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171253,
+      "dataType": "Foundation",
+      "canonicalName": "Garlic Powder",
+      "synonyms": [
+        "garlic powder"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171254,
+      "dataType": "Foundation",
+      "canonicalName": "Onion Powder",
+      "synonyms": [
+        "onion powder"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171255,
+      "dataType": "Foundation",
+      "canonicalName": "Paprika, Ground",
+      "synonyms": [
+        "paprika, ground"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171256,
+      "dataType": "Foundation",
+      "canonicalName": "Dried Oregano",
+      "synonyms": [
+        "dried oregano"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171257,
+      "dataType": "Foundation",
+      "canonicalName": "Dried Basil Leaves",
+      "synonyms": [
+        "dried basil leaves"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171258,
+      "dataType": "Foundation",
+      "canonicalName": "Turmeric, Ground",
+      "synonyms": [
+        "turmeric, ground"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171259,
+      "dataType": "Foundation",
+      "canonicalName": "Cumin Seed, Ground",
+      "synonyms": [
+        "cumin seed, ground"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    },
+    {
+      "fdcId": 171260,
+      "dataType": "Foundation",
+      "canonicalName": "Apple Cider Vinegar",
+      "synonyms": [
+        "apple cider vinegar"
+      ],
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "foodState": "NOT_APPLICABLE",
+      "singleIngredientWholeFood": true,
+      "patternTags": [
+        "OMNIVORE",
+        "LACTO_OVO_VEGETARIAN",
+        "VEGAN",
+        "PESCATARIAN"
+      ],
+      "ownAllergenCategories": [],
+      "reviewState": "PROPOSED",
+      "reviewerNote": null
+    }
+  ]
+}

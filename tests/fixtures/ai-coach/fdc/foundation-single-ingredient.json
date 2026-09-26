@@ -1,0 +1,83 @@
+{
+  "_attribution": "fdcId: 171688, retrievalDate: 2026-09-24, attribution: USDA FoodData Central CC0 Public Domain",
+  "fdcId": 171688,
+  "description": "Broccoli, raw",
+  "dataType": "Foundation",
+  "publicationDate": "10/28/2020",
+  "foodCategory": {
+    "description": "Vegetables and Vegetable Products"
+  },
+  "foodPortions": [
+    {
+      "gramWeight": 91,
+      "portionDescription": "1 cup chopped"
+    }
+  ],
+  "foodNutrients": [
+    {
+      "nutrient": {
+        "id": 1008,
+        "number": "1008",
+        "name": "Energy",
+        "unitName": "KCAL"
+      },
+      "amount": 34,
+      "foodNutrientDerivation": {
+        "code": "AS",
+        "description": "Calculated from value per 100 g dry matter using Atwater specific factor system"
+      }
+    },
+    {
+      "nutrient": {
+        "id": 1003,
+        "number": "1003",
+        "name": "Protein",
+        "unitName": "G"
+      },
+      "amount": 2.82,
+      "foodNutrientDerivation": {
+        "code": "A",
+        "description": "Analytical"
+      }
+    },
+    {
+      "nutrient": {
+        "id": 1004,
+        "number": "1004",
+        "name": "Total lipid (fat)",
+        "unitName": "G"
+      },
+      "amount": 0.37,
+      "foodNutrientDerivation": {
+        "code": "A",
+        "description": "Analytical"
+      }
+    },
+    {
+      "nutrient": {
+        "id": 1005,
+        "number": "1005",
+        "name": "Carbohydrate, by difference",
+        "unitName": "G"
+      },
+      "amount": 6.64,
+      "foodNutrientDerivation": {
+        "code": "NC",
+        "description": "Calculated"
+      }
+    },
+    {
+      "nutrient": {
+        "id": 1079,
+        "number": "1079",
+        "name": "Fiber, total dietary",
+        "unitName": "G"
+      },
+      "amount": 2.6,
+      "foodNutrientDerivation": {
+        "code": "A",
+        "description": "Analytical"
+      }
+    }
+  ]
+}

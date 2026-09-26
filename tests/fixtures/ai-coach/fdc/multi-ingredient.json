@@ -1,0 +1,64 @@
+{
+  "_attribution": "fdcId: 175000, retrievalDate: 2026-09-24, attribution: USDA FoodData Central CC0 Public Domain",
+  "fdcId": 175000,
+  "description": "Soup, vegetable broth with noodles, canned",
+  "dataType": "Foundation",
+  "publicationDate": "10/28/2020",
+  "foodCategory": {
+    "description": "Soups, Sauces, and Gravies"
+  },
+  "inputFoods": [
+    {
+      "foodDescription": "Vegetable broth",
+      "gramWeight": 150
+    },
+    {
+      "foodDescription": "Noodles",
+      "gramWeight": 50
+    }
+  ],
+  "foodPortions": [
+    {
+      "gramWeight": 240,
+      "portionDescription": "1 cup"
+    }
+  ],
+  "foodNutrients": [
+    {
+      "nutrient": {
+        "id": 1008,
+        "number": "1008",
+        "name": "Energy",
+        "unitName": "KCAL"
+      },
+      "amount": 45
+    },
+    {
+      "nutrient": {
+        "id": 1003,
+        "number": "1003",
+        "name": "Protein",
+        "unitName": "G"
+      },
+      "amount": 2.1
+    },
+    {
+      "nutrient": {
+        "id": 1004,
+        "number": "1004",
+        "name": "Total lipid (fat)",
+        "unitName": "G"
+      },
+      "amount": 1.2
+    },
+    {
+      "nutrient": {
+        "id": 1005,
+        "number": "1005",
+        "name": "Carbohydrate, by difference",
+        "unitName": "G"
+      },
+      "amount": 6.8
+    }
+  ]
+}

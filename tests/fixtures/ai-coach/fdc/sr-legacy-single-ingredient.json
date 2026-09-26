@@ -1,0 +1,42 @@
+{
+  "_attribution": "fdcId: 167746, retrievalDate: 2026-09-24, attribution: USDA FoodData Central CC0 Public Domain",
+  "fdcId": 167746,
+  "description": "Chicken, breast, meat only, cooked, roasted",
+  "dataType": "SR Legacy",
+  "publicationDate": "4/1/2019",
+  "foodCategory": {
+    "description": "Poultry Products"
+  },
+  "foodPortions": [
+    {
+      "gramWeight": 86,
+      "modifier": "1/2 breast"
+    }
+  ],
+  "foodNutrients": [
+    {
+      "nutrientNumber": "208",
+      "nutrientName": "Energy",
+      "unitName": "KCAL",
+      "value": 165
+    },
+    {
+      "nutrientNumber": "203",
+      "nutrientName": "Protein",
+      "unitName": "G",
+      "value": 31.02
+    },
+    {
+      "nutrientNumber": "204",
+      "nutrientName": "Total lipid (fat)",
+      "unitName": "G",
+      "value": 3.57
+    },
+    {
+      "nutrientNumber": "205",
+      "nutrientName": "Carbohydrate, by difference",
+      "unitName": "G",
+      "value": 0
+    }
+  ]
+}

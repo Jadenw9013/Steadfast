@@ -4,8 +4,13 @@ import type {
   ArtifactReference,
   SignedArtifactReviewMetadata,
 } from "../schema";
-import { draftUnsignedReviewMetadataSchema, policyBundleContentSchema } from "../schema";
+import {
+  draftUnsignedReviewMetadataSchema,
+  foodCatalogContentSchema,
+  policyBundleContentSchema,
+} from "../schema";
 import rawDraftBundle from "./policy-bundle-nutrition.draft-unsigned.v1.json";
+import rawDraftFoodCatalog from "./food-catalog-fdc.draft-unsigned.v1.json";
 
 export const draftPolicyBundleFileSchema = z
   .object({
@@ -50,4 +55,25 @@ export function draftPolicyBundleToArtifactDraftInput(
     reviewMetadata: signed,
     content: file.content,
   };
+}
+
+export const draftFoodCatalogFileSchema = z
+  .object({
+    fileSchemaVersion: z.literal(1),
+    reviewMetadata: draftUnsignedReviewMetadataSchema,
+    content: foodCatalogContentSchema,
+  })
+  .strict();
+
+export type DraftFoodCatalogFile = z.infer<typeof draftFoodCatalogFileSchema>;
+
+/**
+ * Loads and strictly parses the checked-in DRAFT_UNSIGNED food catalog file.
+ * Throws in production environments — draft artifacts must never be loaded in production.
+ */
+export function loadDraftUnsignedFoodCatalog(): DraftFoodCatalogFile {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Draft unsigned artifacts cannot be loaded in production environments.");
+  }
+  return draftFoodCatalogFileSchema.parse(rawDraftFoodCatalog);
 }

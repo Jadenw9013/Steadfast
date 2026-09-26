@@ -1,0 +1,156 @@
+{
+  "planVersion": 1,
+  "market": "US",
+  "categories": [
+    {
+      "categoryId": "PROTEIN_ANIMAL",
+      "targetCount": 45,
+      "searchTerms": [
+        "chicken breast",
+        "turkey breast",
+        "beef lean",
+        "salmon",
+        "tuna",
+        "eggs",
+        "pork tenderloin",
+        "cod",
+        "tilapia",
+        "shrimp"
+      ]
+    },
+    {
+      "categoryId": "PROTEIN_PLANT",
+      "targetCount": 30,
+      "searchTerms": [
+        "tofu",
+        "tempeh",
+        "edamame",
+        "seitan",
+        "soy protein",
+        "lentils",
+        "black beans",
+        "chickpeas",
+        "pea protein",
+        "spirulina"
+      ]
+    },
+    {
+      "categoryId": "GRAIN_STARCH",
+      "targetCount": 30,
+      "searchTerms": [
+        "brown rice",
+        "white rice",
+        "oats",
+        "quinoa",
+        "whole wheat bread",
+        "sweet potato",
+        "russet potato",
+        "pasta",
+        "barley",
+        "corn"
+      ]
+    },
+    {
+      "categoryId": "VEGETABLE",
+      "targetCount": 45,
+      "searchTerms": [
+        "broccoli",
+        "spinach",
+        "kale",
+        "carrots",
+        "bell pepper",
+        "asparagus",
+        "green beans",
+        "cauliflower",
+        "zucchini",
+        "tomatoes"
+      ]
+    },
+    {
+      "categoryId": "FRUIT",
+      "targetCount": 30,
+      "searchTerms": [
+        "apple",
+        "banana",
+        "blueberries",
+        "strawberries",
+        "orange",
+        "grapefruit",
+        "avocado",
+        "grapes",
+        "watermelon",
+        "peach"
+      ]
+    },
+    {
+      "categoryId": "DAIRY_AND_ALTERNATIVE",
+      "targetCount": 25,
+      "searchTerms": [
+        "milk whole",
+        "milk skim",
+        "greek yogurt",
+        "cottage cheese",
+        "cheddar cheese",
+        "soy milk",
+        "almond milk",
+        "oat milk",
+        "parmesan",
+        "mozzarella"
+      ]
+    },
+    {
+      "categoryId": "FAT_AND_OIL",
+      "targetCount": 15,
+      "searchTerms": [
+        "olive oil",
+        "canola oil",
+        "coconut oil",
+        "butter",
+        "avocado oil",
+        "ghee",
+        "flaxseed oil"
+      ]
+    },
+    {
+      "categoryId": "LEGUME",
+      "targetCount": 15,
+      "searchTerms": [
+        "black beans",
+        "kidney beans",
+        "pinto beans",
+        "chickpeas",
+        "lentils green",
+        "split peas",
+        "navy beans"
+      ]
+    },
+    {
+      "categoryId": "NUT_AND_SEED",
+      "targetCount": 15,
+      "searchTerms": [
+        "almonds",
+        "walnuts",
+        "cashews",
+        "chia seeds",
+        "flaxseed",
+        "sunflower seeds",
+        "pumpkin seeds",
+        "peanut butter"
+      ]
+    },
+    {
+      "categoryId": "CONDIMENT_AND_SEASONING",
+      "targetCount": 10,
+      "searchTerms": [
+        "black pepper",
+        "cinnamon",
+        "garlic powder",
+        "onion powder",
+        "mustard",
+        "vinegar cider",
+        "oregano",
+        "paprika"
+      ]
+    }
+  ]
+}

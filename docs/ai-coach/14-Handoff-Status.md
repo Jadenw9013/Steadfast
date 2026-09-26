@@ -523,6 +523,10 @@ lib/ai-coach/
   catalog/food-catalog.ts       A04  8-item SYNTHETIC food fixture (food-fixture-v2; 6 retained under LEGACY_FOOD_CATALOG/food-fixture-v1, T-2024 adds a shellfish-tagged item to v2 only)
   catalog/exercise-catalog.ts   A04  3-item SYNTHETIC exercise fixture
   catalog/loader.ts             A04  getFoodItem / getExerciseItem (id+version lookup, rejects unknown/stale)
+  catalog/fdc/allowlist-schema.ts T-2035 Allowlist and coverage plan schemas with unique ID and name validations
+  catalog/fdc/normalize.ts      T-2035 Pure normalization of USDA FoodData Central records without guessing or defaulting
+  catalog/fdc/allergen-rules.ts T-2035 Mechanical tri-state allergen rules (PRESENT, VERIFIED_ABSENT, UNKNOWN) across 9 frozen categories
+  catalog/fdc/mapping.ts        T-2035 Pure FDC record to SourcedFoodCatalogItem mapper, derivation/energy method tables, URL redaction
   policy/policy-version.ts      A04  checkPolicyVersionUsable (SYNTHETIC single active version + one revoked version)
   nutrition-totals.ts           A04  computeNutrientTotals / aggregateGramsByFood
   composition-feasibility.ts    A04  checkMealComposition — closed reason-code registry
@@ -702,7 +706,10 @@ substitutions, grocery aggregation (`aggregateGramsByFood` in
 `nutrition-totals.ts` already gives raw per-food gram totals — A07 turns
 that into practical purchasable quantities, which A04 explicitly left
 undone). Mode switch (macro ⇄ meals) must keep exactly one prescription
-active, never two.
+active, never two. T-2035 provides the offline USDA FoodData Central ingestion
+tool (`scripts/ai-coach-ingest-fdc.ts`), checked-in allowlist (`data/ai-coach/catalog/fdc-allowlist.v1.json`),
+and a `DRAFT_UNSIGNED` food catalog artifact (`lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json`)
+with mechanical tri-state allergen facts across the 9 frozen major categories.
 
 ### A08 — Minimal structured weekly observations and session logs
 
