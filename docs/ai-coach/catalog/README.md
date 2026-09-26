@@ -29,6 +29,7 @@ To satisfy G02 without asking a Registered Dietitian to author hundreds of food 
 |---|---|---|
 | Coverage plan | `data/ai-coach/catalog/fdc-coverage-plan.v1.json` | engineer-authored; category ids, per-category target counts and search terms |
 | Allowlist | `data/ai-coach/catalog/fdc-allowlist.v1.json` | **output of `--propose`** against the live API |
+| Source exclusions | `data/ai-coach/catalog/fdc-source-exclusions.v1.json` | **written by `--ingest`** when a record cannot be mapped. Machine-written only; see §2.1 |
 | Draft catalog artifact | `lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json` | **output of `--ingest`** against the live API |
 | Offline CLI | `scripts/ai-coach-ingest-fdc.ts` | yes. Never executes in CI or at runtime; requires an operator-supplied `FDC_API_KEY` |
 | Pure mapping modules | `lib/ai-coach/catalog/fdc/*.ts` | yes. No network, no fs, no `process.env` |
@@ -55,10 +56,62 @@ Then update `curationState` to `"REVIEWER_IN_PROGRESS"` while working and `"REVI
 > [!IMPORTANT]
 > **`reviewState` has exactly one writer: the RD, by hand, in review.** `STRUCK` means *the reviewer excluded
 > this food*. It is not a place to record that the pipeline could not process a record, and no agent, script or
-> engineer may set it — not to unblock a run, not to explain a failure. A record the tool cannot map is a tool
-> error: it is logged, it aborts the run (`--ingest` exits non-zero and writes nothing), and it is fixed in the
-> mapping code. Writing a tool failure into `STRUCK` gives the field two meanings with opposite owners and puts
-> a sentence the reviewer never wrote next to their name. It happened once, on 2026-09-26, and was reverted.
+> engineer may set it — not to unblock a run, not to explain a failure. Writing a tool failure into `STRUCK`
+> gives the field two meanings with opposite owners and puts a sentence the reviewer never wrote next to their
+> name. It happened once, on 2026-09-26, and was reverted. When the tool cannot map a record, it writes to its
+> own file instead — §2.1.
+
+---
+
+## 2.1 Source exclusions: the tool's channel, which is not the reviewer's
+
+`data/ai-coach/catalog/fdc-source-exclusions.v1.json` records the entries `--ingest` could not map.
+
+**It records a source limitation. It never records a review decision. The two must never be conflated.**
+An entry here is still `reviewState: "PROPOSED"`: the RD may still accept it or strike it, and a later run
+picks it up if the source improves. `STRUCK` remains the reviewer's word for "I excluded this food", and this
+file remains the tool's word for "the record does not carry what the catalog needs". They answer different
+questions and they have different authors.
+
+The file is machine-written and hand-written never. `writtenBy` is the literal `"INGESTION_TOOL"` and `notice`
+is a frozen string, so a file claiming any other author does not parse. Every `reason` is the mapper's own
+message, verbatim — nobody paraphrases what the source did or did not supply, because that paraphrase is what
+went wrong: 48 reviewer notes said "the USDA source record does not carry the macronutrients this catalog
+requires" about records that carried all of them.
+
+Each entry holds the `fdcId`, the allowlist entry's `canonicalName`, the verbatim `reason`, the mapper's
+`errorCodes` and the `runDate`. Entries are sorted by `fdcId`, so a run that changes nothing produces no diff.
+The file is checked in so the RD can read what the tool dropped and why without running anything.
+
+**How a run behaves.** `--ingest` is a two-pass operation the first time an entry fails:
+
+1. Every unmappable entry is logged, the complete exclusion set is written to the file, and the run **exits
+   non-zero having written no catalog** — exactly as it did before this file existed.
+2. Re-running with the file present skips those `fdcId`s, says how many were skipped and from which file, and
+   writes the catalog.
+
+```bash
+FDC_API_KEY=... pnpm ai-coach:fdc:ingest -- \
+  --allowlist data/ai-coach/catalog/fdc-allowlist.v1.json \
+  --out lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json \
+  [--source-exclusions data/ai-coach/catalog/fdc-source-exclusions.v1.json]
+```
+
+It is fail-closed in both directions:
+
+- An unmappable entry that is **not** in the file still aborts the run. Nothing is skipped silently.
+- An entry that **is** in the file but now maps successfully **also** aborts the run. The file's claim is that
+  the source cannot supply the macros; if it can, the claim is stale and a usable food would be dropped on it.
+  Remove the entry and re-run. Excluded entries are therefore still fetched and still mapped — that re-check is
+  the only way staleness can be noticed.
+- A fetch failure is **not** a source limitation. A 404 or a timeout says nothing about what the record
+  contains, so it is never written to this file; it aborts the run on its own.
+- An unreadable exclusions file aborts rather than being treated as "no exclusions".
+
+**When an entry lands here, the first question is whether the tool is wrong.** The 48 entries of 2026-09-26
+were a lookup that read FDC nutrient *ids* where the record carries nutrient *numbers*. Fix the mapper first;
+this file is for records that genuinely do not carry the data — oils with only a lipid profile, zero-moisture
+research samples, a spaghetti record with 19 nutrient rows and no macro among them.
 
 Re-run ingestion after review:
 
@@ -157,17 +210,26 @@ T-2002 allows a client to declare `category: "OTHER"` with free-text specificity
 
 ## 4. Nutrient derivation and energy
 
-- **Which nutrient numbers back a macro.** The accepted ids are exported from `lib/ai-coach/artifacts/schema.ts`
-  (`SOURCED_V2_ENERGY_NUTRIENT_IDS` and friends) and read by both the mapper and the SOURCED_V2 refinement, so
-  the two cannot drift. Energy: `1008`, `208`, `2048` ("Energy (Atwater Specific Factors)"), `2047` ("Energy
-  (Atwater General Factors)"), searched in that order so a record carrying several is resolved
-  deterministically; when the figure comes from `2048`/`2047` the id sets `energyFact.method`, so the artifact
-  records which value was used. Fat: `1004`, `204`, `1085` ("Total fat (NLEA)"). Modern Foundation records
-  report the Atwater and NLEA numbers instead of the legacy ones, and reading only the legacy ones made the
-  tool refuse 48 records that carry every macronutrient — plain chicken breast, Pacific cod, olive oil, bell
-  peppers, walnuts, peanut butter (review r2 MB-1). **Widening the lookup is not deriving a value:** a record
-  that reports no kcal under any accepted id, or no fat under any accepted id, is still refused, and the run
-  still aborts.
+- **Which nutrient numbers back a macro.** The accepted values are exported from
+  `lib/ai-coach/artifacts/schema.ts` (`SOURCED_V2_ENERGY_NUTRIENT_IDS` and friends) and read by both the mapper
+  and the SOURCED_V2 refinement, so the two cannot drift. Energy: `"208"`, `"958"` ("Energy (Atwater Specific
+  Factors)"), `"957"` ("Energy (Atwater General Factors)"), searched in that order so a record carrying several
+  resolves deterministically; when the figure comes from `"958"`/`"957"` it sets `energyFact.method`, so the
+  artifact records which value was used. Fat: `"204"`, `"298"` ("Total fat (NLEA)"). Modern Foundation records
+  report the Atwater and NLEA rows instead of the classic ones, and reading only the classic ones made the tool
+  refuse 48 records that carry every macronutrient — plain chicken breast, Pacific cod, olive oil, bell
+  peppers, walnuts, peanut butter (review r2 MB-1).
+- **These are FDC nutrient *numbers*, not nutrient *ids*, and the distinction has already cost one run.** A
+  nutrient row carries both: `nutrient.number` is the INFOODS tagname (`"208"`, `"958"`, `"298"`) and
+  `nutrient.id` is FDC's own key (`1008`, `2048`, `1085`). `normalizeFdcRecord` reads `number ?? id`, so a real
+  response yields the number. The first attempt at the widened lookup was written with ids, matched nothing,
+  and refused exactly the same 48 records with exactly the same message. It was invisible to the tests because
+  every synthetic Foundation fixture set `number` to the string of its own `id`. The fixtures now keep the two
+  apart as USDA does, and a unit test asserts that no fixture may set them equal and that no accepted value is
+  an id.
+- **Widening the lookup is not deriving a value:** a record that reports no kcal under any accepted number, or
+  no fat under any accepted number, is still refused and the run still aborts — see §2.1 for where that
+  refusal is recorded.
 - **Derivation.** Analytical means *measured*. FDC codes `AS` ("Atwater specific factors") and `AG` ("Atwater general factors") are **calculations** and map to `CALCULATED`; only genuinely analytical codes map to `ANALYTICAL`; an unmapped code maps to `UNKNOWN` with the raw code preserved in `derivationDetail`. The Atwater information lives in `energyFact.method`, which is its right home.
 - **Reported zero vs UNKNOWN.** An unreported nutrient is `{ value: null, status: "UNKNOWN" }`. Zero is written only when the record explicitly reports zero.
 - **Macro-energy discrepancy.** `macroEnergyDiscrepancyKcal = reported kcal - (4·protein + 4·carbohydrate + 9·fat)`, recorded as an observation. It is never used to correct a value and never compared to a threshold.

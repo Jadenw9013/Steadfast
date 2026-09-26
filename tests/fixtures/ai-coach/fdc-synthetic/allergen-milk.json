@@ -32,7 +32,7 @@
       "id": 20001008,
       "nutrient": {
         "id": 1008,
-        "number": "1008",
+        "number": "208",
         "name": "Energy",
         "rank": 300,
         "unitName": "KCAL"
@@ -54,7 +54,7 @@
       "id": 20001003,
       "nutrient": {
         "id": 1003,
-        "number": "1003",
+        "number": "203",
         "name": "Protein",
         "rank": 201,
         "unitName": "G"
@@ -76,7 +76,7 @@
       "id": 20001004,
       "nutrient": {
         "id": 1004,
-        "number": "1004",
+        "number": "204",
         "name": "Total lipid (fat)",
         "rank": 204,
         "unitName": "G"
@@ -98,7 +98,7 @@
       "id": 20001005,
       "nutrient": {
         "id": 1005,
-        "number": "1005",
+        "number": "205",
         "name": "Carbohydrate, by difference",
         "rank": 205,
         "unitName": "G"
@@ -120,7 +120,7 @@
       "id": 20001087,
       "nutrient": {
         "id": 1087,
-        "number": "1087",
+        "number": "301",
         "name": "Calcium, Ca",
         "rank": 300,
         "unitName": "MG"

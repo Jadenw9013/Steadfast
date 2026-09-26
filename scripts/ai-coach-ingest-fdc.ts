@@ -16,6 +16,15 @@ import {
   type SourcedFoodCatalogItem,
 } from "../lib/ai-coach/artifacts/schema";
 import { draftFoodCatalogFileSchema } from "../lib/ai-coach/artifacts/drafts/loader";
+import {
+  buildSourceExclusionsFile,
+  decideExclusionRun,
+  indexSourceExclusions,
+  sourceExclusionsFileSchema,
+  DEFAULT_SOURCE_EXCLUSIONS_PATH,
+  type EntryIngestOutcome,
+  type SourceExclusionsFile,
+} from "../lib/ai-coach/catalog/fdc/source-exclusions";
 
 const API_KEY = process.env.FDC_API_KEY;
 
@@ -108,7 +117,8 @@ async function main(): Promise<void> {
     safeLog(
       "Usage:\n" +
         "  ai-coach-ingest-fdc --plan <path> --out <path>\n" +
-        "  ai-coach-ingest-fdc --allowlist <path> --out <path> [--plan <path>] [--dry-run]\n"
+        "  ai-coach-ingest-fdc --allowlist <path> --out <path> [--plan <path>]\n" +
+        "                      [--source-exclusions <path>] [--dry-run]\n"
     );
     process.exit(2);
   }
@@ -129,6 +139,7 @@ async function main(): Promise<void> {
   const planPath = getArg("--plan");
   const allowlistPath = getArg("--allowlist");
   const outPath = getArg("--out");
+  const exclusionsPath = getArg("--source-exclusions") ?? DEFAULT_SOURCE_EXCLUSIONS_PATH;
   const dryRun = args.includes("--dry-run");
 
   if (!outPath || (!planPath && !allowlistPath)) {
@@ -282,7 +293,33 @@ async function main(): Promise<void> {
       process.exit(1);
     }
 
+    // The tool's own exclusion channel. Records a SOURCE LIMITATION, never a
+    // review decision: `reviewState` stays the reviewer's field and nothing
+    // here writes it. Parse failure aborts — an unreadable exclusions file must
+    // not silently become "no exclusions", which would refuse the whole run
+    // with no explanation.
+    let exclusionsFile: SourceExclusionsFile | null = null;
+    if (fs.existsSync(exclusionsPath)) {
+      try {
+        exclusionsFile = sourceExclusionsFileSchema.parse(
+          JSON.parse(fs.readFileSync(exclusionsPath, "utf8"))
+        );
+      } catch (err) {
+        safeError(
+          `Failed to parse source exclusions file ${exclusionsPath}: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
+        process.exit(1);
+      }
+      safeLog(
+        `Loaded ${exclusionsFile.exclusions.length} source exclusions from ${exclusionsPath}`
+      );
+    }
+    const excludedFdcIds = indexSourceExclusions(exclusionsFile);
+
     const retrievedAt = new Date().toISOString();
+    const outcomes: EntryIngestOutcome[] = [];
     const catalogItems: SourcedFoodCatalogItem[] = [];
     const proposalProvenance: Array<{
       parameterId: string;
@@ -294,7 +331,14 @@ async function main(): Promise<void> {
 
     let okCount = 0;
     let struckCount = 0;
-    let errorCount = 0;
+    /**
+     * Transport failures only. A 404 or a timeout is not a statement about what
+     * the source contains, so it never becomes a source exclusion; it aborts
+     * the run on its own.
+     */
+    let fetchErrorCount = 0;
+    /** Entries listed in the exclusions file the run could not re-check. */
+    let uncheckedExcludedCount = 0;
 
     for (const entry of allowlist.entries) {
       if (!isIngestableEntry(entry)) {
@@ -306,19 +350,30 @@ async function main(): Promise<void> {
       await sleep(250); // Rate limit: fixed 250ms delay
       const recordUrl = `https://api.nal.usda.gov/fdc/v1/food/${entry.fdcId}?api_key=${API_KEY}`;
 
+      const isExcluded = excludedFdcIds.has(entry.fdcId);
+
       let rawRecord: unknown;
       try {
         rawRecord = await fetchWithRetry(recordUrl);
       } catch (err) {
-        safeLog(
-          `${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> ERROR:${
-            err instanceof Error ? err.message : String(err)
-          }`
-        );
-        errorCount++;
+        const message = err instanceof Error ? err.message : String(err);
+        if (isExcluded) {
+          // Already excluded, so it cannot enter the catalog either way. Log
+          // that the staleness re-check did not happen rather than claim it did.
+          safeLog(
+            `${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> SKIPPED (source-excluded; not re-checked: ${message})`
+          );
+          uncheckedExcludedCount++;
+          continue;
+        }
+        safeLog(`${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> ERROR:${message}`);
+        fetchErrorCount++;
         continue;
       }
 
+      // An excluded entry is still fetched and still mapped. That is the only
+      // way to find out that the file's claim has gone stale, and a stale claim
+      // silently drops a food the source can now supply.
       const mapResult = mapFdcRecordToCatalogItem({
         entry,
         record: rawRecord,
@@ -328,8 +383,33 @@ async function main(): Promise<void> {
 
       if (!mapResult.ok) {
         const reasons = mapResult.errors.map((e) => e.message).join("; ");
-        safeLog(`${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> ERROR:${reasons}`);
-        errorCount++;
+        outcomes.push({
+          fdcId: entry.fdcId,
+          canonicalName: entry.canonicalName,
+          status: "UNMAPPABLE",
+          reason: reasons,
+          errorCodes: mapResult.errors.map((e) => e.code),
+        });
+        safeLog(
+          `${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> ${
+            isExcluded ? "SKIPPED (source-excluded)" : "UNMAPPABLE"
+          }:${reasons}`
+        );
+        continue;
+      }
+
+      outcomes.push({
+        fdcId: entry.fdcId,
+        canonicalName: entry.canonicalName,
+        status: "MAPPED",
+      });
+
+      if (isExcluded) {
+        // Do not add it to the catalog on this run: the decision below refuses
+        // the whole run so the operator can remove the stale entry deliberately.
+        safeLog(
+          `${entry.fdcId} ${entry.dataType} ${entry.canonicalName} -> STALE EXCLUSION (maps successfully)`
+        );
         continue;
       }
 
@@ -348,12 +428,76 @@ async function main(): Promise<void> {
       });
     }
 
+    const decision = decideExclusionRun({
+      outcomes,
+      existing: excludedFdcIds,
+      runDate: retrievedAt,
+    });
+    const unmappableCount = outcomes.filter((o) => o.status === "UNMAPPABLE").length;
+
     safeLog(
-      `Summary: Total ${allowlist.entries.length} | OK: ${okCount} | Struck: ${struckCount} | Errors: ${errorCount}`
+      `Summary: Total ${allowlist.entries.length} | OK: ${okCount} | Struck: ${struckCount} | ` +
+        `Unmappable: ${unmappableCount} | Fetch errors: ${fetchErrorCount}`
     );
 
-    if (errorCount > 0) {
+    // A transport failure is not a statement about the source, so it is never
+    // written to the exclusions file and it stops the run on its own.
+    if (fetchErrorCount > 0) {
+      safeError(
+        `${fetchErrorCount} record(s) could not be fetched. That is a transport failure, not a source ` +
+          `limitation, so nothing was written to ${exclusionsPath}. Re-run.`
+      );
       process.exit(1);
+    }
+
+    if (decision.kind === "STALE_EXCLUSIONS") {
+      safeError(
+        `${decision.staleFdcIds.length} entr(ies) in ${exclusionsPath} now map successfully, so that file ` +
+          `claims a source limitation that no longer holds and a usable food would be dropped. Remove ` +
+          `them and re-run:`
+      );
+      decision.staleFdcIds.forEach((fdcId, index) => {
+        safeError(`  ${fdcId} ${decision.staleNames[index]}`);
+      });
+      process.exit(1);
+    }
+
+    if (decision.kind === "WRITE_EXCLUSIONS") {
+      safeError(
+        `${decision.newlyExcluded.length} entr(ies) could not be mapped and are not recorded in ` +
+          `${exclusionsPath}:`
+      );
+      for (const exclusion of decision.newlyExcluded) {
+        safeError(`  ${exclusion.fdcId} ${exclusion.canonicalName}: ${exclusion.reason}`);
+      }
+
+      if (dryRun) {
+        safeLog(
+          `Dry run: would write ${decision.allExclusions.length} source exclusions to ${exclusionsPath}.`
+        );
+      } else {
+        const exclusionsOut = buildSourceExclusionsFile({
+          generatedAt: retrievedAt,
+          exclusions: decision.allExclusions,
+        });
+        fs.writeFileSync(exclusionsPath, `${JSON.stringify(exclusionsOut, null, 2)}\n`, "utf8");
+        safeLog(
+          `Wrote ${decision.allExclusions.length} source exclusions to ${exclusionsPath}. These record a ` +
+            `SOURCE LIMITATION, not a review decision: reviewState is untouched. Re-run to ingest the rest.`
+        );
+      }
+      process.exit(1);
+    }
+
+    if (decision.skippedFdcIds.length > 0 || uncheckedExcludedCount > 0) {
+      safeLog(
+        `Skipped ${decision.skippedFdcIds.length + uncheckedExcludedCount} entr(ies) recorded in ` +
+          `${exclusionsPath} as source limitations` +
+          (uncheckedExcludedCount > 0
+            ? ` (${uncheckedExcludedCount} of them could not be re-checked this run)`
+            : "") +
+          `. They remain PROPOSED for the reviewer; nothing here is a strike.`
+      );
     }
 
     const foodCatalogContent = {

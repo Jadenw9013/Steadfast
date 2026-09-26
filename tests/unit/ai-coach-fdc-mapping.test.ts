@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
+  CORE_TRACKED_NUTRIENTS,
   isIngestableEntry,
   mapFdcRecordToCatalogItem,
   mapNutrientDerivation,
@@ -13,6 +14,10 @@ import type { AllowlistEntry } from "@/lib/ai-coach/catalog/fdc/allowlist-schema
 import {
   allergenCategorySchema,
   foodCatalogContentSchema,
+  SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS,
+  SOURCED_V2_ENERGY_NUTRIENT_IDS,
+  SOURCED_V2_FAT_NUTRIENT_IDS,
+  SOURCED_V2_PROTEIN_NUTRIENT_IDS,
 } from "@/lib/ai-coach/artifacts/schema";
 import { allergenSchema } from "@/lib/ai-coach/catalog/schema";
 import { LEGACY_TOKEN_BY_CATEGORY } from "@/lib/ai-coach/intake-allergens";
@@ -148,7 +153,7 @@ describe("T-2035 — FDC mapping pure module", () => {
 
     // Fiber (1079) is absent from missing-nutrient fixture
     const fiberFact = res.item.nutrientFacts?.find(
-      (n) => n.nutrientId === "1079" || n.nutrientName.toLowerCase().includes("fiber")
+      (n) => n.nutrientId === "291" || n.nutrientName.toLowerCase().includes("fiber")
     );
     expect(fiberFact).toBeDefined();
     expect(fiberFact?.status).toBe("UNKNOWN");
@@ -220,7 +225,7 @@ describe("T-2035 — FDC mapping pure module", () => {
     if (!res.ok) return;
 
     const energyNutrientFact = res.item.nutrientFacts?.find(
-      (n) => n.nutrientId === "1008" && n.unit === "KCAL"
+      (n) => n.nutrientId === "208" && n.unit === "KCAL"
     );
     expect(energyNutrientFact?.derivation).toBe("CALCULATED");
     expect(energyNutrientFact?.derivationDetail).toContain("Atwater");
@@ -461,15 +466,15 @@ describe("T-2035 — FDC mapping pure module", () => {
       publicationDate: "10/28/2020",
       foodNutrients: [
         {
-          nutrient: { id: 1008, number: "1008", name: "Energy", unitName: "KCAL" },
+          nutrient: { id: 1008, number: "208", name: "Energy", unitName: "KCAL" },
           amount: 100,
         },
         {
-          nutrient: { id: 1004, number: "1004", name: "Total lipid (fat)", unitName: "G" },
+          nutrient: { id: 1004, number: "204", name: "Total lipid (fat)", unitName: "G" },
           amount: 5,
         },
         {
-          nutrient: { id: 1005, number: "1005", name: "Carbohydrate, by difference", unitName: "G" },
+          nutrient: { id: 1005, number: "205", name: "Carbohydrate, by difference", unitName: "G" },
           amount: 10,
         },
       ],
@@ -505,7 +510,13 @@ describe("T-2035 — FDC mapping pure module", () => {
    * borrowed from the source is the nutrient *numbering*, which is structure.
    */
   const modernFoundationRecord = (
-    nutrients: Array<{ number: string; name: string; unitName: string; amount: number }>
+    nutrients: Array<{
+      fdcId: number;
+      number: string;
+      name: string;
+      unitName: string;
+      amount: number;
+    }>
   ) => ({
     _synthetic: { label: "SYNTHETIC FIXTURE - NOT A USDA RECORD" },
     fdcId: 9000000401,
@@ -516,28 +527,44 @@ describe("T-2035 — FDC mapping pure module", () => {
     foodNutrients: nutrients.map((n, index) => ({
       type: "FoodNutrient",
       id: 20002000 + index,
-      nutrient: { id: Number(n.number), number: n.number, name: n.name, unitName: n.unitName },
+      // `nutrient.id` and `nutrient.number` are DIFFERENT identifiers and this
+      // helper keeps them different on purpose. The first version built
+      // `id: Number(n.number)`, which made every fixture agree with itself and
+      // hid the defect fixed in 6646483: a macro list written with ids matched
+      // nothing, because `normalizeFdcRecord` reads `number ?? id`.
+      nutrient: { id: n.fdcId, number: n.number, name: n.name, unitName: n.unitName },
       amount: n.amount,
     })),
     foodPortions: [],
   });
 
+  // The pairs below are USDA's, re-verified live in commit 6646483 against
+  // /food/2258588 and /food/748608.
   const ATWATER_GENERAL_ROW = {
-    number: "2047",
+    fdcId: 2047,
+    number: "957",
     name: "Energy (Atwater General Factors)",
     unitName: "KCAL",
     amount: 30,
   };
   const ATWATER_SPECIFIC_ROW = {
-    number: "2048",
+    fdcId: 2048,
+    number: "958",
     name: "Energy (Atwater Specific Factors)",
     unitName: "KCAL",
     amount: 25,
   };
-  const NLEA_FAT_ROW = { number: "1085", name: "Total fat (NLEA)", unitName: "G", amount: 0.5 };
-  const PROTEIN_ROW = { number: "1003", name: "Protein", unitName: "G", amount: 1 };
+  const NLEA_FAT_ROW = {
+    fdcId: 1085,
+    number: "298",
+    name: "Total fat (NLEA)",
+    unitName: "G",
+    amount: 0.5,
+  };
+  const PROTEIN_ROW = { fdcId: 1003, number: "203", name: "Protein", unitName: "G", amount: 1 };
   const CARB_ROW = {
-    number: "1005",
+    fdcId: 1005,
+    number: "205",
     name: "Carbohydrate, by difference",
     unitName: "G",
     amount: 4,
@@ -576,8 +603,8 @@ describe("T-2035 — FDC mapping pure module", () => {
 
     // The legacy ids are genuinely not reported, but the quantity is, so they
     // must not be listed as missing.
-    expect(res.item.nutrients.missingNutrientIds).not.toContain("1008");
-    expect(res.item.nutrients.missingNutrientIds).not.toContain("1004");
+    expect(res.item.nutrients.missingNutrientIds).not.toContain("208");
+    expect(res.item.nutrients.missingNutrientIds).not.toContain("204");
 
     // And the SOURCED_V2 refinement accepts it: the schema's id sets and the
     // mapper's are the same exported lists.
@@ -592,7 +619,7 @@ describe("T-2035 — FDC mapping pure module", () => {
     ).not.toThrow();
   });
 
-  it("Atwater general alone yields ATWATER_GENERAL; a reported 1008 still wins over both", () => {
+  it("Atwater general alone yields ATWATER_GENERAL; a reported \"208\" energy still wins over both", () => {
     const generalOnly = mapFdcRecordToCatalogItem({
       entry: { ...mockAllowlistEntry, fdcId: 9000000401, canonicalName: "Synthetic Modern Item" },
       record: modernFoundationRecord([ATWATER_GENERAL_ROW, PROTEIN_ROW, NLEA_FAT_ROW, CARB_ROW]),
@@ -608,7 +635,7 @@ describe("T-2035 — FDC mapping pure module", () => {
     const withLegacyEnergy = mapFdcRecordToCatalogItem({
       entry: { ...mockAllowlistEntry, fdcId: 9000000401, canonicalName: "Synthetic Modern Item" },
       record: modernFoundationRecord([
-        { number: "1008", name: "Energy", unitName: "KCAL", amount: 28 },
+        { fdcId: 1008, number: "208", name: "Energy", unitName: "KCAL", amount: 28 },
         ATWATER_GENERAL_ROW,
         ATWATER_SPECIFIC_ROW,
         PROTEIN_ROW,
@@ -636,7 +663,7 @@ describe("T-2035 — FDC mapping pure module", () => {
         PROTEIN_ROW,
         NLEA_FAT_ROW,
         CARB_ROW,
-        { number: "1079", name: "Fiber, total dietary", unitName: "G", amount: 2 },
+        { fdcId: 1079, number: "291", name: "Fiber, total dietary", unitName: "G", amount: 2 },
       ]),
       retrievedAt: "2026-09-26T00:00:00.000Z",
       allowlistVersion: 1,
@@ -667,7 +694,7 @@ describe("T-2035 — FDC mapping pure module", () => {
     (record.foodNutrients as unknown[]).push({
       type: "FoodNutrient",
       id: 20002099,
-      nutrient: { id: 2048, number: "2048", name: "Energy (Atwater Specific Factors)", unitName: "KCAL" },
+      nutrient: { id: 2048, number: "958", name: "Energy (Atwater Specific Factors)", unitName: "KCAL" },
       amount: null,
     });
 
@@ -681,6 +708,85 @@ describe("T-2035 — FDC mapping pure module", () => {
     if (!res.ok) {
       expect(res.errors.some((e) => e.code === "MISSING_ENERGY")).toBe(true);
     }
+  });
+
+
+  /**
+   * Regression for the defect fixed in 6646483, and for the reason no test
+   * caught it.
+   *
+   * An FDC nutrient row carries two identifiers: `nutrient.number`, the INFOODS
+   * tagname (`"208"`, `"958"`), and `nutrient.id`, FDC's own key (`1008`,
+   * `2048`). `normalizeFdcRecord` reads `number ?? id`, so the macro lookup has
+   * to key on the *number*. The widened lookup was written with ids, matched
+   * nothing, and the re-run refused the same 48 records that carry every macro
+   * it needs. Verified live: `/food/2258588` has id 2048 / number `"958"` and
+   * id 1003 / number `"203"`; `/food/748608` has id 1085 / number `"298"`.
+   *
+   * It was invisible because every synthetic Foundation fixture set
+   * `number` to the string of its own `id`, so the two vocabularies agreed and
+   * either one worked. Both halves are pinned here: the lists, and the fixtures.
+   */
+  it("The macro lookup keys on FDC nutrient NUMBERS, never nutrient ids", () => {
+    expect(SOURCED_V2_ENERGY_NUTRIENT_IDS).toEqual(["208", "958", "957"]);
+    expect(SOURCED_V2_PROTEIN_NUTRIENT_IDS).toEqual(["203"]);
+    expect(SOURCED_V2_FAT_NUTRIENT_IDS).toEqual(["204", "298"]);
+    expect(SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS).toEqual(["205"]);
+
+    const accepted = [
+      ...SOURCED_V2_ENERGY_NUTRIENT_IDS,
+      ...SOURCED_V2_PROTEIN_NUTRIENT_IDS,
+      ...SOURCED_V2_FAT_NUTRIENT_IDS,
+      ...SOURCED_V2_CARBOHYDRATE_NUTRIENT_IDS,
+    ] as readonly string[];
+    for (const fdcId of ["1008", "1003", "1004", "1005", "2047", "2048", "1085"]) {
+      expect(accepted, `${fdcId} is a nutrient id, not a nutrient number`).not.toContain(fdcId);
+    }
+
+    // The pairing table keeps the two apart for every core nutrient.
+    for (const core of CORE_TRACKED_NUTRIENTS) {
+      expect(
+        core.nutrientNumber,
+        `${core.nutrientName}: number and id must not be the same string`
+      ).not.toBe(core.fdcNutrientId);
+    }
+
+    // No synthetic fixture may set `number` to the string of its own `id`:
+    // that is the agreement that hid the defect.
+    for (const file of fs.readdirSync(FIXTURES_DIR)) {
+      if (!file.endsWith(".json")) continue;
+      const record = JSON.parse(fs.readFileSync(path.join(FIXTURES_DIR, file), "utf8")) as {
+        foodNutrients?: Array<{ nutrient?: { id?: number; number?: string } }>;
+      };
+      for (const row of record.foodNutrients ?? []) {
+        const nutrient = row.nutrient;
+        if (!nutrient || nutrient.number === undefined || nutrient.id === undefined) continue;
+        expect(
+          nutrient.number,
+          `${file}: nutrient ${nutrient.id} sets number to its own id, which hides an id/number mixup`
+        ).not.toBe(String(nutrient.id));
+      }
+    }
+
+    // End to end: a record whose ids and numbers differ maps. A lookup written
+    // with ids cannot map this record at all.
+    const res = mapFdcRecordToCatalogItem({
+      entry: { ...mockAllowlistEntry, fdcId: 9000000401, canonicalName: "Synthetic Modern Item" },
+      record: modernFoundationRecord([
+        ATWATER_SPECIFIC_ROW,
+        PROTEIN_ROW,
+        NLEA_FAT_ROW,
+        CARB_ROW,
+      ]),
+      retrievedAt: "2026-09-26T00:00:00.000Z",
+      allowlistVersion: 1,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.item.nutrients.energyKcal).toBe(25);
+    expect(res.item.energyFact?.method).toBe("ATWATER_SPECIFIC");
+    expect(res.item.nutrientFacts?.some((n) => n.nutrientId === "958")).toBe(true);
+    expect(res.item.nutrientFacts?.some((n) => n.nutrientId === "2048")).toBe(false);
   });
 
   it("householdMeasures are carried through with provenance 'SOURCE_PORTION' and empty array if no portions", () => {

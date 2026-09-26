@@ -32,7 +32,7 @@
       "id": 20001008,
       "nutrient": {
         "id": 1008,
-        "number": "1008",
+        "number": "208",
         "name": "Energy",
         "rank": 300,
         "unitName": "KCAL"
@@ -54,7 +54,7 @@
       "id": 20001003,
       "nutrient": {
         "id": 1003,
-        "number": "1003",
+        "number": "203",
         "name": "Protein",
         "rank": 201,
         "unitName": "G"
@@ -76,7 +76,7 @@
       "id": 20001004,
       "nutrient": {
         "id": 1004,
-        "number": "1004",
+        "number": "204",
         "name": "Total lipid (fat)",
         "rank": 204,
         "unitName": "G"
@@ -98,7 +98,7 @@
       "id": 20001005,
       "nutrient": {
         "id": 1005,
-        "number": "1005",
+        "number": "205",
         "name": "Carbohydrate, by difference",
         "rank": 205,
         "unitName": "G"
@@ -120,7 +120,7 @@
       "id": 20001079,
       "nutrient": {
         "id": 1079,
-        "number": "1079",
+        "number": "291",
         "name": "Fiber, total dietary",
         "rank": 200,
         "unitName": "G"
@@ -142,7 +142,7 @@
       "id": 20002000,
       "nutrient": {
         "id": 2000,
-        "number": "2000",
+        "number": "269",
         "name": "Sugars, total including NLEA",
         "rank": 210,
         "unitName": "G"
@@ -164,7 +164,7 @@
       "id": 20001087,
       "nutrient": {
         "id": 1087,
-        "number": "1087",
+        "number": "301",
         "name": "Calcium, Ca",
         "rank": 300,
         "unitName": "MG"
@@ -186,7 +186,7 @@
       "id": 20001089,
       "nutrient": {
         "id": 1089,
-        "number": "1089",
+        "number": "303",
         "name": "Iron, Fe",
         "rank": 310,
         "unitName": "MG"
@@ -208,7 +208,7 @@
       "id": 20001092,
       "nutrient": {
         "id": 1092,
-        "number": "1092",
+        "number": "306",
         "name": "Potassium, K",
         "rank": 320,
         "unitName": "MG"
@@ -230,7 +230,7 @@
       "id": 20001093,
       "nutrient": {
         "id": 1093,
-        "number": "1093",
+        "number": "307",
         "name": "Sodium, Na",
         "rank": 330,
         "unitName": "MG"
@@ -252,7 +252,7 @@
       "id": 20001110,
       "nutrient": {
         "id": 1110,
-        "number": "1110",
+        "number": "324",
         "name": "Vitamin D (D2 + D3)",
         "rank": 340,
         "unitName": "UG"
@@ -274,7 +274,6 @@
       "id": 20001051,
       "nutrient": {
         "id": 1051,
-        "number": "1051",
         "name": "Water",
         "rank": 100,
         "unitName": "G"
@@ -300,7 +299,6 @@
       "id": 20001062,
       "nutrient": {
         "id": 1062,
-        "number": "1062",
         "name": "Energy",
         "rank": 110,
         "unitName": "kJ"
@@ -322,7 +320,6 @@
       "id": 20001063,
       "nutrient": {
         "id": 1063,
-        "number": "1063",
         "name": "Sugars, Total NLEA",
         "rank": 400,
         "unitName": "SP_GR"

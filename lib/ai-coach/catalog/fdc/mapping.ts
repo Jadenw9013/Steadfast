@@ -144,41 +144,57 @@ function normalizeUnit(rawUnit: string): "G" | "MG" | "UG" | "KCAL" | "KJ" | "IU
   return null;
 }
 
+/**
+ * The nutrients every catalog item accounts for, reported or explicitly
+ * `UNKNOWN`.
+ *
+ * **`nutrientNumber` and `fdcNutrientId` are different identifiers and the
+ * distinction is load-bearing.** A FoodData Central nutrient row carries both:
+ * `nutrient.number` is the INFOODS tagname (`"208"`, `"203"`) and `nutrient.id`
+ * is FDC's own key (`1008`, `1003`). `normalizeFdcRecord` reads
+ * `number ?? id`, so a real response yields the *number*. Confusing the two is
+ * how the 2026-09-26 run refused 48 records that carried every macro it needed
+ * (commit 6646483); the pairs below are the table that keeps them straight, and
+ * four of them are re-verified live in that commit's message.
+ */
 export const CORE_TRACKED_NUTRIENTS: ReadonlyArray<{
+  /** `nutrient.number` — the INFOODS tagname a real response carries. */
   nutrientNumber: string;
-  altNumber: string;
+  /** `nutrient.id` — FDC's own key, seen only when a row omits `number`. */
+  fdcNutrientId: string;
   /**
-   * Further numbers that report the same quantity. A record carrying one of
+   * Further *numbers* that report the same quantity. A record carrying one of
    * these is not missing the nutrient, so no `UNKNOWN` placeholder is added and
-   * the id does not land in `missingNutrientIds`.
+   * the number does not land in `missingNutrientIds`. `"958"`/`"957"` are the
+   * Atwater specific/general energies and `"298"` is Total fat (NLEA).
    */
   otherNumbers?: readonly string[];
   nutrientName: string;
   unit: "G" | "MG" | "UG" | "KCAL";
 }> = [
   {
-    nutrientNumber: "1008",
-    altNumber: "208",
-    otherNumbers: ["2047", "2048"],
+    nutrientNumber: "208",
+    fdcNutrientId: "1008",
+    otherNumbers: ["958", "957"],
     nutrientName: "Energy",
     unit: "KCAL",
   },
-  { nutrientNumber: "1003", altNumber: "203", nutrientName: "Protein", unit: "G" },
+  { nutrientNumber: "203", fdcNutrientId: "1003", nutrientName: "Protein", unit: "G" },
   {
-    nutrientNumber: "1004",
-    altNumber: "204",
-    otherNumbers: ["1085"],
+    nutrientNumber: "204",
+    fdcNutrientId: "1004",
+    otherNumbers: ["298"],
     nutrientName: "Total lipid (fat)",
     unit: "G",
   },
-  { nutrientNumber: "1005", altNumber: "205", nutrientName: "Carbohydrate, by difference", unit: "G" },
-  { nutrientNumber: "1079", altNumber: "291", nutrientName: "Fiber, total dietary", unit: "G" },
-  { nutrientNumber: "2000", altNumber: "269", nutrientName: "Sugars, total including NLEA", unit: "G" },
-  { nutrientNumber: "1087", altNumber: "301", nutrientName: "Calcium, Ca", unit: "MG" },
-  { nutrientNumber: "1089", altNumber: "303", nutrientName: "Iron, Fe", unit: "MG" },
-  { nutrientNumber: "1092", altNumber: "306", nutrientName: "Potassium, K", unit: "MG" },
-  { nutrientNumber: "1093", altNumber: "307", nutrientName: "Sodium, Na", unit: "MG" },
-  { nutrientNumber: "1110", altNumber: "324", nutrientName: "Vitamin D (D2 + D3)", unit: "UG" },
+  { nutrientNumber: "205", fdcNutrientId: "1005", nutrientName: "Carbohydrate, by difference", unit: "G" },
+  { nutrientNumber: "291", fdcNutrientId: "1079", nutrientName: "Fiber, total dietary", unit: "G" },
+  { nutrientNumber: "269", fdcNutrientId: "2000", nutrientName: "Sugars, total including NLEA", unit: "G" },
+  { nutrientNumber: "301", fdcNutrientId: "1087", nutrientName: "Calcium, Ca", unit: "MG" },
+  { nutrientNumber: "303", fdcNutrientId: "1089", nutrientName: "Iron, Fe", unit: "MG" },
+  { nutrientNumber: "306", fdcNutrientId: "1092", nutrientName: "Potassium, K", unit: "MG" },
+  { nutrientNumber: "307", fdcNutrientId: "1093", nutrientName: "Sodium, Na", unit: "MG" },
+  { nutrientNumber: "324", fdcNutrientId: "1110", nutrientName: "Vitamin D (D2 + D3)", unit: "UG" },
 ];
 
 /**
@@ -415,11 +431,14 @@ export function mapFdcRecordToCatalogItem(input: MapFoodRecordInput): MapFoodRec
 
   // Ensure core tracked nutrients are present in nutrientFacts (as UNKNOWN if not reported)
   for (const core of CORE_TRACKED_NUTRIENTS) {
-    const hasPrimary = processedNutrientNumbers.has(core.nutrientNumber);
-    const hasAlt = processedNutrientNumbers.has(core.altNumber);
+    const hasNumber = processedNutrientNumbers.has(core.nutrientNumber);
+    const hasFdcId = processedNutrientNumbers.has(core.fdcNutrientId);
     const hasOther = (core.otherNumbers ?? []).some((num) => processedNutrientNumbers.has(num));
-    if (!hasPrimary && !hasAlt && !hasOther) {
-      const chosenNumber = norm.dataType === "SR Legacy" ? core.altNumber : core.nutrientNumber;
+    if (!hasNumber && !hasFdcId && !hasOther) {
+      // Always the INFOODS number, whatever the data type. The placeholder must
+      // speak the same vocabulary as the reported rows beside it, or
+      // `missingNutrientIds` lists an identifier no reported fact could match.
+      const chosenNumber = core.nutrientNumber;
       nutrientFacts.push({
         nutrientId: chosenNumber,
         nutrientName: core.nutrientName,

@@ -526,7 +526,8 @@ lib/ai-coach/
   catalog/fdc/allowlist-schema.ts T-2035 Allowlist and coverage plan schemas with unique ID and name validations
   catalog/fdc/normalize.ts      T-2035 Pure normalization of USDA FoodData Central records without guessing or defaulting
   catalog/fdc/allergen-rules.ts T-2035 Fail-closed allergen rules across 9 frozen categories; emits PRESENT or UNKNOWN only (VERIFIED_ABSENT needs positive record evidence, which FDC cannot supply). Matches the food's own name/synonyms with generated plurals, never the USDA foodCategory
-  catalog/fdc/mapping.ts        T-2035 Pure FDC record to SourcedFoodCatalogItem mapper, derivation/energy method tables, URL redaction
+  catalog/fdc/mapping.ts        T-2035 Pure FDC record to SourcedFoodCatalogItem mapper, derivation/energy method tables, URL redaction. Macro lookup keys on FDC nutrient NUMBERS ("208"/"958"/"957"/"298"), never nutrient ids
+  catalog/fdc/source-exclusions.ts T-2035 The ingestion tool's own record of entries it cannot map. A SOURCE LIMITATION, never a review decision; reviewState stays the RD's field
   policy/policy-version.ts      A04  checkPolicyVersionUsable (SYNTHETIC single active version + one revoked version)
   nutrition-totals.ts           A04  computeNutrientTotals / aggregateGramsByFood
   composition-feasibility.ts    A04  checkMealComposition — closed reason-code registry
@@ -716,7 +717,10 @@ The allowlist (`data/ai-coach/catalog/fdc-allowlist.v1.json`) and the
 (`board/evidence/T-2035-real-run.md`); the hand-written versions shipped in
 1ec2588 were fabricated and were deleted (`board/evidence/T-2035.md`). They are
 never hand-edited after a run: a wrong field is fixed in the code and the run
-repeated. `VERIFIED_ABSENT` requires positive evidence in the source record,
+repeated. A record the tool cannot map is written to
+`data/ai-coach/catalog/fdc-source-exclusions.v1.json` by the tool itself, which
+records a source limitation and never a review decision — `reviewState` has
+exactly one writer, the RD. `VERIFIED_ABSENT` requires positive evidence in the source record,
 which no Foundation or SR Legacy record can supply, so ingestion emits only
 `PRESENT` or `UNKNOWN` and `UNKNOWN` fails closed downstream. **A09/A07 must
 read `allergenFactsV2`, not `allergenFacts`:** the legacy struct cannot express
