@@ -178,16 +178,36 @@ h6,
 
 
 
-/* ─── Focus ─── */
+/* ─── Focus ───
+ *
+ * Keyboard-only focus ring. Always `:focus-visible`, never `:focus`, so a mouse
+ * click does not draw one.
+ *
+ * These two rules are unlayered, so they beat every Tailwind utility (which lives
+ * in `@layer utilities`) regardless of specificity or source order. The opt-out
+ * below therefore has to name only controls that draw a *replacement* indicator,
+ * or it deletes the ring outright.
+ *
+ * Until T-2012 the opt-out also matched `[class*="focus-visible:outline"]`, which
+ * is exactly the set of controls whose replacement indicator *is* an outline —
+ * the shared `button` / `primary` constants in `components/ai-coach/controls.ts`,
+ * the AI Coach accept/decline actions and the `/coaches` CTA. Their
+ * `focus-visible:outline-2` utility lost to this unlayered `outline: none` and
+ * they showed no focus ring at all. `focus-visible:ring-*` controls are the only
+ * ones that supply their own indicator (a box-shadow ring), so they are the only
+ * ones that opt out.
+ *
+ * `border-radius` is deliberately not set here: it used to force 0.25rem onto
+ * every focused control, squaring off `rounded-xl` buttons and clipping their
+ * ring. Outlines follow the element's own border-radius.
+ */
 
 *:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
-  border-radius: 0.25rem;
 }
 
-[class*="focus-visible:ring"]:focus-visible,
-[class*="focus-visible:outline"]:focus-visible {
+[class*="focus-visible:ring"]:focus-visible {
   outline: none;
 }
 
