@@ -782,6 +782,38 @@ describe("computePrescription — maximumWeeklyLossRatePercent", () => {
     expect(result.prescription.targetEnergyKcal).toBe(2080);
     expect(result.prescription.projectedWeeklyWeightChangeKg).toBe(-0.71);
   });
+
+  it("published rate calculation matches nutrition-safety.ts exact float comparison without epsilon leakage", () => {
+    // When weightKg = 40 and cap = 0.35%, maxDeficitKg is (0.35 * 40) / 100 = 0.14.
+    // In IEEE 754, (0.14 / 40) * 100 is 0.35000000000000003 > 0.35.
+    // An epsilon-tolerant comparison in kg (exceeds(0.14, 0.14)) evaluated to false,
+    // which caused the engine to exit the loop at targetEnergyKcal = 1830 and publish
+    // projectedWeeklyWeightChangeKg = -0.14 kg, triggering HOLD downstream in
+    // nutrition-safety.ts:202.
+    // Matching nutrition-safety.ts exact arithmetic flags the violation, stepping
+    // up to 1840 kcal (-0.13 kg) so the published plan satisfies the safety evaluator.
+    const parameters = resolveOrThrow(nominalBundle, nominalExplanationTexts, {
+      ...nominalFloors,
+      maximumWeeklyLossRatePercent: 0.35,
+    });
+    const input40kg = baseInput({
+      ageYears: 18,
+      heightCm: 140,
+      weightKg: 40,
+      energyMethodPopulationCategory: "MALE_ADULT",
+      physicalActivityCategory: "ACTIVE",
+      bodyWeightIntent: "LOSE",
+      goalPaceClass: "MODERATE",
+    });
+    const result = computePrescription(parameters, input40kg);
+    expect(result.status).toBe("PRESCRIBED");
+    if (result.status !== "PRESCRIBED") return;
+    const downstreamRate = (Math.max(0, -result.prescription.projectedWeeklyWeightChangeKg) / 40) * 100;
+    expect(downstreamRate).toBeLessThanOrEqual(0.35);
+    expect(result.prescription.targetEnergyKcal).toBe(1840);
+    expect(result.prescription.projectedWeeklyWeightChangeKg).toBe(-0.13);
+    expect(result.prescription.appliedBoundIds).toContain(SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID);
+  });
 });
 
 describe("computePrescription — protein g/kg bounds", () => {
