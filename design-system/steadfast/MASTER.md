@@ -345,6 +345,43 @@
 
 ---
 
+## Focus rings (canonical — do not re-break, see T-2012)
+
+`app/globals.css` owns two unlayered rules under `/* ─── Focus ─── */`:
+
+```css
+*:focus-visible            { outline: 2px solid #3b82f6; outline-offset: 2px; }
+[class*="focus-visible:ring"]:focus-visible { outline: none; }
+```
+
+The first is the **fallback ring** every control gets for free. The second is the
+only opt-out: a control that draws its own box-shadow ring via
+`focus-visible:ring-*` suppresses the fallback so it shows one ring, not two.
+
+Rules that follow from this:
+
+- **Use `focus-visible:`, never `focus:`.** A ring on plain `:focus` appears on
+  mouse click as well as keyboard.
+- **Never add an unlayered `outline: none` keyed off a Tailwind class.**
+  `globals.css` is unlayered and Tailwind utilities live in `@layer utilities`, so
+  an unlayered declaration beats them *regardless of specificity or source order*.
+  Until T-2012 the opt-out above also matched `[class*="focus-visible:outline"]`,
+  which deleted the ring from every control using `focus-visible:outline-2` —
+  including the shared `button`/`primary` constants in
+  `components/ai-coach/controls.ts`. It showed up only in the built CSS.
+- **Do not set `border-radius` in the focus rule.** It overrides `rounded-xl` on
+  the focused control and clips the ring. Outlines follow the element's own radius.
+- Either pattern is acceptable on a control: `focus-visible:ring-2
+  focus-visible:ring-blue-500` (canonical, below) or `focus-visible:outline-2
+  focus-visible:outline-blue-400`. What is not acceptable is suppressing the
+  outline without supplying a replacement.
+- `tests/unit/globals-focus-ring.test.ts` compiles `app/globals.css` with the real
+  Tailwind compiler and fails if any of the above is violated.
+  `tests/browser/focus-ring-evidence.mjs` screenshots keyboard focus against the
+  built CSS at 390px and 1440px.
+
+---
+
 ## Accessibility Checklist
 
 - [ ] All interactive elements have `cursor-pointer`
