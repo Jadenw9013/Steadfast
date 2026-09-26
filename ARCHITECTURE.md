@@ -622,6 +622,8 @@ source for the full model list; the groups are:
 Every model above with a `User` foreign key has a purge line in
 `lib/account-deletion/purge.ts` and a case in
 `tests/integration/account-deletion.test.ts`, including the two that also cascade.
+
+**T-2033 (2026-09-26), no migration:** `AiPlanVersion.payload` (JSON) widens additively — `nutrition.method` is now `"SYNTHETIC_CATALOG_MATCH" | "REVIEWED_PRESCRIPTION_V1"` and every payload gains an optional `prescriptionOutcome` object (`lib/ai-coach/plan-contract.ts`). A historical row with neither is read as a legacy candidate everywhere (`readNutritionHistory`, the autonomy gate's `prescription` fact); see `docs/ai-coach/14-Handoff-Status.md`'s T-2033 entry for the full read-path list.
 **T-2006/T-2030 bounded explanation prose:** `AiProviderBoundaryAudit` gains
 one additive nullable column, `explanationValidation Json?` — reason codes
 and a character count for the model's optional `explanationText`/

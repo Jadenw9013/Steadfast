@@ -8,6 +8,8 @@ import {
 } from "../nutrition-safety";
 import { sourceRefSchema, type SourceRef } from "../plan-contract";
 import { validatedManagedPayload } from "../validated-plan";
+import { buildPrescriptionInput, nutritionRequiredForGoal } from "../prescription";
+import { classifyPrescriptionReasonCodes } from "../prescription-reason-classes";
 import {
   ArtifactLoadError,
   getReviewedExerciseItem,
@@ -44,6 +46,7 @@ export const autonomyGateReasonCodeSchema = z.enum([
   "GATE_SAFETY_RESTRICTED",
   "GATE_REQUIRED_INPUT_INVALID",
   "GATE_REQUIRED_INPUT_MISSING",
+  "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
   "GATE_NUTRITION_SAFETY_UNAVAILABLE",
   "GATE_NUTRITION_SAFETY_HOLD",
   "GATE_NUTRITION_SAFETY_PAUSE_REFER",
@@ -140,6 +143,12 @@ export type AutonomyGateFacts = {
   evidenceRuleIds: readonly string[];
   permissions: Record<z.infer<typeof domainSchema>, "ALLOW" | "HOLD_ONLY" | "PAUSED">;
   safetyDisposition: "CLEAR" | "CLARIFY" | "RESTRICTED" | "REFER" | "URGENT";
+  /** T-2033 (T-2003 Amendment: gate.ts:415-427 lead ruling). `null` means a
+   * legacy candidate (no `prescriptionOutcome` on the payload) and is read as
+   * `{required:false, available:true}` so no historical candidate changes
+   * meaning. Populated by the server entry point below from the candidate
+   * payload's `prescriptionOutcome` plus `nutritionRequiredForGoal(intake)`. */
+  prescription: { required: boolean; available: boolean; reasonCodes: string[] } | null;
   nutritionSafety: VerifiedNutritionSafety | null;
   evidenceCurrent: boolean;
   candidateValid: boolean;
@@ -174,6 +183,22 @@ function stoppedEvaluation(
     })),
     approvedCandidatePlanVersionId: null,
   };
+}
+
+/**
+ * T-2033 — frozen total map over `PrescriptionReasonCode` (T-2003 Contract
+ * "Gate"). The three reason classes live in one place
+ * (`prescription/reason-classes.ts`) because `initial-plan.ts` and
+ * `finalization.ts` route off the same split (review r1 MINOR 5/7). An
+ * unknown code (forward compatibility) is `POLICY_NOT_READY` -> `HOLD`.
+ * Multiple codes resolve to the most protective outcome: `PAUSE_REFER` >
+ * `HOLD` > `FOCUSED_CLARIFICATION`.
+ */
+function outcomeFor(reasonCodes: readonly string[]): Exclude<AutonomyOutcome, "APPROVE_AUTOMATICALLY"> {
+  const reasonClass = classifyPrescriptionReasonCodes(reasonCodes);
+  if (reasonClass === "OUT_OF_SCOPE") return "PAUSE_REFER";
+  if (reasonClass === "POLICY_NOT_READY") return "HOLD";
+  return "FOCUSED_CLARIFICATION";
 }
 
 /**
@@ -219,6 +244,22 @@ export function evaluateAutonomyGate(
     return stoppedEvaluation("REQUIRED_INPUTS", "FOCUSED_CLARIFICATION", [
       "GATE_REQUIRED_INPUT_MISSING",
     ]);
+  }
+
+  // T-2033: placed before the nutritionSafety checks below (T-2003 Contract
+  // "Gate"), so GATE_ORDER and the validationReport.checks shape are
+  // unchanged — this still runs inside the TARGET_AND_LIMITS stage. Makes
+  // APPROVE_AUTOMATICALLY unreachable whenever the goal needs an energy
+  // target and the engine did not produce one, closing the hole where a
+  // candidate with `payload.nutrition === null` could satisfy `domainsMatch`
+  // simply by NUTRITION being absent from `requestedDomains`.
+  if (facts.prescription && facts.prescription.required && !facts.prescription.available) {
+    return stoppedEvaluation(
+      "TARGET_AND_LIMITS",
+      outcomeFor(facts.prescription.reasonCodes),
+      ["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", ...facts.prescription.reasonCodes],
+      []
+    );
   }
 
   if (!facts.nutritionSafety) {
@@ -291,6 +332,26 @@ function artifactReference(artifact: LoadedArtifact) {
   };
 }
 
+/**
+ * T-2033 review r1 (MAJOR 2) — degrades instead of throwing.
+ *
+ * `orderedReasonCodes` can carry codes read off a persisted candidate payload
+ * (`facts.prescription.reasonCodes`, typed as arbitrary strings in
+ * `plan-contract.ts`), so a code a reviewed bundle has no obligation to
+ * declare — a future `PrescriptionReasonCode`, or a row written by a newer
+ * deploy and read by an older one — can reach here. Throwing on that aborts
+ * the transaction *before* the `AiAutonomyGateDecision` row is written and
+ * turns the client's request into a 503, which defeats `outcomeFor`'s
+ * documented unknown-code-is-a-HOLD forward compatibility one call later.
+ *
+ * So: prefer a template covering the whole set; otherwise fall back to one
+ * covering the leading `GATE_*` code, which the bundle must declare (the
+ * live-launch validator in `artifacts/repository.ts` asserts that coverage at
+ * publication). Only when even that is absent is the bundle genuinely
+ * incompatible. The persisted decision row keeps the full
+ * `orderedReasonCodes` alongside the resolved template id, so a degraded
+ * resolution stays auditable.
+ */
 function resolveNextActionTemplateId(
   artifacts: ReviewedArtifactSet,
   policy: PolicyBundleContent,
@@ -298,18 +359,23 @@ function resolveNextActionTemplateId(
 ) {
   const content = escalationTemplatesContentSchema.parse(artifacts.escalationTemplates.content);
   const allowedIds = new Set(policy.escalationTemplateIds);
-  const template = content.templates.find(
-    (candidate) =>
-      allowedIds.has(candidate.id) &&
-      reasonCodes.every((reason) => candidate.reasonCodes.includes(reason))
-  );
-  if (!template) {
+  const templateCovering = (codes: readonly string[]) =>
+    content.templates.find(
+      (candidate) =>
+        allowedIds.has(candidate.id) &&
+        codes.every((reason) => candidate.reasonCodes.includes(reason))
+    );
+  const template = templateCovering(reasonCodes);
+  if (template) return template.id;
+  const leadingGateReasonCode = reasonCodes.find((code) => code.startsWith("GATE_"));
+  const degraded = leadingGateReasonCode ? templateCovering([leadingGateReasonCode]) : undefined;
+  if (!degraded) {
     throw new ArtifactLoadError(
       "ARTIFACT_INCOMPATIBLE",
       "No reviewed next-action template supports the deterministic gate outcome."
     );
   }
-  return template.id;
+  return degraded.id;
 }
 
 function assertEvidenceRulesHaveClaims(
@@ -377,6 +443,15 @@ async function loadVerifiedNutritionSafety(
   };
 }
 
+/** T-2033 — server-derived, not trusted from the candidate payload: recomputed
+ * from the account's *current* confirmed intake, the same way
+ * `buildPrescriptionInput` would see it. `evaluatedOn` does not affect
+ * `bodyWeightIntent`, so any valid calendar date string is fine here. */
+function nutritionRequiredFromConfirmedIntake(confirmedIntake: unknown): boolean {
+  const built = buildPrescriptionInput(confirmedIntake, "1970-01-01");
+  return built.ok && nutritionRequiredForGoal(built.input);
+}
+
 async function validateCandidate(
   tx: Prisma.TransactionClient,
   clientId: string,
@@ -391,13 +466,13 @@ async function validateCandidate(
   nutritionSafety: VerifiedNutritionSafety | null
 ) {
   if (!input.candidatePlanVersionId) {
-    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[] };
+    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[], payload: null };
   }
   const candidate = await tx.aiPlanVersion.findFirst({
     where: { id: input.candidatePlanVersionId, clientId },
   });
   if (!candidate || candidate.status !== "PROPOSED") {
-    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[] };
+    return { valid: false, payloadHash: null, sourceRefs: [] as SourceRef[], payload: null };
   }
   const payload = validatedManagedPayload(candidate);
   const sourceRefs = z
@@ -409,7 +484,12 @@ async function validateCandidate(
     .strict()
     .safeParse(candidate.catalogVersions);
   if (!payload || !sourceRefs.success || !catalogVersions.success) {
-    return { valid: false, payloadHash: candidate.payloadHash, sourceRefs: [] as SourceRef[] };
+    return {
+      valid: false,
+      payloadHash: candidate.payloadHash,
+      sourceRefs: [] as SourceRef[],
+      payload: null,
+    };
   }
 
   const touchedDomains = new Set<string>(
@@ -473,6 +553,7 @@ async function validateCandidate(
       catalogItemsValid,
     payloadHash: candidate.payloadHash,
     sourceRefs: sourceRefs.data,
+    payload,
   };
 }
 
@@ -508,6 +589,7 @@ export async function evaluateCurrentClientAutonomyGate(
             nutritionPermission: true,
             strengthPermission: true,
             cardioPermission: true,
+            confirmedIntake: true,
           },
         }),
         tx.aiCoachEntitlement.findUnique({
@@ -544,6 +626,20 @@ export async function evaluateCurrentClientAutonomyGate(
       );
       const evidenceRefs = input.evidence.flatMap((item) => item.sourceRefs);
       const evidenceCurrent = await evidenceIsCurrent(tx, clientId, evidenceRefs);
+      // T-2033: `null` when the candidate payload carries no
+      // `prescriptionOutcome` (a legacy row, or one that failed to load at
+      // all) — read as {required:false, available:true} so no historical
+      // candidate changes meaning. `required` is recomputed from the
+      // account's *current* confirmed intake rather than trusted from the
+      // stored payload, matching this function's existing pattern of
+      // server-derived, not candidate-supplied, facts.
+      const prescription = candidate.payload?.prescriptionOutcome
+        ? {
+            required: nutritionRequiredFromConfirmedIntake(profile.confirmedIntake),
+            available: candidate.payload.prescriptionOutcome.status === "PRESCRIBED",
+            reasonCodes: candidate.payload.prescriptionOutcome.reasonCodes,
+          }
+        : null;
       const evaluation = evaluateAutonomyGate(input, {
         authorityEligible,
         allowedScopeClasses: artifacts.policy.reviewMetadata.allowedScope,
@@ -556,6 +652,7 @@ export async function evaluateCurrentClientAutonomyGate(
           CARDIO: profile.cardioPermission,
         },
         safetyDisposition: profile.safetyDisposition,
+        prescription,
         nutritionSafety,
         evidenceCurrent,
         candidateValid: candidate.valid,

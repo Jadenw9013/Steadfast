@@ -38,8 +38,13 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     expect(artifactContentDigest(set.evidenceRegistry)).toBe(
       "3a946969a4053dc12a80057b4d48b658961fa09fca070764eb056c756d5d4feb"
     );
+    // T-2033: the escalation-templates fixture's single template gained
+    // GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE plus the 14 PrescriptionReasonCode
+    // values in its reasonCodes list (synthetic-fixtures.ts), so its content
+    // digest changed too — the pinned value below reflects that deliberate,
+    // reviewed content addition, not an accidental byte drift.
     expect(artifactContentDigest(set.escalationTemplates)).toBe(
-      "c77d360a554c6f630df7ca57907a6fef449055bf3059ee5a6a64aa70bad6d717"
+      "9765ae01912b2c8ea0ec82e508640481dcc940c6af48f8ddf821bdc9294feb4c"
     );
   });
 

@@ -390,6 +390,28 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
           "GATE_EVIDENCE_INSUFFICIENT",
           "GATE_EVIDENCE_STALE",
           "GATE_CANDIDATE_INVALID",
+          // T-2033: the new TARGET_AND_LIMITS prescription-unavailable check
+          // (gate.ts) always leads with GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE
+          // plus whichever PrescriptionReasonCode(s) the engine/resolver
+          // returned (prescription/types.ts). resolveNextActionTemplateId
+          // requires every code in a stopped evaluation's orderedReasonCodes
+          // to be covered by one template, so all of them are listed here —
+          // same reason the GATE_* codes above were added when T-1006 shipped.
+          "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+          "PRESCRIPTION_INTAKE_VERSION_UNSUPPORTED",
+          "PRESCRIPTION_INPUT_MISSING",
+          "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE",
+          "PRESCRIPTION_WEIGHT_MEASUREMENT_STALE",
+          "PRESCRIPTION_POPULATION_UNSUPPORTED",
+          "PRESCRIPTION_GOAL_PACE_UNDECIDED",
+          "PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED",
+          "PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE",
+          "PRESCRIPTION_MAINTENANCE_BELOW_MINIMUM",
+          "PRESCRIPTION_MACRO_RANGES_INFEASIBLE",
+          "PRESCRIPTION_PARAMETER_MISSING",
+          "PRESCRIPTION_PARAMETER_INCOMPATIBLE",
+          "PRESCRIPTION_METHOD_UNSUPPORTED",
+          "PRESCRIPTION_EXPLANATION_TEMPLATE_UNAVAILABLE",
           "SYNTHETIC_MINIMUM_DAILY_ENERGY_LIMIT",
           "SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_LIMIT",
           "SYNTHETIC_CONSECUTIVE_DEFICIT_BLOCKED",

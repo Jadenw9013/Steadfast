@@ -31,6 +31,25 @@ const mealSchema = z
     preparation: z.string().max(500),
   })
   .strict();
+/**
+ * T-2033 — additive widening (board/tickets/T-2003.md "### Plan payload
+ * contract"). Both changes keep every historical row parseable:
+ * `readNutritionHistory` (nutrition-safety.ts:244-251) turns any parse
+ * failure into `UNVERIFIABLE` -> HOLD forever for that client, so a
+ * historical `SYNTHETIC_CATALOG_MATCH` row and an absent
+ * `prescriptionOutcome` must keep parsing exactly as before.
+ */
+export const nutritionMethodSchema = z.enum(["SYNTHETIC_CATALOG_MATCH", "REVIEWED_PRESCRIPTION_V1"]);
+export const prescriptionOutcomeSchema = z
+  .object({
+    status: z.enum(["PRESCRIBED", "UNAVAILABLE"]),
+    reasonCodes: z.array(z.string().min(1).max(120)).max(20),
+    nutritionRequired: z.boolean(),
+    parameterSetDigest: z.string().length(64).nullable(),
+  })
+  .strict();
+export type PrescriptionOutcome = z.infer<typeof prescriptionOutcomeSchema>;
+
 export const planPayloadSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -38,7 +57,7 @@ export const planPayloadSchema = z
     nutrition: z
       .object({
         prescriptionId: id,
-        method: z.literal("SYNTHETIC_CATALOG_MATCH"),
+        method: nutritionMethodSchema,
         targets: quantitiesSchema,
         tolerancePercent: z.number().min(0).max(20),
         assumptions: z.array(z.string().max(300)).max(10),
@@ -102,6 +121,10 @@ export const planPayloadSchema = z
       .max(7),
     policyVersion: id,
     catalogVersions: z.object({ food: id, exercise: id }).strict(),
+    // Absent means "legacy candidate" — the gate reads that as
+    // {status:"PRESCRIBED", nutritionRequired:false} so no existing row
+    // changes meaning (T-2003 Amendment: "one reader, one meaning").
+    prescriptionOutcome: prescriptionOutcomeSchema.optional(),
   })
   .strict()
   .superRefine((plan, ctx) => {
@@ -161,6 +184,7 @@ export const decisionSchema = z
           "REPRESENTATION_ONLY",
           "NO_FEASIBLE_MEALS",
           "UNCHANGED",
+          "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE",
         ])
       )
       .min(1)

@@ -9,8 +9,12 @@ import {
   loadReviewedArtifactSet,
 } from "./artifacts/repository";
 import { contentHash } from "./canonical-json";
+import { isV2Intake, intakeAnswersSchema } from "./intake";
 import { evaluateCurrentClientNutritionSafety } from "./nutrition-safety";
 import { assertAiCoachOperationEnabled } from "./operations";
+import { buildPrescriptionInput, computePrescription } from "./prescription";
+import { classifyPrescriptionReasonCodes } from "./prescription-reason-classes";
+import { resolvePrescriptionParametersForArtifacts } from "./prescription-binding";
 import { resolveAiCoachRuntimeBinding, runRuntimeConstrainedProviderBoundary } from "./runtime-binding";
 import { sourceRefSchema } from "./plan-contract";
 import { safetyDisclosureSchema, type TriState } from "./safety";
@@ -112,6 +116,114 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
   }
   const policy = getReviewedPolicyBundleContent(artifacts.policy);
   const provenance = binding.mode === "LIVE" ? "SERVER_VALIDATED_CLIENT_STATE" : "SYNTHETIC_SERVER_FIXTURE";
+  const currentWeightKg =
+    typeof (profile.confirmedIntake as { weightKg?: unknown } | null)?.weightKg === "number"
+      ? (profile.confirmedIntake as { weightKg: number }).weightKg
+      : null;
+
+  let projectedWeeklyWeightChangeKg: number | null = null;
+  if (payload.nutrition) {
+    if (payload.nutrition.method === "SYNTHETIC_CATALOG_MATCH") {
+      // LIVE: no invented clinical projection. FIXTURE: neutral synthetic
+      // fixture value; not a live estimate or client-facing claim. Kept
+      // exactly as before this ticket — this literal `0`/`null` only
+      // applies to the legacy synthetic-catalog-match payload (T-2003
+      // Amendment 1 §A1.5's "supersedes the 422 sentence" note).
+      projectedWeeklyWeightChangeKg = binding.mode === "LIVE" ? null : 0;
+    } else {
+      // REVIEWED_PRESCRIPTION_V1 (T-2033 file item 5 / T-2003 Amendment 1
+      // §A1.5): recomputed by replaying the engine against the stored
+      // intake and the currently loaded bundle — never trusted from the
+      // persisted number — then asserted against the stored
+      // `targetEnergyKcal` and `parameterSetDigest`.
+      //
+      // Review r1 MAJOR 1 / MINOR 7: the replay reads the *live*
+      // `confirmedIntake` at *today's* date, so it can differ from the
+      // candidate's own generation input for two reasons that are not a
+      // policy change at all — the client re-confirmed intake (a new
+      // weigh-in), or a weight measurement simply aged past
+      // `ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS` while the proposal
+      // sat on screen. Neither means "the reviewed policy moved", and
+      // Amendment 1 §A1.5 exists so an ordinary unrelated change does not
+      // 422 an outstanding proposal. Each case therefore reports its own
+      // reason code, and only a genuine target mismatch *at an equal
+      // profileRevision* — i.e. the same inputs producing a different
+      // number — is a hard 422.
+      const holdWith = (reasonCodes: string[], nextAction: string) => ({
+        outcome: "HOLD" as const,
+        reasonCodes,
+        nextAction,
+        clarificationId: null,
+      });
+      const staleCandidateResult = holdWith(
+        ["PRESCRIPTION_PARAMETER_SET_CHANGED"],
+        "This proposal is stale against the current reviewed policy. Request a new plan."
+      );
+      if (candidate.profileRevision !== profile.profileRevision) {
+        // The client's own inputs changed after this proposal was prepared
+        // (`confirmIntake` bumps `profileRevision`), so the candidate is
+        // stale against them and there is nothing to compare. This is the
+        // graceful HOLD the gate's own `revisionsMatch` check
+        // (`autonomy/gate.ts`, `GATE_CANDIDATE_INVALID`) would reach anyway.
+        return holdWith(
+          ["PRESCRIPTION_CANDIDATE_INPUTS_CHANGED"],
+          "Your answers changed after this proposal was prepared. Request a new plan to use your latest answers."
+        );
+      }
+      const evaluatedOn = new Date().toISOString().slice(0, 10);
+      const built = buildPrescriptionInput(profile.confirmedIntake, evaluatedOn);
+      const parametersResolution = built.ok
+        ? resolvePrescriptionParametersForArtifacts(artifacts)
+        : null;
+      if (parametersResolution && !parametersResolution.ok) {
+        // The currently loaded reviewed bundle can no longer supply the
+        // engine's parameter set: the policy really did move.
+        return staleCandidateResult;
+      }
+      const recomputed =
+        built.ok && parametersResolution?.ok
+          ? computePrescription(parametersResolution.parameters, built.input)
+          : null;
+      const replayReasonCodes = !built.ok
+        ? built.reasonCodes
+        : recomputed?.status === "UNAVAILABLE"
+          ? recomputed.reasonCodes
+          : [];
+      if (!recomputed || recomputed.status === "UNAVAILABLE") {
+        // The engine can no longer reproduce *any* comparable target, so
+        // there is no `targetEnergyKcal` to compare against "no longer
+        // matches" — always a HOLD, never a hard 422. Which HOLD depends on
+        // *why*: a `POLICY_NOT_READY` class code means the reviewed content
+        // this needs is unavailable; anything else means the client's own
+        // inputs no longer satisfy the engine (MINOR 7's aged weigh-in is
+        // `PRESCRIPTION_WEIGHT_MEASUREMENT_STALE`, a `CLIENT_FIXABLE` code),
+        // which is not a parameter-set change and must not say it is.
+        if (classifyPrescriptionReasonCodes(replayReasonCodes) === "POLICY_NOT_READY") {
+          return staleCandidateResult;
+        }
+        return holdWith(
+          ["PRESCRIPTION_CANDIDATE_INPUTS_NOT_REPRODUCIBLE", ...replayReasonCodes],
+          "This proposal can no longer be reproduced from your current answers. Request a new plan."
+        );
+      }
+      if (recomputed.prescription.targetEnergyKcal !== payload.nutrition.targets.energyKcal) {
+        throw new AiCoachError(
+          "VALIDATION_ERROR",
+          "The proposal no longer matches the reviewed policy.",
+          422
+        );
+      }
+      if (recomputed.prescription.parameterSetDigest !== payload.prescriptionOutcome?.parameterSetDigest) {
+        // Amendment 1 §A1.5: a digest-only mismatch (e.g. a reviewed
+        // explanation-copy edit or a T-1003 floor change), with an equal
+        // `targetEnergyKcal`, is a stale candidate, not a 422 — a copy edit
+        // must not 422 every outstanding proposal in the system.
+        return staleCandidateResult;
+      }
+      projectedWeeklyWeightChangeKg = recomputed.prescription.projectedWeeklyWeightChangeKg;
+    }
+  }
+
   await evaluateCurrentClientNutritionSafety(request, {
     screening: {
       instrumentId: policy.safetyControls.screening.instrumentId,
@@ -130,17 +242,8 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
     proposal: payload.nutrition
       ? {
           proposedDailyEnergyKcal: payload.nutrition.targets.energyKcal,
-          currentWeightKg:
-            typeof (profile.confirmedIntake as { weightKg?: unknown } | null)?.weightKg === "number"
-              ? (profile.confirmedIntake as { weightKg: number }).weightKg
-              : null,
-          // LIVE: no invented clinical projection. T-2003 (prescription
-          // engine) plus G01 (signed bundle) supply a real projected rate;
-          // until then this fails closed to HOLD via the missing-rate-input
-          // branch in nutrition-safety.ts whenever a live candidate actually
-          // touches nutrition. FIXTURE: neutral synthetic fixture value; not
-          // a live estimate or client-facing claim.
-          projectedWeeklyWeightChangeKg: binding.mode === "LIVE" ? null : 0,
+          currentWeightKg,
+          projectedWeeklyWeightChangeKg,
           provenance,
         }
       : null,
@@ -168,9 +271,20 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
     TYPE_1_DIABETES: status(answers.success ? answers.data.type1Diabetes : undefined),
     CARDIAC_CONDITION: status(answers.success ? answers.data.heartCondition : undefined),
   };
+  // T-2033 file item 5: `SYNTHETIC_REQUIRED_INPUT`'s status is now answered
+  // from the intake v2 field statuses instead of a blunt "some confirmedIntake
+  // exists" check — a v2-shaped `confirmedIntake` blob must actually satisfy
+  // `intakeAnswersSchema` to count as confirmed, not merely be truthy. v1
+  // confirmedIntake keeps the original existence check byte-for-byte (v1
+  // rows have no field-status concept to check against). Every other id
+  // this mapping does not recognise stays `UNKNOWN`, never `CONFIRMED`
+  // (fail closed) — unchanged below.
+  const confirmedIntakeConfirmed = isV2Intake(profile.confirmedIntake)
+    ? intakeAnswersSchema.safeParse(profile.confirmedIntake).success
+    : Boolean(profile.confirmedIntake);
   const requiredInputs = policy.requiredInputIds.map((id) => {
     if (id === "SYNTHETIC_REQUIRED_INPUT")
-      return { id, status: profile.confirmedIntake ? ("CONFIRMED" as const) : ("UNKNOWN" as const) };
+      return { id, status: confirmedIntakeConfirmed ? ("CONFIRMED" as const) : ("UNKNOWN" as const) };
     if (id === "SYNTHETIC_SCREEN_RESULT")
       return {
         id,

@@ -1,95 +1,48 @@
-import { z } from "zod";
+import { intakeAnswersSchema, type FieldStatus } from "../intake-contract";
 import type { PrescriptionInput, PrescriptionReasonCode } from "./types";
 
 /**
- * T-2032 — `buildPrescriptionInput` parses `AiCoachProfile.confirmedIntake`
- * (or an equivalent raw answers object) against the *read* shape of T-2002's
- * frozen intake v2 contract — source: board/tickets/T-2002.md "## Spec" ->
- * "### Contract (frozen)". It cannot import `lib/ai-coach/intake.ts`
- * directly: that file's v2 fields are T-2024's own in-flight change and
- * this ticket's "Out of scope" section forbids editing any file outside
- * `lib/ai-coach/prescription/`, so this is a local mirror of the same
- * frozen field names/enums/status rule, not a second design.
+ * T-2033 (T-2003 Amendment 1 §A1.4) — `buildPrescriptionInput` now parses
+ * against the real, merged intake v2 *read* schema, `intakeAnswersSchema`
+ * from `../intake-contract`, replacing T-2032's temporary local mirror of
+ * the same frozen field names/enums/status rule. That mirror was legal only
+ * until T-2024 merged (see the mirror's own header comment, since removed,
+ * and board/reviews/T-2032-web-engineer-r1.md) — importing the real schema
+ * here is exactly what closes the divergence risk the mirror could not
+ * catch on its own; see `ai-coach-composer.test.ts`'s
+ * "T-2024 divergence regression" test, which builds a `CONFIRM_INTAKE` v2
+ * payload from `intakeV2ConfirmObjectSchema` (the real *write* schema) and
+ * asserts every one of the nine engine inputs below round-trips through
+ * this function.
  *
- * **This mirror is temporary (T-2003 Amendment 1 §A1.4).** T-2033 deletes
- * this file's schema and imports the merged v2 schema from
- * `lib/ai-coach/intake.ts` instead, in the same commit adding a test that
- * round-trips a real `CONFIRM_INTAKE` v2 payload through
- * `buildPrescriptionInput`. Until that lands, a T-2024 field shape that
- * diverges from what T-2002 froze would silently pass here unnoticed — see
- * the SPEC_GAP note in board/reviews/T-2032-web-engineer-r1.md.
+ * Deliberately `../intake-contract`, not `../intake`: `../intake.ts` is the
+ * DB-touching half (`saveIntakeDraft`/`confirmIntake` import `@/lib/db`) and
+ * re-exports `intake-contract.ts` verbatim only so existing server callers
+ * keep working — importing it here would drag `@/lib/db` into this
+ * module's transitive import graph and fail the "imports nothing from
+ * @/lib/db" purity test that is walked from `lib/ai-coach/prescription/index.ts`
+ * (`ai-coach-prescription.test.ts` "hard constraints"). `intake-contract.ts`
+ * is the exact client-safe leaf module `lib/ai-coach/intake.ts`'s own header
+ * comment describes as built for precisely this situation: a consumer that
+ * needs the frozen v2 schema/enums without the DB import. The schema value
+ * is identical either way (`intake.ts` does `export * from "./intake-contract"`),
+ * so this is a purity-preserving import path, not a second definition.
  *
  * Every v2 field is optional on read (T-2002 decision summary): a status
  * other than `CONFIRMED` — or an absent/malformed value — always maps to
  * `null`, even if a value happens to be present in the raw payload (a
  * status/value disagreement can never produce a number). The engine reads
  * nothing else: no `goal`, no free text, no `dislikes`, no
- * `cuisinePreferences`, no allergen strings, no account `gender`. Unknown
- * keys are always ignored (not an error) — permissive on read, matching why
- * T-2002 keeps `intakeAnswersSchema` permissive: it is embedded in
- * `runSnapshotSchema` and re-parsed for historical rows.
+ * `cuisinePreferences`, no allergen strings, no account `gender`.
+ *
+ * Per the frozen contract (board/tickets/T-2003.md "### Shared service"),
+ * `buildPrescriptionInput` returns `ok:false` only for a non-v2 intake or
+ * unparseable answers (`PRESCRIPTION_INTAKE_VERSION_UNSUPPORTED`) — the real
+ * schema's own strictness (e.g. `weightMeasuredOn` rejects a calendar-invalid
+ * or non-date string, `dietaryPattern` requires its full reviewed object
+ * shape) is exactly the validation this function is specified to defer to,
+ * rather than re-implementing a second, looser copy of it.
  */
-
-const fieldStatusSchema = z.enum(["CONFIRMED", "DECLINED", "UNKNOWN"]);
-type FieldStatus = z.infer<typeof fieldStatusSchema>;
-
-const optionalNumber = z.number().optional().catch(undefined);
-const optionalStatus = fieldStatusSchema.optional().catch(undefined);
-/** T-2002 froze this as `z.string().date()` — a real Gregorian calendar date,
- * not just a `\d{4}-\d{2}-\d{2}` shape: it rejects "2026-09-31", "2026-02-30"
- * and a datetime string like "2026-09-20T00:00:00Z" (T-2032 review r1 finding
- * B2 — the local mirror had dropped this, so a malformed date silently
- * produced NaN days-since and passed the staleness gate). */
-const optionalCalendarDateString = z.string().date().optional().catch(undefined);
-
-const rawAnswersSchema = z
-  .object({
-    intakeVersion: z.literal(2).optional().catch(undefined),
-    ageYears: optionalNumber,
-    ageStatus: optionalStatus,
-    energyMethodPopulationCategory: z
-      .enum(["MALE_ADULT", "FEMALE_ADULT", "PREGNANCY", "LACTATION", "NOT_LISTED"])
-      .optional()
-      .catch(undefined),
-    energyMethodPopulationCategoryStatus: optionalStatus,
-    physicalActivityCategory: z
-      .enum(["INACTIVE", "LOW_ACTIVE", "ACTIVE", "VERY_ACTIVE"])
-      .optional()
-      .catch(undefined),
-    physicalActivityCategoryStatus: optionalStatus,
-    bodyMeasurementStatus: optionalStatus,
-    heightCm: optionalNumber,
-    weightKg: optionalNumber,
-    weightMeasuredOn: optionalCalendarDateString,
-    bodyWeightIntent: z
-      .enum(["LOSE", "MAINTAIN", "GAIN", "NO_PREFERENCE"])
-      .optional()
-      .catch(undefined),
-    goalPaceClass: z
-      .enum(["MAINTAIN", "GRADUAL", "MODERATE", "UNDECIDED"])
-      .optional()
-      .catch(undefined),
-    goalStatus: optionalStatus,
-    resistanceTrainingContext: z
-      .enum(["NONE", "OCCASIONAL", "REGULAR"])
-      .optional()
-      .catch(undefined),
-    trainingContextStatus: optionalStatus,
-    dietaryPattern: z
-      .object({
-        pattern: z
-          .enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN", "OTHER", "NONE_DECLARED"])
-          .optional()
-          .catch(undefined),
-        reason: z
-          .enum(["PREFERENCE", "RELIGIOUS_OR_ETHICAL", "MEDICAL_OR_CLINICIAN_DIRECTED", "NOT_STATED"])
-          .optional()
-          .catch(undefined),
-        status: optionalStatus,
-      })
-      .optional()
-      .catch(undefined),
-  });
 
 function statusConfirmed(status: FieldStatus | undefined): boolean {
   return status === "CONFIRMED";
@@ -103,10 +56,7 @@ export function buildPrescriptionInput(
   rawAnswers: unknown,
   evaluatedOn: string
 ): BuildPrescriptionInputResult {
-  if (typeof rawAnswers !== "object" || rawAnswers === null) {
-    return { ok: false, reasonCodes: ["PRESCRIPTION_INTAKE_VERSION_UNSUPPORTED"] };
-  }
-  const parsed = rawAnswersSchema.safeParse(rawAnswers);
+  const parsed = intakeAnswersSchema.safeParse(rawAnswers);
   if (!parsed.success || parsed.data.intakeVersion !== 2) {
     return { ok: false, reasonCodes: ["PRESCRIPTION_INTAKE_VERSION_UNSUPPORTED"] };
   }
