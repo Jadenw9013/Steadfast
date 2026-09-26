@@ -282,37 +282,61 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     vi.stubGlobal(
       "fetch",
       vi.fn(async (_url: string, init: RequestInit) => {
+        // Sprint-1 regression repair (T-2033, 2026-09-26): this mock parsed
+        // a request shape (`{envelope: {allowed: ...}}`) that the real
+        // `@anthropic-ai/sdk` client never sends — the actual HTTP request
+        // body is the Anthropic Messages API's own shape
+        // (`{model, max_tokens, system, messages, output_config}`), with the
+        // envelope only present as the JSON-stringified `content` of the
+        // single user message (`anthropic-provider.ts`'s `minimizedUserPayload`).
+        // Reading `body.envelope.allowed` threw `Cannot read properties of
+        // undefined (reading 'allowed')` inside the SDK's own fetch call,
+        // which the SDK reports as a generic `APIConnectionError` — surfacing
+        // in this suite as every live finalization returning HOLD
+        // (`PROVIDER_ERROR`) instead of APPROVE_AUTOMATICALLY. Not a T-2034
+        // regression: disabling T-2034's `ARTIFACT_UNSIGNED_DRAFT` refusal
+        // entirely does not change this failure (verified), and this parsing
+        // bug is unrelated to review-metadata parsing. The response shape
+        // below is similarly corrected to the real Messages API response
+        // (`content`/`stop_reason`/snake_case `usage`), matching
+        // `AnthropicMessageResponse` (`anthropic-provider.ts`) exactly.
         const body = JSON.parse(init.body as string) as {
-          envelope: {
-            allowed: {
-              preferenceIds: string[];
-              optionIds: string[];
-              explanationTemplateIds: string[];
-              reasonCodes: string[];
-              numericFieldIds: string[];
-              limitationIds: string[];
-            };
+          messages: { role: string; content: string }[];
+        };
+        const userMessage = JSON.parse(body.messages[0].content) as {
+          allowed: {
+            preferenceIds: string[];
+            optionIds: string[];
+            explanationTemplateIds: string[];
+            reasonCodes: string[];
+            numericFieldIds: string[];
+            limitationIds: string[];
           };
         };
-        const allowed = body.envelope.allowed;
-        const text = JSON.stringify({
-          output: {
-            schemaVersion: 1,
-            preferenceIds: allowed.preferenceIds.slice(0, 1),
-            concern: { disposition: "NONE", clarificationId: null },
-            rankedOptionIds: allowed.optionIds,
-            explanation: {
-              templateId: allowed.explanationTemplateIds[0],
-              reasonCodes: allowed.reasonCodes,
-              numericFieldIds: allowed.numericFieldIds,
-              limitationIds: allowed.limitationIds,
-            },
+        const allowed = userMessage.allowed;
+        const output = {
+          schemaVersion: 1,
+          preferenceIds: allowed.preferenceIds.slice(0, 1),
+          concern: { disposition: "NONE", clarificationId: null },
+          rankedOptionIds: allowed.optionIds,
+          explanation: {
+            templateId: allowed.explanationTemplateIds[0],
+            reasonCodes: allowed.reasonCodes,
+            numericFieldIds: allowed.numericFieldIds,
+            limitationIds: allowed.limitationIds,
           },
-          usage: { inputTokens: 0, outputTokens: 0 },
+        };
+        const text = JSON.stringify({
+          content: [{ type: "text", text: JSON.stringify(output) }],
+          stop_reason: "end_turn",
+          usage: { input_tokens: 0, output_tokens: 0 },
         });
         return new Response(text, {
           status: 200,
-          headers: { "content-length": String(new TextEncoder().encode(text).byteLength) },
+          headers: {
+            "content-type": "application/json",
+            "content-length": String(new TextEncoder().encode(text).byteLength),
+          },
         });
       })
     );

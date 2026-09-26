@@ -4,8 +4,12 @@ import { representFixturePlan } from "./representation";
 import { db } from "@/lib/db";
 import type { ClaimResult } from "./runs";
 import { failRunAttempt } from "./runs";
-import { runSnapshotSchema } from "./run-command";
-import { buildInitialFixturePlan } from "./initial-plan";
+import { runSnapshotSchema, type RunSnapshot } from "./run-command";
+import { composeInitialPlan, composeUnavailablePrescriptionPlan } from "./initial-plan";
+import { isV2Intake } from "./intake";
+import { ArtifactLoadError, loadReviewedArtifactSet } from "./artifacts/repository";
+import { resolvePrescriptionParametersForArtifacts } from "./prescription-binding";
+import { resolveAiCoachRuntimeBinding } from "./runtime-binding";
 import { contentHash } from "./canonical-json";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
@@ -17,6 +21,98 @@ import {
 import { checkProviderRateLimit, isWithinTokenCeiling } from "./provider/spend-limits";
 import { decisionSchema, planPayloadSchema } from "./plan-contract";
 import { assertAiCoachOperationEnabled } from "./operations";
+
+/**
+ * T-2033 (T-2003 file item 4) — resolves `composeInitialPlan`'s `parameters`
+ * from the artifact set this run is bound to, then composes. The runtime
+ * binding comes from the *executing account's own profile* (review r1 MINOR
+ * 4: never a hardcoded `{ isSynthetic: true }`), and the loaded artifact set
+ * is asserted against the run snapshot's own `policyVersion`/`catalogVersions`
+ * before any parameter is read from it, so "which bundle produced these
+ * numbers" has exactly one answer (CLAUDE.md rule 10). Today the
+ * `LIVE_COMPOSITION_UNAVAILABLE` guard in this function's only caller means
+ * that profile is always synthetic and the binding always FIXTURE.
+ *
+ * A v1 intake never attempts resolution
+ * (the legacy path never needs engine parameters). A v2 intake whose
+ * `resolvePrescriptionParametersForArtifacts` call fails is **not** an
+ * exception: it calls `composeUnavailablePrescriptionPlan` directly with the
+ * real reason codes so the run still completes with an honest
+ * `prescriptionOutcome.status: "UNAVAILABLE"` — the client sees a HOLD with a
+ * reason rather than a spinner (T-2003 file item 4). An `ArtifactLoadError`
+ * while loading the artifact set itself (e.g. a revoked/incompatible bundle)
+ * is not swallowed here either: it maps to the same `TEMPORARILY_UNAVAILABLE`
+ * 503 `finalization.ts` already uses for the identical failure class, and is
+ * distinct from a `resolvePrescriptionParametersForArtifacts` `ok:false`
+ * result, which is a normal, expected outcome, not an artifact-loading fault.
+ */
+async function composeManagedInitialPlan(
+  runId: string,
+  snapshot: RunSnapshot,
+  executingProfile: { isSynthetic: boolean }
+) {
+  const prescriptionId = `rx-${runId}`;
+  const binding = {
+    policyVersion: snapshot.policyVersion,
+    foodCatalogVersion: snapshot.catalogVersions.food,
+    exerciseCatalogVersion: snapshot.catalogVersions.exercise,
+  };
+  if (!isV2Intake(snapshot.intake)) {
+    return composeInitialPlan({
+      rawAnswers: snapshot.intake,
+      prescriptionId,
+      mode: snapshot.representation,
+      evaluatedOn: new Date().toISOString().slice(0, 10),
+      parameters: null,
+      binding,
+    });
+  }
+  const runtimeBinding = await resolveAiCoachRuntimeBinding(null, executingProfile);
+  let artifacts;
+  try {
+    artifacts = await loadReviewedArtifactSet(runtimeBinding.artifactRequest);
+  } catch (err) {
+    if (err instanceof ArtifactLoadError) {
+      throw new AiCoachError(
+        "TEMPORARILY_UNAVAILABLE",
+        "AI coaching is not available for live use yet.",
+        503
+      );
+    }
+    throw err;
+  }
+  if (
+    artifacts.policy.artifactKey !== binding.policyVersion ||
+    artifacts.foodCatalog.artifactKey !== binding.foodCatalogVersion ||
+    artifacts.exerciseCatalog.artifactKey !== binding.exerciseCatalogVersion
+  ) {
+    // The payload stamps the snapshot's binding; the engine parameters come
+    // from the loaded set. If those two ever disagree the run must fail, not
+    // publish numbers attributed to a bundle that did not produce them.
+    throw new AiCoachError(
+      "TEMPORARILY_UNAVAILABLE",
+      "The reviewed artifact set no longer matches this run's binding.",
+      503
+    );
+  }
+  const resolved = resolvePrescriptionParametersForArtifacts(artifacts);
+  if (!resolved.ok) {
+    return composeUnavailablePrescriptionPlan(
+      snapshot.intake,
+      snapshot.representation,
+      binding,
+      resolved.reasonCodes
+    );
+  }
+  return composeInitialPlan({
+    rawAnswers: snapshot.intake,
+    prescriptionId,
+    mode: snapshot.representation,
+    evaluatedOn: new Date().toISOString().slice(0, 10),
+    parameters: resolved.parameters,
+    binding,
+  });
+}
 
 /** Commit candidate and run completion together, after the external provider stage.
  * Model output never supplies targets, catalog IDs, ownership or a plan pointer.
@@ -53,7 +149,7 @@ export async function processManagedRun(
     const snapshot = runSnapshotSchema.parse(claim.run.inputSnapshot);
     const generated =
       claim.run.kind === "INITIAL"
-        ? buildInitialFixturePlan(snapshot.intake, `rx-${claim.run.id}`, snapshot.representation)
+        ? await composeManagedInitialPlan(claim.run.id, snapshot, executingProfile)
         : claim.run.kind === "REPRESENTATION" && snapshot.basePayload
           ? representFixturePlan(
               snapshot.basePayload,

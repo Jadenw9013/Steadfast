@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { dietaryTagSchema } from "./catalog/schema";
 import { planPayloadSchema, type PlanPayload, type ReviewDecision } from "./plan-contract";
-import { composeFixtureMeals } from "./initial-plan";
+import { composeFixtureMeals, composeMealsToPrescription } from "./initial-plan";
 import type { IntakeAnswers } from "./intake";
+import type { Prescription } from "./prescription";
 import { FOOD_CATALOG_VERSION, FOOD_SUBSTITUTIONS } from "./catalog/food-catalog";
 import { computeNutrientTotals } from "./nutrition-totals";
 import { checkMealComposition } from "./composition-feasibility";
@@ -46,13 +47,41 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
     payload.meals = null;
   } else if (!payload.meals) {
     if (!payload.nutrition) return noChange("NO_FEASIBLE_MEALS", "There is no nutrition prescription to represent as meals.");
-    const reference = composeFixtureMeals(answers, 1);
-    if (!reference) return noChange("NO_FEASIBLE_MEALS", "The fixture catalog cannot meet the stated food constraints.");
-    const totals = computeNutrientTotals(reference.days[0].meals.flatMap(m => m.ingredients));
-    if (!totals.success) return noChange("NO_FEASIBLE_MEALS", "Catalog totals are unavailable.");
-    payload.meals = composeFixtureMeals(answers, payload.nutrition.targets.energyKcal / totals.totals.energyKcal);
-    if (!payload.meals) return noChange("NO_FEASIBLE_MEALS", "No practical meal composition fits.");
-    payload.catalogVersions.food = FOOD_CATALOG_VERSION;
+    if (payload.nutrition.method === "REVIEWED_PRESCRIPTION_V1") {
+      // T-2033: a prescribed plan's MEALS representation is composed to the
+      // prescription, not scaled off a reference recipe. The full engine
+      // `Prescription` (with real macro *ranges*) is not persisted on the
+      // payload — only its resolved flat targets are — so the composer is
+      // called with a point-range reconstruction (min === max === the
+      // published target) rather than a copy of `mealTargetsMatch`'s own
+      // tolerance arithmetic. A degrade to NO_FEASIBLE_MEALS keeps the
+      // targets and drops only the meal list (never disappears).
+      const asPrescription: Prescription = {
+        method: "REVIEWED_PRESCRIPTION_V1",
+        energyMethodStructureId: "",
+        parameterSetDigest: payload.prescriptionOutcome?.parameterSetDigest ?? "",
+        maintenanceEnergyKcal: payload.nutrition.targets.energyKcal,
+        targetEnergyKcal: payload.nutrition.targets.energyKcal,
+        proteinG: payload.nutrition.targets.proteinG,
+        carbohydrateRangeG: { min: payload.nutrition.targets.carbsG, max: payload.nutrition.targets.carbsG },
+        fatRangeG: { min: payload.nutrition.targets.fatG, max: payload.nutrition.targets.fatG },
+        projectedWeeklyWeightChangeKg: 0,
+        appliedBoundIds: [],
+        tolerancePercent: payload.nutrition.tolerancePercent,
+        assumptions: payload.nutrition.assumptions,
+      };
+      payload.meals = composeMealsToPrescription(answers, asPrescription, FOOD_CATALOG_VERSION);
+      if (!payload.meals) return noChange("NO_FEASIBLE_MEALS", "The fixture catalog cannot compose meals within tolerance of the reviewed prescription.");
+      payload.catalogVersions.food = FOOD_CATALOG_VERSION;
+    } else {
+      const reference = composeFixtureMeals(answers, 1);
+      if (!reference) return noChange("NO_FEASIBLE_MEALS", "The fixture catalog cannot meet the stated food constraints.");
+      const totals = computeNutrientTotals(reference.days[0].meals.flatMap(m => m.ingredients));
+      if (!totals.success) return noChange("NO_FEASIBLE_MEALS", "Catalog totals are unavailable.");
+      payload.meals = composeFixtureMeals(answers, payload.nutrition.targets.energyKcal / totals.totals.energyKcal);
+      if (!payload.meals) return noChange("NO_FEASIBLE_MEALS", "No practical meal composition fits.");
+      payload.catalogVersions.food = FOOD_CATALOG_VERSION;
+    }
   }
   payload = planPayloadSchema.parse(payload);
   if (!isTargetPreserving(base, payload, answers)) return noChange("NO_FEASIBLE_MEALS", "The proposed portions cannot preserve the current prescription within its validated ranges.");

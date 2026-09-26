@@ -296,6 +296,19 @@ export function buildWeeklyFixtureReview(snapshot: RunSnapshot): {
           "UNCHANGED",
           "The observed trend does not meet this test policy's adjustment condition."
         );
+      // T-2033 file item 7 — guard only. Without this, a weekly review would
+      // emit a payload still claiming `REVIEWED_PRESCRIPTION_V1` whose
+      // numbers came from the fixture `nutritionStep` constant below.
+      // T-2007 replaces this guard with real bundle parameters; this ticket
+      // only fails closed. `payload.nutrition` is narrowed non-null by the
+      // enclosing `if`.
+      if (payload.nutrition.method !== "SYNTHETIC_CATALOG_MATCH") {
+        return none(
+          "HOLD",
+          "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE",
+          "The weekly nutrition adjustment rule needs bundle parameters this test policy does not yet provide."
+        );
+      }
       const factor = 1 - WEEKLY_FIXTURE_POLICY.nutritionStep;
       payload.nutrition.prescriptionId = `rx-${contentHash({ base: snapshot.baseVersionId, window: snapshot.reviewWindowKey, sources: snapshot.sourceRefs }).slice(0, 32)}`;
       for (const key of ["energyKcal", "proteinG", "carbsG", "fatG"] as const)
