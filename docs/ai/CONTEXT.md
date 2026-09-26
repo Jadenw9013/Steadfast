@@ -415,7 +415,7 @@ Exercise: "Incline Press", Sets: 3
 
 ## 15. Known Gotchas & Constraints
 
-1. **Vercel plan**: Pro decided in G05 (T-590), to be confirmed on the dashboard before T-503 ships (was Hobby, 1 cron/day). Current crons: `0 19 * * *` (checkin-reminders), `5 * * * *` (ai-coach-executor), `0 4 * * *` (purge-deleted-accounts) — see `ARCHITECTURE.md` §Cron Jobs
+1. **Vercel plan**: Hobby (1 cron/day minimum cadence). All three crons are daily: `0 19 * * *` (checkin-reminders), `5 4 * * *` (ai-coach-executor), `0 4 * * *` (purge-deleted-accounts) — see `ARCHITECTURE.md` §Cron Jobs
 2. **Prisma adapter**: `@prisma/adapter-pg` with `Int[]` / `Json?` fields can cause P2022 in Turbopack dev. Always use explicit `select` on `CoachClient` and `User` queries that might fetch array columns
 3. **Schema drift**: After editing `schema.prisma`, always run `npx prisma migrate dev` (not `db push`) to create a migration file for the production DB
 4. **Prisma client location**: Generated at `app/generated/prisma/` — after schema changes, run `npx prisma generate` and restart dev server

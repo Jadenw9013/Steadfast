@@ -12,7 +12,7 @@ const vercelJsonPath = join(repoRoot, "vercel.json");
 
 const FROZEN_CRONS = [
   { path: "/api/cron/checkin-reminders", schedule: "0 19 * * *" },
-  { path: "/api/cron/ai-coach-executor", schedule: "5 * * * *" },
+  { path: "/api/cron/ai-coach-executor", schedule: "5 4 * * *" },
   { path: "/api/cron/purge-deleted-accounts", schedule: "0 4 * * *" },
 ];
 

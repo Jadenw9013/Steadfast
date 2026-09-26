@@ -482,7 +482,7 @@ A10's fixture-tested acceptance service, and that dependency is
 something real to call instead of a stub.
 
 **T-503 (2026-09-24):** A05's cron route is now actually scheduled — `vercel.json` registers
-`/api/cron/ai-coach-executor` hourly at `:05 UTC` (`5 * * * *`), with `maxDuration = 180` (135s
+`/api/cron/ai-coach-executor` daily at `04:05 UTC` (`5 4 * * *`), with `maxDuration = 180` (135s
 provider ceiling for 3 sequential claims + 45s validation/persistence/reconciliation headroom) and
 `runtime = "nodejs"` declared explicitly on the route. The sweep stays a complete no-op — zero
 database access — while `FEATURE_AI_COACH_GENERATION` is unset, which is every environment today.
