@@ -9,7 +9,9 @@ import {
   type ArtifactDraftInput,
   type ArtifactKind,
   type ArtifactReference,
+  type ArtifactReviewMetadata,
   type PolicyBundleContent,
+  type SignedArtifactReviewMetadata,
   artifactReferenceSchema,
   escalationTemplatesContentSchema,
   evidenceRegistryContentSchema,
@@ -17,6 +19,7 @@ import {
   policyBundleContentSchema,
   parseArtifactContent,
   parseArtifactDraftInput,
+  isDraftUnsignedReviewMetadata,
 } from "./schema";
 import { z } from "zod";
 
@@ -33,6 +36,7 @@ export type ArtifactLoadErrorCode =
   | "ARTIFACT_INVALID"
   | "ACCOUNT_NOT_ELIGIBLE"
   | "SYNTHETIC_ARTIFACT_FORBIDDEN"
+  | "ARTIFACT_UNSIGNED_DRAFT"
   | "UNKNOWN_CATALOG_ID";
 
 export class ArtifactLoadError extends Error {
@@ -78,7 +82,7 @@ export type LoadedArtifact = {
   content: ArtifactContent;
   contentDigest: string;
   synthetic: boolean;
-  reviewMetadata: ArtifactDraftInput["reviewMetadata"];
+  reviewMetadata: SignedArtifactReviewMetadata;
   effectiveAt: Date;
   expiresAt: Date;
   publishedAt: Date;
@@ -138,7 +142,9 @@ function rawDigest(row: PersistedArtifact): string {
   });
 }
 
-function parsePersistedArtifact(row: PersistedArtifact): ArtifactDraftInput {
+function parsePersistedArtifact(
+  row: PersistedArtifact
+): ArtifactDraftInput<ArtifactReviewMetadata> {
   if (rawDigest(row) !== row.contentDigest) {
     throw new ArtifactLoadError(
       "ARTIFACT_DIGEST_MISMATCH",
@@ -168,9 +174,15 @@ function parsePersistedArtifact(row: PersistedArtifact): ArtifactDraftInput {
 
 function assertUsable(
   row: PersistedArtifact,
-  draft: ArtifactDraftInput,
+  draft: ArtifactDraftInput<ArtifactReviewMetadata>,
   context: ArtifactCompatibilityContext
 ): LoadedArtifact {
+  if (isDraftUnsignedReviewMetadata(draft.reviewMetadata)) {
+    throw new ArtifactLoadError(
+      "ARTIFACT_UNSIGNED_DRAFT",
+      "Draft unsigned artifacts cannot be loaded as usable artifacts."
+    );
+  }
   const now = context.now;
   if (row.state === "REVOKED" || row.revokedAt) {
     throw new ArtifactLoadError("ARTIFACT_REVOKED", "The reviewed artifact has been revoked.");
@@ -198,6 +210,7 @@ function assertUsable(
   }
   const loaded: LoadedArtifact = {
     ...draft,
+    reviewMetadata: draft.reviewMetadata,
     contentDigest: row.contentDigest,
     effectiveAt: row.effectiveAt,
     expiresAt: row.expiresAt,
@@ -444,6 +457,12 @@ export async function loadLiveArtifactSetForLaunchValidation(
     engineVersion: input.engineVersion,
     now: input.now,
   });
+  if (isDraftUnsignedReviewMetadata(policy.reviewMetadata)) {
+    throw new ArtifactLoadError(
+      "ARTIFACT_UNSIGNED_DRAFT",
+      "Draft unsigned artifacts cannot satisfy live-launch readiness."
+    );
+  }
   if (policy.synthetic) {
     throw new ArtifactLoadError(
       "SYNTHETIC_ARTIFACT_FORBIDDEN",
@@ -476,6 +495,12 @@ export async function loadLiveArtifactSetForLaunchValidation(
       engineVersion: input.engineVersion,
       now: input.now,
     });
+    if (isDraftUnsignedReviewMetadata(dependency.reviewMetadata)) {
+      throw new ArtifactLoadError(
+        "ARTIFACT_UNSIGNED_DRAFT",
+        "Draft unsigned artifacts cannot satisfy live-launch readiness."
+      );
+    }
     if (dependency.synthetic) {
       throw new ArtifactLoadError(
         "SYNTHETIC_ARTIFACT_FORBIDDEN",
@@ -567,6 +592,12 @@ export async function publishArtifactVersion(input: {
         "Only a draft artifact version can be published."
       );
     const draft = parsePersistedArtifact(row);
+    if (isDraftUnsignedReviewMetadata(draft.reviewMetadata)) {
+      throw new ArtifactLoadError(
+        "ARTIFACT_UNSIGNED_DRAFT",
+        "A draft unsigned artifact cannot be published."
+      );
+    }
     if (!draft.engineVersions.includes(input.engineVersion)) {
       throw new ArtifactLoadError(
         "ARTIFACT_INCOMPATIBLE",
@@ -879,7 +910,10 @@ export function reviewedCatalogDisplayNames(artifacts: ReviewedArtifactSet): str
   assertVerifiedLoadedArtifact(artifacts.foodCatalog);
   assertVerifiedLoadedArtifact(artifacts.exerciseCatalog);
   const foodContent = parseArtifactContent("FOOD_CATALOG", artifacts.foodCatalog.content);
-  const exerciseContent = parseArtifactContent("EXERCISE_CATALOG", artifacts.exerciseCatalog.content);
+  const exerciseContent = parseArtifactContent(
+    "EXERCISE_CATALOG",
+    artifacts.exerciseCatalog.content
+  );
   const names: string[] = [];
   if ("items" in foodContent) names.push(...foodContent.items.map((item) => item.name));
   if ("exercises" in exerciseContent) {

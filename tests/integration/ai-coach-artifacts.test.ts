@@ -17,6 +17,8 @@ import {
   buildSyntheticArtifactSet,
   SYNTHETIC_ARTIFACT_ENGINE_VERSION,
 } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import { loadDraftUnsignedPolicyBundle } from "@/lib/ai-coach/artifacts/drafts/loader";
+import { PRESCRIPTION_PARAMETER_SPECS } from "@/lib/ai-coach/prescription/parameters";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 
@@ -497,6 +499,231 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
       ).rejects.toThrow("authorized governance context");
     } finally {
       vi.unstubAllEnvs();
+    }
+  });
+
+  it("registerArtifactVersion accepts a DRAFT_UNSIGNED policy bundle, then publishArtifactVersion throws ARTIFACT_UNSIGNED_DRAFT and row stays DRAFT", async () => {
+    const draftFile = loadDraftUnsignedPolicyBundle();
+    const set = buildSyntheticArtifactSet(namespace("draft-publish-reject"));
+    const leaves = [
+      set.foodCatalog,
+      set.exerciseCatalog,
+      set.evidenceRegistry,
+      set.escalationTemplates,
+    ];
+    for (const leaf of leaves) {
+      await registerArtifactVersion(leaf);
+      await publishArtifactVersion({
+        id: leaf.id,
+        effectiveAt: new Date(Date.now() - 60_000),
+        expiresAt: new Date(Date.now() + 3_600_000),
+        engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+      });
+    }
+
+    const artifactKey = namespace("draft-reject-policy");
+    const content = { ...draftFile.content, artifactKey };
+    const draftInput = {
+      id: `${artifactKey}:v1`,
+      artifactKey,
+      version: 1,
+      kind: "POLICY_BUNDLE" as const,
+      schemaVersion: 1 as const,
+      engineVersions: [SYNTHETIC_ARTIFACT_ENGINE_VERSION],
+      dependencies: leaves.map((leaf) => ({
+        id: leaf.id,
+        artifactKey: leaf.artifactKey,
+        version: leaf.version,
+        kind: leaf.kind,
+        digest: artifactContentDigest(leaf),
+      })),
+      synthetic: false,
+      reviewMetadata: draftFile.reviewMetadata,
+      content,
+    };
+
+    const registered = await registerArtifactVersion(draftInput);
+    expect(registered.state).toBe("DRAFT");
+
+    await expect(
+      publishArtifactVersion({
+        id: draftInput.id,
+        effectiveAt: new Date(Date.now() - 60_000),
+        expiresAt: new Date(Date.now() + 3_600_000),
+        engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+      })
+    ).rejects.toMatchObject({
+      code: "ARTIFACT_UNSIGNED_DRAFT",
+    });
+
+    const persisted = await db.aiCoachArtifactVersion.findUnique({
+      where: { id: draftInput.id },
+    });
+    expect(persisted?.state).toBe("DRAFT");
+  });
+
+  it("fails to load a row hand-updated to state PUBLISHED with draft metadata through loadReviewedArtifactSet with ARTIFACT_UNSIGNED_DRAFT", async () => {
+    const account = await createAccount(false);
+    authenticateAs(account);
+    const draftFile = loadDraftUnsignedPolicyBundle();
+    const set = buildSyntheticArtifactSet(namespace("hand-updated-published"));
+    const leaves = [
+      set.foodCatalog,
+      set.exerciseCatalog,
+      set.evidenceRegistry,
+      set.escalationTemplates,
+    ];
+    for (const leaf of leaves) {
+      await registerArtifactVersion(leaf);
+      await publishArtifactVersion({
+        id: leaf.id,
+        effectiveAt: new Date(Date.now() - 60_000),
+        expiresAt: new Date(Date.now() + 3_600_000),
+        engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+      });
+    }
+
+    const artifactKey = namespace("hand-update-policy");
+    const content = { ...draftFile.content, artifactKey };
+    const draftInput = {
+      id: `${artifactKey}:v1`,
+      artifactKey,
+      version: 1,
+      kind: "POLICY_BUNDLE" as const,
+      schemaVersion: 1 as const,
+      engineVersions: [SYNTHETIC_ARTIFACT_ENGINE_VERSION],
+      dependencies: leaves.map((leaf) => ({
+        id: leaf.id,
+        artifactKey: leaf.artifactKey,
+        version: leaf.version,
+        kind: leaf.kind,
+        digest: artifactContentDigest(leaf),
+      })),
+      synthetic: false,
+      reviewMetadata: draftFile.reviewMetadata,
+      content,
+    };
+
+    await registerArtifactVersion(draftInput);
+
+    const now = new Date();
+    await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('steadfast.ai_coach_artifact_lifecycle_action', 'PUBLISH', true)`;
+      await tx.aiCoachArtifactVersion.update({
+        where: { id: draftInput.id },
+        data: {
+          state: "PUBLISHED",
+          publishedAt: now,
+          effectiveAt: new Date(now.getTime() - 60_000),
+          expiresAt: new Date(now.getTime() + 3_600_000),
+        },
+      });
+    });
+
+    await expect(loadReviewedArtifactSet(request(draftInput.artifactKey))).rejects.toMatchObject({
+      code: "ARTIFACT_UNSIGNED_DRAFT",
+    });
+  });
+
+  it("loadLiveArtifactSetForLaunchValidation refuses a packet binding a draft artifact with ARTIFACT_UNSIGNED_DRAFT", async () => {
+    const draftFile = loadDraftUnsignedPolicyBundle();
+    const set = buildSyntheticArtifactSet(namespace("live-launch-draft"));
+    const leaves = [
+      set.foodCatalog,
+      set.exerciseCatalog,
+      set.evidenceRegistry,
+      set.escalationTemplates,
+    ];
+    for (const leaf of leaves) {
+      await registerArtifactVersion(leaf);
+      await publishArtifactVersion({
+        id: leaf.id,
+        effectiveAt: new Date(Date.now() - 60_000),
+        expiresAt: new Date(Date.now() + 3_600_000),
+        engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+      });
+    }
+
+    const artifactKey = namespace("live-launch-draft-policy");
+    const content = { ...draftFile.content, artifactKey };
+    const draftInput = {
+      id: `${artifactKey}:v1`,
+      artifactKey,
+      version: 1,
+      kind: "POLICY_BUNDLE" as const,
+      schemaVersion: 1 as const,
+      engineVersions: [SYNTHETIC_ARTIFACT_ENGINE_VERSION],
+      dependencies: leaves.map((leaf) => ({
+        id: leaf.id,
+        artifactKey: leaf.artifactKey,
+        version: leaf.version,
+        kind: leaf.kind,
+        digest: artifactContentDigest(leaf),
+      })),
+      synthetic: false,
+      reviewMetadata: draftFile.reviewMetadata,
+      content,
+    };
+
+    await registerArtifactVersion(draftInput);
+    const now = new Date();
+    await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT set_config('steadfast.ai_coach_artifact_lifecycle_action', 'PUBLISH', true)`;
+      await tx.aiCoachArtifactVersion.update({
+        where: { id: draftInput.id },
+        data: {
+          state: "PUBLISHED",
+          publishedAt: now,
+          effectiveAt: new Date(now.getTime() - 60_000),
+          expiresAt: new Date(now.getTime() + 3_600_000),
+        },
+      });
+    });
+
+    const packetReferences = [
+      {
+        id: draftInput.id,
+        artifactKey: draftInput.artifactKey,
+        version: draftInput.version,
+        kind: draftInput.kind,
+        digest: artifactContentDigest(draftInput),
+      },
+      ...draftInput.dependencies,
+    ];
+
+    await expect(
+      db.$transaction((tx) =>
+        loadLiveArtifactSetForLaunchValidation(tx, {
+          engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+          references: packetReferences,
+          now: new Date(),
+        })
+      )
+    ).rejects.toMatchObject({
+      code: "ARTIFACT_UNSIGNED_DRAFT",
+    });
+  });
+
+  it("publishes and loads the synthetic artifact set with all 75 prescription parameters present in the loaded artifact", async () => {
+    const account = await createAccount(true);
+    authenticateAs(account);
+    const set = buildSyntheticArtifactSet(namespace("all-75-parameters"));
+    await registerAndPublish(set);
+
+    const loaded = await loadReviewedArtifactSet(request(set.policyKey));
+    expect(loaded.policy.kind).toBe("POLICY_BUNDLE");
+
+    const numericParams =
+      loaded.policy.kind === "POLICY_BUNDLE"
+        ? (loaded.policy.content as { numericParameters: Array<{ id: string; value: number }> })
+            .numericParameters
+        : [];
+
+    const paramMap = new Map(numericParams.map((p) => [p.id, p.value]));
+    for (const spec of PRESCRIPTION_PARAMETER_SPECS) {
+      expect(paramMap.has(spec.id)).toBe(true);
+      expect(typeof paramMap.get(spec.id)).toBe("number");
+      expect(Number.isFinite(paramMap.get(spec.id))).toBe(true);
     }
   });
 });

@@ -57,6 +57,8 @@ Preserve `not reported`, `not tracked` and `not scheduled`. Self-reported compli
 
 The completed adaptive MVP must demonstrate an eligible nutrition `ADJUST` trajectory using inputs the shipped UI actually collects. A release capable only of holding because required observations are absent is an earlier feasibility preview.
 
+The deterministic prescription engine (`lib/ai-coach/prescription/`) is the sole producer of personalized nutrition targets. Neither language models nor client-side heuristics may invent, modify, or output target numbers. All policy parameters required by the prescription engine are governed by reviewed artifact bundles. Checked-in artifacts without qualified professional sign-off carry the explicit `DRAFT_UNSIGNED` review decision (`lib/ai-coach/artifacts/schema.ts`), which is refused by artifact loaders (`ARTIFACT_UNSIGNED_DRAFT`), repository publication, and live-launch validators, mathematically preventing unreviewed clinical parameters from ever reaching client devices.
+
 ## 5. Coordinated weekly decisions
 
 `HOLD`, `SIMPLIFY`, `ADJUST`, `CLARIFY` and `PAUSE_REFER` are meaningful outcomes. Review cadence does not require a numerical change. Nutrition, cardio and resistance proposals share the same accepted baseline and joint validator; never create an invented conversion between calorie restriction and lifting workload.
