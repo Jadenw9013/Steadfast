@@ -4,9 +4,12 @@ import { db } from "@/lib/db";
 import { requestAiRun } from "@/lib/ai-coach/run-command";
 import { retryManagedRun } from "@/lib/ai-coach/retry-command";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 suite("owner-scoped terminal run retry", () => {
   beforeEach(() => { vi.stubEnv("AI_COACH_FIXTURE_MODE", "true"); vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true"); }); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());
   async function fixture() { const id = randomUUID(); const client = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } }); await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } }); await db.aiCoachEntitlement.create({ data: { clientId: client.id } }); await db.aiCoachProfile.create({ data: { clientId: client.id, isSynthetic: true, consentedAt: new Date(), reviewTimezone: "America/Los_Angeles", confirmedIntake: { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 2, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC" } } }); const { runId } = await requestAiRun(client.id, { requestKey: randomUUID(), kind: "INITIAL", representation: "MACROS", expectedContextRevision: 0, expectedProfileRevision: 0 }); const run = await db.aiCoachRun.update({ where: { id: runId }, data: { status: "FAILED", attempts: 3 } }); return { client, run }; }

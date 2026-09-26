@@ -7,9 +7,12 @@ vi.mock("@clerk/nextjs/server", () => ({
 const mocks = vi.hoisted(() => ({ authUserId: "" }));
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: table-wide AI Coach state; runs alone. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("exclusive");
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";

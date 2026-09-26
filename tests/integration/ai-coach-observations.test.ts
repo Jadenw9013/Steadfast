@@ -4,9 +4,12 @@ import { db } from "@/lib/db";
 import { submitAiCheckIn } from "@/lib/check-ins/submit";
 import { getAiObservations } from "@/lib/queries/ai-observations";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 const payload = { schemaVersion: 1, completeness: "REPORTED_PARTIAL", followingDays: null, weight: null, energy: "NOT_REPORTED", recovery: "NOT_REPORTED", hunger: "NOT_REPORTED", barrier: "NOT_REPORTED", safetyChanged: "NO" };
 suite("revisioned private AI check-ins", () => {
   beforeEach(() => vi.stubEnv("AI_COACH_FIXTURE_MODE", "true")); afterEach(() => vi.unstubAllEnvs()); afterAll(() => db.$disconnect());

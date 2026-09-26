@@ -156,9 +156,12 @@ describe("T-1006 fixed-order autonomy contract", () => {
 });
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
 const getCurrentDbUserMock = vi.mocked(getCurrentDbUser);
 
 suite("T-1006 deterministic autonomy gate with real PostgreSQL constraints", () => {
