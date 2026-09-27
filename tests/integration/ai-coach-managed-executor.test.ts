@@ -9,6 +9,12 @@ import { SyntheticFixtureProvider } from "@/lib/ai-coach/provider/synthetic-prov
 import { approvalStateHash } from "@/lib/ai-coach/validated-plan";
 import { getAiWorkspace } from "@/lib/queries/ai-coach";
 import { acceptPlanVersionAtomic } from "@/lib/ai-coach/plan-acceptance";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
+import {
+  LEGACY_RUN_SNAPSHOT,
+  legacyRunRowData,
+} from "../fixtures/ai-coach-legacy-run-snapshot";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
@@ -16,6 +22,10 @@ if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 // T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
 lockGlobalAiCoachState("shared");
+/** Captured from the pre-change `runSnapshotSchema` at base commit 7bd49f1;
+ * see tests/unit/ai-coach-run-snapshot.test.ts and board/evidence/T-2041.md. */
+const GOLDEN_LEGACY_SNAPSHOT_HASH =
+  "f0996c93f14ee161ef819a25ad0fe3efdaf867c69d5e6942041f73f5b9faa800";
 suite("managed execution and permitted reads", () => {
   beforeEach(() => {
     vi.stubEnv("AI_COACH_FIXTURE_MODE", "true");
@@ -64,6 +74,58 @@ suite("managed execution and permitted reads", () => {
     if (!claim.claimed) throw new Error("Fixture claim failed");
     return { client, claim };
   }
+  /**
+   * T-2041 read path 3 (`managed-executor.ts` parse -> stamp ->
+   * `validationReport.inputHash`): a run QUEUED before this ticket deployed
+   * and executed after it must produce the identical candidate. The
+   * `inputHash` asserted here is the golden `contentHash` captured from the
+   * **pre-change** `runSnapshotSchema` at base commit 7bd49f1 — if the schema
+   * change had moved the parse output by one byte, this is where it shows.
+   */
+  it("T-2041: a legacy (unbound) run snapshot replays to the identical candidate", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+    });
+    await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    await db.aiCoachProfile.create({
+      data: {
+        clientId: client.id,
+        isSynthetic: true,
+        consentedAt: new Date(),
+        reviewTimezone: "America/Los_Angeles",
+        confirmedIntake: LEGACY_RUN_SNAPSHOT.intake,
+      },
+    });
+    const run = await db.aiCoachRun.create({
+      data: legacyRunRowData(client.id, `t2041-legacy-${randomUUID()}`),
+    });
+    const claim = await claimQueuedRun(run.id);
+    if (!claim.claimed) throw new Error("Fixture claim failed");
+    expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("completed");
+
+    const candidate = await db.aiPlanVersion.findFirstOrThrow({
+      where: { clientId: client.id },
+    });
+    expect(candidate.policyVersion).toBe("policy-fixture-v1");
+    expect(candidate.catalogVersions).toEqual({
+      food: "food-fixture-v2",
+      exercise: "exercise-fixture-v1",
+    });
+    expect((candidate.validationReport as { inputHash: string }).inputHash).toBe(
+      GOLDEN_LEGACY_SNAPSHOT_HASH
+    );
+    // And the payload is the synthetic corpus's, unchanged: the same hash the
+    // unit corpus pins for this intake through the three-argument composer.
+    const expected = buildInitialFixturePlan(
+      LEGACY_RUN_SNAPSHOT.intake,
+      `rx-${run.id}`,
+      "MACROS"
+    );
+    expect(candidate.payloadHash).toBe(contentHash(expected.payload));
+  });
+
   it("saves exactly one pending candidate, without creating a human plan or exposing instructions", async () => {
     const { client, claim } = await fixture();
     expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("completed");

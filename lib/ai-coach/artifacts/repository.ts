@@ -988,3 +988,174 @@ export function resolveReviewedPrescriptionExplanationTexts(
   }
   return texts;
 }
+
+/**
+ * T-2041 — loads the **exact** artifact references a run was bound to at
+ * `requestAiRun`, under the caller's already-open transaction.
+ *
+ * Additive: no existing loader changes. It is deliberately *not*
+ * `loadLiveArtifactSetForLaunchValidation` (`:456`), which refuses every
+ * synthetic artifact and so cannot re-load a FIXTURE run's frozen set, and
+ * not `withReviewedArtifactSetForCurrentClient` (`:814`), which resolves the
+ * authenticated Clerk identity and opens its own transaction — neither is
+ * available to the cron executor.
+ *
+ * This is the executor's re-check that a revoked, expired, superseded or
+ * reclassified artifact fails the run closed *before* any candidate is
+ * written. It selects nothing: every version comes from the stored
+ * reference, and `loadArtifactByReference` throws on an identity or digest
+ * mismatch. `assertAccountClassification` is applied against the profile's
+ * own persisted `isSynthetic`, read under this transaction, so a run bound to
+ * a synthetic set can never execute for a live account and vice versa.
+ */
+export async function loadRunBoundArtifactSet(
+  tx: Prisma.TransactionClient,
+  clientId: string,
+  input: { engineVersion: string; references: readonly ArtifactReference[] }
+): Promise<ReviewedArtifactSet> {
+  const now = new Date();
+  const parsed = z
+    .array(artifactReferenceSchema)
+    .length(5)
+    .superRefine((references, ctx) => {
+      const kinds = references.map((reference) => reference.kind);
+      const ids = references.map((reference) => reference.id);
+      if (new Set(kinds).size !== kinds.length)
+        ctx.addIssue({ code: "custom", message: "Artifact kinds must be unique." });
+      if (new Set(ids).size !== ids.length)
+        ctx.addIssue({ code: "custom", message: "Artifact IDs must be unique." });
+    })
+    .safeParse(input.references);
+  if (!parsed.success) {
+    throw new ArtifactLoadError(
+      "ARTIFACT_INVALID",
+      "A run binding requires exactly one immutable reference for every artifact kind."
+    );
+  }
+  const referencesByKind = new Map(
+    parsed.data.map((reference) => [reference.kind, reference] as const)
+  );
+  for (const kind of [
+    "POLICY_BUNDLE",
+    "FOOD_CATALOG",
+    "EXERCISE_CATALOG",
+    "EVIDENCE_REGISTRY",
+    "ESCALATION_TEMPLATES",
+  ] as const) {
+    if (!referencesByKind.has(kind)) {
+      throw new ArtifactLoadError(
+        "ARTIFACT_MISSING",
+        `The run binding is missing the required ${kind} reference.`
+      );
+    }
+  }
+  await tx.$queryRaw`SELECT "id" FROM "AiCoachProfile" WHERE "clientId" = ${clientId} FOR SHARE`;
+  const profile = await tx.aiCoachProfile.findUnique({
+    where: { clientId },
+    select: { isSynthetic: true },
+  });
+  if (!profile) {
+    throw new ArtifactLoadError(
+      "ACCOUNT_NOT_ELIGIBLE",
+      "An active persisted client profile is required to load reviewed artifacts."
+    );
+  }
+  const persistedClassification = profile.isSynthetic ? "SYNTHETIC" : "LIVE";
+  const context = { engineVersion: input.engineVersion, now };
+
+  const policy = await loadArtifactByReference(
+    tx,
+    referencesByKind.get("POLICY_BUNDLE")!,
+    context
+  );
+  assertAccountClassification(policy, persistedClassification);
+  if (policy.dependencies.length !== 4) {
+    throw new ArtifactLoadError(
+      "ARTIFACT_INCOMPATIBLE",
+      "The policy bundle must bind exactly one dependency of every required kind."
+    );
+  }
+  const dependencies = new Map<ArtifactKind, LoadedArtifact>();
+  for (const dependencyReference of policy.dependencies) {
+    const boundReference = referencesByKind.get(dependencyReference.kind);
+    if (
+      !boundReference ||
+      boundReference.id !== dependencyReference.id ||
+      boundReference.artifactKey !== dependencyReference.artifactKey ||
+      boundReference.version !== dependencyReference.version ||
+      boundReference.digest !== dependencyReference.digest
+    ) {
+      throw new ArtifactLoadError(
+        "ARTIFACT_DIGEST_MISMATCH",
+        "The run binding does not match the immutable policy dependency set."
+      );
+    }
+    const dependency = await loadArtifactByReference(tx, dependencyReference, context);
+    assertAccountClassification(dependency, persistedClassification);
+    dependencies.set(dependency.kind, dependency);
+  }
+  const set = artifactSetFromDependencies(policy, dependencies);
+  assertArtifactSetReferences(set);
+  deepFreeze(set);
+  return set;
+}
+
+/**
+ * T-2041 — resolves an `ArtifactLoadRequest` for an **explicit, trusted
+ * `clientId`**, under the caller's open transaction and with no Clerk
+ * session.
+ *
+ * `loadReviewedArtifactSet` / `withReviewedArtifactSetForCurrentClient`
+ * resolve the account from `getCurrentDbUser()` and open their own
+ * transaction, so neither can serve `requestAiRun` (which is handed a
+ * server-derived `clientId` and must not resolve a *second* identity) or the
+ * cron executor (which has no session at all).
+ *
+ * An exact-reference request (LIVE) is handed straight to
+ * `loadRunBoundArtifactSet`. A key-only request (FIXTURE) first selects the
+ * effective published policy version under that key — the same selection
+ * `withReviewedArtifactSetForCurrentClient` makes for a key-only request —
+ * and then goes through that same verification, so there is one loader, not
+ * two.
+ */
+export async function resolveArtifactSetForClient(
+  tx: Prisma.TransactionClient,
+  clientId: string,
+  input: ArtifactLoadRequest
+): Promise<ReviewedArtifactSet> {
+  if (input.exactReferences) {
+    return loadRunBoundArtifactSet(tx, clientId, {
+      engineVersion: input.engineVersion,
+      references: input.exactReferences,
+    });
+  }
+  const now = new Date();
+  const versions = (await tx.aiCoachArtifactVersion.findMany({
+    where: {
+      kind: "POLICY_BUNDLE",
+      artifactKey: input.policyArtifactKey,
+      state: { in: ["PUBLISHED", "REVOKED"] },
+    },
+    orderBy: [{ version: "desc" }],
+  })) as PersistedArtifact[];
+  if (versions.length === 0)
+    throw new ArtifactLoadError("ARTIFACT_MISSING", "No published policy bundle exists.");
+  const selected = versions.find((version) => version.effectiveAt && version.effectiveAt <= now);
+  if (!selected)
+    throw new ArtifactLoadError("ARTIFACT_NOT_EFFECTIVE", "No policy bundle is effective yet.");
+  const policyReference: ArtifactReference = {
+    id: selected.id,
+    artifactKey: selected.artifactKey,
+    version: selected.version,
+    kind: selected.kind,
+    digest: selected.contentDigest,
+  };
+  const policy = await loadArtifactByReference(tx, policyReference, {
+    engineVersion: input.engineVersion,
+    now,
+  });
+  return loadRunBoundArtifactSet(tx, clientId, {
+    engineVersion: input.engineVersion,
+    references: [policyReference, ...policy.dependencies],
+  });
+}

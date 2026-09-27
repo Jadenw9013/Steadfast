@@ -15,7 +15,12 @@ import { assertAiCoachOperationEnabled } from "./operations";
 import { buildPrescriptionInput, computePrescription } from "./prescription";
 import { classifyPrescriptionReasonCodes } from "./prescription-reason-classes";
 import { resolvePrescriptionParametersForArtifacts } from "./prescription-binding";
-import { resolveAiCoachRuntimeBinding, runRuntimeConstrainedProviderBoundary } from "./runtime-binding";
+import { runSnapshotSchema } from "./run-command";
+import {
+  resolveAiCoachRuntimeBinding,
+  runRuntimeConstrainedProviderBoundary,
+  runtimeArtifactRefs,
+} from "./runtime-binding";
 import { sourceRefSchema } from "./plan-contract";
 import { safetyDisclosureSchema, type TriState } from "./safety";
 import { validatedManagedPayload } from "./validated-plan";
@@ -113,6 +118,37 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
       );
     }
     throw err;
+  }
+  // T-2041 — the run's frozen binding is the authority, and this is the
+  // explicit fail-closed for "the release rotated or an artifact was revoked
+  // between request and finalize". `artifacts` above is today's set for this
+  // account; `frozen` is the exact set the run that produced this candidate
+  // was prepared against. A candidate with no run, or a run whose snapshot
+  // predates T-2041, carries no frozen binding and skips the check entirely —
+  // unchanged behaviour. The implicit fail-closed (the load above refusing a
+  // revoked artifact) stays as the second layer.
+  //
+  // This is deliberately a rotation of *reviewed content*, which is the same
+  // class as the existing `candidate.policyVersion` 422 a few lines above,
+  // not a change in the client's own inputs — T-2033's replay keeps routing
+  // those to a HOLD, and nothing here touches that path.
+  const producingRun = await db.aiCoachRun.findFirst({
+    where: { clientId: user.id, resultPlanVersionId: candidate.id, status: "COMPLETED" },
+    // Mandatory (release-safety §3): `findFirst` over a set that can hold a
+    // retry's duplicate must be ordered.
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { inputSnapshot: true },
+  });
+  const storedSnapshot = producingRun
+    ? runSnapshotSchema.safeParse(producingRun.inputSnapshot)
+    : null;
+  const frozen = storedSnapshot?.success ? storedSnapshot.data.runtimeBinding : undefined;
+  if (frozen && contentHash(frozen.artifactRefs) !== contentHash(runtimeArtifactRefs(artifacts))) {
+    throw new AiCoachError(
+      "VALIDATION_ERROR",
+      "The proposal was prepared against different reviewed content.",
+      422
+    );
   }
   const policy = getReviewedPolicyBundleContent(artifacts.policy);
   const provenance = binding.mode === "LIVE" ? "SERVER_VALIDATED_CLIENT_STATE" : "SYNTHETIC_SERVER_FIXTURE";

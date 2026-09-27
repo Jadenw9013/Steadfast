@@ -6,6 +6,7 @@ import {
   activateTestLiveRelease,
   createTestGovernanceActor,
   deactivateTestLiveRelease,
+  publishRuntimeFixtureArtifacts,
 } from "../helpers/ai-live-launch";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
@@ -184,5 +185,43 @@ suite("managed run request boundary", () => {
     if (!parsed.success) throw new Error("unreachable");
     expect(parsed.data.intake).not.toHaveProperty("intakeVersion");
     expect(parsed.data.schemaVersion).toBe(1);
+  });
+
+  /**
+   * T-2041 — with the synthetic fixture artifact set published, a synthetic
+   * run freezes a FIXTURE `runtimeBinding` whose keys are the very fixture
+   * constants the four widened top-level fields still carry. Read path 1
+   * (`businessKey`) is asserted in the same test: dedup must still collapse
+   * two identical requests **within** this build.
+   */
+  it("T-2041: a synthetic run freezes a FIXTURE runtimeBinding, and identical requests still dedup to one run", async () => {
+    await publishRuntimeFixtureArtifacts();
+    const client = await fixture();
+    const { runId } = await requestAiRun(client.id, command());
+    const run = await db.aiCoachRun.findUniqueOrThrow({ where: { id: runId } });
+    const snapshot = runSnapshotSchema.parse(run.inputSnapshot);
+
+    expect(snapshot.runtimeBinding).toMatchObject({
+      mode: "FIXTURE",
+      synthetic: true,
+      contentKind: "SYNTHETIC_FIXTURE",
+      modelConfiguration: "synthetic-template-v1",
+      policyVersion: "policy-fixture-v1",
+      catalogVersions: { food: "food-fixture-v2", exercise: "exercise-fixture-v1" },
+    });
+    expect(snapshot.runtimeBinding!.artifactRefs).toHaveLength(5);
+    // The four top-level fields are unchanged strings.
+    expect(snapshot.synthetic).toBe(true);
+    expect(snapshot.policyVersion).toBe("policy-fixture-v1");
+    expect(snapshot.catalogVersions).toEqual({
+      food: "food-fixture-v2",
+      exercise: "exercise-fixture-v1",
+    });
+    expect(snapshot.modelConfiguration).toBe("synthetic-template-v1");
+
+    // Same input, a different request key: one run, not two.
+    const second = await requestAiRun(client.id, command());
+    expect(second.runId).toBe(runId);
+    expect(await db.aiCoachRun.count({ where: { clientId: client.id } })).toBe(1);
   });
 });

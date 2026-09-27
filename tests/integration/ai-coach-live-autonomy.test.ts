@@ -12,12 +12,7 @@ const suite = enabled ? describe : describe.skip;
 lockGlobalAiCoachState("exclusive");
 const authMock = vi.mocked(getCurrentDbUser);
 
-import type { ArtifactDraftInput, ArtifactReviewMetadata } from "@/lib/ai-coach/artifacts/schema";
-import {
-  publishArtifactVersion,
-  registerArtifactVersion,
-} from "@/lib/ai-coach/artifacts/repository";
-import { SYNTHETIC_ARTIFACT_ENGINE_VERSION } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import type { ArtifactDraftInput } from "@/lib/ai-coach/artifacts/schema";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
 import { finalizeCurrentClientPlan } from "@/lib/ai-coach/finalization";
 import {
@@ -36,9 +31,12 @@ import { SyntheticFixtureProvider } from "@/lib/ai-coach/provider/synthetic-prov
 import {
   activateTestLiveRelease,
   artifactReferenceOf,
+  buildLiveTrainingArtifacts,
   buildNonSyntheticLaunchTestArtifacts,
   createTestGovernanceActor,
   deactivateTestLiveRelease,
+  ensureLiveTrainingExerciseCatalogPublished,
+  stubApprovedLiveProviderTransport,
 } from "../helpers/ai-live-launch";
 
 const intake = {
@@ -64,73 +62,6 @@ const clearSafety = {
   eatingDisorderHistoryOrConcern: "NO" as const,
   type1Diabetes: "NO" as const,
 };
-
-/** Bumps an artifact's version/id (keeping `artifactKey` — what everything
- * else matches against — unchanged), so a row reusing another fixture's
- * reserved key never collides with that fixture's own `id`. See
- * `buildLiveTrainingArtifacts` for why this is only safe for
- * EXERCISE_CATALOG, not POLICY_BUNDLE. */
-function bumpVersion<T extends ArtifactDraftInput<ArtifactReviewMetadata>>(
-  artifact: T,
-  version: number
-): T {
-  const clone = structuredClone(artifact);
-  clone.version = version;
-  clone.id = `${clone.artifactKey}:v${version}`;
-  (clone.content as { version: number }).version = version;
-  return clone;
-}
-
-/**
- * A uniquely-namespaced live artifact set (so it can never collide with any
- * other suite's registrations) whose exercise catalog is swapped for one at
- * the code's static hardcoded catalog key, `EXERCISE_CATALOG_VERSION`
- * ("exercise-fixture-v1"), containing "goblet-squat" — present in both that
- * static module (required for `planPayloadSchema`'s own validation of any
- * strength exercise) and this reviewed live artifact.
- *
- * Only the exercise catalog reuses that reserved key, at version 2 (the
- * "t1008-runtime" synthetic fixture other suites share already holds
- * version 1 there). That is safe only because nothing resolves an
- * EXERCISE_CATALOG artifact by "latest version for this key" the way policy
- * bundles are — every exercise/food/evidence/escalation lookup is by the
- * owning policy's own exact `dependencies` references
- * (`lib/ai-coach/artifacts/repository.ts`'s one `orderBy version desc`
- * query is POLICY_BUNDLE-only). The policy/food/evidence/escalation
- * artifacts here keep a fresh unique namespace and are never shared, so
- * they cannot shadow another suite's synthetic "t1008-runtime" policy the
- * way an earlier version of this fixture (reusing "policy-fixture-v1")
- * once did.
- *
- * T-2000 review finding 7 (read this before trusting what this file proves):
- * this is still a **control-flow proof, not a content proof**. The seeded
- * candidate's exercise still resolves through the compile-time
- * `EXERCISE_CATALOG_VERSION` catalog module
- * (`lib/ai-coach/catalog/exercise-catalog.ts`), and `payload.contentKind`
- * stays the literal `"SYNTHETIC_FIXTURE"` (`plan-contract.ts` pins it) —
- * neither can be anything else until a real signed catalog can parse
- * (T-2040) and generation binds to it (T-2022/T-2039/T-2041). A live
- * **nutrition** candidate stays impossible (deliberately — see
- * `finalization.ts`'s `projectedWeeklyWeightChangeKg: null` on the LIVE
- * branch) until T-2003 plus G01's signed bundle. Only the required-input and
- * evidence-rule ids in `buildLiveArtifactsWithRealBundleIds` below are
- * genuinely non-synthetic; every other fixture in this file, including this
- * function, still reuses "t1008-runtime" content with `synthetic` flipped.
- */
-function buildLiveTrainingArtifacts() {
-  const runtimeExerciseSource = buildNonSyntheticLaunchTestArtifacts("t1008-runtime").leaves.find(
-    (leaf) => leaf.kind === "EXERCISE_CATALOG"
-  )!;
-  const customExercise = bumpVersion(runtimeExerciseSource, 2);
-
-  const base = buildNonSyntheticLaunchTestArtifacts(`live-autonomy-${randomUUID()}`);
-  const leaves = base.leaves.map((leaf) =>
-    leaf.kind === "EXERCISE_CATALOG" ? customExercise : leaf
-  );
-  const policy = structuredClone(base.policy);
-  policy.dependencies = leaves.map(artifactReferenceOf);
-  return { leaves, policy, references: [artifactReferenceOf(policy), ...policy.dependencies] };
-}
 
 /**
  * T-2000 review finding 1: a policy bundle whose required-input and
@@ -248,101 +179,14 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
   const sharedArtifacts = buildLiveTrainingArtifacts();
   let actorId: string;
 
-  beforeAll(async () => {
-    // The shared exercise-catalog artifact (reserved key "exercise-fixture-v1")
-    // is published once, with a window wide enough to outlive any single
-    // test-process run, so a later re-run of this file against the same
-    // disposable database never finds it "not effective for the full policy
-    // period" against a policy whose own now-based window has moved forward.
-    // activateTestLiveRelease's own `ensurePublished` skips re-publishing
-    // once a row is already PUBLISHED, so this window sticks.
-    const customExercise = sharedArtifacts.leaves.find((leaf) => leaf.kind === "EXERCISE_CATALOG")!;
-    const existing = await db.aiCoachArtifactVersion.findUnique({
-      where: { id: customExercise.id },
-    });
-    if (!existing) await registerArtifactVersion(customExercise);
-    if (existing?.state !== "PUBLISHED") {
-      await publishArtifactVersion({
-        id: customExercise.id,
-        effectiveAt: new Date("2020-01-01T00:00:00.000Z"),
-        expiresAt: new Date("2099-01-01T00:00:00.000Z"),
-        engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
-      });
-    }
-  });
+  beforeAll(() => ensureLiveTrainingExerciseCatalogPublished(sharedArtifacts));
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true");
     vi.stubEnv("FEATURE_AI_COACH_ENROLLMENT", "true");
     vi.stubEnv("FEATURE_AI_COACH_PUBLICATION", "true");
-    // The LIVE provider boundary is a real HTTPS transport
-    // (ApprovedConstrainedGatewayProvider); stub it exactly the way
-    // SyntheticConstrainedProvider echoes references, so this suite proves
-    // T-1006/T-1007's control flow without making a real network call or a
-    // real model claim.
-    vi.stubEnv("AI_COACH_PROVIDER_CREDENTIAL", "synthetic-isolated-test-credential");
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (_url: string, init: RequestInit) => {
-        // Sprint-1 regression repair (T-2033, 2026-09-26): this mock parsed
-        // a request shape (`{envelope: {allowed: ...}}`) that the real
-        // `@anthropic-ai/sdk` client never sends — the actual HTTP request
-        // body is the Anthropic Messages API's own shape
-        // (`{model, max_tokens, system, messages, output_config}`), with the
-        // envelope only present as the JSON-stringified `content` of the
-        // single user message (`anthropic-provider.ts`'s `minimizedUserPayload`).
-        // Reading `body.envelope.allowed` threw `Cannot read properties of
-        // undefined (reading 'allowed')` inside the SDK's own fetch call,
-        // which the SDK reports as a generic `APIConnectionError` — surfacing
-        // in this suite as every live finalization returning HOLD
-        // (`PROVIDER_ERROR`) instead of APPROVE_AUTOMATICALLY. Not a T-2034
-        // regression: disabling T-2034's `ARTIFACT_UNSIGNED_DRAFT` refusal
-        // entirely does not change this failure (verified), and this parsing
-        // bug is unrelated to review-metadata parsing. The response shape
-        // below is similarly corrected to the real Messages API response
-        // (`content`/`stop_reason`/snake_case `usage`), matching
-        // `AnthropicMessageResponse` (`anthropic-provider.ts`) exactly.
-        const body = JSON.parse(init.body as string) as {
-          messages: { role: string; content: string }[];
-        };
-        const userMessage = JSON.parse(body.messages[0].content) as {
-          allowed: {
-            preferenceIds: string[];
-            optionIds: string[];
-            explanationTemplateIds: string[];
-            reasonCodes: string[];
-            numericFieldIds: string[];
-            limitationIds: string[];
-          };
-        };
-        const allowed = userMessage.allowed;
-        const output = {
-          schemaVersion: 1,
-          preferenceIds: allowed.preferenceIds.slice(0, 1),
-          concern: { disposition: "NONE", clarificationId: null },
-          rankedOptionIds: allowed.optionIds,
-          explanation: {
-            templateId: allowed.explanationTemplateIds[0],
-            reasonCodes: allowed.reasonCodes,
-            numericFieldIds: allowed.numericFieldIds,
-            limitationIds: allowed.limitationIds,
-          },
-        };
-        const text = JSON.stringify({
-          content: [{ type: "text", text: JSON.stringify(output) }],
-          stop_reason: "end_turn",
-          usage: { input_tokens: 0, output_tokens: 0 },
-        });
-        return new Response(text, {
-          status: 200,
-          headers: {
-            "content-type": "application/json",
-            "content-length": String(new TextEncoder().encode(text).byteLength),
-          },
-        });
-      })
-    );
+    stubApprovedLiveProviderTransport();
     // Isolate from every other suite's leftover rows: acceptance criterion 1
     // requires proving this ticket's zero-reviewer path with a real assertion,
     // not one that happens to pass because nothing else in this shared local

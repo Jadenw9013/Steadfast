@@ -2,9 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ArtifactLoadError } from "@/lib/ai-coach/artifacts/repository";
 import type { ArtifactReference } from "@/lib/ai-coach/artifacts/schema";
 import {
+  generationBindingFromSnapshot,
   liveArtifactRequest,
   resolveAiCoachRuntimeBinding,
+  resolvedRuntimeArtifactSetSchema,
 } from "@/lib/ai-coach/runtime-binding";
+import { runSnapshotSchema } from "@/lib/ai-coach/run-command";
+import { ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
+import { FOOD_CATALOG_VERSION } from "@/lib/ai-coach/catalog/food-catalog";
+import { EXERCISE_CATALOG_VERSION } from "@/lib/ai-coach/catalog/exercise-catalog";
+import { LEGACY_RUN_SNAPSHOT } from "../fixtures/ai-coach-legacy-run-snapshot";
 
 function reference(overrides: Partial<ArtifactReference> = {}): ArtifactReference {
   return {
@@ -78,5 +85,135 @@ describe("T-2000 — liveArtifactRequest", () => {
     expect(request.policyArtifactKey).toBe("live-policy-key");
     expect(request.exactReferences).toEqual(bindings);
     expect(request.exactReferences).not.toBe(bindings);
+  });
+});
+
+/**
+ * T-2041 — the resolved runtime artifact set is the single authority for
+ * "which reviewed content produced these numbers". A *mixed* set — one whose
+ * claimed keys do not match the references it carries — must be
+ * unrepresentable, because a snapshot carrying one would let the executor
+ * stamp a candidate with keys no loaded artifact ever supplied.
+ */
+function fixtureRef(kind: ArtifactReference["kind"], artifactKey: string): ArtifactReference {
+  return { id: `${artifactKey}:v1`, artifactKey, version: 1, kind, digest: "b".repeat(64) };
+}
+
+const FIXTURE_SET = {
+  mode: "FIXTURE" as const,
+  engineVersion: "ai-coach-artifact-engine-v1",
+  synthetic: true,
+  contentKind: "SYNTHETIC_FIXTURE" as const,
+  modelConfiguration: "synthetic-template-v1",
+  policyVersion: "policy-fixture-v1",
+  catalogVersions: { food: "food-fixture-v2", exercise: "exercise-fixture-v1" },
+  artifactRefs: [
+    fixtureRef("ESCALATION_TEMPLATES", "synthetic-escalation-t1008-runtime"),
+    fixtureRef("EVIDENCE_REGISTRY", "synthetic-evidence-t1008-runtime"),
+    fixtureRef("EXERCISE_CATALOG", "exercise-fixture-v1"),
+    fixtureRef("FOOD_CATALOG", "food-fixture-v2"),
+    fixtureRef("POLICY_BUNDLE", "policy-fixture-v1"),
+  ],
+};
+
+const LIVE_SET = {
+  ...FIXTURE_SET,
+  mode: "LIVE" as const,
+  synthetic: false,
+  contentKind: "REVIEWED_LIVE_V1" as const,
+  modelConfiguration: "synthetic-final-provider-v1:v1",
+  policyVersion: "live-policy",
+  catalogVersions: { food: "live-food", exercise: "live-exercise" },
+  artifactRefs: [
+    fixtureRef("ESCALATION_TEMPLATES", "live-escalation"),
+    fixtureRef("EVIDENCE_REGISTRY", "live-evidence"),
+    fixtureRef("EXERCISE_CATALOG", "live-exercise"),
+    fixtureRef("FOOD_CATALOG", "live-food"),
+    fixtureRef("POLICY_BUNDLE", "live-policy"),
+  ],
+};
+
+describe("T-2041 — resolvedRuntimeArtifactSetSchema", () => {
+  it("accepts a well-formed FIXTURE set", () => {
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(FIXTURE_SET).success).toBe(true);
+  });
+
+  it("accepts a well-formed LIVE set", () => {
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(LIVE_SET).success).toBe(true);
+  });
+
+  it("rejects four references instead of five", () => {
+    const set = { ...FIXTURE_SET, artifactRefs: FIXTURE_SET.artifactRefs.slice(0, 4) };
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(set).success).toBe(false);
+  });
+
+  it("rejects two references of the same kind", () => {
+    const set = {
+      ...FIXTURE_SET,
+      artifactRefs: [
+        ...FIXTURE_SET.artifactRefs.slice(0, 4),
+        fixtureRef("FOOD_CATALOG", "food-fixture-v2-duplicate"),
+      ],
+    };
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(set).success).toBe(false);
+  });
+
+  it("rejects a policyVersion that disagrees with the POLICY_BUNDLE reference", () => {
+    const set = { ...FIXTURE_SET, policyVersion: "policy-fixture-v9" };
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(set).success).toBe(false);
+  });
+
+  it("rejects a catalogVersions.food that disagrees with the FOOD_CATALOG reference", () => {
+    const set = {
+      ...FIXTURE_SET,
+      catalogVersions: { ...FIXTURE_SET.catalogVersions, food: "food-fixture-v9" },
+    };
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(set).success).toBe(false);
+  });
+
+  it("rejects synthetic: false carrying contentKind SYNTHETIC_FIXTURE", () => {
+    const set = { ...LIVE_SET, contentKind: "SYNTHETIC_FIXTURE" as const };
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(set).success).toBe(false);
+  });
+
+  it("rejects mode FIXTURE with synthetic: false", () => {
+    const set = { ...LIVE_SET, mode: "FIXTURE" as const };
+    expect(resolvedRuntimeArtifactSetSchema.safeParse(set).success).toBe(false);
+  });
+
+  it("rejects duplicate artifact reference IDs", () => {
+    const refs = FIXTURE_SET.artifactRefs.map((ref) => ({ ...ref, id: "same:v1" }));
+    expect(
+      resolvedRuntimeArtifactSetSchema.safeParse({ ...FIXTURE_SET, artifactRefs: refs }).success
+    ).toBe(false);
+  });
+});
+
+describe("T-2041 — generationBindingFromSnapshot", () => {
+  it("returns exactly the fixture constants for a snapshot with no runtimeBinding", () => {
+    const snapshot = runSnapshotSchema.parse(LEGACY_RUN_SNAPSHOT);
+    expect(generationBindingFromSnapshot(snapshot)).toEqual({
+      synthetic: true,
+      contentKind: "SYNTHETIC_FIXTURE",
+      policyVersion: ACTIVE_POLICY_VERSION,
+      catalogVersions: { food: FOOD_CATALOG_VERSION, exercise: EXERCISE_CATALOG_VERSION },
+    });
+  });
+
+  it("returns the binding's four values for a snapshot that carries one", () => {
+    const snapshot = runSnapshotSchema.parse({
+      ...LEGACY_RUN_SNAPSHOT,
+      synthetic: LIVE_SET.synthetic,
+      policyVersion: LIVE_SET.policyVersion,
+      catalogVersions: LIVE_SET.catalogVersions,
+      modelConfiguration: LIVE_SET.modelConfiguration,
+      runtimeBinding: LIVE_SET,
+    });
+    expect(generationBindingFromSnapshot(snapshot)).toEqual({
+      synthetic: false,
+      contentKind: "REVIEWED_LIVE_V1",
+      policyVersion: "live-policy",
+      catalogVersions: { food: "live-food", exercise: "live-exercise" },
+    });
   });
 });

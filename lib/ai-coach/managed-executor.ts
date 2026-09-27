@@ -7,9 +7,14 @@ import { failRunAttempt } from "./runs";
 import { runSnapshotSchema, type RunSnapshot } from "./run-command";
 import { composeInitialPlan, composeUnavailablePrescriptionPlan } from "./initial-plan";
 import { isV2Intake } from "./intake";
-import { ArtifactLoadError, loadReviewedArtifactSet } from "./artifacts/repository";
+import {
+  ArtifactLoadError,
+  loadReviewedArtifactSet,
+  loadRunBoundArtifactSet,
+  type ReviewedArtifactSet,
+} from "./artifacts/repository";
 import { resolvePrescriptionParametersForArtifacts } from "./prescription-binding";
-import { resolveAiCoachRuntimeBinding } from "./runtime-binding";
+import { generationBindingFromSnapshot, resolveAiCoachRuntimeBinding } from "./runtime-binding";
 import { contentHash } from "./canonical-json";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
@@ -49,13 +54,23 @@ import { assertAiCoachOperationEnabled } from "./operations";
 async function composeManagedInitialPlan(
   runId: string,
   snapshot: RunSnapshot,
-  executingProfile: { isSynthetic: boolean }
+  executingProfile: { isSynthetic: boolean },
+  /** T-2041 — the artifact set this run was **frozen** to at `requestAiRun`,
+   * already re-loaded from `snapshot.runtimeBinding.artifactRefs` under the
+   * executor's lock. When it is present it is the authority and nothing is
+   * re-resolved here: before this ticket the composer resolved a fresh set at
+   * execution time while the payload's binding came from the snapshot, which
+   * is two sources of truth for "which content produced these numbers"
+   * (CLAUDE.md rule 10). `null` only for a run whose snapshot predates this
+   * ticket, which keeps its previous behaviour exactly. */
+  frozenArtifacts: ReviewedArtifactSet | null
 ) {
   const prescriptionId = `rx-${runId}`;
+  const generation = generationBindingFromSnapshot(snapshot);
   const binding = {
-    policyVersion: snapshot.policyVersion,
-    foodCatalogVersion: snapshot.catalogVersions.food,
-    exerciseCatalogVersion: snapshot.catalogVersions.exercise,
+    policyVersion: generation.policyVersion,
+    foodCatalogVersion: generation.catalogVersions.food,
+    exerciseCatalogVersion: generation.catalogVersions.exercise,
   };
   if (!isV2Intake(snapshot.intake)) {
     return composeInitialPlan({
@@ -67,10 +82,13 @@ async function composeManagedInitialPlan(
       binding,
     });
   }
-  const runtimeBinding = await resolveAiCoachRuntimeBinding(null, executingProfile);
   let artifacts;
   try {
-    artifacts = await loadReviewedArtifactSet(runtimeBinding.artifactRequest);
+    artifacts =
+      frozenArtifacts ??
+      (await loadReviewedArtifactSet(
+        (await resolveAiCoachRuntimeBinding(null, executingProfile)).artifactRequest
+      ));
   } catch (err) {
     if (err instanceof ArtifactLoadError) {
       throw new AiCoachError(
@@ -147,9 +165,48 @@ export async function processManagedRun(
       );
     }
     const snapshot = runSnapshotSchema.parse(claim.run.inputSnapshot);
+    // T-2041: one source of truth for this run's binding — the snapshot.
+    const runtime = generationBindingFromSnapshot(snapshot);
+    // The lock was already taken here before this ticket (it just sat below
+    // the composition). It now also re-loads the exact artifact references
+    // the run was frozen to, which is the fail-closed for an artifact that
+    // was revoked, expired, superseded or reclassified between request and
+    // execution: `loadRunBoundArtifactSet` throws rather than let the run
+    // execute against a set the snapshot never named. It costs no extra
+    // transaction, and it must happen before any candidate is composed.
+    const frozenArtifacts = await db
+      .$transaction(async (tx) => {
+        await lockAiClient(tx, claim.run.clientId);
+        return snapshot.runtimeBinding
+          ? await loadRunBoundArtifactSet(tx, claim.run.clientId, {
+              engineVersion: snapshot.runtimeBinding.engineVersion,
+              references: snapshot.runtimeBinding.artifactRefs,
+            })
+          : null;
+      })
+      .catch((err: unknown) => {
+        // A revoked, expired, superseded or reclassified artifact must fail
+        // the run closed under a *named* reason, not escape `ArtifactLoadError`
+        // (which extends the plain Error base) into `failRunAttempt`'s
+        // anonymous `MANAGED_RUN_FAILED`. Same mapping, same message and same
+        // 503 `composeManagedInitialPlan` already uses for this exact class.
+        if (err instanceof ArtifactLoadError) {
+          throw new AiCoachError(
+            "TEMPORARILY_UNAVAILABLE",
+            "The reviewed artifact set no longer matches this run's binding.",
+            503
+          );
+        }
+        throw err;
+      });
     const generated =
       claim.run.kind === "INITIAL"
-        ? await composeManagedInitialPlan(claim.run.id, snapshot, executingProfile)
+        ? await composeManagedInitialPlan(
+            claim.run.id,
+            snapshot,
+            executingProfile,
+            frozenArtifacts
+          )
         : claim.run.kind === "REPRESENTATION" && snapshot.basePayload
           ? representFixturePlan(
               snapshot.basePayload,
@@ -162,9 +219,6 @@ export async function processManagedRun(
             : null;
     if (!generated)
       throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "This run type is not available yet.");
-    await db.$transaction(async (tx) => {
-      await lockAiClient(tx, claim.run.clientId);
-    });
     if (!isAiCoachGenerationEnabled())
       throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "Generation paused.");
     if (!(await checkProviderRateLimit(claim.run.clientId, claim.run.kind)))
@@ -222,8 +276,11 @@ export async function processManagedRun(
               baseVersionId: snapshot.baseVersionId,
               payload: jsonValue(payload),
               payloadHash: contentHash(payload),
-              policyVersion: snapshot.policyVersion,
-              catalogVersions: snapshot.catalogVersions,
+              // T-2041: stamped from the run's one binding, not from a
+              // second read of the snapshot's top-level fields. Identical
+              // values by `runSnapshotSchema`'s superRefine — one source.
+              policyVersion: runtime.policyVersion,
+              catalogVersions: runtime.catalogVersions,
               contextRevision: run.contextRevision,
               profileRevision: run.profileRevision,
               observationRevision: run.observationRevision,
