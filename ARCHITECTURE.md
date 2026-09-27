@@ -619,6 +619,17 @@ source for the full model list; the groups are:
 | Live activation | `AiCoachLiveActivation`, `AiCoachLiveActivationEvent` | The single server-selected active release (partial-unique "only one ACTIVE row") and its append-only activate/deactivate history |
 | Not listed above (pre-existing) | `AiCheckInObservation`, `AiOperationReceipt` | `ON DELETE CASCADE` to `User`, and also deleted explicitly in lib/account-deletion/purge.ts (T-509) so a later relation change cannot leave them behind |
 
+Catalog item references inside an `AiPlanVersion.payload` are resolved **by
+catalog key**: `lib/ai-coach/catalog/loader.ts` holds an explicit registry of
+the fixture catalogs this build carries in code, and reports a key it does not
+carry as `CATALOG_VERSION_NOT_SERVED` rather than as an invalid reference
+(T-2040). A payload bound to a published reviewed catalog is therefore
+validated by `lib/ai-coach/autonomy/gate.ts`'s artifact-backed
+`catalogItemsValid` — which also owns the exercise-modality check — rather than
+by `lib/ai-coach/plan-contract.ts`, whose `superRefine` still rejects an unknown
+ID, a version mismatch or a plan-binding mismatch inside a catalog this build
+does serve.
+
 Every model above with a `User` foreign key has a purge line in
 `lib/account-deletion/purge.ts` and a case in
 `tests/integration/account-deletion.test.ts`, including the two that also cascade.

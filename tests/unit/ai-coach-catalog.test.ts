@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { getFoodItem, getExerciseItem, getCurrentFoodCatalogVersion, getCurrentExerciseCatalogVersion } from "@/lib/ai-coach/catalog/loader";
+import { getFoodItem, getExerciseItem, getCurrentFoodCatalogVersion, getCurrentExerciseCatalogVersion, foodCatalogIsServedInCode, exerciseCatalogIsServedInCode } from "@/lib/ai-coach/catalog/loader";
 import { DRAFT_EXERCISE_CATALOG_VERSION } from "@/lib/ai-coach/artifacts/drafts/exercise-catalog";
-import { enableDraftExerciseCatalog } from "@/lib/ai-coach/catalog/draft-exercise-catalog";
+import { disableDraftExerciseCatalog, enableDraftExerciseCatalog } from "@/lib/ai-coach/catalog/draft-exercise-catalog";
+import { getDraftExerciseCatalog } from "@/lib/ai-coach/catalog/exercise-catalog";
 import { computeNutrientTotals, aggregateGramsByFood, type RecipeComponent } from "@/lib/ai-coach/nutrition-totals";
 import { checkPolicyVersionUsable, ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { checkMealComposition } from "@/lib/ai-coach/composition-feasibility";
@@ -21,8 +22,13 @@ describe("A04 — catalog loaders", () => {
   });
 
   it("rejects a known food id referenced under a stale/wrong catalog version", () => {
+    // T-2040 changed the *error*, not the verdict: `food-fixture-v0` is not in
+    // the registry, so this build cannot resolve that catalog at all. It was
+    // CATALOG_VERSION_MISMATCH, which claimed the reference was wrong; it is
+    // now CATALOG_VERSION_NOT_SERVED, which says only that the key is not
+    // carried here. Still `success: false`, still no throw.
     const result = getFoodItem("chicken-breast-raw", "food-fixture-v0");
-    expect(result).toMatchObject({ success: false, error: "CATALOG_VERSION_MISMATCH" });
+    expect(result).toMatchObject({ success: false, error: "CATALOG_VERSION_NOT_SERVED" });
   });
 
   it("resolves a known exercise item and rejects an unknown one", () => {
@@ -94,14 +100,113 @@ describe("T-2038 — exercise catalog version routing", () => {
     });
   });
 
-  it("rejects a stale exercise catalog version exactly as it did before", () => {
+  it("reports a stale exercise catalog version as a catalog this build does not serve", () => {
+    // T-2040: `exercise-fixture-v0` is not a key in the registry, so neither
+    // reference below can be judged by this build. Both stay `success: false`.
     expect(getExerciseItem("bodyweight-squat", "exercise-fixture-v0")).toMatchObject({
       success: false,
-      error: "CATALOG_VERSION_MISMATCH",
+      error: "CATALOG_VERSION_NOT_SERVED",
     });
     expect(getExerciseItem(DRAFT_ID, "exercise-fixture-v0")).toMatchObject({
       success: false,
+      error: "CATALOG_VERSION_NOT_SERVED",
+    });
+  });
+});
+
+describe("T-2040 — catalog references resolve by key", () => {
+  /** Runs `body` with the T-2038 draft catalog unavailable, as it always is in
+   *  production, and restores whatever this file had registered before. */
+  function withDraftUnavailable(body: () => void) {
+    const wasEnabled = getDraftExerciseCatalog() !== null;
+    disableDraftExerciseCatalog();
+    try {
+      body();
+    } finally {
+      if (wasEnabled) enableDraftExerciseCatalog();
+    }
+  }
+
+  // The in-code catalogs are the fixture keys this build happens to carry. A
+  // key it does not carry is "not served" — the reviewed artifact set is the
+  // authority for it — and must be distinguishable from a reference this build
+  // can check and finds wrong.
+  it("resolves the served food keys exactly as before", () => {
+    expect(getFoodItem("chicken-breast-raw", "food-fixture-v2")).toMatchObject({
+      success: true,
+      item: { name: "Chicken breast, raw", catalogVersion: "food-fixture-v2" },
+    });
+    // The legacy key keeps its own map: the v2-only item is absent from it.
+    expect(getFoodItem("brown-rice-cooked", "food-fixture-v1")).toMatchObject({ success: true });
+    expect(getFoodItem("fixture-grain-alternative", "food-fixture-v1")).toMatchObject({
+      success: false,
       error: "UNKNOWN_ID",
+    });
+  });
+
+  it("reports a key this build does not carry as NOT_SERVED, not as a bad reference", () => {
+    expect(getFoodItem("chicken-breast-raw", "usda-beginner-v1")).toEqual({
+      success: false,
+      error: "CATALOG_VERSION_NOT_SERVED",
+    });
+    // `exercise-beginner-v1` is the draft key. Unavailable — which is always
+    // the case in production — it is a catalog this build does not carry.
+    withDraftUnavailable(() => {
+      expect(getExerciseItem("goblet-squat", "exercise-beginner-v1")).toEqual({
+        success: false,
+        error: "CATALOG_VERSION_NOT_SERVED",
+      });
+    });
+  });
+
+  it("still reports an unknown id inside a served catalog as UNKNOWN_ID", () => {
+    expect(getFoodItem("does-not-exist", "food-fixture-v2")).toEqual({
+      success: false,
+      error: "UNKNOWN_ID",
+    });
+    expect(getExerciseItem("does-not-exist", "exercise-fixture-v1")).toEqual({
+      success: false,
+      error: "UNKNOWN_ID",
+    });
+    expect(getExerciseItem("goblet-squat", "exercise-fixture-v1")).toMatchObject({ success: true });
+  });
+
+  it("names which catalogs this build serves", () => {
+    expect(foodCatalogIsServedInCode("food-fixture-v2")).toBe(true);
+    expect(foodCatalogIsServedInCode("food-fixture-v1")).toBe(true);
+    expect(foodCatalogIsServedInCode("usda-beginner-v1")).toBe(false);
+    expect(foodCatalogIsServedInCode("food-fixture-v0")).toBe(false);
+    expect(exerciseCatalogIsServedInCode("exercise-fixture-v1")).toBe(true);
+    expect(exerciseCatalogIsServedInCode("exercise-fixture-v0")).toBe(false);
+    // The draft key is served only where the content is actually available,
+    // which is never in production (T-2038).
+    withDraftUnavailable(() => {
+      expect(exerciseCatalogIsServedInCode("exercise-beginner-v1")).toBe(false);
+      enableDraftExerciseCatalog();
+      expect(exerciseCatalogIsServedInCode("exercise-beginner-v1")).toBe(true);
+    });
+  });
+
+  it("keeps the lookup-error consumers failing closed on a not-served key", () => {
+    // composition-feasibility and nutrition-totals surface the error string
+    // rather than the payload. Neither may start succeeding.
+    const components: RecipeComponent[] = [
+      { foodId: "chicken-breast-raw", catalogVersion: "usda-beginner-v1", grams: 100 },
+    ];
+    const feasibility = checkMealComposition({
+      components,
+      allergies: [],
+      dietaryRestrictions: [],
+      nutritionPermission: "ALLOW",
+      policyVersion: ACTIVE_POLICY_VERSION,
+    });
+    expect(feasibility).toMatchObject({
+      feasible: false,
+      reasons: [{ code: "CATALOG_REFERENCE_INVALID", detail: { error: "CATALOG_VERSION_NOT_SERVED" } }],
+    });
+    expect(computeNutrientTotals(components)).toMatchObject({
+      success: false,
+      error: "CATALOG_VERSION_NOT_SERVED",
     });
   });
 });

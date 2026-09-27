@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { getExerciseItem, getFoodItem } from "./catalog/loader";
+import { getExerciseItem, getFoodItem, type CatalogLookupResult } from "./catalog/loader";
 
 const id = z.string().min(1).max(120);
 const amount = z.number().finite().nonnegative().max(10000);
@@ -53,7 +53,11 @@ export type PrescriptionOutcome = z.infer<typeof prescriptionOutcomeSchema>;
 export const planPayloadSchema = z
   .object({
     schemaVersion: z.literal(1),
-    contentKind: z.literal("SYNTHETIC_FIXTURE"),
+    // T-2040 — additive widening. `REVIEWED_LIVE_V1` is only *writable* after
+    // T-2041; every stored row today is `SYNTHETIC_FIXTURE` and keeps parsing
+    // identically. iOS decodes `contentKind` as a plain `String`
+    // (`Models/AICoach.swift:65`), so the shipped build is unaffected.
+    contentKind: z.enum(["SYNTHETIC_FIXTURE", "REVIEWED_LIVE_V1"]),
     nutrition: z
       .object({
         prescriptionId: id,
@@ -135,31 +139,46 @@ export const planPayloadSchema = z
     const sessions = [...plan.strength, ...plan.cardio];
     if (new Set(sessions.map((s) => s.sessionId)).size !== sessions.length)
       invalid("Session IDs must be unique.");
+    // T-2040 — catalog references resolve by key. The in-code catalogs are the
+    // fixture keys this build happens to carry, not the authority on which keys
+    // exist: a plan bound to a *reviewed* catalog is validated by the
+    // artifact-backed `catalogItemsValid` in `autonomy/gate.ts` instead, which
+    // additionally carries the two modality assertions below. So a lookup that
+    // reports `CATALOG_VERSION_NOT_SERVED` means "this build cannot resolve that
+    // catalog", not "this payload is invalid", and must not mark the payload
+    // invalid — otherwise every read path behind this schema (workspace, session
+    // logging, nutrition history) renders blank for a live-bound plan rather than
+    // degrading. `UNKNOWN_ID` and `CATALOG_VERSION_MISMATCH` are unchanged: a
+    // reference this build *can* check and finds wrong is still invalid.
+    const referenceIsInvalid = <T extends { modality: string }>(
+      lookup: CatalogLookupResult<T>,
+      requiredModality: "STRENGTH" | "CARDIO"
+    ) =>
+      lookup.success
+        ? lookup.item.modality !== requiredModality
+        : lookup.error !== "CATALOG_VERSION_NOT_SERVED";
     for (const session of plan.strength)
       for (const exercise of session.exercises) {
-        const lookup = getExerciseItem(exercise.exerciseId, exercise.catalogVersion);
         if (
-          !lookup.success ||
-          lookup.item.modality !== "STRENGTH" ||
-          exercise.catalogVersion !== plan.catalogVersions.exercise
+          exercise.catalogVersion !== plan.catalogVersions.exercise ||
+          referenceIsInvalid(getExerciseItem(exercise.exerciseId, exercise.catalogVersion), "STRENGTH")
         )
           invalid("Unknown or incompatible strength exercise.");
       }
     for (const session of plan.cardio) {
-      const lookup = getExerciseItem(session.exerciseId, session.catalogVersion);
       if (
-        !lookup.success ||
-        lookup.item.modality !== "CARDIO" ||
-        session.catalogVersion !== plan.catalogVersions.exercise
+        session.catalogVersion !== plan.catalogVersions.exercise ||
+        referenceIsInvalid(getExerciseItem(session.exerciseId, session.catalogVersion), "CARDIO")
       )
         invalid("Unknown or incompatible cardio exercise.");
     }
     for (const day of plan.meals?.days ?? [])
       for (const meal of day.meals)
         for (const ingredient of meal.ingredients) {
+          const lookup = getFoodItem(ingredient.foodId, ingredient.catalogVersion);
           if (
-            !getFoodItem(ingredient.foodId, ingredient.catalogVersion).success ||
-            ingredient.catalogVersion !== plan.catalogVersions.food
+            ingredient.catalogVersion !== plan.catalogVersions.food ||
+            (!lookup.success && lookup.error !== "CATALOG_VERSION_NOT_SERVED")
           )
             invalid("Unknown or incompatible food.");
         }
@@ -185,6 +204,9 @@ export const decisionSchema = z
           "NO_FEASIBLE_MEALS",
           "UNCHANGED",
           "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE",
+          // T-2040 — appended last. Additive: every existing reason code still
+          // parses, and nothing writes this one until the live composer exists.
+          "LIVE_COMPOSITION_UNAVAILABLE",
         ])
       )
       .min(1)

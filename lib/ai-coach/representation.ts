@@ -5,6 +5,7 @@ import { composeFixtureMeals, composeMealsToPrescription } from "./initial-plan"
 import type { IntakeAnswers } from "./intake";
 import type { Prescription } from "./prescription";
 import { FOOD_CATALOG_VERSION, FOOD_SUBSTITUTIONS } from "./catalog/food-catalog";
+import { EXERCISE_CATALOG_VERSION } from "./catalog/exercise-catalog";
 import { computeNutrientTotals } from "./nutrition-totals";
 import { checkMealComposition } from "./composition-feasibility";
 import { contentHash } from "./canonical-json";
@@ -41,12 +42,29 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
     if (!payload.meals || !FOOD_SUBSTITUTIONS[substitution.foodId]?.includes(substitution.replacementId)) return noChange("NO_FEASIBLE_MEALS", "No validated equivalent substitution is available.");
     const meal = payload.meals.days.find(d => d.day === substitution.day)?.meals.find(m => m.id === substitution.mealId);
     const ingredient = meal?.ingredients.find(i => i.foodId === substitution.foodId);
-    if (!ingredient || ingredient.catalogVersion !== FOOD_CATALOG_VERSION) return noChange("NO_FEASIBLE_MEALS", "This ingredient is unavailable for the selected substitution.");
+    // T-2040: validate the offer against *this plan's own* food catalog key,
+    // not against whatever key this build happens to compile in. A plan bound to
+    // another catalog is refused here rather than silently compared to the
+    // fixture catalog. Acceptance is not widened: a disagreeing ingredient key is
+    // still refused, because `plan.catalogVersions.food` is itself pinned by
+    // `planPayloadSchema`'s per-ingredient binding check.
+    if (!ingredient || ingredient.catalogVersion !== payload.catalogVersions.food) return noChange("NO_FEASIBLE_MEALS", "This ingredient is unavailable for the selected substitution.");
     ingredient.foodId = substitution.replacementId;
   } else if (mode === "MACROS") {
     payload.meals = null;
   } else if (!payload.meals) {
     if (!payload.nutrition) return noChange("NO_FEASIBLE_MEALS", "There is no nutrition prescription to represent as meals.");
+    // T-2040: both composers below stamp FOOD_CATALOG_VERSION into every
+    // ingredient (`initial-plan.ts` composeFixtureMeals / composeMealsToPrescription),
+    // so composing into a plan bound to another catalog would silently re-label
+    // that plan's food catalog. Degrade to NO_FEASIBLE_MEALS instead of
+    // disappearing or mislabelling. `noChange` returns, it never throws, so
+    // `availableSubstitutions` (and the workspace query behind it) stays safe.
+    if (
+      payload.catalogVersions.food !== FOOD_CATALOG_VERSION ||
+      payload.catalogVersions.exercise !== EXERCISE_CATALOG_VERSION
+    )
+      return noChange("NO_FEASIBLE_MEALS", "The reviewed catalog for this plan cannot be composed into meals by this build.");
     if (payload.nutrition.method === "REVIEWED_PRESCRIPTION_V1") {
       // T-2033: a prescribed plan's MEALS representation is composed to the
       // prescription, not scaled off a reference recipe. The full engine
@@ -72,7 +90,6 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
       };
       payload.meals = composeMealsToPrescription(answers, asPrescription, FOOD_CATALOG_VERSION);
       if (!payload.meals) return noChange("NO_FEASIBLE_MEALS", "The fixture catalog cannot compose meals within tolerance of the reviewed prescription.");
-      payload.catalogVersions.food = FOOD_CATALOG_VERSION;
     } else {
       const reference = composeFixtureMeals(answers, 1);
       if (!reference) return noChange("NO_FEASIBLE_MEALS", "The fixture catalog cannot meet the stated food constraints.");
@@ -80,7 +97,6 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
       if (!totals.success) return noChange("NO_FEASIBLE_MEALS", "Catalog totals are unavailable.");
       payload.meals = composeFixtureMeals(answers, payload.nutrition.targets.energyKcal / totals.totals.energyKcal);
       if (!payload.meals) return noChange("NO_FEASIBLE_MEALS", "No practical meal composition fits.");
-      payload.catalogVersions.food = FOOD_CATALOG_VERSION;
     }
   }
   payload = planPayloadSchema.parse(payload);
@@ -90,7 +106,14 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
 }
 
 /** Catalog-backed proposals only; each offer is revalidated again by the run
- * command and acceptance path. No client-side nutrient policy is duplicated. */
+ * command and acceptance path. No client-side nutrient policy is duplicated.
+ *
+ * T-2040: every offer is validated against **the plan's own** food catalog key
+ * (`plan.catalogVersions.food`), never against this build's compile-time
+ * `FOOD_CATALOG_VERSION`. A plan bound to a catalog this build does not carry
+ * therefore yields `[]` — no offers — rather than cross-catalog offers or a
+ * throw. `lib/queries/ai-coach.ts` calls this on the workspace read path, so a
+ * throw here would 500 the whole screen. */
 export function availableSubstitutions(plan: PlanPayload, answers: IntakeAnswers): Substitution[] {
   const offers: Substitution[] = [];
   for (const day of plan.meals?.days ?? []) for (const meal of day.meals) for (const food of meal.ingredients) {

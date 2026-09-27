@@ -532,13 +532,29 @@ async function validateCandidate(
         }
       }
     }
+    // T-2040 — modality authority lives here, on the reviewed artifact.
+    // `planPayloadSchema` can only check modality for a catalog key this build
+    // carries in code, so it no longer speaks for a live-bound plan; the
+    // reviewed catalog does. A cardio movement sitting in `payload.strength`
+    // (or the reverse) is a candidate defect, so it throws into the `catch`
+    // below and lands on the existing `GATE_CANDIDATE_INVALID` — no new reason
+    // code, no change to `validationReport.checks`.
+    const assertModality = (exerciseId: string, required: "STRENGTH" | "CARDIO") => {
+      const item = getReviewedExerciseItem(artifacts.exerciseCatalog, exerciseId);
+      if (item.modality !== required) {
+        throw new ArtifactLoadError(
+          "ARTIFACT_INCOMPATIBLE",
+          "The exercise modality does not match the session it is prescribed in."
+        );
+      }
+    };
     for (const session of payload.strength) {
       for (const exercise of session.exercises) {
-        getReviewedExerciseItem(artifacts.exerciseCatalog, exercise.exerciseId);
+        assertModality(exercise.exerciseId, "STRENGTH");
       }
     }
     for (const session of payload.cardio) {
-      getReviewedExerciseItem(artifacts.exerciseCatalog, session.exerciseId);
+      assertModality(session.exerciseId, "CARDIO");
     }
   } catch {
     catalogItemsValid = false;
