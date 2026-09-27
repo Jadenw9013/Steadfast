@@ -19,7 +19,7 @@ description: >
 Every protected server component must start with:
 ```ts
 const user = await getCurrentDbUser()
-if (user.activeRole !== "COACH") redirect("/client/dashboard")
+if (user.activeRole !== "COACH") redirect("/client")
 ```
 
 ## CoachClient Query Rule

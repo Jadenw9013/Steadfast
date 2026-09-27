@@ -39,5 +39,5 @@ export async function submitOnboardingResponse(input: SubmitOnboardingResponseIn
         }
     });
 
-    redirect("/client/dashboard");
+    redirect("/client");
 }
