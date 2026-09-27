@@ -40,6 +40,7 @@ import {
   createTestGovernanceActor,
   deactivateTestLiveRelease,
   ensureLiveTrainingExerciseCatalogPublished,
+  publishRuntimeFixtureArtifacts,
   publishSyntheticArtifactSetForTest,
   stubApprovedLiveProviderTransport,
   TEST_RUNTIME_CONFIGURATION,
@@ -85,7 +86,20 @@ suite("T-2041 — the run's runtime artifact binding is frozen at request time",
   const sharedArtifacts = buildLiveTrainingArtifacts();
   let actorId: string;
 
-  beforeAll(() => ensureLiveTrainingExerciseCatalogPublished(sharedArtifacts));
+  beforeAll(async () => {
+    await ensureLiveTrainingExerciseCatalogPublished(sharedArtifacts);
+    // This suite proves both halves of the binding, so it must publish both
+    // artifact sets itself. The FIXTURE half is the one that is easy to get
+    // wrong: without the synthetic runtime set published *in this database*,
+    // `requestAiRun` takes the documented absent-fixture degrade, writes an
+    // unbound snapshot, and every `snapshot.runtimeBinding` assertion below
+    // fails on a missing key rather than on the property under test. Relying
+    // on another file having published it first is the T-2014 class — a test
+    // that is green only in company — and this file carries the single proof
+    // that a run whose frozen artifacts no longer resolve fails closed with no
+    // plan version written, so it has to be able to say so on its own.
+    await publishRuntimeFixtureArtifacts();
+  });
 
   beforeEach(async () => {
     vi.clearAllMocks();

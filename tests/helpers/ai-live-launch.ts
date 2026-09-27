@@ -15,6 +15,7 @@ import {
   registerArtifactVersion,
 } from "@/lib/ai-coach/artifacts/repository";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { db } from "@/lib/db";
 import {
   activateAiCoachLiveRelease,
@@ -33,6 +34,11 @@ import {
 } from "@/lib/ai-coach/live-launch/schema";
 
 const DIGEST = "a".repeat(64);
+
+/** The synthetic-fixture namespace whose artifact keys are the ones the code's
+ * FIXTURE runtime binding resolves (`policy-fixture-v1` / `food-fixture-v2` /
+ * `exercise-fixture-v1`). See `buildSyntheticArtifactSet`'s `runtime` flag. */
+export const RUNTIME_FIXTURE_NAMESPACE = "t1008-runtime";
 
 export const TEST_RUNTIME_CONFIGURATION = {
   schemaVersion: 1 as const,
@@ -443,25 +449,89 @@ export async function ensureLiveTrainingExerciseCatalogPublished(
  * (`SYNTHETIC_ARTIFACT_FORBIDDEN`). Isolated-Postgres fixture only.
  */
 export async function publishSyntheticArtifactSetForTest(
-  namespace: string,
-  now = new Date()
+  namespace: string
 ): Promise<ArtifactReference[]> {
   const set = buildSyntheticArtifactSet(namespace);
-  const effectiveAt = new Date(now.getTime() - 60_000);
-  // The leaves must stay effective for at least the policy's whole window
-  // (`publishArtifactVersion`'s dependency-window check), so give them room.
-  const leafExpiresAt = new Date(now.getTime() + 7_200_000);
-  const policyExpiresAt = new Date(now.getTime() + 3_600_000);
+  // A fixed, wide window rather than a `now`-relative one, for the same reason
+  // `ensureLiveTrainingExerciseCatalogPublished` uses one: `ensurePublished`
+  // skips a row that is already PUBLISHED, so a narrow window written by an
+  // earlier run against a reused disposable database would later read as
+  // `ARTIFACT_EXPIRED` — which is a *fault*, not an absence, and would fail a
+  // request rather than degrade. Equal expiries satisfy
+  // `publishArtifactVersion`'s dependency-window check (`<`, not `<=`).
+  const effectiveAt = new Date("2020-01-01T00:00:00.000Z");
+  const expiresAt = new Date("2099-01-01T00:00:00.000Z");
   for (const leaf of [
     set.foodCatalog,
     set.exerciseCatalog,
     set.evidenceRegistry,
     set.escalationTemplates,
   ]) {
-    await ensurePublished(leaf, effectiveAt, leafExpiresAt);
+    await ensurePublished(leaf, effectiveAt, expiresAt);
   }
-  await ensurePublished(set.policyBundle, effectiveAt, policyExpiresAt);
+  await ensurePublished(set.policyBundle, effectiveAt, expiresAt);
   return [artifactReferenceOf(set.policyBundle), ...set.policyBundle.dependencies];
+}
+
+/**
+ * T-2041 (lead review) — asserts the precondition a suite needs before it can
+ * observe a **FIXTURE** runtime binding at all.
+ *
+ * The synthetic runtime artifact set is the set `syntheticRuntimeArtifactRequest()`
+ * resolves for every synthetic account, keyed on `ACTIVE_POLICY_VERSION`. When
+ * it is not usable *in this database*, `requestAiRun` takes the documented
+ * absent-fixture degrade (`lib/ai-coach/run-command.ts`'s
+ * `resolveRunRuntimeBinding`): it writes an **unbound** snapshot and reports
+ * `ai_coach.run.runtime_binding_unavailable`. That is correct product
+ * behaviour, but from a test's point of view it surfaces much later as a
+ * missing `snapshot.runtimeBinding` key, which reads as a broken assertion
+ * rather than as "this suite never published the fixture set". This throws
+ * **at the precondition**, naming the cause and the consequence.
+ *
+ * Exported separately from the publisher below so the failure path is
+ * reachable on its own, and so a suite that only wants to assert the
+ * precondition need not re-publish.
+ */
+export async function assertRuntimeFixtureArtifactsUsable(
+  references: readonly ArtifactReference[]
+): Promise<void> {
+  const policy = references.find((reference) => reference.kind === "POLICY_BUNDLE");
+  if (!policy || policy.artifactKey !== ACTIVE_POLICY_VERSION) {
+    throw new Error(
+      `assertRuntimeFixtureArtifactsUsable: no POLICY_BUNDLE reference keyed "${ACTIVE_POLICY_VERSION}", ` +
+        `so a synthetic account's FIXTURE runtime binding cannot resolve to it. Got: ` +
+        `${policy?.artifactKey ?? "no POLICY_BUNDLE reference"}.`
+    );
+  }
+  const now = new Date();
+  const row = await db.aiCoachArtifactVersion.findUnique({ where: { id: policy.id } });
+  const usable =
+    row?.state === "PUBLISHED" &&
+    !!row.effectiveAt &&
+    row.effectiveAt <= now &&
+    !!row.expiresAt &&
+    row.expiresAt > now;
+  if (!usable) {
+    throw new Error(
+      `assertRuntimeFixtureArtifactsUsable: "${policy.id}" is not a usable published artifact in this ` +
+        `database (state=${row?.state ?? "MISSING"}, effectiveAt=${row?.effectiveAt?.toISOString() ?? "null"}, ` +
+        `expiresAt=${row?.expiresAt?.toISOString() ?? "null"}). requestAiRun would take the ` +
+        `absent-fixture degrade and write an UNBOUND run snapshot, so every assertion about ` +
+        `snapshot.runtimeBinding would fail on a missing key instead of on the property under test.`
+    );
+  }
+}
+
+/**
+ * The one call any suite makes when it needs `requestAiRun` to freeze a
+ * FIXTURE runtime binding: publishes the synthetic runtime artifact set, then
+ * verifies the postcondition it exists to establish. Idempotent, and safe to
+ * share with any other suite that publishes the same namespace.
+ */
+export async function publishRuntimeFixtureArtifacts(): Promise<ArtifactReference[]> {
+  const references = await publishSyntheticArtifactSetForTest(RUNTIME_FIXTURE_NAMESPACE);
+  await assertRuntimeFixtureArtifactsUsable(references);
+  return references;
 }
 
 /**

@@ -149,9 +149,12 @@ export type RunSnapshot = z.infer<typeof runSnapshotSchema>;
  * existing synthetic run byte-identical (T-2022's acceptance criterion) in a
  * dev or test database that never published the fixture artifacts.
  *
- * It can never apply to a real account:
- *  - a FIXTURE binding requires `requireFixtureRuntime()`, which refuses
- *    production and refuses a missing `AI_COACH_FIXTURE_MODE`;
+ * It can never apply to a real account. The branch is gated on
+ * `binding.mode === "FIXTURE"` — the resolver's own verdict, not a re-read of
+ * the profile flag — and:
+ *  - a FIXTURE binding is only ever returned for a synthetic profile, and only
+ *    after `requireFixtureRuntime()`, which refuses production and refuses a
+ *    missing `AI_COACH_FIXTURE_MODE`;
  *  - a LIVE binding needs an ACTIVE release, and every failure on that path —
  *    including a missing, revoked, expired or reclassified artifact — is
  *    raised, so a real client's run is never written unbound.
@@ -170,19 +173,38 @@ async function resolveRunRuntimeBinding(clientId: string): Promise<{
   // No profile: `lockAiClient` already raises FORBIDDEN 403 for this, in the
   // transaction, in its existing position. Nothing is pre-empted here.
   if (!profileClass) return { runtime: null, runtimeError: null, profileClass: null };
+  let binding;
   try {
-    const binding = await resolveAiCoachRuntimeBinding(null, profileClass);
+    binding = await resolveAiCoachRuntimeBinding(null, profileClass);
+  } catch (err) {
+    return { runtime: null, runtimeError: err, profileClass };
+  }
+  try {
     const runtime = await resolveRuntimeArtifactSet(binding, clientId);
     return { runtime, runtimeError: null, profileClass };
   } catch (err) {
     const absent =
       err instanceof ArtifactLoadError &&
       (err.code === "ARTIFACT_MISSING" || err.code === "ARTIFACT_NOT_EFFECTIVE");
-    if (absent && profileClass.isSynthetic) {
+    if (absent && binding.mode === "FIXTURE") {
+      // Lead review, T-2041: name the *cause* and the *consequence* on one
+      // line. The degrade is silent by design — the run is still written — so
+      // this beacon is the only place it is visible, and it previously
+      // surfaced to whoever hit it as a `runtimeBinding` key that was simply
+      // missing much later. `policyArtifactKey` is the fixture key whose
+      // artifact set this environment does not publish; `consequence` says
+      // what was written instead. Both are server-owned content identifiers,
+      // never client data.
       reportAnomaly("ai_coach.run.runtime_binding_unavailable", {
         ids: { clientId },
-        context: { reason: err.code, mode: "FIXTURE" },
-        allow: ["reason", "mode"],
+        context: {
+          reason: err.code,
+          mode: binding.mode,
+          policyArtifactKey: binding.artifactRequest.policyArtifactKey,
+          engineVersion: binding.artifactRequest.engineVersion,
+          consequence: "RUN_SNAPSHOT_WRITTEN_UNBOUND",
+        },
+        allow: ["reason", "mode", "policyArtifactKey", "engineVersion", "consequence"],
       });
       return { runtime: null, runtimeError: null, profileClass };
     }

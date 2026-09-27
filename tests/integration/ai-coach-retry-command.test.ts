@@ -7,7 +7,7 @@ import {
   LEGACY_RUN_SNAPSHOT,
   legacyRunRowData,
 } from "../fixtures/ai-coach-legacy-run-snapshot";
-import { publishSyntheticArtifactSetForTest } from "../helpers/ai-live-launch";
+import { publishRuntimeFixtureArtifacts } from "../helpers/ai-live-launch";
 import { retryManagedRun } from "@/lib/ai-coach/retry-command";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
@@ -51,7 +51,7 @@ suite("owner-scoped terminal run retry", () => {
   });
 
   it("T-2041: a retry of a bound run preserves its frozen runtimeBinding intact", async () => {
-    await publishSyntheticArtifactSetForTest("t1008-runtime");
+    await publishRuntimeFixtureArtifacts();
     const { client, run } = await fixture();
     const originalSnapshot = runSnapshotSchema.parse(run.inputSnapshot);
     expect(originalSnapshot.runtimeBinding).toBeDefined();

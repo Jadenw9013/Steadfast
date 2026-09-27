@@ -6,7 +6,7 @@ import {
   activateTestLiveRelease,
   createTestGovernanceActor,
   deactivateTestLiveRelease,
-  publishSyntheticArtifactSetForTest,
+  publishRuntimeFixtureArtifacts,
 } from "../helpers/ai-live-launch";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
@@ -195,7 +195,7 @@ suite("managed run request boundary", () => {
    * two identical requests **within** this build.
    */
   it("T-2041: a synthetic run freezes a FIXTURE runtimeBinding, and identical requests still dedup to one run", async () => {
-    await publishSyntheticArtifactSetForTest("t1008-runtime");
+    await publishRuntimeFixtureArtifacts();
     const client = await fixture();
     const { runId } = await requestAiRun(client.id, command());
     const run = await db.aiCoachRun.findUniqueOrThrow({ where: { id: runId } });
