@@ -444,6 +444,83 @@
         "sourceId": "MORTON-PROTEIN-META-2018",
         "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
         "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.UNDER_30.MAX",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_30_45.MAX",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_45_60.MAX",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_60_90.MAX",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.OVER_90.MAX",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.UNDER_30",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_30_45",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_45_60",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_60_90",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.OVER_90",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
       }
     ],
     "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
@@ -477,16 +554,37 @@
       "NUTRITION_CONTRAINDICATION_RULE",
       "NUTRITION_EVIDENCE_RULE",
       "NUTRITION_COOLDOWN_RULE",
-      "NUTRITION_CUMULATIVE_LIMIT_RULE"
+      "NUTRITION_CUMULATIVE_LIMIT_RULE",
+      "TRAINING.TEMPLATE.SELECTION.V1",
+      "TRAINING.DOSE.BEGINNER.V1",
+      "TRAINING.RULE.SESSION_STRUCTURE.V1",
+      "CARDIO.RULE.DOSE.BEGINNER.V1",
+      "WORKLOAD.RULE.COMBINED.V1",
+      "PROGRESSION.RULE.BOUNDED_TRAINING.V1",
+      "CONTRA.SPINAL_LOADING.V1",
+      "CONTRA.OVERHEAD_LOADING.V1",
+      "CONTRA.DEEP_KNEE_FLEXION.V1",
+      "CONTRA.HIGH_IMPACT.V1",
+      "CONTRA.FLOOR_TRANSFER.V1",
+      "CONTRA.PRONE_POSITION.V1",
+      "CONTRA.SUPINE_POSITION.V1",
+      "CONTRA.GRIP_DEMAND.V1",
+      "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+      "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+      "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+      "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
     ],
     "calculationMethodIds": [
       "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
       "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1",
       "MACRO.COMPOSITION.DRI_AMDR.V1",
-      "PRESCRIPTION.ROUNDING.ORDER.V1"
+      "PRESCRIPTION.ROUNDING.ORDER.V1",
+      "TRAINING.TEMPLATE.SELECTION.V1",
+      "TRAINING.DOSE.BEGINNER.V1"
     ],
     "adjustmentRuleIds": [
-      "GOAL.ADJUSTMENT.BOUNDED.V1"
+      "GOAL.ADJUSTMENT.BOUNDED.V1",
+      "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
     ],
     "cooldownRuleIds": [
       "NUTRITION_COOLDOWN_RULE"
@@ -504,7 +602,9 @@
       "synthetic-pause-refer-template"
     ],
     "explanationTemplateIds": [
-      "synthetic-pause-refer-template"
+      "synthetic-pause-refer-template",
+      "TRAINING.EFFORT.STRENGTH.V1",
+      "TRAINING.EFFORT.CARDIO.V1"
     ],
     "safetyControls": {
       "schemaVersion": 1,
@@ -1242,6 +1342,127 @@
         ],
         "evidenceClaimIds": [
           "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.UNDER_30.MAX",
+        "value": 4,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN_30_45.MAX",
+        "value": 5,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN_45_60.MAX",
+        "value": 6,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN_60_90.MAX",
+        "value": 8,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.OVER_90.MAX",
+        "value": 10,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN",
+        "value": 3,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.UNDER_30",
+        "value": 30,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.MIN_30_45",
+        "value": 45,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.MIN_45_60",
+        "value": 60,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.MIN_60_90",
+        "value": 90,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.OVER_90",
+        "value": 120,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
         ]
       }
     ],

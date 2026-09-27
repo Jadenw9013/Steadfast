@@ -877,6 +877,8 @@ export const escalationTemplatesContentSchema = z
     );
   });
 
+export type EscalationTemplatesContent = z.infer<typeof escalationTemplatesContentSchema>;
+
 const contentSchemas = {
   POLICY_BUNDLE: policyBundleContentSchema,
   FOOD_CATALOG: foodCatalogContentSchema,
