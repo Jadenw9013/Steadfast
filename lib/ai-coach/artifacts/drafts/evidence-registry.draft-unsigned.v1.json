@@ -1,0 +1,330 @@
+{
+  "fileSchemaVersion": 1,
+  "reviewMetadata": {
+    "decision": "DRAFT_UNSIGNED",
+    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
+    "preparedAt": "2026-09-27T00:00:00.000Z",
+    "draftRecordId": "evidence-registry-draft-v1",
+    "worksheetSectionIds": [
+      "D05",
+      "D07"
+    ],
+    "proposalProvenance": [
+      {
+        "parameterId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceClaimId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceId": "AND-DC-ACSM-2016",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "sourceLocator": "Section: Protein Requirements, pp. 547-548"
+      },
+      {
+        "parameterId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceClaimId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceId": "MORTON-PROTEIN-META-2018",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      },
+      {
+        "parameterId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceClaimId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+      },
+      {
+        "parameterId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceClaimId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 10 (Protein and Amino Acids), p. 589"
+      },
+      {
+        "parameterId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "sourceId": "STEADFAST-T2039-SPEC",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+      },
+      {
+        "parameterId": "CLAIM.PENDING.NUTRITION_EVIDENCE_RULE",
+        "sourceClaimId": "CLAIM.PENDING.NUTRITION_EVIDENCE_RULE",
+        "sourceId": "STEADFAST-PENDING-NO-SOURCE",
+        "sourceUrl": "https://example.invalid/steadfast/pending-evidence/nutrition-evidence-rule",
+        "sourceLocator": "No source. No evidence has been supplied for this rule; the record is a structural placeholder the reviewer must replace or strike."
+      }
+    ],
+    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+  },
+  "reviewStates": [
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+      "reviewState": "PROPOSED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.PENDING.NUTRITION_EVIDENCE_RULE",
+      "reviewState": "PROPOSED"
+    }
+  ],
+  "content": {
+    "artifactKey": "evidence-registry-v1",
+    "version": 1,
+    "claims": [
+      {
+        "id": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. The draft policy bundle cites this source for the protein amount it uses for a client who reports occasional training. Steadfast has not checked that the source says this, and no qualified professional has reviewed this record. The reviewer must read the cited locator and then confirm, correct or strike it.",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: Section: Protein Requirements, pp. 547-548"
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. The draft policy bundle cites this source for the protein amount it uses for a client who reports regular resistance training. Steadfast has not checked that the source says this, and no qualified professional has reviewed this record. The reviewer must read the cited locator and then confirm, correct or strike it.",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. The draft policy bundle cites this source for the energy densities it uses to convert macronutrients into energy. Steadfast has not checked that the source says this, and no qualified professional has reviewed this record. The reviewer must read the cited locator and then confirm, correct or strike it.",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. The draft policy bundle cites this source for the macronutrient distribution ranges in its draft parameter set. Steadfast has not checked that the source says this, and no qualified professional has reviewed this record. The reviewer must read the cited locator and then confirm, correct or strike it.",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: Chapter 11 (AMDR), Table 11-1, p. 769"
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. The draft policy bundle cites this source for the protein amount it uses for a client who reports no regular training. Steadfast has not checked that the source says this, and no qualified professional has reviewed this record. The reviewer must read the cited locator and then confirm, correct or strike it.",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: Chapter 10 (Protein and Amino Acids), p. 589"
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. The draft policy bundle cites this source for the supported input ranges for its adult energy estimation. Steadfast has not checked that the source says this, and no qualified professional has reviewed this record. The reviewer must read the cited locator and then confirm, correct or strike it.",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: Chapter 5, Table 5-16, pp. 163-164"
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. The draft policy bundle cites this source for the adult energy-estimation coefficients in its draft parameter set. Steadfast has not checked that the source says this, and no qualified professional has reviewed this record. The reviewer must read the cited locator and then confirm, correct or strike it.",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: Chapter 5, Table 5-16, pp. 163-164"
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
+        "version": 1,
+        "claim": "PROPOSED AND UNVERIFIED. This record is not evidence. The draft policy bundle cites a Steadfast engineering proposal for its draft training session-structure parameters. No published source supports it and no qualified professional has reviewed it. The reviewer must replace it with evidence or strike the parameters that depend on it.",
+        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
+        "population": "Adult general-fitness population, as stated by the draft policy bundle. Not verified against the cited source.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "Steadfast has not verified that the cited source supports the use the draft policy bundle makes of it.",
+          "Locator recorded by the draft policy bundle: Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence.",
+          "Locator recorded by the draft policy bundle: Board ticket T-2039 product/engineering proposal, not evidence."
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.PENDING.NUTRITION_EVIDENCE_RULE",
+        "version": 1,
+        "claim": "NO EVIDENCE HAS BEEN SUPPLIED FOR THIS RULE. This record exists only so the draft artifact set is structurally complete; it states nothing and supports nothing. The draft policy bundle requires evidence before it will change a client's nutrition, and a qualified professional must supply that evidence here or remove the rule from the bundle.",
+        "sourceUrl": "https://example.invalid/steadfast/pending-evidence/nutrition-evidence-rule",
+        "population": "Not applicable. No population has been stated because no evidence has been supplied.",
+        "limitations": [
+          "PROPOSED AND UNSIGNED: no qualified professional has reviewed this record.",
+          "NO EVIDENCE SUPPLIED. This record must be replaced or struck before any signature."
+        ],
+        "reviewer": {
+          "name": "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED",
+          "qualifications": [
+            "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION"
+          ]
+        },
+        "ruleIds": [
+          "NUTRITION_EVIDENCE_RULE"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      }
+    ]
+  }
+}
