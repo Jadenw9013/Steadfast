@@ -27,6 +27,7 @@ import {
   buildSyntheticArtifactSet,
   SYNTHETIC_ARTIFACT_ENGINE_VERSION,
 } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import { artifactReferenceOf } from "../helpers/ai-live-launch";
 
 vi.mock("@/lib/auth/roles", () => ({ getCurrentDbUser: vi.fn() }));
 
@@ -179,8 +180,16 @@ suite("T-1006 deterministic autonomy gate with real PostgreSQL constraints", () 
     return user;
   }
 
-  async function publishedArtifacts(label: string) {
-    const set = buildSyntheticArtifactSet(`${label}-${randomUUID()}`);
+  /** `mutate` (T-2040) lets one test publish the same synthetic set with a
+   *  single field changed, without touching any existing caller. */
+  async function publishedArtifacts(
+    label: string,
+    mutate?: (set: ReturnType<typeof buildSyntheticArtifactSet>) => ReturnType<
+      typeof buildSyntheticArtifactSet
+    >
+  ) {
+    const built = buildSyntheticArtifactSet(`${label}-${randomUUID()}`);
+    const set = mutate ? mutate(built) : built;
     const effectiveAt = new Date(Date.now() - 60_000);
     const expiresAt = new Date(Date.now() + 3_600_000);
     for (const artifact of [
@@ -457,6 +466,92 @@ suite("T-1006 deterministic autonomy gate with real PostgreSQL constraints", () 
     expect(
       await db.aiAutonomyGateDecision.findUniqueOrThrow({ where: { id: result.decisionId } })
     ).toMatchObject({ clientId: other.id, evaluatedPlanVersionId: input.candidatePlanVersionId });
+  });
+
+  it("T-2040: fails closed when the reviewed catalog's modality contradicts the session slot", async () => {
+    // The modality guarantee `planPayloadSchema` used to carry for every key
+    // now lives on the reviewed artifact, so it must hold here too. The set's
+    // one exercise is reclassified CARDIO in the reviewed catalog while the
+    // candidate keeps it in a STRENGTH session; nothing else changes.
+    const user = await account();
+    const set = await publishedArtifacts("modality-mismatch", (built) => {
+      const exerciseCatalog = structuredClone(built.exerciseCatalog);
+      const content = exerciseCatalog.content as unknown as {
+        exercises: { id: string; modality: string }[];
+      };
+      content.exercises.find((item) => item.id === "synthetic-exercise-item")!.modality = "CARDIO";
+      const policyBundle = structuredClone(built.policyBundle);
+      policyBundle.dependencies = [
+        built.foodCatalog,
+        exerciseCatalog,
+        built.evidenceRegistry,
+        built.escalationTemplates,
+      ].map(artifactReferenceOf);
+      return { ...built, exerciseCatalog, policyBundle };
+    });
+    const safetyInput = clearSafetyInput(set);
+    await evaluateCurrentClientNutritionSafety(artifactRequest(set.policyKey), safetyInput);
+
+    const payload = planPayloadSchema.parse({
+      schemaVersion: 1,
+      contentKind: "SYNTHETIC_FIXTURE",
+      nutrition: null,
+      meals: null,
+      strength: [
+        {
+          sessionId: `session-${randomUUID()}`,
+          templateId: `template-${randomUUID()}`,
+          day: 1,
+          exercises: [
+            {
+              exerciseId: "synthetic-exercise-item",
+              catalogVersion: set.exerciseCatalog.artifactKey,
+              sets: 3,
+              reps: 8,
+              restSeconds: 90,
+              effort: "Synthetic T-2040 fixture only.",
+            },
+          ],
+        },
+      ],
+      cardio: [],
+      policyVersion: set.policyBundle.artifactKey,
+      catalogVersions: {
+        food: set.foodCatalog.artifactKey,
+        exercise: set.exerciseCatalog.artifactKey,
+      },
+    });
+    const plan = await db.aiPlanVersion.create({
+      data: {
+        clientId: user.id,
+        version: 1,
+        status: "PROPOSED",
+        changeClass: "INITIAL",
+        payload,
+        payloadHash: contentHash(payload),
+        contextRevision: 0,
+        profileRevision: 0,
+        observationRevision: 0,
+        safetyRevision: 0,
+        policyVersion: payload.policyVersion,
+        catalogVersions: payload.catalogVersions,
+        reviewerStatus: "NOT_REQUIRED",
+        sourceRefs: [],
+        validationReport: {
+          engine: "managed-v1",
+          passed: true,
+          inputHash: contentHash({ fixture: "t2040" }),
+        },
+      },
+    });
+
+    const input = gateInput(set, plan.id);
+    input.requestedDomains = ["STRENGTH"];
+    input.requestedScopeClasses = ["GENERAL_FITNESS_PROGRAMMING"];
+    const result = await evaluateCurrentClientAutonomyGate(artifactRequest(set.policyKey), input);
+    expect(result.outcome).not.toBe("APPROVE_AUTOMATICALLY");
+    expect(result.orderedReasonCodes).toContain("GATE_CANDIDATE_INVALID");
+    expect(result.approvedCandidatePlanVersionId).toBeNull();
   });
 
   it("fails closed when the selected policy is revoked", async () => {

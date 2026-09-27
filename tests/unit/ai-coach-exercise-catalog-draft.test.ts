@@ -374,9 +374,13 @@ describe("T-2038 — the draft cannot be loaded or registered unsigned", () => {
     disableDraftExerciseCatalog();
     try {
       expect(getDraftExerciseCatalog()).toBeNull();
+      // T-2040: an unavailable catalog is reported as CATALOG_VERSION_NOT_SERVED
+      // ("this build cannot resolve that catalog") rather than UNKNOWN_ID
+      // ("that reference is wrong"). The guarantee this test protects is
+      // unchanged: the draft does not resolve until deliberately enabled.
       expect(getExerciseItem("chair-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toEqual({
         success: false,
-        error: "UNKNOWN_ID",
+        error: "CATALOG_VERSION_NOT_SERVED",
       });
     } finally {
       enableDraftExerciseCatalog();
@@ -388,8 +392,11 @@ describe("T-2038 — the draft cannot be loaded or registered unsigned", () => {
 
   it("is not resolvable at all in production, and degrades rather than throwing", () => {
     // getExerciseItem runs inside planPayloadSchema's superRefine on every parse
-    // of every stored plan, so the production refusal must present as
-    // UNKNOWN_ID, not as an exception on a read path.
+    // of every stored plan, so the production refusal must present as a lookup
+    // failure, not as an exception on a read path. T-2040 makes that failure
+    // CATALOG_VERSION_NOT_SERVED, which planPayloadSchema deliberately does not
+    // treat as an invalid payload — authority for a catalog this build cannot
+    // resolve belongs to the reviewed artifact (autonomy/gate.ts).
     enableDraftExerciseCatalog();
     expect(getExerciseItem("chair-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toMatchObject({
       success: true,
@@ -399,7 +406,7 @@ describe("T-2038 — the draft cannot be loaded or registered unsigned", () => {
       expect(getDraftExerciseCatalog()).toBeNull();
       expect(getExerciseItem("chair-squat", DRAFT_EXERCISE_CATALOG_VERSION)).toEqual({
         success: false,
-        error: "UNKNOWN_ID",
+        error: "CATALOG_VERSION_NOT_SERVED",
       });
       // The fixture catalog is unaffected: no client loses a plan over this.
       expect(getExerciseItem("bodyweight-squat", "exercise-fixture-v1")).toMatchObject({
