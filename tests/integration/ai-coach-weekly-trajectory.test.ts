@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
 import { submitAiCheckIn } from "@/lib/check-ins/ai-observation";
-import { requestAiRun } from "@/lib/ai-coach/run-command";
+import type { Prisma } from "@/app/generated/prisma/client";
+import { requestAiRun, runSnapshotSchema } from "@/lib/ai-coach/run-command";
 import { reviewWindow } from "@/lib/ai-coach/review-window";
 import { claimQueuedRun } from "@/lib/ai-coach/runs";
 import { processClaimedRun } from "@/lib/ai-coach/executor";
@@ -178,6 +179,49 @@ suite("weekly review through real evidence, worker, reviewer and acceptance", ()
       code: "REVIEWER_APPROVAL_REQUIRED",
     });
   });
+  /**
+   * T-2041 read path 4 (`weekly-proof.ts`: re-parse the run snapshot,
+   * `contentHash(snapshot) !== report.inputHash`, then replay
+   * `buildWeeklyFixtureReview`). A weekly candidate produced *before* this
+   * ticket carries no `runtimeBinding` and an `inputHash` over the unbound
+   * snapshot; it must stay `weeklyCandidateIsValid`. This rewrites the run
+   * row into exactly that pre-change shape (the payload is byte-identical
+   * either way — a FIXTURE binding's keys *are* the fixture constants) and
+   * proves the candidate still reaches the same acceptance outcome.
+   */
+  it("T-2041: a weekly candidate whose run snapshot predates this change stays valid", async () => {
+    const { user, run, candidate, acceptance } = await fixture();
+    const stored = run.inputSnapshot as Record<string, unknown>;
+    const unbound = Object.fromEntries(
+      Object.entries(stored).filter(([key]) => key !== "runtimeBinding")
+    );
+    const reparsed = runSnapshotSchema.parse(unbound);
+    expect(Object.hasOwn(reparsed, "runtimeBinding")).toBe(false);
+    await db.aiCoachRun.update({
+      where: { id: run.id },
+      data: {
+        inputSnapshot: unbound as Prisma.InputJsonValue,
+      },
+    });
+    await db.aiPlanVersion.update({
+      where: { id: candidate.id },
+      data: {
+        validationReport: {
+          engine: "managed-v1",
+          passed: true,
+          inputHash: contentHash(reparsed),
+        },
+      },
+    });
+    // weeklyCandidateIsValid still re-derives the identical candidate, so the
+    // outcome is the same reviewer gate as the bound row, not a silent STALE.
+    expect((await getAiWorkspace(user.id)).proposals[0].status).toBe("PENDING_FINALIZATION");
+    expect(await acceptPlanVersionAtomic(user.id, candidate.id, acceptance)).toMatchObject({
+      success: false,
+      code: "REVIEWER_APPROVAL_REQUIRED",
+    });
+  });
+
   it("rejects relabeling a weekly candidate to bypass deterministic proof", async () => {
     const { user, candidate, acceptance } = await fixture();
     await db.aiPlanVersion.update({

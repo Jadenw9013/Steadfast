@@ -1,10 +1,15 @@
+import { vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import { artifactContentDigest } from "@/lib/ai-coach/artifacts/digest";
 import {
   buildSyntheticArtifactSet,
   SYNTHETIC_ARTIFACT_ENGINE_VERSION,
 } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
-import type { ArtifactDraftInput, ArtifactReference } from "@/lib/ai-coach/artifacts/schema";
+import type {
+  ArtifactDraftInput,
+  ArtifactReference,
+  ArtifactReviewMetadata,
+} from "@/lib/ai-coach/artifacts/schema";
 import {
   publishArtifactVersion,
   registerArtifactVersion,
@@ -345,4 +350,193 @@ export async function deactivateTestLiveRelease(actorUserId: string): Promise<vo
   });
   await db.aiCoachGovernanceGrant.deleteMany({ where: { userId: actorUserId } });
   await db.user.deleteMany({ where: { id: actorUserId } });
+}
+
+/** Bumps an artifact's version/id (keeping `artifactKey` — what everything
+ * else matches against — unchanged), so a row reusing another fixture's
+ * reserved key never collides with that fixture's own `id`. See
+ * `buildLiveTrainingArtifacts` for why this is only safe for
+ * EXERCISE_CATALOG, not POLICY_BUNDLE. */
+export function bumpVersion<T extends ArtifactDraftInput<ArtifactReviewMetadata>>(
+  artifact: T,
+  version: number
+): T {
+  const clone = structuredClone(artifact);
+  clone.version = version;
+  clone.id = `${clone.artifactKey}:v${version}`;
+  (clone.content as { version: number }).version = version;
+  return clone;
+}
+
+/**
+ * T-2041: extracted verbatim from `tests/integration/ai-coach-live-autonomy.test.ts`
+ * (T-2000) so the new binding suite shares it instead of copying it.
+ *
+ * A uniquely-namespaced live artifact set (so it can never collide with any
+ * other suite's registrations) whose exercise catalog is swapped for one at
+ * the code's static hardcoded catalog key, `EXERCISE_CATALOG_VERSION`
+ * ("exercise-fixture-v1"), containing "goblet-squat" — present in both that
+ * static module (required for `planPayloadSchema`'s own validation of any
+ * strength exercise) and this reviewed live artifact.
+ *
+ * Only the exercise catalog reuses that reserved key, at version 2 (the
+ * "t1008-runtime" synthetic fixture other suites share already holds
+ * version 1 there). That is safe only because nothing resolves an
+ * EXERCISE_CATALOG artifact by "latest version for this key" the way policy
+ * bundles are — every exercise/food/evidence/escalation lookup is by the
+ * owning policy's own exact `dependencies` references
+ * (`lib/ai-coach/artifacts/repository.ts`'s one `orderBy version desc`
+ * query is POLICY_BUNDLE-only). The policy/food/evidence/escalation
+ * artifacts here keep a fresh unique namespace and are never shared, so
+ * they cannot shadow another suite's synthetic "t1008-runtime" policy the
+ * way an earlier version of this fixture (reusing "policy-fixture-v1")
+ * once did.
+ *
+ * T-2000 review finding 7 (read this before trusting what a suite using it
+ * proves): this is still a **control-flow proof, not a content proof**. Every
+ * fixture here reuses "t1008-runtime" content with `synthetic` flipped.
+ */
+export function buildLiveTrainingArtifacts() {
+  const runtimeExerciseSource = buildNonSyntheticLaunchTestArtifacts("t1008-runtime").leaves.find(
+    (leaf) => leaf.kind === "EXERCISE_CATALOG"
+  )!;
+  const customExercise = bumpVersion(runtimeExerciseSource, 2);
+
+  const base = buildNonSyntheticLaunchTestArtifacts(`live-autonomy-${randomUUID()}`);
+  const leaves = base.leaves.map((leaf) =>
+    leaf.kind === "EXERCISE_CATALOG" ? customExercise : leaf
+  );
+  const policy = structuredClone(base.policy);
+  policy.dependencies = leaves.map(artifactReferenceOf);
+  return { leaves, policy, references: [artifactReferenceOf(policy), ...policy.dependencies] };
+}
+
+/**
+ * The shared exercise-catalog artifact (reserved key "exercise-fixture-v1")
+ * is published once, with a window wide enough to outlive any single
+ * test-process run, so a later re-run against the same disposable database
+ * never finds it "not effective for the full policy period" against a policy
+ * whose own now-based window has moved forward. `activateTestLiveRelease`'s
+ * own `ensurePublished` skips re-publishing once a row is PUBLISHED, so this
+ * window sticks.
+ */
+export async function ensureLiveTrainingExerciseCatalogPublished(
+  artifacts: ReturnType<typeof buildLiveTrainingArtifacts>
+): Promise<void> {
+  const customExercise = artifacts.leaves.find((leaf) => leaf.kind === "EXERCISE_CATALOG")!;
+  const existing = await db.aiCoachArtifactVersion.findUnique({ where: { id: customExercise.id } });
+  if (!existing) await registerArtifactVersion(customExercise);
+  if (existing?.state !== "PUBLISHED") {
+    await publishArtifactVersion({
+      id: customExercise.id,
+      effectiveAt: new Date("2020-01-01T00:00:00.000Z"),
+      expiresAt: new Date("2099-01-01T00:00:00.000Z"),
+      engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+    });
+  }
+}
+
+/**
+ * T-2041: registers + publishes a **synthetic-classified** artifact set under
+ * a caller-unique namespace, returning its five exact references. Used to
+ * prove the run-bound loader refuses a synthetic artifact for a live account
+ * (`SYNTHETIC_ARTIFACT_FORBIDDEN`). Isolated-Postgres fixture only.
+ */
+export async function publishSyntheticArtifactSetForTest(
+  namespace: string,
+  now = new Date()
+): Promise<ArtifactReference[]> {
+  const set = buildSyntheticArtifactSet(namespace);
+  const effectiveAt = new Date(now.getTime() - 60_000);
+  // The leaves must stay effective for at least the policy's whole window
+  // (`publishArtifactVersion`'s dependency-window check), so give them room.
+  const leafExpiresAt = new Date(now.getTime() + 7_200_000);
+  const policyExpiresAt = new Date(now.getTime() + 3_600_000);
+  for (const leaf of [
+    set.foodCatalog,
+    set.exerciseCatalog,
+    set.evidenceRegistry,
+    set.escalationTemplates,
+  ]) {
+    await ensurePublished(leaf, effectiveAt, leafExpiresAt);
+  }
+  await ensurePublished(set.policyBundle, effectiveAt, policyExpiresAt);
+  return [artifactReferenceOf(set.policyBundle), ...set.policyBundle.dependencies];
+}
+
+/**
+ * T-2041: extracted from `tests/integration/ai-coach-live-autonomy.test.ts`
+ * (T-2000/T-2033) so a second live suite shares it instead of copying it.
+ *
+ * The LIVE provider boundary is a real HTTPS transport
+ * (ApprovedConstrainedGatewayProvider); this stubs it exactly the way
+ * `SyntheticConstrainedProvider` echoes references, so a suite proves
+ * T-1006/T-1007's control flow without making a real network call or a real
+ * model claim. Call it from `beforeEach`, alongside `vi.unstubAllGlobals()`
+ * in `afterEach`.
+ */
+export function stubApprovedLiveProviderTransport(): void {
+  vi.stubEnv("AI_COACH_PROVIDER_CREDENTIAL", "synthetic-isolated-test-credential");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: string, init: RequestInit) => {
+      // Sprint-1 regression repair (T-2033, 2026-09-26): this mock parsed
+      // a request shape (`{envelope: {allowed: ...}}`) that the real
+      // `@anthropic-ai/sdk` client never sends — the actual HTTP request
+      // body is the Anthropic Messages API's own shape
+      // (`{model, max_tokens, system, messages, output_config}`), with the
+      // envelope only present as the JSON-stringified `content` of the
+      // single user message (`anthropic-provider.ts`'s `minimizedUserPayload`).
+      // Reading `body.envelope.allowed` threw `Cannot read properties of
+      // undefined (reading 'allowed')` inside the SDK's own fetch call,
+      // which the SDK reports as a generic `APIConnectionError` — surfacing
+      // in this suite as every live finalization returning HOLD
+      // (`PROVIDER_ERROR`) instead of APPROVE_AUTOMATICALLY. Not a T-2034
+      // regression: disabling T-2034's `ARTIFACT_UNSIGNED_DRAFT` refusal
+      // entirely does not change this failure (verified), and this parsing
+      // bug is unrelated to review-metadata parsing. The response shape
+      // below is similarly corrected to the real Messages API response
+      // (`content`/`stop_reason`/snake_case `usage`), matching
+      // `AnthropicMessageResponse` (`anthropic-provider.ts`) exactly.
+      const body = JSON.parse(init.body as string) as {
+        messages: { role: string; content: string }[];
+      };
+      const userMessage = JSON.parse(body.messages[0].content) as {
+        allowed: {
+          preferenceIds: string[];
+          optionIds: string[];
+          explanationTemplateIds: string[];
+          reasonCodes: string[];
+          numericFieldIds: string[];
+          limitationIds: string[];
+        };
+      };
+      const allowed = userMessage.allowed;
+      const output = {
+        schemaVersion: 1,
+        preferenceIds: allowed.preferenceIds.slice(0, 1),
+        concern: { disposition: "NONE", clarificationId: null },
+        rankedOptionIds: allowed.optionIds,
+        explanation: {
+          templateId: allowed.explanationTemplateIds[0],
+          reasonCodes: allowed.reasonCodes,
+          numericFieldIds: allowed.numericFieldIds,
+          limitationIds: allowed.limitationIds,
+        },
+      };
+      const text = JSON.stringify({
+        content: [{ type: "text", text: JSON.stringify(output) }],
+        stop_reason: "end_turn",
+        usage: { input_tokens: 0, output_tokens: 0 },
+      });
+      return new Response(text, {
+        status: 200,
+        headers: {
+          "content-type": "application/json",
+          "content-length": String(new TextEncoder().encode(text).byteLength),
+        },
+      });
+    })
+  );
+
 }

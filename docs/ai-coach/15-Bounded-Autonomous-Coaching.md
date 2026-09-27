@@ -69,6 +69,21 @@ The implementation sequence is T-1005 → T-1003 → T-1006 → T-1007 → T-100
 
 Any eventual T-1011 discovery/onboarding disclosure requires qualified legal review, versioning and jurisdiction applicability before display. It must accurately identify AI fitness/general-nutrition coaching, its medical/clinical exclusions, lack of outcome guarantees and the qualified-healthcare referral path. It must not claim clinical validation, medical supervision, risk-free/legal-immunity status, endorsement, or “backed by PhD research.” A truthful statement that the active policy framework is informed by identified, versioned evidence sources and professionally reviewed policy artifacts is permitted only when those records exist. A disclosure is explanatory copy, never a replacement for deterministic safety gates, consent, applicable law or legal/liability review.
 
+### Implementation notes (2026-09-27)
+
+A run's artifact binding is **frozen at request time** and is the authority
+for the executor, a retry, the weekly replay and finalization. The set
+resolved when the run is requested — the fixture artifact set for a synthetic
+account, or the sole ACTIVE live release's exact artifact references for a
+real one — is stored in the run's own snapshot and re-loaded by exact
+reference wherever the run is used again. A candidate can therefore never be
+bound to artifacts the account may not use, and a rotated or revoked artifact
+makes a pending proposal stale rather than acceptable: the executor refuses to
+compose against a set the snapshot never named, and finalization refuses to
+approve a proposal prepared against different reviewed content. Which reviewed
+content produced a given set of numbers has exactly one answer, recorded on
+the row.
+
 ### Implementation notes (2026-09-24)
 
 T-2000 removed the mandatory-review model that had coexisted alongside the

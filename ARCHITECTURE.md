@@ -634,6 +634,8 @@ Every model above with a `User` foreign key has a purge line in
 `lib/account-deletion/purge.ts` and a case in
 `tests/integration/account-deletion.test.ts`, including the two that also cascade.
 
+**T-2041 (2026-09-27), no migration:** `AiCoachRun.inputSnapshot` (JSON) gains one **optional** key, `runtimeBinding` — the runtime artifact set the run was prepared against: `mode`, `engineVersion`, `synthetic`, `contentKind`, `modelConfiguration`, `policyVersion`, `catalogVersions` and the five exact `artifactRefs` (`id`/`artifactKey`/`version`/`kind`/`digest`, one per artifact kind, sorted by kind). `POST /api/client/ai-coach/runs` (`requestAiRun`) resolves and freezes it before its transaction opens; the executor re-loads those exact references under its lock, and `plans/[id]/finalize` compares them against the set it loads for the account. The key is never defaulted, so a snapshot written before this change parses — and content-hashes — exactly as before. No column, no table, no purge line; the REST contract is unchanged.
+
 **T-2033 (2026-09-26), no migration:** `AiPlanVersion.payload` (JSON) widens additively — `nutrition.method` is now `"SYNTHETIC_CATALOG_MATCH" | "REVIEWED_PRESCRIPTION_V1"` and every payload gains an optional `prescriptionOutcome` object (`lib/ai-coach/plan-contract.ts`). A historical row with neither is read as a legacy candidate everywhere (`readNutritionHistory`, the autonomy gate's `prescription` fact); see `docs/ai-coach/14-Handoff-Status.md`'s T-2033 entry for the full read-path list.
 **T-2006/T-2030 bounded explanation prose:** `AiProviderBoundaryAudit` gains
 one additive nullable column, `explanationValidation Json?` — reason codes

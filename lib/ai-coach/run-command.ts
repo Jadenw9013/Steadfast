@@ -6,9 +6,21 @@ import { intakeAnswersSchema } from "./intake";
 import { planPayloadSchema, sourceRefSchema } from "./plan-contract";
 import { contentHash } from "./canonical-json";
 import { reviewWindow } from "./review-window";
+// T-2041: these three constants are no longer the *writer* of the snapshot's
+// binding — `resolveRuntimeArtifactSet` is. They stay because the
+// `superRefine` below still needs them to hold a legacy (unbound) snapshot to
+// exactly today's strictness.
 import { ACTIVE_POLICY_VERSION } from "./policy/policy-version";
 import { FOOD_CATALOG_VERSION } from "./catalog/food-catalog";
 import { EXERCISE_CATALOG_VERSION } from "./catalog/exercise-catalog";
+import {
+  resolveAiCoachRuntimeBinding,
+  resolveRuntimeArtifactSet,
+  resolvedRuntimeArtifactSetSchema,
+  type ResolvedRuntimeArtifactSet,
+} from "./runtime-binding";
+import { ArtifactLoadError } from "./artifacts/repository";
+import { reportAnomaly } from "@/lib/observability/report";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
 import { assertAiCoachOperationEnabled } from "./operations";
@@ -26,16 +38,24 @@ export const runCommandSchema = z
 export const runSnapshotSchema = z
   .object({
     schemaVersion: z.literal(1),
-    synthetic: z.literal(true),
+    // T-2041: the four values below were `z.literal(...)` of the compile-time
+    // fixture constants. They are **widened in place, not removed** — the
+    // object is `.strict()`, so deleting them would make every stored
+    // snapshot fail to parse with "Unrecognized key", and widening a literal
+    // does not change the parse *output* for a stored value, so `contentHash`
+    // is byte-identical for every row written before this change. The
+    // `superRefine` below restores exactly today's strictness whenever there
+    // is no `runtimeBinding`.
+    synthetic: z.boolean(),
     intake: intakeAnswersSchema,
-    policyVersion: z.literal(ACTIVE_POLICY_VERSION),
+    policyVersion: z.string().min(1).max(120),
     catalogVersions: z
       .object({
-        food: z.literal(FOOD_CATALOG_VERSION),
-        exercise: z.literal(EXERCISE_CATALOG_VERSION),
+        food: z.string().min(1).max(120),
+        exercise: z.string().min(1).max(120),
       })
       .strict(),
-    modelConfiguration: z.literal("synthetic-template-v1"),
+    modelConfiguration: z.string().min(1).max(120),
     baseVersionId: z.string().nullable(),
     basePayload: planPayloadSchema.nullable(),
     representation: z.enum(["MACROS", "MEALS"]),
@@ -59,9 +79,116 @@ export const runSnapshotSchema = z
       .max(500)
       .default([]),
     substitution: substitutionSchema.nullable().default(null),
+    /**
+     * T-2041 — the runtime artifact set resolved once, at `requestAiRun`, and
+     * frozen for the life of the run.
+     *
+     * `.optional()` and **never** `.default()`. A default would materialise a
+     * key that is absent in stored JSON and break three hashes at once:
+     * `AiCoachRun.businessKey` (hashed from the parsed snapshot below, so
+     * dedup would reshard for rows that already exist),
+     * `AiPlanVersion.validationReport.inputHash` (`managed-executor.ts`),
+     * which `weekly-proof.ts` compares against a fresh `contentHash` — every
+     * existing weekly candidate would become un-acceptable — and
+     * `retry-command.ts`, which re-stores the parsed snapshot and would write
+     * the injected default permanently into a legacy row.
+     */
+    runtimeBinding: resolvedRuntimeArtifactSetSchema.optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((snapshot, ctx) => {
+    // A **mixed** snapshot is unrepresentable. With no binding the four
+    // top-level values must be exactly today's fixture constants (this is
+    // precisely the strictness the four `z.literal`s used to enforce, so no
+    // stored row changes verdict); with a binding they must equal the
+    // binding's, whose own schema already requires one exact artifact
+    // reference per kind carrying the very keys it claims. That is what lets
+    // `generationBindingFromSnapshot` read a legacy snapshot's own four
+    // fields as the fixture binding without consulting a constant.
+    const expected = snapshot.runtimeBinding ?? {
+      synthetic: true,
+      policyVersion: ACTIVE_POLICY_VERSION,
+      catalogVersions: { food: FOOD_CATALOG_VERSION, exercise: EXERCISE_CATALOG_VERSION },
+      modelConfiguration: "synthetic-template-v1",
+    };
+    const mismatches: [path: (string | number)[], ok: boolean][] = [
+      [["synthetic"], snapshot.synthetic === expected.synthetic],
+      [["policyVersion"], snapshot.policyVersion === expected.policyVersion],
+      [["catalogVersions", "food"], snapshot.catalogVersions.food === expected.catalogVersions.food],
+      [
+        ["catalogVersions", "exercise"],
+        snapshot.catalogVersions.exercise === expected.catalogVersions.exercise,
+      ],
+      [["modelConfiguration"], snapshot.modelConfiguration === expected.modelConfiguration],
+    ];
+    for (const [path, ok] of mismatches) {
+      if (ok) continue;
+      ctx.addIssue({
+        code: "custom",
+        path,
+        message: snapshot.runtimeBinding
+          ? "A run snapshot must agree with its own frozen runtime binding."
+          : "An unbound run snapshot must carry exactly the fixture runtime constants.",
+      });
+    }
+  });
 export type RunSnapshot = z.infer<typeof runSnapshotSchema>;
+
+/**
+ * T-2041 — resolves the runtime artifact set a new run will be frozen to.
+ *
+ * Returns the resolved set, or the error that must be raised once the
+ * transaction has run its existing checks, or neither.
+ *
+ * **The one degrade, and its blast radius.** A FIXTURE binding whose
+ * synthetic artifact set is simply not present in this environment
+ * (`ARTIFACT_MISSING` / `ARTIFACT_NOT_EFFECTIVE`) does not fail the request:
+ * the snapshot is written in the legacy unbound shape, exactly as every run
+ * written before this ticket, and `generationBindingFromSnapshot` reads the
+ * fixture binding back off the snapshot's own four fields. That keeps an
+ * existing synthetic run byte-identical (T-2022's acceptance criterion) in a
+ * dev or test database that never published the fixture artifacts.
+ *
+ * It can never apply to a real account:
+ *  - a FIXTURE binding requires `requireFixtureRuntime()`, which refuses
+ *    production and refuses a missing `AI_COACH_FIXTURE_MODE`;
+ *  - a LIVE binding needs an ACTIVE release, and every failure on that path —
+ *    including a missing, revoked, expired or reclassified artifact — is
+ *    raised, so a real client's run is never written unbound.
+ * Any other `ArtifactLoadError`, on either branch, is raised too: a fixture
+ * set that exists but is corrupt, incompatible or revoked is a real fault.
+ */
+async function resolveRunRuntimeBinding(clientId: string): Promise<{
+  runtime: ResolvedRuntimeArtifactSet | null;
+  runtimeError: unknown;
+  profileClass: { isSynthetic: boolean } | null;
+}> {
+  const profileClass = await db.aiCoachProfile.findUnique({
+    where: { clientId },
+    select: { isSynthetic: true },
+  });
+  // No profile: `lockAiClient` already raises FORBIDDEN 403 for this, in the
+  // transaction, in its existing position. Nothing is pre-empted here.
+  if (!profileClass) return { runtime: null, runtimeError: null, profileClass: null };
+  try {
+    const binding = await resolveAiCoachRuntimeBinding(null, profileClass);
+    const runtime = await resolveRuntimeArtifactSet(binding, clientId);
+    return { runtime, runtimeError: null, profileClass };
+  } catch (err) {
+    const absent =
+      err instanceof ArtifactLoadError &&
+      (err.code === "ARTIFACT_MISSING" || err.code === "ARTIFACT_NOT_EFFECTIVE");
+    if (absent && profileClass.isSynthetic) {
+      reportAnomaly("ai_coach.run.runtime_binding_unavailable", {
+        ids: { clientId },
+        context: { reason: err.code, mode: "FIXTURE" },
+        allow: ["reason", "mode"],
+      });
+      return { runtime: null, runtimeError: null, profileClass };
+    }
+    return { runtime: null, runtimeError: err, profileClass };
+  }
+}
 
 /** Owner and business identity are entirely server-derived; request keys cannot buy new runs. */
 export async function requestAiRun(clientId: string, raw: unknown) {
@@ -71,8 +198,28 @@ export async function requestAiRun(clientId: string, raw: unknown) {
   await assertAiCoachOperationEnabled("GENERATION");
   if (input.substitution && (input.kind !== "REPRESENTATION" || input.representation !== "MEALS"))
     throw new AiCoachError("VALIDATION_ERROR", "Substitutions require meal representation.", 422);
+  // T-2041: the run's runtime artifact binding is resolved **once**, here,
+  // before the transaction opens — `resolveRuntimeArtifactSet` opens its own
+  // and nesting is not allowed (risk 4). This is the only point where the
+  // client, the profile classification and the ACTIVE release are all in
+  // scope, and it makes the binding immutable for the life of the run, which
+  // is what lets the executor, a retry, the weekly replay and finalization
+  // all read one stored truth instead of re-deriving four.
+  //
+  // Nothing is thrown out here: the resolve outcome is carried into the
+  // transaction and raised only after `lockAiClient` and the idempotency
+  // receipt have had their say, so this ticket moves no existing fail-closed
+  // error earlier and a replayed request key still returns its cached result.
+  const { runtime, runtimeError, profileClass } = await resolveRunRuntimeBinding(clientId);
   return db.$transaction(async (tx) => {
     const { context, profile } = await lockAiClient(tx, clientId);
+    // The classification above was read outside this lock. If it moved, the
+    // binding resolved against it is not the binding this run would get.
+    if (profileClass && profile.isSynthetic !== profileClass.isSynthetic)
+      throw new AiCoachError(
+        "REVISION_CONFLICT",
+        "Your account classification changed. Refresh to continue."
+      );
     const digest = contentHash(input);
     const receipt = await tx.aiOperationReceipt.findUnique({
       where: {
@@ -87,6 +234,7 @@ export async function requestAiRun(clientId: string, raw: unknown) {
         );
       return receipt.result as { runId: string };
     }
+    if (runtimeError) throw runtimeError;
     if (!isAiCoachGenerationEnabled())
       throw new AiCoachError("TEMPORARILY_UNAVAILABLE", "Plan preparation is paused.", 503);
     if (
@@ -163,11 +311,19 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     });
     const snapshot = runSnapshotSchema.parse({
       schemaVersion: 1,
-      synthetic: true,
+      // T-2041: from the resolved set, never from a constant. When no set
+      // could be resolved (see `resolveRunRuntimeBinding`) the snapshot keeps
+      // the legacy unbound shape, which the schema's `superRefine` pins to
+      // exactly these fixture constants.
+      synthetic: runtime?.synthetic ?? true,
       intake: intake.data,
-      policyVersion: ACTIVE_POLICY_VERSION,
-      catalogVersions: { food: FOOD_CATALOG_VERSION, exercise: EXERCISE_CATALOG_VERSION },
-      modelConfiguration: "synthetic-template-v1",
+      policyVersion: runtime?.policyVersion ?? ACTIVE_POLICY_VERSION,
+      catalogVersions: runtime?.catalogVersions ?? {
+        food: FOOD_CATALOG_VERSION,
+        exercise: EXERCISE_CATALOG_VERSION,
+      },
+      modelConfiguration: runtime?.modelConfiguration ?? "synthetic-template-v1",
+      ...(runtime ? { runtimeBinding: runtime } : {}),
       baseVersionId: base?.id ?? null,
       basePayload: base?.payload ?? null,
       representation: input.representation,
