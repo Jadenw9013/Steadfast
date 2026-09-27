@@ -599,10 +599,23 @@
       "NUTRITION_EVIDENCE_RULE"
     ],
     "escalationTemplateIds": [
-      "synthetic-pause-refer-template"
+      "ESCALATION.PLAN.READY.V1",
+      "ESCALATION.SERVICE.UNAVAILABLE.V1",
+      "ESCALATION.SCOPE.OUT_OF_SCOPE.V1",
+      "ESCALATION.SAFETY.RESTRICTED.V1",
+      "ESCALATION.INTAKE.INCOMPLETE.V1",
+      "ESCALATION.INTAKE.UNRECOGNISED.V1",
+      "ESCALATION.NUTRITION.TARGET.OUT_OF_SCOPE.V1",
+      "ESCALATION.NUTRITION.TARGET.NOT_READY.V1",
+      "ESCALATION.NUTRITION.TARGET.NEEDS_ANSWERS.V1",
+      "ESCALATION.NUTRITION.SAFETY.UNAVAILABLE.V1",
+      "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1",
+      "ESCALATION.NUTRITION.SAFETY.HOLD.V1",
+      "ESCALATION.EVIDENCE.NEEDS_INPUT.V1",
+      "ESCALATION.EVIDENCE.HOLD.V1",
+      "ESCALATION.PLAN.NOT_USABLE.V1"
     ],
     "explanationTemplateIds": [
-      "synthetic-pause-refer-template",
       "TRAINING.EFFORT.STRENGTH.V1",
       "TRAINING.EFFORT.CARDIO.V1"
     ],
@@ -614,38 +627,38 @@
         "ruleId": "NUTRITION_INTAKE_SCREEN_RULE",
         "flaggedReasonCode": "SCREEN_FLAGGED",
         "unknownReasonCode": "SCREEN_UNKNOWN",
-        "escalationTemplateId": "synthetic-pause-refer-template"
+        "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
       },
       "contraindications": [
         {
           "inputId": "AGE_ELIGIBILITY",
           "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
           "reasonCode": "CONTRAINDICATION_AGE_ELIGIBILITY",
-          "escalationTemplateId": "synthetic-pause-refer-template"
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
         },
         {
           "inputId": "PREGNANCY_POSTPARTUM",
           "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
           "reasonCode": "CONTRAINDICATION_PREGNANCY_POSTPARTUM",
-          "escalationTemplateId": "synthetic-pause-refer-template"
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
         },
         {
           "inputId": "EATING_DISORDER_HISTORY_OR_CONCERN",
           "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
           "reasonCode": "CONTRAINDICATION_EATING_DISORDER",
-          "escalationTemplateId": "synthetic-pause-refer-template"
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
         },
         {
           "inputId": "TYPE_1_DIABETES",
           "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
           "reasonCode": "CONTRAINDICATION_TYPE_1_DIABETES",
-          "escalationTemplateId": "synthetic-pause-refer-template"
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
         },
         {
           "inputId": "CARDIAC_CONDITION",
           "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
           "reasonCode": "CONTRAINDICATION_CARDIAC_CONDITION",
-          "escalationTemplateId": "synthetic-pause-refer-template"
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
         }
       ],
       "nutritionLimits": {
