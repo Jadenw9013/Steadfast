@@ -35,16 +35,13 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     expect(artifactContentDigest(set.exerciseCatalog)).toBe(
       "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594"
     );
+    // T-2039: evidenceRegistry gained the 6 training/progression rule IDs in its claim,
+    // and escalationTemplates gained the two reviewed effort explanation templates.
     expect(artifactContentDigest(set.evidenceRegistry)).toBe(
-      "3a946969a4053dc12a80057b4d48b658961fa09fca070764eb056c756d5d4feb"
+      "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233"
     );
-    // T-2033: the escalation-templates fixture's single template gained
-    // GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE plus the 14 PrescriptionReasonCode
-    // values in its reasonCodes list (synthetic-fixtures.ts), so its content
-    // digest changed too — the pinned value below reflects that deliberate,
-    // reviewed content addition, not an accidental byte drift.
     expect(artifactContentDigest(set.escalationTemplates)).toBe(
-      "9765ae01912b2c8ea0ec82e508640481dcc940c6af48f8ddf821bdc9294feb4c"
+      "fab8e295214943dfaee468a9fd1742e4f05648fe33a24942da112f960959b34b"
     );
   });
 
@@ -121,8 +118,9 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
       (p) => p.parameterId
     );
 
-    expect(parameterIdsInContent).toHaveLength(62);
-    expect(provenanceParameterIds).toHaveLength(62);
+    // 62 nutrition parameters + 11 proposed training parameters = 73 parameters in draft bundle
+    expect(parameterIdsInContent).toHaveLength(73);
+    expect(provenanceParameterIds).toHaveLength(73);
     expect([...provenanceParameterIds].sort()).toEqual([...parameterIdsInContent].sort());
 
     for (const prov of draftFile.reviewMetadata.proposalProvenance) {
@@ -170,7 +168,7 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     // Extract awaiting review table IDs (Section 3)
     const awaitingReviewSection = catalogueContent
       .split("## 3. Awaiting Qualified Professional Review (13)")[1]
-      ?.split("## 4. Change History")[0];
+      ?.split("## 4. Training and Progression Parameters (46)")[0];
     expect(awaitingReviewSection).toBeDefined();
 
     const awaitingIdsFromDoc = [...awaitingReviewSection.matchAll(/\|\s*`([A-Z0-9._:-]+)`\s*\|/g)]
@@ -195,12 +193,14 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     const uniqueProposedIdsFromDoc = [...new Set(proposedIdsFromDoc)];
     expect(uniqueProposedIdsFromDoc).toHaveLength(62);
 
-    const draftParameterIds = draftFile.content.numericParameters.map((p) => p.id);
-    expect([...draftParameterIds].sort()).toEqual([...uniqueProposedIdsFromDoc].sort());
+    const draftPrescriptionParameterIds = draftFile.content.numericParameters
+      .map((p) => p.id)
+      .filter((id) => PRESCRIPTION_PARAMETER_SPECS.some((spec) => spec.id === id));
+    expect([...draftPrescriptionParameterIds].sort()).toEqual([...uniqueProposedIdsFromDoc].sort());
 
     // Total must equal 75
     expect(PRESCRIPTION_PARAMETER_SPECS).toHaveLength(75);
-    expect(draftParameterIds.length + resolution.missingParameterIds.length).toBe(75);
+    expect(draftPrescriptionParameterIds.length + resolution.missingParameterIds.length).toBe(75);
   });
 
   it("synthetic policy bundle resolves to ok:true with all 75 parameters and nutrition-safety passes", () => {

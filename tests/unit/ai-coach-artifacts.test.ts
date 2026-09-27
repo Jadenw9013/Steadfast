@@ -1,11 +1,24 @@
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { artifactContentDigest } from "@/lib/ai-coach/artifacts/digest";
 import {
   escalationTemplatesContentSchema,
   exerciseCatalogContentSchema,
   parseArtifactDraftInput,
+  type EscalationTemplatesContent,
+  type PolicyBundleContent,
 } from "@/lib/ai-coach/artifacts/schema";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import { resolveNutritionSafetyPolicy } from "@/lib/ai-coach/nutrition-safety";
+import { resolvePrescriptionParameters } from "@/lib/ai-coach/prescription/parameters";
+import { buildSyntheticSafetyFloors } from "../helpers/ai-prescription-bundle";
+import {
+  resolveTrainingParameters,
+  TRAINING_PROGRESSION_PARAMETER_IDS,
+} from "@/lib/ai-coach/training/parameters";
+import { loadDraftUnsignedExerciseCatalog } from "@/lib/ai-coach/artifacts/drafts/exercise-catalog";
+import { loadDraftUnsignedPolicyBundle } from "@/lib/ai-coach/artifacts/drafts/loader";
 
 describe("T-1005 — reviewed artifact schemas", () => {
   it("accepts the complete synthetic policy/catalog/evidence/escalation fixture set", () => {
@@ -171,26 +184,26 @@ describe("T-1005 — reviewed artifact schemas", () => {
 
 describe("T-2038 — the additive exercise-catalog fields move no already-registered byte", () => {
   /**
-   * Captured from this branch's base, `team/sprint-1@72bf255`, before the
-   * optional fields were added. `artifactContentDigest` hashes review metadata,
-   * compatibility and content together, and every registered artifact row is
-   * bound to its digest, so a `.default()`, a reordered key or a dropped
-   * `.strict()` in `artifacts/schema.ts` would invalidate all of them silently.
+   * Pinned digests for synthetic artifacts. In T-2039, evidenceRegistry gained
+   * the 6 training/progression rule IDs in its claim, escalationTemplates gained
+   * the two reviewed effort explanation templates, and policyBundle gained the 46
+   * training and progression parameters. The food and exercise catalogs are 100%
+   * byte-identical to their pre-change digests.
    */
   const DIGESTS_BEFORE_T2038: Record<string, Record<string, string>> = {
     "t1005-fixture": {
       foodCatalog: "5c5153170d060f62937fb58eea635e869978f2e5445413709732fd5b577d7a7a",
       exerciseCatalog: "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594",
-      evidenceRegistry: "3a946969a4053dc12a80057b4d48b658961fa09fca070764eb056c756d5d4feb",
-      escalationTemplates: "9765ae01912b2c8ea0ec82e508640481dcc940c6af48f8ddf821bdc9294feb4c",
-      policyBundle: "225de40fb936f1b0c94ca8415b95bd46ac55b6b95c9ff23ba71f46d50e3c32d4",
+      evidenceRegistry: "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233",
+      escalationTemplates: "fab8e295214943dfaee468a9fd1742e4f05648fe33a24942da112f960959b34b",
+      policyBundle: "639505c6c22b955f22cf13bd06b680cd32ac816a23d406ce95610288fadc5030",
     },
     "t1008-runtime": {
       foodCatalog: "9d7eb3f81a2fc045345f79a315aead0a5c2779178ab0385eca13fef3abd92695",
       exerciseCatalog: "17af02f644e7e6effba953e9ba97f6ffe9cb5c75572992e927649ce09bea469f",
-      evidenceRegistry: "5ca52850969c44d856f193f9481afa5063811e45f70bb660325a7c97d78b8ecc",
-      escalationTemplates: "4082649b7259f1d6dd7274b9c66bf4404b8628637d6dd85063a47a3162cdf956",
-      policyBundle: "87c0fb9ca421851f7bd02590a3ca56bcebd3f71dc3388c7645438d3ef4ba93e8",
+      evidenceRegistry: "187785ffba971a5620f3cc684d561f994f815fc0ae304061f6b68e1e6545cfee",
+      escalationTemplates: "73e61e47f5523db815e77fde9e460f0649d8106cc95099046e2898161a050293",
+      policyBundle: "b3dad92c335d2b1d3ac38ab5c6561eec18f9de35d765b0f2ee962639306fc1f0",
     },
   };
 
@@ -235,5 +248,88 @@ describe("T-2038 — the additive exercise-catalog fields move no already-regist
       { equipmentId: "EQUIPMENT_NONE", exerciseId: content.exercises[0].id },
     ];
     expect(() => exerciseCatalogContentSchema.parse(resolvable)).not.toThrow();
+  });
+});
+
+describe("T-2039 — training and progression parameters in synthetic and draft bundles", () => {
+  it("resolves all 34 composer parameters from the synthetic bundle while prescription and safety succeed", () => {
+    const set = buildSyntheticArtifactSet();
+    const policy = set.policyBundle.content as PolicyBundleContent;
+    const escalation = set.escalationTemplates.content as EscalationTemplatesContent;
+
+    if (!("templates" in escalation)) throw new Error("fixture shape changed");
+
+    const explanationTexts = escalation.templates.map((t) => ({ id: t.id, text: t.nextStepText }));
+    const trainingResolution = resolveTrainingParameters(policy, explanationTexts);
+
+    expect(trainingResolution.ok).toBe(true);
+    if (!trainingResolution.ok) return;
+
+    expect(trainingResolution.parameters.exerciseCountMin).toBe(3);
+    expect(trainingResolution.parameters.plannedMinutesByBand.MIN_45_60).toBe(60);
+    expect(trainingResolution.parameters.setsPerExerciseByExperience.NEW).toBe(2);
+    expect(trainingResolution.parameters.workloadTotalSessionsMax).toBe(6);
+
+    const floors = buildSyntheticSafetyFloors();
+    const rxResolution = resolvePrescriptionParameters(policy, ["Synthetic rx step"], floors);
+    expect(rxResolution.ok).toBe(true);
+
+    const safetyPolicy = resolveNutritionSafetyPolicy(policy);
+    expect(safetyPolicy.nutritionLimits.minimumDailyEnergyKcal).toBe(1234);
+  });
+
+  it("satisfies cross-artifact rule consistency between exercise catalogs and policy bundles", () => {
+    const draftCatalog = loadDraftUnsignedExerciseCatalog();
+    const draftBundle = loadDraftUnsignedPolicyBundle();
+    const draftBundleRuleIds = new Set(draftBundle.content.ruleIds);
+
+    for (const ex of draftCatalog.content.exercises) {
+      for (const ruleId of [...(ex.contraindicationRuleIds ?? []), ...(ex.beginnerConstraintIds ?? [])]) {
+        expect(draftBundleRuleIds.has(ruleId)).toBe(true);
+      }
+    }
+    for (const tpl of draftCatalog.content.templates) {
+      for (const ruleId of tpl.beginnerConstraintIds ?? []) {
+        expect(draftBundleRuleIds.has(ruleId)).toBe(true);
+      }
+    }
+
+    const syntheticSet = buildSyntheticArtifactSet();
+    const syntheticBundle = syntheticSet.policyBundle.content as PolicyBundleContent;
+    const syntheticBundleRuleIds = new Set(syntheticBundle.ruleIds);
+    const syntheticExerciseCatalog = syntheticSet.exerciseCatalog.content;
+
+    if (!("exercises" in syntheticExerciseCatalog)) throw new Error("fixture shape changed");
+
+    for (const ex of syntheticExerciseCatalog.exercises) {
+      for (const ruleId of [...ex.contraindicationRuleIds, ...ex.beginnerConstraintIds]) {
+        expect(syntheticBundleRuleIds.has(ruleId)).toBe(true);
+      }
+    }
+    for (const tpl of syntheticExerciseCatalog.templates) {
+      for (const ruleId of tpl.beginnerConstraintIds) {
+        expect(syntheticBundleRuleIds.has(ruleId)).toBe(true);
+      }
+    }
+  });
+
+  it("contains all TRAINING_PROGRESSION_PARAMETER_IDS in the synthetic bundle and in the catalogue doc", () => {
+    const set = buildSyntheticArtifactSet();
+    const policy = set.policyBundle.content as PolicyBundleContent;
+    const syntheticParamIds = new Set(policy.numericParameters.map((p) => p.id));
+
+    for (const progId of TRAINING_PROGRESSION_PARAMETER_IDS) {
+      expect(syntheticParamIds.has(progId)).toBe(true);
+    }
+
+    const cataloguePath = path.resolve(
+      process.cwd(),
+      "docs/ai-coach/17-Policy-Parameter-Catalogue.md"
+    );
+    const catalogueContent = fs.readFileSync(cataloguePath, "utf-8");
+
+    for (const progId of TRAINING_PROGRESSION_PARAMETER_IDS) {
+      expect(catalogueContent).toContain(`\`${progId}\``);
+    }
   });
 });

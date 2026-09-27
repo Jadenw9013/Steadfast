@@ -18,6 +18,17 @@ import {
   inputRangeParameterId,
   proteinParameterId,
 } from "../prescription/parameters";
+import {
+  EFFORT_CARDIO_TEMPLATE_ID,
+  EFFORT_STRENGTH_TEMPLATE_ID,
+  METHOD_DOSE_BEGINNER_ID,
+  METHOD_TEMPLATE_SELECTION_ID,
+  RULE_BOUNDED_TRAINING_ID,
+  RULE_CARDIO_DOSE_ID,
+  RULE_SESSION_STRUCTURE_ID,
+  RULE_WORKLOAD_COMBINED_ID,
+  TRAINING_COMPOSER_PARAMETER_SPECS,
+} from "../training/parameters";
 
 /**
  * T-1005 engineering fixtures only. Every fact, threshold, identity and review
@@ -104,6 +115,72 @@ export function syntheticPrescriptionParameterValue(id: string): number {
   if (id === "COMPOSITION.TOLERANCE_PERCENT") return 10;
   throw new Error(`No synthetic value defined for prescription parameter ${id}`);
 }
+
+const SYNTHETIC_PROGRESSION_PARAMETER_SPECS = [
+  { id: "PROGRESSION.STRENGTH.REPS.INCREMENT", unit: "REPETITIONS" },
+  { id: "PROGRESSION.STRENGTH.REPS.MAX_ABOVE_INITIAL", unit: "REPETITIONS" },
+  { id: "PROGRESSION.STRENGTH.SETS.INCREMENT", unit: "SETS" },
+  { id: "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL", unit: "SETS" },
+  { id: "PROGRESSION.STRENGTH.LOAD.INCREMENT_FRACTION", unit: "FRACTION_OF_CURRENT_LOAD" },
+  { id: "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW", unit: "FRACTION_OF_CURRENT_LOAD" },
+  { id: "PROGRESSION.CARDIO.MINUTES.INCREMENT", unit: "MINUTES_PER_SESSION" },
+  { id: "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL", unit: "MINUTES_PER_SESSION" },
+  { id: "PROGRESSION.EVIDENCE.MIN_COMPLETE_SESSION_WEEKS", unit: "WEEKS" },
+  { id: "PROGRESSION.EVIDENCE.MIN_COMPLETE_SETS_FRACTION", unit: "FRACTION_OF_PRESCRIBED_SETS" },
+  { id: "PROGRESSION.EVIDENCE.MAX_EFFORT_RATING", unit: "RPE_POINTS" },
+  { id: "PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES", unit: "DAYS" },
+] as const;
+
+export function syntheticTrainingParameterValue(id: string): number {
+  if (id === "TRAINING.SESSION.EXERCISE_COUNT.UNDER_30.MAX") return 4;
+  if (id === "TRAINING.SESSION.EXERCISE_COUNT.MIN_30_45.MAX") return 5;
+  if (id === "TRAINING.SESSION.EXERCISE_COUNT.MIN_45_60.MAX") return 6;
+  if (id === "TRAINING.SESSION.EXERCISE_COUNT.MIN_60_90.MAX") return 8;
+  if (id === "TRAINING.SESSION.EXERCISE_COUNT.OVER_90.MAX") return 10;
+  if (id === "TRAINING.SESSION.EXERCISE_COUNT.MIN") return 3;
+  if (id === "TRAINING.SESSION.PLANNED_MINUTES.UNDER_30") return 30;
+  if (id === "TRAINING.SESSION.PLANNED_MINUTES.MIN_30_45") return 45;
+  if (id === "TRAINING.SESSION.PLANNED_MINUTES.MIN_45_60") return 60;
+  if (id === "TRAINING.SESSION.PLANNED_MINUTES.MIN_60_90") return 90;
+  if (id === "TRAINING.SESSION.PLANNED_MINUTES.OVER_90") return 120;
+  if (id === "TRAINING.DOSE.NEW.SETS_PER_EXERCISE") return 2;
+  if (id === "TRAINING.DOSE.RETURNING.SETS_PER_EXERCISE") return 3;
+  if (id === "TRAINING.DOSE.EXPERIENCED.SETS_PER_EXERCISE") return 3;
+  if (id === "TRAINING.DOSE.NEW.REPS_PER_SET") return 10;
+  if (id === "TRAINING.DOSE.RETURNING.REPS_PER_SET") return 10;
+  if (id === "TRAINING.DOSE.EXPERIENCED.REPS_PER_SET") return 8;
+  if (id === "TRAINING.DOSE.NEW.REST_SECONDS") return 60;
+  if (id === "TRAINING.DOSE.RETURNING.REST_SECONDS") return 90;
+  if (id === "TRAINING.DOSE.EXPERIENCED.REST_SECONDS") return 120;
+  if (id === "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.NEW") return 3;
+  if (id === "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.RETURNING") return 4;
+  if (id === "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.EXPERIENCED") return 5;
+  if (id === "CARDIO.DOSE.NEW.SESSION_MINUTES") return 20;
+  if (id === "CARDIO.DOSE.RETURNING.SESSION_MINUTES") return 30;
+  if (id === "CARDIO.DOSE.EXPERIENCED.SESSION_MINUTES") return 30;
+  if (id === "CARDIO.DOSE.NEW.SESSIONS_PER_WEEK") return 2;
+  if (id === "CARDIO.DOSE.RETURNING.SESSIONS_PER_WEEK") return 3;
+  if (id === "CARDIO.DOSE.EXPERIENCED.SESSIONS_PER_WEEK") return 3;
+  if (id === "CARDIO.DOSE.MAX_SESSION_MINUTES") return 45;
+  if (id === "WORKLOAD.WEEKLY.TOTAL_SESSIONS.MAX") return 6;
+  if (id === "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX") return 360;
+  if (id === "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED") return 240;
+  if (id === "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX") return 3;
+  if (id === "PROGRESSION.STRENGTH.REPS.INCREMENT") return 1;
+  if (id === "PROGRESSION.STRENGTH.REPS.MAX_ABOVE_INITIAL") return 4;
+  if (id === "PROGRESSION.STRENGTH.SETS.INCREMENT") return 1;
+  if (id === "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL") return 2;
+  if (id === "PROGRESSION.STRENGTH.LOAD.INCREMENT_FRACTION") return 0.05;
+  if (id === "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW") return 0.1;
+  if (id === "PROGRESSION.CARDIO.MINUTES.INCREMENT") return 5;
+  if (id === "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL") return 15;
+  if (id === "PROGRESSION.EVIDENCE.MIN_COMPLETE_SESSION_WEEKS") return 2;
+  if (id === "PROGRESSION.EVIDENCE.MIN_COMPLETE_SETS_FRACTION") return 0.9;
+  if (id === "PROGRESSION.EVIDENCE.MAX_EFFORT_RATING") return 7;
+  if (id === "PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES") return 14;
+  throw new Error(`No synthetic value defined for training parameter ${id}`);
+}
+
 
 function reviewMetadata(namespace: string): SignedArtifactReviewMetadata {
   return {
@@ -358,6 +435,12 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
           "SYNTHETIC_MINIMUM_DAILY_ENERGY_RULE",
           "SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
           "SYNTHETIC_NO_CONSECUTIVE_DEFICIT_RULE",
+          METHOD_TEMPLATE_SELECTION_ID,
+          METHOD_DOSE_BEGINNER_ID,
+          RULE_SESSION_STRUCTURE_ID,
+          RULE_CARDIO_DOSE_ID,
+          RULE_WORKLOAD_COMBINED_ID,
+          RULE_BOUNDED_TRAINING_ID,
         ],
         reviewDate: "2026-01-01T00:00:00.000Z",
       },
@@ -434,6 +517,26 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
         nextStepText: "Synthetic test-only next step. No real guidance is provided.",
         nonMonitoringStatement: "Synthetic fixture: this service is not monitoring you.",
       },
+      {
+        id: EFFORT_STRENGTH_TEMPLATE_ID,
+        version: 1,
+        reasonCodes: ["SYNTHETIC_RULE"],
+        locale: "en-US",
+        geographies: ["SYNTHETIC_TEST_ONLY"],
+        pausedDomains: ["STRENGTH"],
+        nextStepText: "Moderate effort, 2-3 reps in reserve; maintain strict form.",
+        nonMonitoringStatement: "Synthetic fixture: this service is not monitoring you.",
+      },
+      {
+        id: EFFORT_CARDIO_TEMPLATE_ID,
+        version: 1,
+        reasonCodes: ["SYNTHETIC_RULE"],
+        locale: "en-US",
+        geographies: ["SYNTHETIC_TEST_ONLY"],
+        pausedDomains: ["CARDIO"],
+        nextStepText: "Conversational pace, RPE 4-5 out of 10; breathing comfortably.",
+        nonMonitoringStatement: "Synthetic fixture: this service is not monitoring you.",
+      },
     ],
   });
 
@@ -475,6 +578,24 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
         PRESCRIPTION_ROUNDING_ORDER_ID,
         PRESCRIPTION_MACRO_COMPOSITION_ID,
         PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID,
+        METHOD_TEMPLATE_SELECTION_ID,
+        METHOD_DOSE_BEGINNER_ID,
+        RULE_SESSION_STRUCTURE_ID,
+        RULE_CARDIO_DOSE_ID,
+        RULE_WORKLOAD_COMBINED_ID,
+        RULE_BOUNDED_TRAINING_ID,
+        "CONTRA.SPINAL_LOADING.V1",
+        "CONTRA.OVERHEAD_LOADING.V1",
+        "CONTRA.DEEP_KNEE_FLEXION.V1",
+        "CONTRA.HIGH_IMPACT.V1",
+        "CONTRA.FLOOR_TRANSFER.V1",
+        "CONTRA.PRONE_POSITION.V1",
+        "CONTRA.SUPINE_POSITION.V1",
+        "CONTRA.GRIP_DEMAND.V1",
+        "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+        "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+        "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+        "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1",
       ],
       calculationMethodIds: [
         "SYNTHETIC_CALCULATION_METHOD",
@@ -482,14 +603,29 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
         PRESCRIPTION_PROTEIN_WEIGHT_BASIS_ID,
         PRESCRIPTION_ROUNDING_ORDER_ID,
         PRESCRIPTION_MACRO_COMPOSITION_ID,
+        METHOD_TEMPLATE_SELECTION_ID,
+        METHOD_DOSE_BEGINNER_ID,
       ],
-      adjustmentRuleIds: ["SYNTHETIC_ADJUSTMENT_RULE", PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID],
+      adjustmentRuleIds: [
+        "SYNTHETIC_ADJUSTMENT_RULE",
+        PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID,
+        RULE_BOUNDED_TRAINING_ID,
+      ],
       cooldownRuleIds: ["SYNTHETIC_COOLDOWN_RULE"],
       cumulativeLimitRuleIds: ["SYNTHETIC_CUMULATIVE_LIMIT_RULE"],
       contraindicationRuleIds: ["SYNTHETIC_CONTRAINDICATION_RULE"],
       evidenceRuleIds: ["SYNTHETIC_EVIDENCE_RULE"],
-      escalationTemplateIds: ["synthetic-pause-refer-template"],
-      explanationTemplateIds: ["synthetic-pause-refer-template", "SYNTHETIC_EXPLANATION_TEMPLATE"],
+      escalationTemplateIds: [
+        "synthetic-pause-refer-template",
+        EFFORT_STRENGTH_TEMPLATE_ID,
+        EFFORT_CARDIO_TEMPLATE_ID,
+      ],
+      explanationTemplateIds: [
+        "synthetic-pause-refer-template",
+        "SYNTHETIC_EXPLANATION_TEMPLATE",
+        EFFORT_STRENGTH_TEMPLATE_ID,
+        EFFORT_CARDIO_TEMPLATE_ID,
+      ],
       safetyControls: {
         schemaVersion: 1,
         screening: {
@@ -565,6 +701,22 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
           value: syntheticPrescriptionParameterValue(spec.id),
           unit: spec.unit,
           applicabilityRuleIds: [spec.groupRuleId],
+          evidenceClaimIds: ["synthetic-evidence-claim"],
+        })),
+        // Deliberately synthetic test value. It is not approved guidance.
+        ...TRAINING_COMPOSER_PARAMETER_SPECS.map((spec) => ({
+          id: spec.id,
+          value: syntheticTrainingParameterValue(spec.id),
+          unit: spec.unit,
+          applicabilityRuleIds: [spec.ruleId],
+          evidenceClaimIds: ["synthetic-evidence-claim"],
+        })),
+        // Deliberately synthetic test value. It is not approved guidance.
+        ...SYNTHETIC_PROGRESSION_PARAMETER_SPECS.map((spec) => ({
+          id: spec.id,
+          value: syntheticTrainingParameterValue(spec.id),
+          unit: spec.unit,
+          applicabilityRuleIds: [RULE_BOUNDED_TRAINING_ID],
           evidenceClaimIds: ["synthetic-evidence-claim"],
         })),
       ],

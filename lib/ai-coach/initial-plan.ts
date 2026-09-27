@@ -20,6 +20,13 @@ import {
   classifyPrescriptionReasonCodes,
   type PrescriptionReasonClass,
 } from "./prescription-reason-classes";
+import { daySpread, composeTraining } from "./training";
+import type {
+  ResolvedTrainingParameters,
+  TrainingCatalogSource,
+  TrainingReasonCode,
+} from "./training/types";
+import { trainingCatalogSourceFromDraftFile } from "./training/catalog-source";
 
 /** All doses, targets and templates below are SYNTHETIC TEST FIXTURES (G01/G02).
  * The runtime must additionally require a synthetic subject and nonproduction
@@ -42,7 +49,7 @@ export function composeFixtureMeals(answers: IntakeAnswers, scale = 1): NonNulla
 /** Shared by the legacy synthetic path and the v2 prescription-first path
  * (CLAUDE.md rule 1: one implementation, not a copy per branch). */
 function buildFixtureTrainingSections(answers: IntakeAnswers) {
-  const days = Array.from({ length: answers.trainingDaysPerWeek }, (_, i) => Math.floor(i * 7 / answers.trainingDaysPerWeek) + 1);
+  const days = Array.from({ length: answers.trainingDaysPerWeek }, (_, i) => daySpread(i, answers.trainingDaysPerWeek));
   return {
     strength: days.map(day => ({ sessionId: `strength-${day}`, templateId: "fixture-beginner-v1", day, exercises: [{ exerciseId: answers.equipmentAccess.some(e => e !== "NONE") ? "goblet-squat" : "bodyweight-squat", catalogVersion: EXERCISE_CATALOG_VERSION, sets: 2, reps: 8, restSeconds: 90, effort: "Synthetic starting-dose fixture; no live exercise guidance." }] })),
     cardio: [{ sessionId: "cardio-1", exerciseId: "brisk-walk", catalogVersion: EXERCISE_CATALOG_VERSION, day: days[0], durationMinutes: 15, intensity: "Synthetic intensity fixture; qualified review required." }],
@@ -271,6 +278,10 @@ export type ComposeInitialPlanInput = {
    * second case is not routed through the legacy composer. */
   parameters: ResolvedPrescriptionParameters | null;
   binding: { policyVersion: string; foodCatalogVersion: string; exerciseCatalogVersion: string };
+  trainingParameters?: ResolvedTrainingParameters | null;
+  trainingCatalog?: TrainingCatalogSource | null;
+  trainingEffortText?: { strength: string; cardio: string } | null;
+  activeContraindicationRuleIds?: readonly string[];
 };
 
 /**
@@ -358,6 +369,21 @@ const UNAVAILABLE_DECISION_BY_REASON_CLASS: Record<
   },
 };
 
+function classifyTrainingReasonCode(
+  code: TrainingReasonCode
+): "MISSING_INPUT" | "SAFETY_CONCERN" | "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE" {
+  if (code === "TRAINING_INPUT_MISSING" || code === "TRAINING_INTAKE_VERSION_UNSUPPORTED") {
+    return "MISSING_INPUT";
+  }
+  if (
+    code === "TRAINING_CONTRAINDICATED_NO_SUBSTITUTE" ||
+    code === "TRAINING_WORKLOAD_INFEASIBLE"
+  ) {
+    return "SAFETY_CONCERN";
+  }
+  return "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE";
+}
+
 function unavailableV2Result(
   binding: ComposeInitialPlanInput["binding"],
   mode: "MACROS" | "MEALS",
@@ -415,7 +441,55 @@ export function composeInitialPlan(input: ComposeInitialPlanInput): ComposeIniti
   }
 
   const answers = intakeAnswersSchema.parse(input.rawAnswers);
-  const { strength, cardio } = buildFixtureTrainingSections(answers);
+
+  let strength: PlanPayload["strength"];
+  let cardio: PlanPayload["cardio"];
+  const trainingReasonCodes: TrainingReasonCode[] = [];
+
+  if (input.trainingParameters !== undefined) {
+    if (input.trainingParameters === null) {
+      strength = [];
+      cardio = [];
+      trainingReasonCodes.push("TRAINING_PARAMETER_MISSING");
+    } else {
+      const catalog = input.trainingCatalog ?? trainingCatalogSourceFromDraftFile();
+      const effortText = input.trainingEffortText ?? {
+        strength: "Synthetic starting-dose fixture; no live exercise guidance.",
+        cardio: "Synthetic intensity fixture; qualified review required.",
+      };
+      const built = buildPrescriptionInput(input.rawAnswers, input.evaluatedOn);
+      let energyReducedRelativeToMaintenance: boolean | null = null;
+      if (built.ok && input.parameters) {
+        const pres = computePrescription(input.parameters, built.input);
+        if (pres.status === "PRESCRIBED") {
+          energyReducedRelativeToMaintenance =
+            pres.prescription.targetEnergyKcal < pres.prescription.maintenanceEnergyKcal;
+        }
+      }
+      const trainingResult = composeTraining(input.trainingParameters, catalog, effortText, {
+        intakeVersion: 2,
+        trainingDaysPerWeek: answers.trainingDaysPerWeek,
+        equipmentAccess: answers.equipmentAccess,
+        experienceLevel: answers.experienceLevel,
+        sessionLengthBand: answers.sessionLengthBand ?? null,
+        trainingContextStatus: answers.trainingContextStatus ?? null,
+        energyReducedRelativeToMaintenance,
+        activeContraindicationRuleIds: input.activeContraindicationRuleIds ?? [],
+      });
+      if (trainingResult.status === "COMPOSED") {
+        strength = trainingResult.strength;
+        cardio = trainingResult.cardio;
+      } else {
+        strength = [];
+        cardio = [];
+        trainingReasonCodes.push(...trainingResult.reasonCodes);
+      }
+    }
+  } else {
+    const fixtureTraining = buildFixtureTrainingSections(answers);
+    strength = fixtureTraining.strength;
+    cardio = fixtureTraining.cardio;
+  }
 
   if (input.parameters === null) {
     // Documented judgment call (see composeUnavailablePrescriptionPlan's own
@@ -485,7 +559,12 @@ export function composeInitialPlan(input: ComposeInitialPlanInput): ComposeIniti
     payload,
     decision: {
       action: "HOLD",
-      reasonCodes: [feasible ? "INITIAL_FIXTURE" : "NO_FEASIBLE_MEALS"],
+      reasonCodes: Array.from(
+        new Set([
+          feasible ? "INITIAL_FIXTURE" : "NO_FEASIBLE_MEALS",
+          ...trainingReasonCodes.map(classifyTrainingReasonCode),
+        ])
+      ),
       explanation: feasible
         ? "Your proposal is ready for review. It is not active until review and acceptance are complete."
         : "The catalog cannot compose meals within tolerance of the reviewed prescription; targets are shown without a meal plan.",
