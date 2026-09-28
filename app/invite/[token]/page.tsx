@@ -216,6 +216,13 @@ export default async function InviteRedemptionPage({
                                     Already have an account? Sign in
                                 </Link>
                             </div>
+
+                            <div className="rounded-xl border border-white/[0.08] bg-white/[0.03] p-3 text-left space-y-1">
+                                <p className="text-xs font-semibold text-zinc-300">Medical Disclaimer &amp; Liability</p>
+                                <p className="text-[11px] leading-relaxed text-zinc-400">
+                                    Steadfast provides general fitness and wellness coaching only, not medical advice or treatment. Always consult your doctor before starting any exercise or diet program. Steadfast is not liable for health outcomes or injuries.
+                                </p>
+                            </div>
                         </>
                     )}
                 </div>

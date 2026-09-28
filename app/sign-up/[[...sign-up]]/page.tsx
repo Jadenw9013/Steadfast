@@ -119,6 +119,24 @@ export default function SignUpPage() {
             },
           }}
         />
+
+        {/* Registration awareness & liability disclaimer */}
+        <div className="mt-6 w-full max-w-[400px] rounded-xl border border-zinc-200 bg-white/95 p-4 text-xs leading-relaxed text-zinc-600 shadow-sm">
+          <p className="font-semibold text-zinc-900 mb-1">Medical Disclaimer &amp; Liability Notice</p>
+          <p className="mb-1.5">
+            <strong>Not Medical Advice:</strong> Steadfast provides general fitness and wellness coaching only and does not provide medical advice, clinical nutrition therapy, diagnosis, or treatment. Coaches and content reviewers are not required to hold medical or clinical credentials.
+          </p>
+          <p className="mb-1.5">
+            <strong>Consult Your Doctor:</strong> You agree that you should consult your doctor or a qualified healthcare professional before beginning any diet, training, or exercise program. You assume full risk for your participation.
+          </p>
+          <p className="text-[11px] text-zinc-500">
+            By creating an account, you agree to our{" "}
+            <Link href="/terms" className="text-blue-600 underline hover:text-blue-500" target="_blank">
+              Terms of Service
+            </Link>{" "}
+            and acknowledge that Steadfast is not liable for health outcomes or injuries.
+          </p>
+        </div>
       </div>
     </div>
   );
