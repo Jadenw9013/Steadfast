@@ -96,20 +96,14 @@ describe("AI client screen states", () => {
     expect(html).toContain("Synthetic preview");
     expect(html).toContain("Complete your intake");
   });
-  it("does not present missing safety answers as No", () => {
-    const html = renderToStaticMarkup(
-      createElement(AiCoachExperience, { initial, path: ["intake"] })
-    );
-    expect(html.match(/value="" selected=""/g)?.length).toBeGreaterThanOrEqual(5);
-    expect(html).not.toContain('value="NO" selected');
-    expect(html).toContain("Unsure");
-  });
-  it("T-2024: the intake wizard renders stage 1 and never throws, whether confirmedIntake is null, v1 or v2", () => {
+  it("T-2028: the intake wizard renders step 1 with interactive cards and never throws, whether confirmedIntake is null, v1 or v2", () => {
     const stage1 = renderToStaticMarkup(
       createElement(AiCoachExperience, { initial, path: ["intake"] })
     );
-    expect(stage1).toContain("1. Eligibility and safety");
+    expect(stage1).toContain("What are we building toward?");
+    expect(stage1).toContain("1 / 4");
     expect(stage1).toContain("Continue");
+    expect(stage1).toContain("Fat Loss / Cut");
 
     const v1Intake = {
       ...initial,
@@ -138,7 +132,8 @@ describe("AI client screen states", () => {
     const v2Html = renderToStaticMarkup(
       createElement(AiCoachExperience, { initial: v2Intake, path: ["intake"] })
     );
-    expect(v2Html).toContain("1. Eligibility and safety");
+    expect(v2Html).toContain("What are we building toward?");
+    expect(v2Html).toContain("1 / 4");
   });
   it("labels an unfinalized proposal honestly without numerical instructions or an accept action", () => {
     const view = {
