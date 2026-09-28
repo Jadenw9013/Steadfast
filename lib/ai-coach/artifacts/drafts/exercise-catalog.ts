@@ -4,12 +4,12 @@ import type {
   ArtifactReference,
   SignedArtifactReviewMetadata,
 } from "../schema";
+import { exerciseCatalogContentSchema } from "../schema";
 import {
-  draftUnsignedReviewMetadataSchema,
-  exerciseCatalogContentSchema,
-  isDraftUnsignedReviewMetadata,
-  signedArtifactReviewMetadataSchema,
-} from "../schema";
+  artifactFileReviewMetadataSchema,
+  reportReviewStateMismatch,
+  requireSignedReviewMetadata,
+} from "./file-review";
 import { DRAFT_EXERCISE_CATALOG_VERSION } from "../../catalog/draft-catalog-version";
 import rawDraftExerciseCatalog from "./exercise-catalog.draft-unsigned.v1.json";
 
@@ -87,12 +87,13 @@ export type DraftExerciseReviewState = z.infer<typeof draftExerciseReviewStateSc
 export const draftExerciseCatalogFileSchema = z
   .object({
     fileSchemaVersion: z.literal(1),
-    reviewMetadata: draftUnsignedReviewMetadataSchema,
+    reviewMetadata: artifactFileReviewMetadataSchema,
     reviewStates: z.array(draftExerciseReviewStateSchema).min(1).max(20_000),
     content: exerciseCatalogContentSchema,
   })
   .strict()
   .superRefine((file, ctx) => {
+    reportReviewStateMismatch(file.reviewMetadata, file.reviewStates, ctx);
     const expected = new Map<string, "EXERCISE" | "TEMPLATE">();
     for (const exercise of file.content.exercises) expected.set(exercise.id, "EXERCISE");
     for (const template of file.content.templates) expected.set(template.id, "TEMPLATE");
@@ -157,22 +158,20 @@ export function loadDraftUnsignedExerciseCatalog(): DraftExerciseCatalogFile {
 }
 
 /**
- * Converts a validated draft catalog file into an `ArtifactDraftInput` ready for
- * registration once signed by a qualified professional reviewer. The required
- * `signed` argument makes registering an unsigned draft unrepresentable at the
- * type level, and the runtime check makes it unrepresentable from JavaScript
- * too. No caller exists yet; that is intentional — G02 has not happened.
+ * Converts the validated file into an `ArtifactDraftInput` ready for
+ * registration. The signature is read from the file rather than passed in, so
+ * the file and the registered artifact cannot disagree about who signed what,
+ * and {@link requireSignedReviewMetadata} refuses an unsigned one from
+ * JavaScript as well as from TypeScript.
+ *
+ * No caller exists, and that is still intentional: registering is activation,
+ * and activation is Jaden's step alone.
  */
-export function draftExerciseCatalogToArtifactDraftInput(
+export function exerciseCatalogToArtifactDraftInput(
   file: DraftExerciseCatalogFile,
-  signed: SignedArtifactReviewMetadata,
   dependencies: ArtifactReference[]
 ): ArtifactDraftInput<SignedArtifactReviewMetadata> {
-  if (isDraftUnsignedReviewMetadata(signed) || !signedArtifactReviewMetadataSchema.safeParse(signed).success) {
-    throw new Error(
-      "The exercise catalog can only be registered with signed review metadata from a qualified professional reviewer."
-    );
-  }
+  const signed = requireSignedReviewMetadata(file.reviewMetadata, "exercise catalog");
   return {
     id: `${file.content.artifactKey}:v${file.content.version}`,
     artifactKey: file.content.artifactKey,

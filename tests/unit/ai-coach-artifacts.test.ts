@@ -190,21 +190,32 @@ describe("T-2038/S-15 — synthetic artifact digest regression", () => {
    * training and progression parameters. S-15 then separated prescription
    * copy from training effort copy. The food and exercise catalogs remain
    * byte-identical.
+   *
+   * S-17 moved `evidenceRegistry` and `policyBundle` in both namespaces, and
+   * nothing else: the synthetic evidence claim now lists
+   * `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1`, which T-2007 had added to the
+   * fixture's `evidenceRuleIds` without a covering claim (27 integration
+   * failures, `assertEvidenceRulesHaveClaims` throwing inside the gate
+   * transaction). The policy bundle follows because it binds the registry as a
+   * dependency. Both values were re-derived by computing `artifactContentDigest`
+   * over the rebuilt fixtures, not by copying them out of a failing assertion;
+   * `foodCatalog`, `exerciseCatalog` and `escalationTemplates` are unchanged,
+   * which is the check that the edit stayed where it was meant to.
    */
   const DIGESTS_BEFORE_T2038: Record<string, Record<string, string>> = {
     "t1005-fixture": {
       foodCatalog: "5c5153170d060f62937fb58eea635e869978f2e5445413709732fd5b577d7a7a",
       exerciseCatalog: "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594",
-      evidenceRegistry: "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233",
+      evidenceRegistry: "24eba06c36b95985b2b17401daef78d7b06edcf428d0fc4b8f4da39adefb2c37",
       escalationTemplates: "a39e7c45cdbc04ff6a74826320bde13fc3c13fd7fca26ef7c6a526631170ce14",
-      policyBundle: "7b637cbeb364a24333947367bad2b00fee785983c54ca411152b971393b8798e",
+      policyBundle: "361146e82550e3bc561723c2a11d3f17c5d811d6ba76022b73c3450241544f01",
     },
     "t1008-runtime": {
       foodCatalog: "9d7eb3f81a2fc045345f79a315aead0a5c2779178ab0385eca13fef3abd92695",
       exerciseCatalog: "17af02f644e7e6effba953e9ba97f6ffe9cb5c75572992e927649ce09bea469f",
-      evidenceRegistry: "187785ffba971a5620f3cc684d561f994f815fc0ae304061f6b68e1e6545cfee",
+      evidenceRegistry: "0ed6e378fd45463db0ce09c0940775a95c7b0685e155b266ca9047653c9b3ca1",
       escalationTemplates: "b9ad91e2c7c4b9f21bfcc5743d01b3fdc623b909551efc18afd3421c34bd6a7a",
-      policyBundle: "44b92cf60bc0e638aa9d169c9b4edddfc24a380813f85e5856cfe8b540057bbe",
+      policyBundle: "179c6b54849b1a8b9d61655d1facc817db6a51a1b3e2fc84355a8cd2915c666b",
     },
   };
 

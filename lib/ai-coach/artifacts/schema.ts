@@ -93,6 +93,34 @@ const REQUIRED_EXCLUSIONS = [
   "CLINICIAN_INSTRUCTION_OVERRIDE",
 ] as const;
 
+/**
+ * Where a parameter's cited source is recorded. Shared by draft and signed
+ * review metadata.
+ *
+ * S-17 — this used to exist only on `draftUnsignedReviewMetadataSchema`, which
+ * meant signing an artifact silently deleted it. That mattered more than it
+ * looks: `tests/unit/ai-coach-evidence-escalation-drafts.test.ts` re-derives
+ * every evidence claim's `sourceUrl` from these rows and fails if the registry
+ * names a source the bundle does not already cite. It is the structural guard
+ * that makes inventing a citation impossible rather than a matter of care
+ * (`board/evidence/T-2035.md`), and it has to survive the signature it exists
+ * to protect.
+ */
+const proposalProvenanceSchema = z
+  .array(
+    z
+      .object({
+        parameterId: identifierSchema,
+        sourceClaimId: identifierSchema,
+        sourceId: identifierSchema,
+        sourceUrl: z.string().url(),
+        sourceLocator: z.string().min(1).max(240),
+      })
+      .strict()
+  )
+  .min(1)
+  .max(1000);
+
 export const signedArtifactReviewMetadataSchema = z
   .object({
     accountableOwner: z
@@ -120,14 +148,47 @@ export const signedArtifactReviewMetadataSchema = z
       .object({
         jurisdictions: z.array(z.string().min(1).max(120)).min(1).max(30),
         legalReviewStatus: z.enum(["APPROVED", "SYNTHETIC_TEST_ONLY"]),
+        /**
+         * S-17 — what `legalReviewStatus: "APPROVED"` actually rests on.
+         *
+         * `APPROVED` on its own reads as "external counsel cleared this", and
+         * for the v1 artifact set that is not what happened: there is no legal
+         * signer (see `REQUIRED_APPROVAL_REQUIREMENTS` in
+         * `lib/ai-coach/live-launch/schema.ts`). `ACCOUNTABLE_OWNER_SCOPE_ATTESTATION`
+         * says so in the record itself: the accountable owner attested that the
+         * content sits inside the declared scope, and nobody else reviewed it.
+         * It must never be read as an external legal review.
+         *
+         * Optional only so artifacts stored before S-17 still parse. Everything
+         * signed from S-17 onward sets it, and `artifactReviewScopeNote` is
+         * required alongside the attestation value.
+         */
+        legalReviewBasis: z
+          .enum(["EXTERNAL_LEGAL_REVIEW", "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION"])
+          .optional(),
+        /** The signer's own words for the limit of that attestation. */
+        scopeNote: z.string().trim().min(1).max(240).optional(),
         recordId: identifierSchema,
         reviewedAt: dateTimeSchema,
       })
       .strict(),
     publicFrameworkReferences: z.array(publicFrameworkReferenceSchema).max(10),
+    /** Optional: only the POLICY_BUNDLE and FOOD_CATALOG carry parameter provenance. */
+    proposalProvenance: proposalProvenanceSchema.optional(),
   })
   .strict()
   .superRefine((review, ctx) => {
+    if (
+      review.jurisdictionReview.legalReviewBasis === "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION" &&
+      !review.jurisdictionReview.scopeNote
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["jurisdictionReview", "scopeNote"],
+        message:
+          "An accountable-owner scope attestation must state the scope it is limited to; APPROVED on its own would read as an external legal review.",
+      });
+    }
     for (const exclusion of REQUIRED_EXCLUSIONS) {
       if (!review.explicitExclusions.includes(exclusion)) {
         ctx.addIssue({
@@ -153,20 +214,7 @@ export const draftUnsignedReviewMetadataSchema = z
     preparedAt: dateTimeSchema,
     draftRecordId: identifierSchema,
     worksheetSectionIds: z.array(identifierSchema).min(1).max(50),
-    proposalProvenance: z
-      .array(
-        z
-          .object({
-            parameterId: identifierSchema,
-            sourceClaimId: identifierSchema,
-            sourceId: identifierSchema,
-            sourceUrl: z.string().url(),
-            sourceLocator: z.string().min(1).max(240),
-          })
-          .strict()
-      )
-      .min(1)
-      .max(1000),
+    proposalProvenance: proposalProvenanceSchema,
     unsignedNotice: z.literal(
       "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
     ),

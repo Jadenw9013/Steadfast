@@ -10,13 +10,14 @@ import {
   foodCatalogContentSchema,
   policyBundleContentSchema,
 } from "../schema";
+import { artifactFileReviewMetadataSchema, requireSignedReviewMetadata } from "./file-review";
 import { mealTemplateSetSchema } from "../../catalog/meal-template-schema";
 import rawDraftBundle from "./policy-bundle-nutrition.draft-unsigned.v1.json";
 
 export const draftPolicyBundleFileSchema = z
   .object({
     fileSchemaVersion: z.literal(1),
-    reviewMetadata: draftUnsignedReviewMetadataSchema,
+    reviewMetadata: artifactFileReviewMetadataSchema,
     content: policyBundleContentSchema,
   })
   .strict();
@@ -24,8 +25,14 @@ export const draftPolicyBundleFileSchema = z
 export type DraftPolicyBundleFile = z.infer<typeof draftPolicyBundleFileSchema>;
 
 /**
- * Loads and strictly parses the checked-in DRAFT_UNSIGNED policy bundle file.
- * Throws in production environments — draft artifacts must never be loaded in production.
+ * Loads and strictly parses the checked-in policy bundle file.
+ *
+ * S-17 — this file is now signed (`decision: "APPROVED"`); the function name and
+ * the `draft-unsigned` filename are kept only so the rename does not bury the
+ * signing diff, and both are stale. Follow-up: rename both.
+ *
+ * Throws in production environments. That refusal is unchanged and deliberate:
+ * a signature is not an activation, and activation is Jaden's step alone.
  */
 export function loadDraftUnsignedPolicyBundle(): DraftPolicyBundleFile {
   if (process.env.NODE_ENV === "production") {
@@ -35,15 +42,16 @@ export function loadDraftUnsignedPolicyBundle(): DraftPolicyBundleFile {
 }
 
 /**
- * Converts a validated draft bundle file into an ArtifactDraftInput ready for
- * registration once signed by a qualified professional reviewer.
- * The required `signed` argument makes registering an unsigned draft unrepresentable.
+ * Converts a validated bundle file into an `ArtifactDraftInput` ready for
+ * registration. The signature comes from the file itself, so the file and the
+ * registered artifact cannot disagree about who signed what;
+ * {@link requireSignedReviewMetadata} refuses an unsigned one.
  */
-export function draftPolicyBundleToArtifactDraftInput(
+export function policyBundleToArtifactDraftInput(
   file: DraftPolicyBundleFile,
-  signed: SignedArtifactReviewMetadata,
   dependencies: ArtifactReference[]
 ): ArtifactDraftInput<SignedArtifactReviewMetadata> {
+  const signed = requireSignedReviewMetadata(file.reviewMetadata, "policy bundle");
   return {
     id: `${file.content.artifactKey}:v${file.content.version}`,
     artifactKey: file.content.artifactKey,
@@ -61,7 +69,7 @@ export function draftPolicyBundleToArtifactDraftInput(
 export const draftFoodCatalogFileSchema = z
   .object({
     fileSchemaVersion: z.literal(1),
-    reviewMetadata: draftUnsignedReviewMetadataSchema,
+    reviewMetadata: artifactFileReviewMetadataSchema,
     content: foodCatalogContentSchema,
   })
   .strict();

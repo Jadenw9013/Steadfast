@@ -478,6 +478,20 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
           RULE_CARDIO_DOSE_ID,
           RULE_WORKLOAD_COMBINED_ID,
           RULE_BOUNDED_TRAINING_ID,
+          /**
+           * S-17 — T-2007 added `WEEKLY_EVIDENCE_RULE_ID` to this fixture's
+           * `evidenceRuleIds` without adding a claim that covers it, and
+           * `assertEvidenceRulesHaveClaims` throws `ARTIFACT_INCOMPATIBLE`
+           * *inside the gate transaction* when a policy evidence rule has no
+           * covering claim — a 503 with no `AiAutonomyGateDecision` row, for
+           * every client who touches the rule. It cost 27 integration failures
+           * across ten files on `team/sprint-1`.
+           *
+           * Nothing about this claim's content changes: it still states only
+           * that it is synthetic and is not evidence. This line records which
+           * rules the fixture exercises, and the fixture exercises this one.
+           */
+          WEEKLY_EVIDENCE_RULE_ID,
         ],
         reviewDate: "2026-01-01T00:00:00.000Z",
       },

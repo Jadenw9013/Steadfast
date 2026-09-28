@@ -141,7 +141,7 @@ function buildSyntheticDraftFile(fixtures: string[]): DraftFoodCatalogFile {
  */
 function assertProvenanceCoversEveryItem(file: DraftFoodCatalogFile): void {
   const itemIds = file.content.items.map((item) => item.id);
-  const provenanceIds = file.reviewMetadata.proposalProvenance.map((p) => p.parameterId);
+  const provenanceIds = (file.reviewMetadata.proposalProvenance ?? []).map((p) => p.parameterId);
   expect(provenanceIds).toHaveLength(itemIds.length);
   expect([...provenanceIds].sort()).toEqual([...itemIds].sort());
 }
@@ -221,6 +221,7 @@ describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalo
 
     expect(draftFile.fileSchemaVersion).toBe(1);
     expect(draftFile.reviewMetadata.decision).toBe("DRAFT_UNSIGNED");
+    if (draftFile.reviewMetadata.decision !== "DRAFT_UNSIGNED") return;
     expect(draftFile.reviewMetadata.unsignedNotice).toBe(FROZEN_UNSIGNED_NOTICE);
     expect(isDraftUnsignedReviewMetadata(draftFile.reviewMetadata)).toBe(true);
 

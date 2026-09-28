@@ -1,15 +1,48 @@
 {
   "fileSchemaVersion": 1,
   "reviewMetadata": {
-    "decision": "DRAFT_UNSIGNED",
-    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
-    "preparedAt": "2026-09-27T00:00:00.000Z",
-    "draftRecordId": "escalation-templates-draft-v1",
-    "worksheetSectionIds": [
-      "D05",
-      "D07",
-      "D12"
+    "accountableOwner": {
+      "name": "Jaden Wong",
+      "role": "Accountable Owner / Founder"
+    },
+    "reviewer": {
+      "name": "Jaden Wong",
+      "reviewerType": "QUALIFIED_CONTENT_REVIEWER",
+      "qualifications": [
+        "Accountable owner and founder. Reviewed within the general fitness and wellness scope only; no clinical qualification is claimed."
+      ]
+    },
+    "reviewedAt": "2026-09-27T00:00:00.000Z",
+    "reviewRecordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+    "decision": "APPROVED",
+    "signoffScope": [
+      "Signed by the accountable owner as the sole reviewer. There is no external legal review, no independent clinical review and no second signer for this artifact set.",
+      "Reviewed within the general fitness and wellness scope only. No clinical qualification, licence, registration number or certifying body is claimed or recorded.",
+      "Sources cited by this artifact set were confirmed as supporting the rules they are bound to, within that scope. Their full texts were not independently verified by Steadfast.",
+      "Scope of this signature: the client-facing escalation copy, and the effort and nutrition-target explanation copy, carried by this artifact."
     ],
+    "allowedScope": [
+      "GENERAL_FITNESS_PROGRAMMING",
+      "GENERAL_BEHAVIOR_NUTRITION_EDUCATION"
+    ],
+    "explicitExclusions": [
+      "DIAGNOSIS",
+      "TREATMENT_OR_REHABILITATION",
+      "CLINICAL_NUTRITION_OR_MEDICAL_NUTRITION_THERAPY",
+      "MEDICATION_OR_SUPPLEMENT_PRESCRIBING",
+      "CLINICIAN_INSTRUCTION_OVERRIDE"
+    ],
+    "jurisdictionReview": {
+      "jurisdictions": [
+        "US"
+      ],
+      "legalReviewStatus": "APPROVED",
+      "legalReviewBasis": "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION",
+      "scopeNote": "Reviewed within general fitness and wellness scope; medical advice disclaimed.",
+      "recordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+      "reviewedAt": "2026-09-27T00:00:00.000Z"
+    },
+    "publicFrameworkReferences": [],
     "proposalProvenance": [
       {
         "parameterId": "ESCALATION.PLAN.READY.V1",
@@ -116,84 +149,98 @@
         "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
         "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
       }
-    ],
-    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+    ]
   },
   "reviewStates": [
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.PLAN.READY.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.SERVICE.UNAVAILABLE.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.SCOPE.OUT_OF_SCOPE.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.SAFETY.RESTRICTED.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.INTAKE.INCOMPLETE.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.INTAKE.UNRECOGNISED.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.NUTRITION.TARGET.OUT_OF_SCOPE.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.NUTRITION.TARGET.NOT_READY.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.NUTRITION.TARGET.NEEDS_ANSWERS.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.NUTRITION.SAFETY.UNAVAILABLE.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.NUTRITION.SAFETY.HOLD.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.EVIDENCE.NEEDS_INPUT.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.EVIDENCE.HOLD.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "ESCALATION.PLAN.NOT_USABLE.V1",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "TRAINING.EFFORT.STRENGTH.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "TRAINING.EFFORT.CARDIO.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1",
+      "reviewState": "ACCEPTED"
     }
   ],
   "content": {
@@ -208,7 +255,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -226,7 +273,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -244,7 +291,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -262,7 +309,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -280,7 +327,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -298,7 +345,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -319,7 +366,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION"
@@ -342,7 +389,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION"
@@ -362,7 +409,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION"
@@ -378,7 +425,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION"
@@ -401,7 +448,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION"
@@ -423,7 +470,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION"
@@ -439,7 +486,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -459,7 +506,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -477,7 +524,7 @@
         ],
         "locale": "en-US",
         "geographies": [
-          "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED"
+          "US"
         ],
         "pausedDomains": [
           "NUTRITION",
@@ -485,6 +532,60 @@
           "CARDIO"
         ],
         "nextStepText": "Steadfast could not produce a plan it is able to stand behind, so nothing has changed. Your current plan stays as it is. You can ask for an update again later.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "TRAINING.EFFORT.STRENGTH.V1",
+        "version": 1,
+        "reasonCodes": [
+          "NOT_AN_ESCALATION.TRAINING_EFFORT_COPY"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Choose a resistance you can lift with steady form, completing each lift with control and stopping when the movement feels challenging before your technique begins to change.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "TRAINING.EFFORT.CARDIO.V1",
+        "version": 1,
+        "reasonCodes": [
+          "NOT_AN_ESCALATION.TRAINING_EFFORT_COPY"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Maintain a smooth, conversational pace where you can comfortably speak in full sentences throughout the entire workout.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1",
+        "version": 1,
+        "reasonCodes": [
+          "NOT_AN_ESCALATION.PRESCRIPTION_EXPLANATION_COPY"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Your daily nutrition target is calculated from your body measurements, reported activity level, and personal goal to support steady progress.",
         "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
       }
     ]

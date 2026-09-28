@@ -4,53 +4,61 @@ import type {
   ArtifactReference,
   SignedArtifactReviewMetadata,
 } from "../schema";
+import { evidenceRegistryContentSchema } from "../schema";
 import {
-  draftUnsignedReviewMetadataSchema,
-  evidenceRegistryContentSchema,
-  isDraftUnsignedReviewMetadata,
-  signedArtifactReviewMetadataSchema,
-} from "../schema";
+  artifactFileReviewMetadataSchema,
+  reportReviewStateMismatch,
+  requireSignedReviewMetadata,
+} from "./file-review";
 import rawDraftEvidenceRegistry from "./evidence-registry.draft-unsigned.v1.json";
 
 /**
- * S-V1-artifacts — the DRAFT_UNSIGNED evidence registry.
+ * S-V1-artifacts / S-17 — the evidence registry, signed.
  *
  * `loadLiveArtifactSetForLaunchValidation` requires a signed, non-synthetic
  * EVIDENCE_REGISTRY. Before this file the only one that existed was the
  * synthetic fixture, which is refused at launch by design, so no v1 launch was
- * representable. This is the draft a qualified professional corrects and signs.
+ * representable.
+ *
+ * **What each claim asserts, exactly.** Worksheet section 2 records that the
+ * accountable owner confirmed each source supports the rule it is bound to,
+ * within the general fitness and wellness scope. It does **not** record that
+ * anyone read a source's full text and checked it. Every claim therefore says
+ * the first and denies the second, in those words, and
+ * `tests/unit/ai-coach-evidence-escalation-drafts.test.ts` fails if a claim
+ * stops denying it. The distinction is the whole point of the record: a scope
+ * attestation by a named accountable owner is a real and useful thing to have,
+ * and an independent verification is a different thing that did not happen.
  *
  * What this file does and does not claim:
  *
- * - **It contains no evidence.** Every record is a *pointer* to a source the
- *   draft policy bundle already records in `reviewMetadata.proposalProvenance`,
- *   plus the statement that Steadfast has not verified it. No record states what
- *   a source says, and none carries a number. The reviewer reads the cited
- *   locator and confirms, corrects or strikes each one.
+ * - **It states no finding of its own.** No record says what a source says, and
+ *   none carries a number. Each one records the binding and who stood behind it.
  * - **No claim may name a source the policy bundle does not already cite.** The
  *   `sourceUrl` and rule bindings of every claim are derived from the bundle
- *   (`numericParameters[].evidenceClaimIds` and `applicabilityRuleIds`), and
- *   `tests/unit/ai-coach-evidence-escalation-drafts.test.ts` re-derives both
- *   independently and fails if this file introduces either. That is deliberate:
- *   it makes inventing a citation here structurally impossible rather than a
- *   matter of care (`board/evidence/T-2035.md`).
- * - `reviewer.name` and `reviewer.qualifications` are the fixed sentinels
- *   {@link UNREVIEWED_DRAFT_REVIEWER_NAME} and
- *   {@link UNREVIEWED_DRAFT_QUALIFICATION}. Nobody has reviewed these records,
- *   so no name and no qualification is asserted; a test pins both.
- * - `reviewDate` is the draft *preparation* date on every record, not a review
- *   date. The field name asserts a review the schema cannot express otherwise;
- *   T-2020 already tracks that naming problem across every artifact kind.
- * - `CLAIM.PENDING.NUTRITION_EVIDENCE_RULE` supplies no evidence and says so in
- *   its own text. It exists because `assertEvidenceRulesHaveClaims` throws
- *   inside the gate transaction when a policy evidence rule has no covering
- *   claim, which is a 503 with no decision row for every client rather than a
- *   recorded refusal. See the loader note below.
+ *   (`reviewMetadata.proposalProvenance`, `numericParameters[].evidenceClaimIds`
+ *   and `applicabilityRuleIds`), and the test re-derives both independently and
+ *   fails if this file introduces either. That is deliberate: it makes inventing
+ *   a citation here structurally impossible rather than a matter of care
+ *   (`board/evidence/T-2035.md`). S-17 kept it working across the signature by
+ *   making `proposalProvenance` available on signed metadata too — signing used
+ *   to delete the very field the guard reads.
+ * - `reviewer.name` is the accountable owner and `reviewer.qualifications` is
+ *   the single line worksheet section 0 supplies. **No credential, registration
+ *   number, licence or certifying body appears anywhere in this file, because
+ *   none is claimed**; a test fails if one does.
+ * - One claim's source is not derivable from the bundle:
+ *   `CLAIM.AHA.ACC.TOS.OBESITY.NUTRITION_EVIDENCE` backs a rule, not a numeric
+ *   parameter, so it has no `proposalProvenance` row to derive from and the test
+ *   pins its URL explicitly against the worksheet instead.
+ * - Two claim ids changed in S-17 because the sources under them changed:
+ *   `CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL` (no longer a Steadfast proposal)
+ *   and `CLAIM.PENDING.NUTRITION_EVIDENCE_RULE` (no longer pending, and
+ *   {@link PENDING_EVIDENCE_CLAIM_ID_PREFIX} is a live guard).
  *
- * Nothing here may reach a client. It ships `DRAFT_UNSIGNED` with every claim
- * `PROPOSED`, {@link loadDraftUnsignedEvidenceRegistry} refuses to run in
- * production, and T-2034's four refusal points reject the metadata if it were
- * ever registered.
+ * A signature is not an activation. {@link loadDraftUnsignedEvidenceRegistry}
+ * still refuses to run in production, nothing registers this artifact, and no
+ * caller exists — activation is Jaden's step and no agent may perform it.
  *
  * **This module is server-side and test-side only.** It statically imports the
  * JSON, so any module that imports it carries the whole draft into its bundle.
@@ -58,10 +66,20 @@ import rawDraftEvidenceRegistry from "./evidence-registry.draft-unsigned.v1.json
  * under `app/` or `components/` may import it, and a unit test asserts it.
  */
 
+/**
+ * The sentinels an unreviewed draft claim carried before S-17. Kept exported so
+ * a test can assert they appear nowhere: a signed registry that still names one
+ * is a registry that was signed without being looked at.
+ */
 export const UNREVIEWED_DRAFT_REVIEWER_NAME = "UNREVIEWED_DRAFT_NO_REVIEWER_ASSIGNED";
 export const UNREVIEWED_DRAFT_QUALIFICATION = "UNREVIEWED_DRAFT_NOT_A_QUALIFICATION";
 
-/** The prefix a claim id carries when it supplies no evidence at all. */
+/**
+ * The prefix a claim id carries when it supplies no evidence at all. No claim
+ * carries it any more — worksheet section 2 supplied the missing source — and a
+ * test keeps it that way, so a placeholder cannot reappear inside a signed
+ * artifact.
+ */
 export const PENDING_EVIDENCE_CLAIM_ID_PREFIX = "CLAIM.PENDING.";
 
 /**
@@ -83,12 +101,13 @@ export type DraftEvidenceReviewState = z.infer<typeof draftEvidenceReviewStateSc
 export const draftEvidenceRegistryFileSchema = z
   .object({
     fileSchemaVersion: z.literal(1),
-    reviewMetadata: draftUnsignedReviewMetadataSchema,
+    reviewMetadata: artifactFileReviewMetadataSchema,
     reviewStates: z.array(draftEvidenceReviewStateSchema).min(1).max(20_000),
     content: evidenceRegistryContentSchema,
   })
   .strict()
   .superRefine((file, ctx) => {
+    reportReviewStateMismatch(file.reviewMetadata, file.reviewStates, ctx);
     const claimIds = new Set(file.content.claims.map((claim) => claim.id));
     const seen = new Set<string>();
     file.reviewStates.forEach((state, index) => {
@@ -135,25 +154,20 @@ export function loadDraftUnsignedEvidenceRegistry(): DraftEvidenceRegistryFile {
 }
 
 /**
- * Converts a validated draft registry into an `ArtifactDraftInput` ready for
- * registration once signed by a qualified professional reviewer. The required
- * `signed` argument makes registering an unsigned draft unrepresentable at the
- * type level, and the runtime check makes it unrepresentable from JavaScript
- * too. No caller exists yet; that is intentional — G01 has not happened.
+ * Converts the validated file into an `ArtifactDraftInput` ready for
+ * registration. The signature is read from the file rather than passed in, so
+ * the file and the registered artifact cannot disagree about who signed what,
+ * and {@link requireSignedReviewMetadata} refuses an unsigned one from
+ * JavaScript as well as from TypeScript.
+ *
+ * No caller exists, and that is still intentional: registering is activation,
+ * and activation is Jaden's step alone.
  */
-export function draftEvidenceRegistryToArtifactDraftInput(
+export function evidenceRegistryToArtifactDraftInput(
   file: DraftEvidenceRegistryFile,
-  signed: SignedArtifactReviewMetadata,
   dependencies: ArtifactReference[]
 ): ArtifactDraftInput<SignedArtifactReviewMetadata> {
-  if (
-    isDraftUnsignedReviewMetadata(signed) ||
-    !signedArtifactReviewMetadataSchema.safeParse(signed).success
-  ) {
-    throw new Error(
-      "The evidence registry can only be registered with signed review metadata from a qualified professional reviewer."
-    );
-  }
+  const signed = requireSignedReviewMetadata(file.reviewMetadata, "evidence registry");
   return {
     id: `${file.content.artifactKey}:v${file.content.version}`,
     artifactKey: file.content.artifactKey,

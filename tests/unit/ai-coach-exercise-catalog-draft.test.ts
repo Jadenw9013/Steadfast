@@ -4,21 +4,20 @@ import { describe, expect, it, vi } from "vitest";
 import {
   DRAFT_EXERCISE_CATALOG_VERSION,
   draftExerciseCatalogFileSchema,
-  draftExerciseCatalogToArtifactDraftInput,
+  exerciseCatalogToArtifactDraftInput,
   loadDraftUnsignedExerciseCatalog,
 } from "@/lib/ai-coach/artifacts/drafts/exercise-catalog";
 import {
   exerciseCatalogContentSchema,
   isDraftUnsignedReviewMetadata,
-  type SignedArtifactReviewMetadata,
 } from "@/lib/ai-coach/artifacts/schema";
-import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
 import { getDraftExerciseCatalog } from "@/lib/ai-coach/catalog/exercise-catalog";
 import {
   disableDraftExerciseCatalog,
   enableDraftExerciseCatalog,
 } from "@/lib/ai-coach/catalog/draft-exercise-catalog";
 import { getExerciseItem } from "@/lib/ai-coach/catalog/loader";
+import { DRAFT_UNSIGNED_METADATA } from "../helpers/ai-draft-review-metadata";
 
 /**
  * T-2038 — the draft beginner exercise catalog.
@@ -29,8 +28,6 @@ import { getExerciseItem } from "@/lib/ai-coach/catalog/loader";
  * file next remembering the rule.
  */
 
-const FROZEN_UNSIGNED_NOTICE =
-  "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE.";
 
 /** Closed set, frozen in T-2005's Spec. T-2039 adds exactly these to the bundle's ruleIds. */
 const CONTRAINDICATION_RULE_IDS = new Set([
@@ -112,36 +109,35 @@ describe("T-2038 — draft exercise catalog file", () => {
     expect(exercises.length).toBeGreaterThanOrEqual(40);
   });
 
-  it("carries T-2034's DRAFT_UNSIGNED review metadata verbatim, with provenance for every item", () => {
-    expect(isDraftUnsignedReviewMetadata(file.reviewMetadata)).toBe(true);
-    expect(file.reviewMetadata.decision).toBe("DRAFT_UNSIGNED");
-    expect(file.reviewMetadata.unsignedNotice).toBe(FROZEN_UNSIGNED_NOTICE);
-
-    const provenanceIds = new Set(
-      file.reviewMetadata.proposalProvenance.map((entry) => entry.parameterId)
-    );
+  it("carries S-17's signed review metadata, with provenance for every item", () => {
+    expect(isDraftUnsignedReviewMetadata(file.reviewMetadata)).toBe(false);
+    expect(file.reviewMetadata.decision).toBe("APPROVED");
+    if (file.reviewMetadata.decision !== "APPROVED") return;
+    expect(file.reviewMetadata.reviewer.name).toBe("Jaden Wong");
+    // S-17 decision 2: provenance survives signing, so the source of every item
+    // stays checkable after the signature rather than being dropped by it.
+    const provenance = file.reviewMetadata.proposalProvenance ?? [];
+    const provenanceIds = new Set(provenance.map((entry) => entry.parameterId));
     for (const item of [...exercises, ...templates]) {
       expect(provenanceIds.has(item.id)).toBe(true);
     }
-    for (const entry of file.reviewMetadata.proposalProvenance) {
+    for (const entry of provenance) {
       expect(entry.sourceUrl).toBe("https://acsm.org/resistance-training-guidelines-update-2026/");
     }
   });
 
-  it("is synthetic: false and ships every item PROPOSED", () => {
+  it("is synthetic: false and ships every item ACCEPTED", () => {
     // `synthetic: false` is what the conversion function writes, and what
-    // parseArtifactDraftInput requires of a DRAFT_UNSIGNED artifact (T-2034).
-    const draft = draftExerciseCatalogToArtifactDraftInput(
-      file,
-      buildSyntheticArtifactSet("t2038-signature").exerciseCatalog.reviewMetadata,
-      []
-    );
+    // parseArtifactDraftInput requires of a non-synthetic artifact (T-2034).
+    const draft = exerciseCatalogToArtifactDraftInput(file, []);
     expect(draft.synthetic).toBe(false);
     expect(draft.kind).toBe("EXERCISE_CATALOG");
 
+    // S-17: the file is signed, so every item is ACCEPTED. A signed file with a
+    // PROPOSED record no longer parses at all.
     expect(file.reviewStates.length).toBe(exercises.length + templates.length);
     for (const state of file.reviewStates) {
-      expect(state.reviewState).toBe("PROPOSED");
+      expect(state.reviewState).toBe("ACCEPTED");
     }
   });
 
@@ -417,13 +413,9 @@ describe("T-2038 — the draft cannot be loaded or registered unsigned", () => {
     }
   });
 
-  it("refuses to build an artifact draft input from the file's own draft metadata", () => {
+  it("refuses to build an artifact draft input from an unsigned file", () => {
     expect(() =>
-      draftExerciseCatalogToArtifactDraftInput(
-        file,
-        file.reviewMetadata as unknown as SignedArtifactReviewMetadata,
-        []
-      )
+      exerciseCatalogToArtifactDraftInput({ ...file, reviewMetadata: DRAFT_UNSIGNED_METADATA }, [])
     ).toThrow(/signed review metadata/i);
   });
 });
