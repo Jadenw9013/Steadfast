@@ -1270,3 +1270,9 @@ on both changed files. Per the spec's regression-teeth requirement, the two
 new `purge.ts` DELETEs were commented out and the new assertions re-run
 first — they passed, proving the DB cascade is what removes the rows today —
 then the statements were restored before the real gate run above.
+
+### T-2007 — bundle-driven weekly controller (2026-09-28)
+
+Weekly review parameters are now resolved from the run-bound policy artifact and frozen into an optional `weeklyPolicy` snapshot block. New weekly runs therefore replay without live policy selection; acceptance re-loads the exact policy reference and verifies the resolved parameter digest. Historical snapshots keep their hashes because the new field has no default and fail closed for new weekly proposals.
+
+Energy changes support the reviewed `REESTIMATE_FROM_CURRENT_WEIGHT` method through the T-2003 prescription engine, with minimum-energy, cooldown, per-review, and cumulative limits. Schedule simplification can use a frozen T-2039 recomposition at fewer days; session dropping remains restricted to the synthetic fixture. Evidence sufficiency now counts qualifying check-ins by canonical week using bundle-defined completeness and missing-week thresholds. The unsigned draft declares these methods but omits all weekly values, so live use remains unavailable pending qualified review.

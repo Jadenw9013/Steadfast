@@ -279,6 +279,22 @@ async function loadArtifactByReference(
   return assertUsable(row, parsePersistedArtifact(row), context);
 }
 
+/** Exact-reference replay check for a frozen run. Artifact lifecycle or
+ * digest failures make the candidate stale; callers do not need to branch on
+ * loader error classes. */
+export async function loadReviewedArtifactByReference(
+  tx: Prisma.TransactionClient,
+  reference: ArtifactReference,
+  context: { engineVersion: string; now: Date }
+): Promise<LoadedArtifact | null> {
+  try {
+    return await loadArtifactByReference(tx, reference, context);
+  } catch (error) {
+    if (error instanceof ArtifactLoadError) return null;
+    throw error;
+  }
+}
+
 function assertAccountClassification(
   artifact: LoadedArtifact,
   persistedClassification: "SYNTHETIC" | "LIVE"

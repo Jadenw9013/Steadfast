@@ -17,6 +17,8 @@ import { acceptPlanVersionAtomic } from "@/lib/ai-coach/plan-acceptance";
 import { getAiWorkspace } from "@/lib/queries/ai-coach";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
+import { publishFreshRuntimeFixtureArtifacts } from "../helpers/ai-artifacts";
+import { revokeArtifactVersion } from "@/lib/ai-coach/artifacts/repository";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
@@ -31,6 +33,7 @@ suite("weekly review through real evidence, worker, reviewer and acceptance", ()
   afterEach(() => vi.unstubAllEnvs());
   afterAll(() => db.$disconnect());
   async function fixture() {
+    await publishFreshRuntimeFixtureArtifacts();
     const id = randomUUID();
     const user = await db.user.create({ data: { clerkId: id, email: `${id}@example.test` } });
     await assignFixtureReviewer(user.id);
@@ -114,6 +117,15 @@ suite("weekly review through real evidence, worker, reviewer and acceptance", ()
     expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("completed");
     const run = await db.aiCoachRun.findUniqueOrThrow({ where: { id: runId } });
     expect(run.resultReviewAction).toBe("ADJUST");
+    const storedSnapshot = runSnapshotSchema.parse(run.inputSnapshot);
+    expect(storedSnapshot.weeklyPolicy?.status).toBe("RESOLVED");
+    if (storedSnapshot.weeklyPolicy?.status !== "RESOLVED")
+      throw new Error("weekly policy was not frozen");
+    expect(storedSnapshot.weeklyPolicy.sourceArtifact.digest).toBe(
+      storedSnapshot.runtimeBinding?.artifactRefs.find(
+        (reference) => reference.kind === "POLICY_BUNDLE"
+      )?.digest
+    );
     const candidate = await db.aiPlanVersion.findUniqueOrThrow({
       where: { id: run.resultPlanVersionId! },
     });
@@ -232,5 +244,49 @@ suite("weekly review through real evidence, worker, reviewer and acceptance", ()
       success: false,
       code: "REVIEWER_APPROVAL_REQUIRED",
     });
+  });
+
+  it("makes a pending proposal stale when its exact frozen policy artifact is revoked", async () => {
+    const { user, run, candidate, reviewer } = await fixture();
+    await reviewAiPlan(reviewer.id, candidate.id, {
+      requestKey: randomUUID(),
+      expectedStateHash: approvalStateHash(candidate),
+      approved: true,
+      rationale: "Verified before artifact revocation",
+    });
+    const snapshot = runSnapshotSchema.parse(run.inputSnapshot);
+    if (snapshot.weeklyPolicy?.status !== "RESOLVED")
+      throw new Error("weekly policy was not frozen");
+    await revokeArtifactVersion(
+      snapshot.weeklyPolicy.sourceArtifact.id,
+      "Synthetic T-2007 digest-binding test"
+    );
+    expect((await getAiWorkspace(user.id)).proposals[0].status).toBe("STALE");
+  });
+
+  it("keeps a pre-T-2007 weekly snapshot byte-stable but refuses its unfrozen proposal", async () => {
+    const { user, run, candidate } = await fixture();
+    const stored = run.inputSnapshot as Record<string, unknown>;
+    const legacy = Object.fromEntries(
+      Object.entries(stored).filter(([key]) => key !== "weeklyPolicy")
+    );
+    const reparsed = runSnapshotSchema.parse(legacy);
+    expect(Object.hasOwn(reparsed, "weeklyPolicy")).toBe(false);
+    expect(contentHash(reparsed)).toBe(contentHash(legacy));
+    await db.aiCoachRun.update({
+      where: { id: run.id },
+      data: { inputSnapshot: legacy as Prisma.InputJsonValue },
+    });
+    await db.aiPlanVersion.update({
+      where: { id: candidate.id },
+      data: {
+        validationReport: {
+          engine: "managed-v1",
+          passed: true,
+          inputHash: contentHash(reparsed),
+        },
+      },
+    });
+    expect((await getAiWorkspace(user.id)).proposals[0].status).toBe("STALE");
   });
 });

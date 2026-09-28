@@ -196,14 +196,14 @@ describe("T-2038 — the additive exercise-catalog fields move no already-regist
       exerciseCatalog: "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594",
       evidenceRegistry: "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233",
       escalationTemplates: "fab8e295214943dfaee468a9fd1742e4f05648fe33a24942da112f960959b34b",
-      policyBundle: "639505c6c22b955f22cf13bd06b680cd32ac816a23d406ce95610288fadc5030",
+      policyBundle: "11421c6b62af25dec4f531eaf02f1295bae7077b39101cb48db02d9d7090f0ec",
     },
     "t1008-runtime": {
       foodCatalog: "9d7eb3f81a2fc045345f79a315aead0a5c2779178ab0385eca13fef3abd92695",
       exerciseCatalog: "17af02f644e7e6effba953e9ba97f6ffe9cb5c75572992e927649ce09bea469f",
       evidenceRegistry: "187785ffba971a5620f3cc684d561f994f815fc0ae304061f6b68e1e6545cfee",
       escalationTemplates: "73e61e47f5523db815e77fde9e460f0649d8106cc95099046e2898161a050293",
-      policyBundle: "b3dad92c335d2b1d3ac38ab5c6561eec18f9de35d765b0f2ee962639306fc1f0",
+      policyBundle: "3c62489d4183265a890b422c0073ea382e173ddd18539b958d434bceaa0e907d",
     },
   };
 
@@ -284,7 +284,10 @@ describe("T-2039 — training and progression parameters in synthetic and draft 
     const draftBundleRuleIds = new Set(draftBundle.content.ruleIds);
 
     for (const ex of draftCatalog.content.exercises) {
-      for (const ruleId of [...(ex.contraindicationRuleIds ?? []), ...(ex.beginnerConstraintIds ?? [])]) {
+      for (const ruleId of [
+        ...(ex.contraindicationRuleIds ?? []),
+        ...(ex.beginnerConstraintIds ?? []),
+      ]) {
         expect(draftBundleRuleIds.has(ruleId)).toBe(true);
       }
     }
