@@ -1,0 +1,18 @@
+{
+  // Tool-only type-check config. `tsconfig.json` at the repo root deliberately
+  // excludes `scripts/`, so `pnpm run type-check` does not cover this folder and
+  // a script can rot silently. Run this one explicitly:
+  //
+  //   pnpm exec tsc -p scripts/tsconfig.json
+  //
+  // It changes nothing about the app build or the root type-check.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "incremental": false,
+    "module": "esnext",
+    "moduleResolution": "bundler"
+  },
+  "include": ["./**/*.ts", "../lib/**/*.ts", "../types/**/*.d.ts"],
+  "exclude": ["../node_modules"]
+}
