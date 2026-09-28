@@ -228,10 +228,41 @@ These 12 progression parameters govern weekly controller progression (T-2007) an
 | `PROGRESSION.EVIDENCE.MAX_EFFORT_RATING` | `RPE_POINTS` | D05 | `PROGRESSION.RULE.BOUNDED_TRAINING.V1` | `PENDING-COACH-DECISION.D05` | Awaiting Review |
 | `PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES` | `DAYS` | D05 | `PROGRESSION.RULE.BOUNDED_TRAINING.V1` | `PENDING-COACH-DECISION.D05` | Awaiting Review |
 
+T-2007 consumes ten of these twelve progression parameters. The two `PROGRESSION.STRENGTH.LOAD.*` parameters are **not read in v1** because the plan payload has no prescribed-load field; signing them does not create an unenforced load limit.
+
 ---
 
-## 5. Change History
+## 5. Weekly Review Parameters (18)
+
+All 18 weekly parameters below are non-delegable policy decisions and remain omitted from the unsigned draft bundle until qualified review. The controller fails closed when any is absent.
+
+| Parameter ID | Unit | Rule family | Status |
+| --- | --- | --- | --- |
+| `WEEKLY.EVIDENCE.MIN_CONSECUTIVE_WEEKS` | `WEEKS` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.EVIDENCE.MAX_MISSING_WEEKS` | `WEEKS` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.EVIDENCE.MIN_COMPLETE_CHECK_INS_PER_WEEK` | `CHECK_INS_PER_WEEK` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.EVIDENCE.MIN_PLAN_FOLLOWING_DAYS` | `DAYS_PER_WEEK` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.EVIDENCE.MIN_COMPARABLE_WEIGH_INS_PER_WEEK` | `OBSERVATIONS_PER_WEEK` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.EVIDENCE.MIN_COMPARABLE_WEIGH_INS_TOTAL` | `OBSERVATIONS` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.EVIDENCE.MAX_COMPARABLE_SPREAD_FRACTION` | `FRACTION_OF_MEDIAN_BODY_WEIGHT` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.EVIDENCE.PLATEAU_MAX_RELATIVE_CHANGE` | `FRACTION_OF_BODY_WEIGHT` | `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` | Awaiting Review |
+| `WEEKLY.ADJUSTMENT.ENERGY.STEP_FRACTION` | `FRACTION_OF_CURRENT_ENERGY` | selected `WEEKLY.ADJUSTMENT.ENERGY.*` rule | Awaiting Review |
+| `WEEKLY.ADJUSTMENT.ENERGY.STEP_TOLERANCE_KCAL` | `KCAL_PER_DAY` | selected `WEEKLY.ADJUSTMENT.ENERGY.*` rule | Awaiting Review |
+| `WEEKLY.COOLDOWN.MIN_DAYS_BETWEEN_MATERIAL_CHANGES` | `DAYS` | `WEEKLY.RULE.COOLDOWN.V1` | Awaiting Review |
+| `WEEKLY.CUMULATIVE.WINDOW_DAYS` | `DAYS` | `WEEKLY.RULE.CUMULATIVE_LIMIT.V1` | Awaiting Review |
+| `WEEKLY.CUMULATIVE.MAX_MATERIAL_CHANGES_PER_WINDOW` | `CHANGES_PER_WINDOW` | `WEEKLY.RULE.CUMULATIVE_LIMIT.V1` | Awaiting Review |
+| `WEEKLY.CUMULATIVE.ENERGY.MAX_REDUCTION_FRACTION` | `FRACTION_OF_BASELINE_ENERGY` | `WEEKLY.RULE.CUMULATIVE_LIMIT.V1` | Awaiting Review |
+| `WEEKLY.CUMULATIVE.MAX_CHANGED_DOMAINS_PER_REVIEW` | `DOMAINS_PER_REVIEW` | `WEEKLY.RULE.CUMULATIVE_LIMIT.V1` | Awaiting Review |
+| `WEEKLY.SIMPLIFY.TRAINING_DAYS.DECREMENT` | `SESSIONS_PER_WEEK` | selected `WEEKLY.RULE.SIMPLIFY_*` rule | Awaiting Review |
+| `WEEKLY.SIMPLIFY.CARDIO.MINUTES.DECREMENT` | `MINUTES_PER_SESSION` | selected `WEEKLY.RULE.SIMPLIFY_*` rule | Awaiting Review |
+| `WEEKLY.SIMPLIFY.CARDIO.MINUTES.FLOOR` | `MINUTES_PER_SESSION` | selected `WEEKLY.RULE.SIMPLIFY_*` rule | Awaiting Review |
+
+The draft declares the rule vocabulary and chooses `REESTIMATE_FROM_CURRENT_WEIGHT` plus `SIMPLIFY_BY_RECOMPOSITION`, but supplies no `WEEKLY.*` values. `ROUNDING.MACRO_GRAMS.DECIMALS` and the ten consumed `PROGRESSION.*` rows are reused by ID; they are also awaiting review.
+
+---
+
+## 6. Change History
 
 - **2026-09-25** (T-2034): Created initial catalogue with 62 source-backed proposed parameters and 13 parameters awaiting RD review per Amendment 1 §A1.3.
 - **2026-09-26** (T-2039): Added Section 4 with 46 training and progression parameters (11 proposed, 23 composer dose awaiting review, 12 progression awaiting review).
-
+- **2026-09-28** (T-2007): Added the weekly evidence, adjustment, cooldown, cumulative, and simplification catalogue; documented the ten consumed progression rows and the two load rows not read in v1.

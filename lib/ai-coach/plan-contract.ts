@@ -39,7 +39,10 @@ const mealSchema = z
  * historical `SYNTHETIC_CATALOG_MATCH` row and an absent
  * `prescriptionOutcome` must keep parsing exactly as before.
  */
-export const nutritionMethodSchema = z.enum(["SYNTHETIC_CATALOG_MATCH", "REVIEWED_PRESCRIPTION_V1"]);
+export const nutritionMethodSchema = z.enum([
+  "SYNTHETIC_CATALOG_MATCH",
+  "REVIEWED_PRESCRIPTION_V1",
+]);
 export const prescriptionOutcomeSchema = z
   .object({
     status: z.enum(["PRESCRIBED", "UNAVAILABLE"]),
@@ -49,6 +52,40 @@ export const prescriptionOutcomeSchema = z
   })
   .strict();
 export type PrescriptionOutcome = z.infer<typeof prescriptionOutcomeSchema>;
+
+export const strengthSessionSchema = z
+  .object({
+    sessionId: id,
+    templateId: id,
+    day: z.number().int().min(1).max(7),
+    exercises: z
+      .array(
+        z
+          .object({
+            exerciseId: id,
+            catalogVersion: id,
+            sets: z.number().int().min(1).max(10),
+            reps: z.number().int().min(1).max(50),
+            restSeconds: z.number().int().min(0).max(600),
+            effort: z.string().min(1).max(200),
+          })
+          .strict()
+      )
+      .min(1)
+      .max(12),
+  })
+  .strict();
+
+export const cardioSessionSchema = z
+  .object({
+    sessionId: id,
+    exerciseId: id,
+    catalogVersion: id,
+    day: z.number().int().min(1).max(7),
+    durationMinutes: z.number().positive().max(180),
+    intensity: z.string().min(1).max(200),
+  })
+  .strict();
 
 export const planPayloadSchema = z
   .object({
@@ -83,46 +120,8 @@ export const planPayloadSchema = z
       })
       .strict()
       .nullable(),
-    strength: z
-      .array(
-        z
-          .object({
-            sessionId: id,
-            templateId: id,
-            day: z.number().int().min(1).max(7),
-            exercises: z
-              .array(
-                z
-                  .object({
-                    exerciseId: id,
-                    catalogVersion: id,
-                    sets: z.number().int().min(1).max(10),
-                    reps: z.number().int().min(1).max(50),
-                    restSeconds: z.number().int().min(0).max(600),
-                    effort: z.string().min(1).max(200),
-                  })
-                  .strict()
-              )
-              .min(1)
-              .max(12),
-          })
-          .strict()
-      )
-      .max(7),
-    cardio: z
-      .array(
-        z
-          .object({
-            sessionId: id,
-            exerciseId: id,
-            catalogVersion: id,
-            day: z.number().int().min(1).max(7),
-            durationMinutes: z.number().positive().max(180),
-            intensity: z.string().min(1).max(200),
-          })
-          .strict()
-      )
-      .max(7),
+    strength: z.array(strengthSessionSchema).max(7),
+    cardio: z.array(cardioSessionSchema).max(7),
     policyVersion: id,
     catalogVersions: z.object({ food: id, exercise: id }).strict(),
     // Absent means "legacy candidate" — the gate reads that as
@@ -161,7 +160,10 @@ export const planPayloadSchema = z
       for (const exercise of session.exercises) {
         if (
           exercise.catalogVersion !== plan.catalogVersions.exercise ||
-          referenceIsInvalid(getExerciseItem(exercise.exerciseId, exercise.catalogVersion), "STRENGTH")
+          referenceIsInvalid(
+            getExerciseItem(exercise.exerciseId, exercise.catalogVersion),
+            "STRENGTH"
+          )
         )
           invalid("Unknown or incompatible strength exercise.");
       }
@@ -204,6 +206,8 @@ export const decisionSchema = z
           "NO_FEASIBLE_MEALS",
           "UNCHANGED",
           "WEEKLY_POLICY_PARAMETERS_UNAVAILABLE",
+          "WEEKLY_PARAMETER_MISSING",
+          "NUTRITION_FLOOR_BLOCKED",
           // T-2040 — appended last. Additive: every existing reason code still
           // parses, and nothing writes this one until the live composer exists.
           "LIVE_COMPOSITION_UNAVAILABLE",

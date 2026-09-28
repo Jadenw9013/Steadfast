@@ -34,6 +34,13 @@ import {
 import { buildPrescriptionInput } from "@/lib/ai-coach/prescription/inputs";
 import { intakeAnswersSchema, intakeV2ConfirmObjectSchema } from "@/lib/ai-coach/intake-contract";
 import {
+  buildSyntheticArtifactSet,
+  SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+} from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import { artifactContentDigest } from "@/lib/ai-coach/artifacts/digest";
+import { policyBundleContentSchema } from "@/lib/ai-coach/artifacts/schema";
+import { resolveWeeklyParameters } from "@/lib/ai-coach/weekly-parameters";
+import {
   buildSyntheticExplanationTexts,
   buildSyntheticPrescriptionBundle,
   buildSyntheticSafetyFloors,
@@ -694,6 +701,11 @@ function weeklyFixture(): RunSnapshot {
     weightKg: 70,
   };
   const { payload } = buildInitialFixturePlan(intake, "initial-rx", "MEALS");
+  const set = buildSyntheticArtifactSet("t2007-composer-weekly");
+  const resolved = resolveWeeklyParameters(policyBundleContentSchema.parse(set.policyBundle.content), {
+    synthetic: true,
+  });
+  if (!resolved.ok) throw new Error(`weekly fixture did not resolve: ${resolved.reasonCodes.join(",")}`);
   return runSnapshotSchema.parse({
     schemaVersion: 1,
     synthetic: true,
@@ -701,6 +713,21 @@ function weeklyFixture(): RunSnapshot {
     policyVersion: payload.policyVersion,
     catalogVersions: payload.catalogVersions,
     modelConfiguration: "synthetic-template-v1",
+    weeklyPolicy: {
+      status: "RESOLVED",
+      sourceArtifact: {
+        id: set.policyBundle.id,
+        kind: "POLICY_BUNDLE",
+        artifactKey: set.policyBundle.artifactKey,
+        version: set.policyBundle.version,
+        digest: artifactContentDigest(set.policyBundle),
+        engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+      },
+      parameters: resolved.parameters,
+      parameterSetDigest: resolved.parameterSetDigest,
+      energyReestimate: null,
+      simplifiedTraining: null,
+    },
     baseVersionId: "base",
     basePayload: payload,
     representation: "MEALS",

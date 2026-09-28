@@ -3,7 +3,14 @@ import { z } from "zod";
 import { substitutionSchema } from "./representation";
 import { db } from "@/lib/db";
 import { intakeAnswersSchema } from "./intake";
-import { planPayloadSchema, sourceRefSchema } from "./plan-contract";
+import {
+  cardioSessionSchema,
+  planPayloadSchema,
+  quantitiesSchema,
+  sourceRefSchema,
+  strengthSessionSchema,
+  type PlanPayload,
+} from "./plan-contract";
 import { contentHash } from "./canonical-json";
 import { reviewWindow } from "./review-window";
 // T-2041: these three constants are no longer the *writer* of the snapshot's
@@ -19,7 +26,24 @@ import {
   resolvedRuntimeArtifactSetSchema,
   type ResolvedRuntimeArtifactSet,
 } from "./runtime-binding";
-import { ArtifactLoadError } from "./artifacts/repository";
+import {
+  ArtifactLoadError,
+  getReviewedPolicyBundleContent,
+  loadRunBoundArtifactSet,
+  type ReviewedArtifactSet,
+} from "./artifacts/repository";
+import { escalationTemplatesContentSchema, exerciseCatalogContentSchema } from "./artifacts/schema";
+import {
+  resolvedWeeklyParametersSchema,
+  resolveWeeklyParameters,
+  type ResolvedWeeklyParameters,
+  type WeeklyReasonCode,
+} from "./weekly-parameters";
+import { resolvePrescriptionParametersForArtifacts } from "./prescription-binding";
+import { buildPrescriptionInput, computePrescription } from "./prescription";
+import { resolveTrainingParameters } from "./training/parameters";
+import { composeTraining } from "./training";
+import { trainingCatalogSourceFromArtifactContent } from "./training/catalog-source";
 import { reportAnomaly } from "@/lib/observability/report";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
@@ -35,6 +59,48 @@ export const runCommandSchema = z
     expectedProfileRevision: z.number().int().nonnegative(),
   })
   .strict();
+
+const weeklyPolicySnapshotSchema = z.discriminatedUnion("status", [
+  z
+    .object({
+      status: z.literal("RESOLVED"),
+      sourceArtifact: z
+        .object({
+          id: z.string().min(1),
+          kind: z.literal("POLICY_BUNDLE"),
+          artifactKey: z.string().min(1),
+          version: z.number().int().positive(),
+          digest: z.string().length(64),
+          engineVersion: z.string().min(1),
+        })
+        .strict(),
+      parameters: resolvedWeeklyParametersSchema,
+      parameterSetDigest: z.string().length(64),
+      energyReestimate: z
+        .object({
+          weightKg: z.number().positive().finite(),
+          weightMeasuredOn: z.string(),
+          targets: quantitiesSchema,
+        })
+        .strict()
+        .nullable(),
+      simplifiedTraining: z
+        .object({
+          strength: z.array(strengthSessionSchema).max(7),
+          cardio: z.array(cardioSessionSchema).max(7),
+        })
+        .strict()
+        .nullable(),
+    })
+    .strict(),
+  z
+    .object({
+      status: z.literal("UNAVAILABLE"),
+      reasonCodes: z.array(z.string().min(1).max(120)).min(1).max(20),
+      missingParameterIds: z.array(z.string().min(1).max(160)).max(200),
+    })
+    .strict(),
+]);
 export const runSnapshotSchema = z
   .object({
     schemaVersion: z.literal(1),
@@ -94,6 +160,9 @@ export const runSnapshotSchema = z
      * the injected default permanently into a legacy row.
      */
     runtimeBinding: resolvedRuntimeArtifactSetSchema.optional(),
+    /** Weekly decisions consume this frozen block only. Optional without a
+     * default so historical snapshots retain their exact hashes. */
+    weeklyPolicy: weeklyPolicySnapshotSchema.optional(),
   })
   .strict()
   .superRefine((snapshot, ctx) => {
@@ -114,7 +183,10 @@ export const runSnapshotSchema = z
     const mismatches: [path: (string | number)[], ok: boolean][] = [
       [["synthetic"], snapshot.synthetic === expected.synthetic],
       [["policyVersion"], snapshot.policyVersion === expected.policyVersion],
-      [["catalogVersions", "food"], snapshot.catalogVersions.food === expected.catalogVersions.food],
+      [
+        ["catalogVersions", "food"],
+        snapshot.catalogVersions.food === expected.catalogVersions.food,
+      ],
       [
         ["catalogVersions", "exercise"],
         snapshot.catalogVersions.exercise === expected.catalogVersions.exercise,
@@ -212,6 +284,182 @@ async function resolveRunRuntimeBinding(clientId: string): Promise<{
   }
 }
 
+type WeeklyResolutionContext =
+  | {
+      status: "RESOLVED";
+      artifacts: ReviewedArtifactSet;
+      parameters: ResolvedWeeklyParameters;
+      parameterSetDigest: string;
+      sourceArtifact: {
+        id: string;
+        kind: "POLICY_BUNDLE";
+        artifactKey: string;
+        version: number;
+        digest: string;
+        engineVersion: string;
+      };
+    }
+  | {
+      status: "UNAVAILABLE";
+      reasonCodes: WeeklyReasonCode[];
+      missingParameterIds: string[];
+    };
+
+async function resolveWeeklyContext(
+  clientId: string,
+  kind: z.infer<typeof runCommandSchema>["kind"],
+  runtime: ResolvedRuntimeArtifactSet | null
+): Promise<WeeklyResolutionContext | undefined> {
+  if (kind !== "WEEKLY_REVIEW") return undefined;
+  if (!runtime) {
+    return {
+      status: "UNAVAILABLE",
+      reasonCodes: ["WEEKLY_ARTIFACT_UNAVAILABLE"],
+      missingParameterIds: [],
+    };
+  }
+  try {
+    const artifacts = await db.$transaction((tx) =>
+      loadRunBoundArtifactSet(tx, clientId, {
+        engineVersion: runtime.engineVersion,
+        references: runtime.artifactRefs,
+      })
+    );
+    const resolved = resolveWeeklyParameters(getReviewedPolicyBundleContent(artifacts.policy), {
+      synthetic: artifacts.policy.synthetic,
+    });
+    if (!resolved.ok) return { status: "UNAVAILABLE", ...resolved };
+    return {
+      status: "RESOLVED",
+      artifacts,
+      parameters: resolved.parameters,
+      parameterSetDigest: resolved.parameterSetDigest,
+      sourceArtifact: {
+        id: artifacts.policy.id,
+        kind: "POLICY_BUNDLE",
+        artifactKey: artifacts.policy.artifactKey,
+        version: artifacts.policy.version,
+        digest: artifacts.policy.contentDigest,
+        engineVersion: runtime.engineVersion,
+      },
+    };
+  } catch {
+    return {
+      status: "UNAVAILABLE",
+      reasonCodes: ["WEEKLY_ARTIFACT_UNAVAILABLE"],
+      missingParameterIds: [],
+    };
+  }
+}
+
+function freezeWeeklyPolicy(
+  context: WeeklyResolutionContext,
+  intake: RunSnapshot["intake"],
+  basePayload: PlanPayload | null,
+  evidence: z.infer<typeof evidenceSnapshotSchema>,
+  evaluatedOn: string
+): z.infer<typeof weeklyPolicySnapshotSchema> {
+  if (context.status === "UNAVAILABLE") return context;
+  let energyReestimate: {
+    weightKg: number;
+    weightMeasuredOn: string;
+    targets: z.infer<typeof quantitiesSchema>;
+  } | null = null;
+  let simplifiedTraining: {
+    strength: PlanPayload["strength"];
+    cardio: PlanPayload["cardio"];
+  } | null = null;
+
+  if (
+    context.parameters.adjustment.energyMethod === "REESTIMATE_FROM_CURRENT_WEIGHT" &&
+    basePayload?.nutrition?.method === "REVIEWED_PRESCRIPTION_V1"
+  ) {
+    const latest = evidence.observations
+      .filter((row) => row.payload.weight?.comparableConditions)
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))[0];
+    const weight = latest?.payload.weight;
+    if (latest && weight) {
+      try {
+        const resolved = resolvePrescriptionParametersForArtifacts(context.artifacts);
+        const built = buildPrescriptionInput(intake, evaluatedOn);
+        if (resolved.ok && built.ok) {
+          const weightKg = weight.value * (weight.unit === "LB" ? 0.45359237 : 1);
+          const weightMeasuredOn = latest.occurredAt.slice(0, 10);
+          const result = computePrescription(resolved.parameters, {
+            ...built.input,
+            weightKg,
+            weightMeasuredOn,
+          });
+          if (result.status === "PRESCRIBED") {
+            const prescription = result.prescription;
+            energyReestimate = {
+              weightKg,
+              weightMeasuredOn,
+              targets: {
+                energyKcal: prescription.targetEnergyKcal,
+                proteinG: prescription.proteinG,
+                carbsG:
+                  (prescription.carbohydrateRangeG.min + prescription.carbohydrateRangeG.max) / 2,
+                fatG: (prescription.fatRangeG.min + prescription.fatRangeG.max) / 2,
+              },
+            };
+          }
+        }
+      } catch {
+        energyReestimate = null;
+      }
+    }
+  }
+
+  if (
+    context.parameters.simplify.method === "RECOMPOSE_AT_FEWER_DAYS" &&
+    intake.intakeVersion === 2 &&
+    basePayload
+  ) {
+    try {
+      const policy = getReviewedPolicyBundleContent(context.artifacts.policy);
+      const templates = escalationTemplatesContentSchema.parse(
+        context.artifacts.escalationTemplates.content
+      );
+      const training = resolveTrainingParameters(
+        policy,
+        templates.templates.map((template) => ({ id: template.id, text: template.nextStepText }))
+      );
+      const fewerDays =
+        basePayload.strength.length - context.parameters.simplify.trainingDaysDecrement;
+      if (training.ok && fewerDays > 0) {
+        const catalog = trainingCatalogSourceFromArtifactContent(
+          exerciseCatalogContentSchema.parse(context.artifacts.exerciseCatalog.content)
+        );
+        const composed = composeTraining(training.parameters, catalog, training.effortText, {
+          intakeVersion: 2,
+          trainingDaysPerWeek: fewerDays,
+          equipmentAccess: intake.equipmentAccess,
+          experienceLevel: intake.experienceLevel,
+          sessionLengthBand: intake.sessionLengthBand ?? null,
+          trainingContextStatus: intake.trainingContextStatus ?? null,
+          energyReducedRelativeToMaintenance: null,
+          activeContraindicationRuleIds: [],
+        });
+        if (composed.status === "COMPOSED") {
+          simplifiedTraining = { strength: composed.strength, cardio: composed.cardio };
+        }
+      }
+    } catch {
+      simplifiedTraining = null;
+    }
+  }
+
+  return {
+    status: "RESOLVED",
+    sourceArtifact: context.sourceArtifact,
+    parameters: context.parameters,
+    parameterSetDigest: context.parameterSetDigest,
+    energyReestimate,
+    simplifiedTraining,
+  };
+}
+
 /** Owner and business identity are entirely server-derived; request keys cannot buy new runs. */
 export async function requestAiRun(clientId: string, raw: unknown) {
   const parsed = runCommandSchema.safeParse(raw);
@@ -233,6 +481,7 @@ export async function requestAiRun(clientId: string, raw: unknown) {
   // receipt have had their say, so this ticket moves no existing fail-closed
   // error earlier and a replayed request key still returns its cached result.
   const { runtime, runtimeError, profileClass } = await resolveRunRuntimeBinding(clientId);
+  const weeklyContext = await resolveWeeklyContext(clientId, input.kind, runtime);
   return db.$transaction(async (tx) => {
     const { context, profile } = await lockAiClient(tx, clientId);
     // The classification above was read outside this lock. If it moved, the
@@ -346,6 +595,17 @@ export async function requestAiRun(clientId: string, raw: unknown) {
       },
       modelConfiguration: runtime?.modelConfiguration ?? "synthetic-template-v1",
       ...(runtime ? { runtimeBinding: runtime } : {}),
+      ...(weeklyContext
+        ? {
+            weeklyPolicy: freezeWeeklyPolicy(
+              weeklyContext,
+              intake.data,
+              base ? planPayloadSchema.parse(base.payload) : null,
+              collected.evidence,
+              window.key
+            ),
+          }
+        : {}),
       baseVersionId: base?.id ?? null,
       basePayload: base?.payload ?? null,
       representation: input.representation,

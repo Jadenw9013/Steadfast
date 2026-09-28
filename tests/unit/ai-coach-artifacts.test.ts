@@ -197,14 +197,14 @@ describe("T-2038/S-15 — synthetic artifact digest regression", () => {
       exerciseCatalog: "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594",
       evidenceRegistry: "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233",
       escalationTemplates: "a39e7c45cdbc04ff6a74826320bde13fc3c13fd7fca26ef7c6a526631170ce14",
-      policyBundle: "b2936c64bb5a52cfbe02c3e9b0eff1af18940b62f81598fe7d6f2094f5c8e52b",
+      policyBundle: "7b637cbeb364a24333947367bad2b00fee785983c54ca411152b971393b8798e",
     },
     "t1008-runtime": {
       foodCatalog: "9d7eb3f81a2fc045345f79a315aead0a5c2779178ab0385eca13fef3abd92695",
       exerciseCatalog: "17af02f644e7e6effba953e9ba97f6ffe9cb5c75572992e927649ce09bea469f",
       evidenceRegistry: "187785ffba971a5620f3cc684d561f994f815fc0ae304061f6b68e1e6545cfee",
       escalationTemplates: "b9ad91e2c7c4b9f21bfcc5743d01b3fdc623b909551efc18afd3421c34bd6a7a",
-      policyBundle: "a6ce19ac8af1fc42bbbfa2d73b1218ede75224218c833e273a336bf584404dec",
+      policyBundle: "44b92cf60bc0e638aa9d169c9b4edddfc24a380813f85e5856cfe8b540057bbe",
     },
   };
 

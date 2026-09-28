@@ -29,6 +29,15 @@ import {
   RULE_WORKLOAD_COMBINED_ID,
   TRAINING_COMPOSER_PARAMETER_SPECS,
 } from "../training/parameters";
+import {
+  WEEKLY_COOLDOWN_RULE_ID,
+  WEEKLY_CONSUMED_PROGRESSION_PARAMETER_IDS,
+  WEEKLY_CUMULATIVE_RULE_ID,
+  WEEKLY_DROP_SESSION_RULE_ID,
+  WEEKLY_EVIDENCE_RULE_ID,
+  WEEKLY_PARAMETER_SPECS,
+  WEEKLY_RELATIVE_STEP_RULE_ID,
+} from "../weekly-parameters";
 
 /**
  * T-1005 engineering fixtures only. Every fact, threshold, identity and review
@@ -170,18 +179,44 @@ export function syntheticTrainingParameterValue(id: string): number {
   if (id === "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED") return 240;
   if (id === "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX") return 3;
   if (id === "PROGRESSION.STRENGTH.REPS.INCREMENT") return 1;
-  if (id === "PROGRESSION.STRENGTH.REPS.MAX_ABOVE_INITIAL") return 4;
-  if (id === "PROGRESSION.STRENGTH.SETS.INCREMENT") return 1;
-  if (id === "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL") return 2;
+  if (id === "PROGRESSION.STRENGTH.REPS.MAX_ABOVE_INITIAL") return 2;
+  if (id === "PROGRESSION.STRENGTH.SETS.INCREMENT") return 0;
+  if (id === "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL") return 0;
   if (id === "PROGRESSION.STRENGTH.LOAD.INCREMENT_FRACTION") return 0.05;
   if (id === "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW") return 0.1;
-  if (id === "PROGRESSION.CARDIO.MINUTES.INCREMENT") return 5;
-  if (id === "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL") return 15;
+  if (id === "PROGRESSION.CARDIO.MINUTES.INCREMENT") return 2;
+  if (id === "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL") return 6;
   if (id === "PROGRESSION.EVIDENCE.MIN_COMPLETE_SESSION_WEEKS") return 2;
-  if (id === "PROGRESSION.EVIDENCE.MIN_COMPLETE_SETS_FRACTION") return 0.9;
-  if (id === "PROGRESSION.EVIDENCE.MAX_EFFORT_RATING") return 7;
+  if (id === "PROGRESSION.EVIDENCE.MIN_COMPLETE_SETS_FRACTION") return 1;
+  if (id === "PROGRESSION.EVIDENCE.MAX_EFFORT_RATING") return 6;
   if (id === "PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES") return 14;
   throw new Error(`No synthetic value defined for training parameter ${id}`);
+}
+
+function syntheticWeeklyParameterValue(id: string): number {
+  const values: Record<string, number> = {
+    "WEEKLY.EVIDENCE.MIN_CONSECUTIVE_WEEKS": 3,
+    "WEEKLY.EVIDENCE.MAX_MISSING_WEEKS": 0,
+    "WEEKLY.EVIDENCE.MIN_COMPLETE_CHECK_INS_PER_WEEK": 1,
+    "WEEKLY.EVIDENCE.MIN_PLAN_FOLLOWING_DAYS": 5,
+    "WEEKLY.EVIDENCE.MIN_COMPARABLE_WEIGH_INS_PER_WEEK": 1,
+    "WEEKLY.EVIDENCE.MIN_COMPARABLE_WEIGH_INS_TOTAL": 3,
+    "WEEKLY.EVIDENCE.MAX_COMPARABLE_SPREAD_FRACTION": 0.02,
+    "WEEKLY.EVIDENCE.PLATEAU_MAX_RELATIVE_CHANGE": 0.005,
+    "WEEKLY.ADJUSTMENT.ENERGY.STEP_FRACTION": 0.03,
+    "WEEKLY.ADJUSTMENT.ENERGY.STEP_TOLERANCE_KCAL": 0.2,
+    "WEEKLY.COOLDOWN.MIN_DAYS_BETWEEN_MATERIAL_CHANGES": 14,
+    "WEEKLY.CUMULATIVE.WINDOW_DAYS": 28,
+    "WEEKLY.CUMULATIVE.MAX_MATERIAL_CHANGES_PER_WINDOW": 2,
+    "WEEKLY.CUMULATIVE.ENERGY.MAX_REDUCTION_FRACTION": 0.1,
+    "WEEKLY.CUMULATIVE.MAX_CHANGED_DOMAINS_PER_REVIEW": 1,
+    "WEEKLY.SIMPLIFY.TRAINING_DAYS.DECREMENT": 1,
+    "WEEKLY.SIMPLIFY.CARDIO.MINUTES.DECREMENT": 5,
+    "WEEKLY.SIMPLIFY.CARDIO.MINUTES.FLOOR": 5,
+  };
+  const value = values[id];
+  if (value === undefined) throw new Error(`No synthetic value defined for weekly parameter ${id}`);
+  return value;
 }
 
 function reviewMetadata(namespace: string): SignedArtifactReviewMetadata {
@@ -597,6 +632,11 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
         RULE_CARDIO_DOSE_ID,
         RULE_WORKLOAD_COMBINED_ID,
         RULE_BOUNDED_TRAINING_ID,
+        WEEKLY_EVIDENCE_RULE_ID,
+        WEEKLY_COOLDOWN_RULE_ID,
+        WEEKLY_CUMULATIVE_RULE_ID,
+        WEEKLY_RELATIVE_STEP_RULE_ID,
+        WEEKLY_DROP_SESSION_RULE_ID,
         "CONTRA.SPINAL_LOADING.V1",
         "CONTRA.OVERHEAD_LOADING.V1",
         "CONTRA.DEEP_KNEE_FLEXION.V1",
@@ -623,11 +663,13 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
         "SYNTHETIC_ADJUSTMENT_RULE",
         PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID,
         RULE_BOUNDED_TRAINING_ID,
+        WEEKLY_RELATIVE_STEP_RULE_ID,
+        WEEKLY_DROP_SESSION_RULE_ID,
       ],
-      cooldownRuleIds: ["SYNTHETIC_COOLDOWN_RULE"],
-      cumulativeLimitRuleIds: ["SYNTHETIC_CUMULATIVE_LIMIT_RULE"],
+      cooldownRuleIds: ["SYNTHETIC_COOLDOWN_RULE", WEEKLY_COOLDOWN_RULE_ID],
+      cumulativeLimitRuleIds: ["SYNTHETIC_CUMULATIVE_LIMIT_RULE", WEEKLY_CUMULATIVE_RULE_ID],
       contraindicationRuleIds: ["SYNTHETIC_CONTRAINDICATION_RULE"],
-      evidenceRuleIds: ["SYNTHETIC_EVIDENCE_RULE"],
+      evidenceRuleIds: ["SYNTHETIC_EVIDENCE_RULE", WEEKLY_EVIDENCE_RULE_ID],
       escalationTemplateIds: [
         "synthetic-pause-refer-template",
         "SYNTHETIC.NUTRITION.EXPLANATION.V1",
@@ -726,7 +768,23 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
           id: spec.id,
           value: syntheticTrainingParameterValue(spec.id),
           unit: spec.unit,
-          applicabilityRuleIds: [RULE_BOUNDED_TRAINING_ID],
+          applicabilityRuleIds: WEEKLY_CONSUMED_PROGRESSION_PARAMETER_IDS.includes(spec.id)
+            ? [RULE_BOUNDED_TRAINING_ID, WEEKLY_COOLDOWN_RULE_ID]
+            : [RULE_BOUNDED_TRAINING_ID],
+          evidenceClaimIds: ["synthetic-evidence-claim"],
+        })),
+        // Deliberately synthetic test value. It is not approved guidance.
+        ...WEEKLY_PARAMETER_SPECS.map((spec) => ({
+          id: spec.id,
+          value: syntheticWeeklyParameterValue(spec.id),
+          unit: spec.unit,
+          applicabilityRuleIds: [
+            spec.id.startsWith("WEEKLY.ADJUSTMENT.")
+              ? WEEKLY_RELATIVE_STEP_RULE_ID
+              : spec.id.startsWith("WEEKLY.SIMPLIFY.")
+                ? WEEKLY_DROP_SESSION_RULE_ID
+                : spec.ruleId,
+          ],
           evidenceClaimIds: ["synthetic-evidence-claim"],
         })),
       ],

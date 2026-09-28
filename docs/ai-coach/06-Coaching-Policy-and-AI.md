@@ -28,7 +28,7 @@ Build the loader, validators and synthetic fixtures before real policy content i
 | Accountability       | Named owner, reviewer identity and domain qualifications, review date, actual review record, signoff scope. A model-generated signature is invalid.          |
 | Applicability        | Supported population, goals, geography/language, required inputs, exclusions, unknown-answer behavior and permitted alternatives.                            |
 | Nutrition            | Estimation method and limitations; physiological inputs; activity assumptions; target constraints; nutrient coverage; portion and catalog feasibility rules. |
-| Adaptation           | Required evidence, trend method, permitted directions and amounts, cooldowns, cumulative limits, reason codes and uncertainty behavior.                      |
+| Adaptation           | Required evidence and trend rules (`WEEKLY.EVIDENCE.*`), permitted energy methods and amounts (`WEEKLY.ADJUSTMENT.*`), cooldowns (`WEEKLY.COOLDOWN.*`), cumulative limits (`WEEKLY.CUMULATIVE.*`), simplification (`WEEKLY.SIMPLIFY.*`), progression (`PROGRESSION.*`), reason codes and uncertainty behavior. |
 | Exercise             | Reviewed template/exercise IDs, starting-dose rules, progression evidence, equipment increments, recovery and combined workload constraints.                 |
 | Safety/content       | Screen and urgency rules, domain pause/restart mapping, ingredient/allergen checks, source compatibility and prohibited claims.                              |
 | Validation/lifecycle | Boundary and multiweek fixtures, required evaluation version, re-review triggers, revocation effects and accountable operational owner.                      |
@@ -68,6 +68,8 @@ The deterministic prescription engine (`lib/ai-coach/prescription/`) is the sole
 Material prescription changes, including simplifications, use `ROUTINE` and the single accepted adjustment slot per canonical window. `TARGET_PRESERVING` applies only to validated equivalent changes; `PROTECTIVE` is assigned by reviewed deterministic policy and cannot increase restriction or exertion. Those labels cannot bypass cumulative constraints. [Contracts](05-API-and-State-Contracts.md) define acceptance, revisions and slot invariants.
 
 Examples: sparse measurements lead to hold/clarification; schedule barriers can justify simplification; sufficient goal/recovery evidence may justify a bounded change. New concerns can pause relevant recommendations. Do not diagnose a physiological cause from ambiguous trends, reward rapid weight loss despite worsening recovery, or suggest compensatory fasting/exercise.
+
+The weekly controller reads every evidence, adjustment, cooldown, cumulative, simplification, and progression value from the exact reviewed policy artifact frozen into the run snapshot. A missing or incompatible value produces a fail-closed `HOLD`; it is never replaced by a code fixture. When a reviewed schedule rule reduces training days, the controller swaps in a complete T-2039 composition for the lower frequency rather than dropping the final session from an otherwise balanced split. Exact artifact identity and the resolved parameter digest are checked again during replay.
 
 ## 6. Practical meal and training content
 
