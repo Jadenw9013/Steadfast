@@ -363,7 +363,15 @@ export function resolveWeeklyParameters(
   }
   let floors;
   try {
-    floors = resolveNutritionSafetyPolicy(policy).nutritionLimits;
+    const safetyPolicy = resolveNutritionSafetyPolicy(policy);
+    if (safetyPolicy.resolutionStatus !== "RESOLVED") {
+      return {
+        ok: false,
+        reasonCodes: ["WEEKLY_PARAMETER_MISSING"],
+        missingParameterIds: safetyPolicy.pendingParameterIds,
+      };
+    }
+    floors = safetyPolicy.nutritionLimits;
   } catch {
     return { ok: false, reasonCodes: ["WEEKLY_PARAMETER_INCOMPATIBLE"], missingParameterIds: [] };
   }

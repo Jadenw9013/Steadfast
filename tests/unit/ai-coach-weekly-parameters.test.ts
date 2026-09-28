@@ -239,6 +239,8 @@ describe("weekly policy parameter resolver", () => {
     const artifacts = buildSyntheticArtifactSet("t2007-upstream-resolvers");
     const policy = bundle();
     const safety = resolveNutritionSafetyPolicy(policy);
+    expect(safety.resolutionStatus).toBe("RESOLVED");
+    if (safety.resolutionStatus !== "RESOLVED") throw new Error("Expected RESOLVED");
     const explanationTexts = escalationTemplatesContentSchema
       .parse(artifacts.escalationTemplates.content)
       .templates.map((template) => ({ id: template.id, text: template.nextStepText }));
