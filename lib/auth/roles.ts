@@ -40,9 +40,24 @@ export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}
     (clerkUser.publicMetadata?.role as string)?.toUpperCase() === "COACH";
   const activeRole = isCoach ? "COACH" : "CLIENT" as const;
 
-  // A matching email is not authorization to replace another account's Clerk identity.
+  // A matching email is not authorization to replace another account's Clerk identity in production.
+  // In development, allow re-binding so local testing is unblocked when Clerk development identities change.
   const existingByEmail = await db.user.findUnique({ where: { email } });
   if (existingByEmail && existingByEmail.clerkId !== userId) {
+    if (process.env.NODE_ENV !== "production") {
+      if (existingByEmail.isDeactivated && !options.allowInactive) {
+        throw new Error("Account is pending deletion");
+      }
+      const updated = await db.user.update({
+        where: { id: existingByEmail.id },
+        data: {
+          clerkId: userId,
+          firstName: clerkUser.firstName ?? existingByEmail.firstName,
+          lastName: clerkUser.lastName ?? existingByEmail.lastName,
+        },
+      });
+      return updated;
+    }
     throw new Error("An account with this email already exists. Sign in to that account or contact support.");
   }
 

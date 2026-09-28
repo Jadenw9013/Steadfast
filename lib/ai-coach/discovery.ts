@@ -67,6 +67,31 @@ async function hasActiveAiCoachLiveActivation(
   return active !== null;
 }
 
+const SYNTHETIC_FIXTURE_DISCOVERY_OFFER: AiCoachDiscoveryOffer = {
+  releaseId: "synthetic-preview-release",
+  configurationId: "synthetic-discovery-v1",
+  configurationVersion: 1,
+  locale: "en-US",
+  serviceLabel: "Steadfast AI Coach",
+  headline: "Intelligent coaching tailored to your routine",
+  summary:
+    "Explore customized workout programs and nutrition guidance built to fit your schedule, equipment, and goals.",
+  informationHeading: "How AI coaching works",
+  disclosureParagraphs: [
+    "Steadfast AI Coach creates personalized training and nutrition targets based on your preferences.",
+    "This experience is currently in development preview for designated test accounts.",
+  ],
+  consentLabel: "I understand and wish to preview AI coaching",
+  confirmLabel: "Get Started with AI Coach",
+  privacyNoticeLabel: "Privacy & Terms",
+  continueLabel: "Explore AI Coach",
+  humanCoachLabel: "Find a human coach",
+  eligibilitySummary: "Available for designated test accounts.",
+  privacyNoticeVersion: "synthetic-privacy-v1",
+  privacyNoticeUrl: "/terms",
+  pricing: null,
+};
+
 /** Public-safe approved copy only. Any gate failure is indistinguishable from
  * unavailable. Two independent gates: `FEATURE_AI_COACH_ENROLLMENT` (env,
  * instantly revertible) and the governed `AiCoachLiveActivation` row (DB,
@@ -74,7 +99,12 @@ async function hasActiveAiCoachLiveActivation(
  * on top of the DB row, never a replacement for it. */
 export async function getAiCoachPublicDiscoveryOffer(): Promise<AiCoachDiscoveryOffer | null> {
   if (!isAiCoachEnrollmentEnabled()) return null;
-  if (!(await hasActiveAiCoachLiveActivation())) return null;
+  if (!(await hasActiveAiCoachLiveActivation())) {
+    if (process.env.NODE_ENV === "development" && process.env.AI_COACH_FIXTURE_MODE === "true") {
+      return SYNTHETIC_FIXTURE_DISCOVERY_OFFER;
+    }
+    return null;
+  }
   try {
     const release = await assertActiveAiCoachLiveReleaseReady();
     return mapReleaseToOffer(release);
@@ -90,7 +120,12 @@ async function getAiCoachPublicDiscoveryOfferInTransaction(
   tx: Prisma.TransactionClient
 ): Promise<AiCoachDiscoveryOffer | null> {
   if (!isAiCoachEnrollmentEnabled()) return null;
-  if (!(await hasActiveAiCoachLiveActivation(tx))) return null;
+  if (!(await hasActiveAiCoachLiveActivation(tx))) {
+    if (process.env.NODE_ENV === "development" && process.env.AI_COACH_FIXTURE_MODE === "true") {
+      return SYNTHETIC_FIXTURE_DISCOVERY_OFFER;
+    }
+    return null;
+  }
   try {
     const release = await assertActiveAiCoachLiveReleaseReadyInTransaction(tx);
     return mapReleaseToOffer(release);

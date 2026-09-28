@@ -1185,7 +1185,10 @@ export function IntakeWizard({
                     pruneUnconfirmed({ ...answers, intakeVersion: 2 })
                   );
                   await command({ operation: "CONFIRM_INTAKE", answers: finalAnswers });
-                }, "Intake confirmed. Return to Overview to continue.")
+                  if (typeof window !== "undefined") {
+                    window.location.assign("/client/ai-coach");
+                  }
+                }, "Intake confirmed. Returning to your coaching plan...")
               }
             >
               Confirm intake
