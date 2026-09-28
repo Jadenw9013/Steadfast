@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ALL_APPROVAL_REQUIREMENTS,
+  LIVE_LAUNCH_APPROVAL_MODE,
   REQUIRED_APPROVAL_REQUIREMENTS,
   REQUIRED_DECISION_IDS,
   REQUIRED_EVIDENCE_REQUIREMENTS,
@@ -83,9 +85,19 @@ const RUNTIME_CONFIGURATION = {
 };
 const CONFIGURATION_DIGEST = contentHash(RUNTIME_CONFIGURATION);
 
-function completeTestPacket(): LiveLaunchPacket {
+/**
+ * S-20: the fixture keeps carrying all seven signatures by default even though
+ * only NUTRITION_PROFESSIONAL is required now, so every existing assertion
+ * about LEGAL_SCOPE and friends keeps testing a real, present approval. The
+ * single-signer shape is exercised separately below.
+ */
+function completeTestPacket(
+  approvalRequirements: readonly (typeof ALL_APPROVAL_REQUIREMENTS)[number][] = [
+    ...ALL_APPROVAL_REQUIREMENTS,
+  ]
+): LiveLaunchPacket {
   const approvalIds = new Map(
-    REQUIRED_APPROVAL_REQUIREMENTS.map((requirement) => [
+    approvalRequirements.map((requirement) => [
       requirement,
       `approval-${requirement.toLowerCase().replaceAll("_", "-")}`,
     ])
@@ -125,7 +137,7 @@ function completeTestPacket(): LiveLaunchPacket {
       recordDigest: DIGEST,
       approvalId: approvalIds.get("NUTRITION_PROFESSIONAL"),
     })),
-    approvals: REQUIRED_APPROVAL_REQUIREMENTS.map((requirement) => ({
+    approvals: approvalRequirements.map((requirement) => ({
       approvalId: approvalIds.get(requirement),
       requirement,
       status: "APPROVED",
@@ -191,6 +203,65 @@ describe("AI Coach live-launch packet readiness", () => {
     expect(reasonCodes(packet, expectation(packet))).toEqual([
       `PACKET_TEST_ONLY:${packet.packetId}`,
     ]);
+  });
+
+  describe("S-20 — SINGLE_SIGNER_ACCOUNTABLE_OWNER", () => {
+    it("requires exactly the accountable owner's signature, and nothing else", () => {
+      expect(LIVE_LAUNCH_APPROVAL_MODE).toBe("SINGLE_SIGNER_ACCOUNTABLE_OWNER");
+      expect(REQUIRED_APPROVAL_REQUIREMENTS).toEqual(["NUTRITION_PROFESSIONAL"]);
+      expect(ALL_APPROVAL_REQUIREMENTS).toHaveLength(7);
+    });
+
+    it("a one-signer packet is blocked only by its test-only boundary, exactly like the seven-signer one", () => {
+      const packet = completeTestPacket([...REQUIRED_APPROVAL_REQUIREMENTS]);
+      expect(packet.approvals).toHaveLength(1);
+      expect(packet.approvals[0].requirement).toBe("NUTRITION_PROFESSIONAL");
+      expect(reasonCodes(packet, expectation(packet))).toEqual([
+        `PACKET_TEST_ONLY:${packet.packetId}`,
+      ]);
+    });
+
+    it("a packet with no accountable signature is refused", () => {
+      const packet = completeTestPacket();
+      packet.approvals = packet.approvals.filter(
+        (approval) => approval.requirement !== "NUTRITION_PROFESSIONAL"
+      );
+      const codes = reasonCodes(packet, expectation(packet));
+      expect(codes).toContain("APPROVAL_MISSING:NUTRITION_PROFESSIONAL");
+      // Every decision record binds to it, so they all fall over too.
+      expect(codes).toContain("DECISION_NOT_APPROVED:D01");
+    });
+
+    it("an optional approval that is present but stale is still refused, so the SQL trigger cannot disagree", () => {
+      // Before S-20 the evaluator only looked at the required requirements.
+      // With six of the seven now optional, that would have reported this
+      // packet ready while `validate_ai_coach_live_launch_approval` — which
+      // loops over every element of `approvals` — refused it.
+      for (const requirement of ALL_APPROVAL_REQUIREMENTS.filter(
+        (candidate) => !(REQUIRED_APPROVAL_REQUIREMENTS as readonly string[]).includes(candidate)
+      )) {
+        const stale = completeTestPacket();
+        stale.approvals.find((approval) => approval.requirement === requirement)!.expiresAt =
+          new Date(NOW.getTime() - 1_000).toISOString();
+        expect(reasonCodes(stale, expectation(stale))).toContain(
+          `APPROVAL_NOT_CURRENT:${requirement}`
+        );
+
+        const mismatched = completeTestPacket();
+        mismatched.approvals.find(
+          (approval) => approval.requirement === requirement
+        )!.signature!.digest = OTHER_DIGEST;
+        expect(reasonCodes(mismatched, expectation(mismatched))).toContain(
+          `APPROVAL_DIGEST_MISMATCH:${requirement}`
+        );
+      }
+    });
+
+    it("rejects a packet carrying no approvals at all", () => {
+      const packet = completeTestPacket();
+      packet.approvals = [];
+      expect(reasonCodes(packet, expectation(packet))).toEqual(["PACKET_SCHEMA_INVALID:packet"]);
+    });
   });
 
   it("accepts the checked-in placeholder packet for authoring but rejects it for readiness", () => {
@@ -300,14 +371,21 @@ describe("AI Coach live-launch packet readiness", () => {
     unresolved.decisionRecords[0].requiredHumanDecision = "A human choice is still unresolved";
     expect(reasonCodes(unresolved, expectation(unresolved))).toContain("DECISION_NOT_APPROVED:D01");
 
-    for (const requirement of REQUIRED_APPROVAL_REQUIREMENTS) {
+    // S-20: only the accountable owner's signature is *required*, so only its
+    // absence is APPROVAL_MISSING. Every approval the packet does carry is
+    // still validated in full, required or not — that is what keeps this
+    // evaluator in step with the SQL trigger, which loops over all of them.
+    for (const requirement of ALL_APPROVAL_REQUIREMENTS) {
       const missing = completeTestPacket();
       missing.approvals = missing.approvals.filter(
         (approval) => approval.requirement !== requirement
       );
-      expect(reasonCodes(missing, expectation(missing))).toContain(
-        `APPROVAL_MISSING:${requirement}`
-      );
+      const missingReasons = reasonCodes(missing, expectation(missing));
+      if ((REQUIRED_APPROVAL_REQUIREMENTS as readonly string[]).includes(requirement)) {
+        expect(missingReasons).toContain(`APPROVAL_MISSING:${requirement}`);
+      } else {
+        expect(missingReasons).not.toContain(`APPROVAL_MISSING:${requirement}`);
+      }
 
       const unsigned = completeTestPacket();
       unsigned.approvals.find((approval) => approval.requirement === requirement)!.signature = null;

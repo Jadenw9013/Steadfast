@@ -51,6 +51,36 @@ No numeric threshold, screening cutoff, clinical interpretation, or client-facin
 
 Every row needs the signed external record ID and digest, signature/attestation reference, signer name and role, qualifications where relevant, exact scope, jurisdictions, signed timestamp, expiry, and any limitations. Rejection, deferral, expiry, missing signature, digest mismatch, or stale scope blocks launch.
 
+### v1 scope reduction: SINGLE_SIGNER_ACCOUNTABLE_OWNER (S-20)
+
+Recorded decision, `board/V1-SCOPE.md` ("Decision recorded: one signer", Jaden, 2026-09-27): **v1 ships with
+one signer, the accountable owner, holding dietitian and CPT credentials.** Of the seven rows below, only
+**Nutrition professional** is required by the two enforcement points
+(`REQUIRED_APPROVAL_REQUIREMENTS` in `lib/ai-coach/live-launch/schema.ts` and the SQL validator
+`validate_ai_coach_live_launch_approval`). The other six are optional: a packet may still carry them, and any
+row it does carry is validated in full, by both enforcement points, exactly as before. Nothing else in this
+document is relaxed — the twelve decision records, the nine evidence records, the five artifact bindings, the
+digest binding, the expiry windows and the test-only boundary are unchanged.
+
+This is a deliberate, recorded scope reduction, not a workaround. What v1 does without:
+
+- **Legal/scope** — nobody reviews the client-facing clinical copy for legal exposure, and nobody
+  independently attests that the packet's jurisdictions are the ones the service may operate in.
+- **Provider privacy/security** — no independent sign-off on the provider data flow, retention, regional
+  processing or no-training configuration. The database trigger still enforces the four configuration flags
+  mechanically; what is gone is a human attesting to them.
+- **SLO/spend limits** — no independent sign-off on the latency, failure-rate, token and spend ceilings. The
+  ceilings are still enforced at runtime; nobody but the accountable owner has agreed they are right.
+- **Operational owner, incident/referral wording, product governance** — folded into the same accountable
+  owner, who is the same person.
+
+`scripts/evaluate-ai-coach-final-provider.ts` still refuses to run without current signed
+`PROVIDER_PRIVACY_SECURITY` **and** `SLO_AND_SPEND_LIMITS` approvals on the exact packet. That gate was left
+as it stands on purpose: it authorizes real provider I/O against a real credential, and S-20 did not have the
+authority to decide that the accountable owner's single signature covers it. Producing the
+`REAL_PROVIDER_EVALUATION` evidence row therefore still requires those two approvals, or an explicit,
+separately recorded decision to change that script.
+
 | Approval                  | Required accountable signer/input                                                                                                                                                                | Record/signature        |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
 | Nutrition professional    | Qualified professional approves D01–D12, live artifacts, populations, exclusions, risks, fields/units, and tests                                                                                 | REQUIRED HUMAN DECISION |
