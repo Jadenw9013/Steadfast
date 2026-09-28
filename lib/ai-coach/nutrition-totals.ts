@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { getFoodItem, type CatalogLookupError } from "./catalog/loader";
+import { type CatalogLookupError } from "./catalog/loader";
+import { inCodeFoodCatalogSource, type FoodCatalogSource } from "./catalog/food-source";
 
 /**
  * A04 — deterministic, source-aware nutrient totals.
@@ -33,12 +34,16 @@ export type ComputeTotalsResult =
   | { success: true; totals: NutrientTotals; byComponent: { foodId: string; totals: NutrientTotals }[] }
   | { success: false; error: CatalogLookupError; foodId: string };
 
-export function computeNutrientTotals(components: RecipeComponent[]): ComputeTotalsResult {
+export function computeNutrientTotals(
+  components: RecipeComponent[],
+  source?: FoodCatalogSource
+): ComputeTotalsResult {
+  const catalogSource = source ?? inCodeFoodCatalogSource;
   const byComponent: { foodId: string; totals: NutrientTotals }[] = [];
   const totals: NutrientTotals = { energyKcal: 0, proteinG: 0, carbsG: 0, fatG: 0, hasCompleteMicronutrients: true };
 
   for (const component of components) {
-    const lookup = getFoodItem(component.foodId, component.catalogVersion);
+    const lookup = catalogSource.get(component.foodId, component.catalogVersion);
     if (!lookup.success) {
       return { success: false, error: lookup.error, foodId: component.foodId };
     }

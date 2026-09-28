@@ -10,6 +10,7 @@ import {
   foodCatalogContentSchema,
   policyBundleContentSchema,
 } from "../schema";
+import { mealTemplateSetSchema } from "../../catalog/meal-template-schema";
 import rawDraftBundle from "./policy-bundle-nutrition.draft-unsigned.v1.json";
 
 export const draftPolicyBundleFileSchema = z
@@ -99,4 +100,31 @@ export function loadDraftUnsignedFoodCatalog(): DraftFoodCatalogFile {
     throw new Error(FOOD_CATALOG_DRAFT_NOT_GENERATED);
   }
   return draftFoodCatalogFileSchema.parse(JSON.parse(fs.readFileSync(fileUrl, "utf8")));
+}
+
+export const draftMealTemplateFileSchema = z
+  .object({
+    fileSchemaVersion: z.literal(1),
+    reviewMetadata: draftUnsignedReviewMetadataSchema,
+    content: mealTemplateSetSchema,
+  })
+  .strict();
+
+export type DraftMealTemplateFile = z.infer<typeof draftMealTemplateFileSchema>;
+
+export const DRAFT_MEAL_TEMPLATES_FILENAME = "meal-templates.draft-unsigned.v1.json";
+
+/**
+ * Loads and strictly parses the DRAFT_UNSIGNED meal templates file.
+ * Throws in production environments — draft artifacts must never be loaded in production.
+ */
+export function loadDraftUnsignedMealTemplates(): DraftMealTemplateFile {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Draft unsigned artifacts cannot be loaded in production environments.");
+  }
+  const fileUrl = new URL(`./${DRAFT_MEAL_TEMPLATES_FILENAME}`, import.meta.url);
+  if (!fs.existsSync(fileUrl)) {
+    throw new Error(`The DRAFT_UNSIGNED meal templates file was not found at ${fileUrl}`);
+  }
+  return draftMealTemplateFileSchema.parse(JSON.parse(fs.readFileSync(fileUrl, "utf8")));
 }
