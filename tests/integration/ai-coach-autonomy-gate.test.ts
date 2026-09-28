@@ -184,9 +184,9 @@ suite("T-1006 deterministic autonomy gate with real PostgreSQL constraints", () 
    *  single field changed, without touching any existing caller. */
   async function publishedArtifacts(
     label: string,
-    mutate?: (set: ReturnType<typeof buildSyntheticArtifactSet>) => ReturnType<
-      typeof buildSyntheticArtifactSet
-    >
+    mutate?: (
+      set: ReturnType<typeof buildSyntheticArtifactSet>
+    ) => ReturnType<typeof buildSyntheticArtifactSet>
   ) {
     const built = buildSyntheticArtifactSet(`${label}-${randomUUID()}`);
     const set = mutate ? mutate(built) : built;
@@ -227,6 +227,7 @@ suite("T-1006 deterministic autonomy gate with real PostgreSQL constraints", () 
     set: Awaited<ReturnType<typeof publishedArtifacts>>
   ): NutritionSafetyEvaluationInput {
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     return {
       screening: {
         instrumentId: policy.screening.instrumentId,
@@ -402,6 +403,7 @@ suite("T-1006 deterministic autonomy gate with real PostgreSQL constraints", () 
       "APPROVED"
     );
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     safetyInput.proposal!.proposedDailyEnergyKcal =
       policy.nutritionLimits.minimumDailyEnergyKcal - 1;
     await evaluateCurrentClientNutritionSafety(artifactRequest(set.policyKey), safetyInput);

@@ -24,24 +24,20 @@ export type ResolvePrescriptionParametersForArtifactsResult =
  * Reuses `resolveNutritionSafetyPolicy` for the T-1003 floors — the same
  * call `evaluateCurrentClientNutritionSafety` makes internally
  * (nutrition-safety.ts:280) — per T-2003 Amendment 1 §A1.1 ("one reader, one
- * meaning" for the floors) and §A1.4's "do not swallow `ArtifactLoadError`
- * here": this function does not catch anything `resolveNutritionSafetyPolicy`
- * or `getReviewedPolicyBundleContent` throw. A bundle with broken T-1003
- * hooks must fail the run, never yield a prescription computed without
- * floors. Review r1 NIT: the callers' existing `ArtifactLoadError` try/catch
- * blocks wrap only their `loadReviewedArtifactSet` call, **not** this one, so
- * a throw from here propagates uncaught — in `managed-executor.ts` to
- * `processManagedRun`'s catch (the run is recorded as a failed attempt) and
- * in `finalization.ts` out through `aiHttp` as a 503 anomaly. That is the
- * pre-existing behaviour of the `evaluateCurrentClientNutritionSafety` path
- * this reuses and is still the correct fail-closed outcome; it is documented
- * here so nobody reads this comment as a guarantee it does not make.
+ * meaning" for the floors). Genuinely broken T-1003 hooks still throw.
+ * Explicit PENDING_RD_DECISION hooks are an expected review state: the
+ * safety resolver supplies a HOLD disposition and this binding returns the
+ * existing policy-not-ready code instead of turning that state into a failed
+ * run or HTTP 503.
  */
 export function resolvePrescriptionParametersForArtifacts(
   artifacts: ReviewedArtifactSet
 ): ResolvePrescriptionParametersForArtifactsResult {
   const policy = getReviewedPolicyBundleContent(artifacts.policy);
   const safety = resolveNutritionSafetyPolicy(policy);
+  if (safety.resolutionStatus === "PENDING") {
+    return { ok: false, reasonCodes: ["PRESCRIPTION_PARAMETER_MISSING"] };
+  }
   const explanationTexts = resolveReviewedPrescriptionExplanationTexts(artifacts, policy);
   const resolved = resolvePrescriptionParameters(policy, explanationTexts, {
     minimumDailyEnergyKcal: safety.nutritionLimits.minimumDailyEnergyKcal,

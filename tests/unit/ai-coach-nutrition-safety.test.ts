@@ -10,6 +10,7 @@ import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fi
 function fixture() {
   const set = buildSyntheticArtifactSet("t1003-unit");
   const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+  if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
   const input: NutritionSafetyEvaluationInput = {
     screening: {
       instrumentId: policy.screening.instrumentId,

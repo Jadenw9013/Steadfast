@@ -27,7 +27,11 @@ import {
   type ResolvedPrescriptionParameters,
 } from "@/lib/ai-coach/prescription/parameters";
 import { computeCarbohydrateRangeG, computeFatRangeG } from "@/lib/ai-coach/prescription/macros";
-import { ceilToDecimals, floorToDecimals, roundHalfAwayFromZero } from "@/lib/ai-coach/prescription/energy";
+import {
+  ceilToDecimals,
+  floorToDecimals,
+  roundHalfAwayFromZero,
+} from "@/lib/ai-coach/prescription/energy";
 import { buildPrescriptionInput } from "@/lib/ai-coach/prescription/inputs";
 import { computePrescription, nutritionRequiredForGoal } from "@/lib/ai-coach/prescription/index";
 import type { PrescriptionInput } from "@/lib/ai-coach/prescription/types";
@@ -47,7 +51,8 @@ function resolveOrThrow(
   floors = nominalFloors
 ): ResolvedPrescriptionParameters {
   const resolved = resolvePrescriptionParameters(bundle, explanationTexts, floors);
-  if (!resolved.ok) throw new Error(`fixture bundle failed to resolve: ${resolved.reasonCodes.join(",")}`);
+  if (!resolved.ok)
+    throw new Error(`fixture bundle failed to resolve: ${resolved.reasonCodes.join(",")}`);
   return resolved.parameters;
 }
 
@@ -81,7 +86,11 @@ const MAINTENANCE_2590 = 2590;
 
 describe("resolvePrescriptionParameters", () => {
   it("resolves the nominal synthetic bundle", () => {
-    const result = resolvePrescriptionParameters(nominalBundle, nominalExplanationTexts, nominalFloors);
+    const result = resolvePrescriptionParameters(
+      nominalBundle,
+      nominalExplanationTexts,
+      nominalFloors
+    );
     expect(result.ok).toBe(true);
   });
 
@@ -111,10 +120,14 @@ describe("resolvePrescriptionParameters", () => {
   );
 
   it("wrong unit -> PRESCRIPTION_PARAMETER_INCOMPATIBLE", () => {
-    const bundle = corruptPrescriptionParameter(nominalBundle, "ROUNDING.ENERGY_KCAL.STEP", (p) => ({
-      ...p,
-      unit: "WRONG_UNIT",
-    }));
+    const bundle = corruptPrescriptionParameter(
+      nominalBundle,
+      "ROUNDING.ENERGY_KCAL.STEP",
+      (p) => ({
+        ...p,
+        unit: "WRONG_UNIT",
+      })
+    );
     const result = resolvePrescriptionParameters(bundle, nominalExplanationTexts, nominalFloors);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -123,10 +136,14 @@ describe("resolvePrescriptionParameters", () => {
   });
 
   it("applicabilityRuleIds missing the group rule -> incompatible", () => {
-    const bundle = corruptPrescriptionParameter(nominalBundle, "ROUNDING.ENERGY_KCAL.STEP", (p) => ({
-      ...p,
-      applicabilityRuleIds: ["SOME_UNRELATED_RULE"],
-    }));
+    const bundle = corruptPrescriptionParameter(
+      nominalBundle,
+      "ROUNDING.ENERGY_KCAL.STEP",
+      (p) => ({
+        ...p,
+        applicabilityRuleIds: ["SOME_UNRELATED_RULE"],
+      })
+    );
     const result = resolvePrescriptionParameters(bundle, nominalExplanationTexts, nominalFloors);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -134,10 +151,14 @@ describe("resolvePrescriptionParameters", () => {
   });
 
   it("COMPOSITION.TOLERANCE_PERCENT > 20 -> incompatible", () => {
-    const bundle = corruptPrescriptionParameter(nominalBundle, "COMPOSITION.TOLERANCE_PERCENT", (p) => ({
-      ...p,
-      value: 21,
-    }));
+    const bundle = corruptPrescriptionParameter(
+      nominalBundle,
+      "COMPOSITION.TOLERANCE_PERCENT",
+      (p) => ({
+        ...p,
+        value: 21,
+      })
+    );
     const result = resolvePrescriptionParameters(bundle, nominalExplanationTexts, nominalFloors);
     expect(result.ok).toBe(false);
     if (result.ok) return;
@@ -178,9 +199,9 @@ describe("resolvePrescriptionParameters", () => {
         (id) => id !== PRESCRIPTION_PROTEIN_WEIGHT_BASIS_ID
       ),
     };
-    expect(resolvePrescriptionParameters(noProteinBasis, nominalExplanationTexts, nominalFloors).ok).toBe(
-      false
-    );
+    expect(
+      resolvePrescriptionParameters(noProteinBasis, nominalExplanationTexts, nominalFloors).ok
+    ).toBe(false);
 
     const noRoundingOrder = {
       ...nominalBundle,
@@ -188,9 +209,9 @@ describe("resolvePrescriptionParameters", () => {
         (id) => id !== PRESCRIPTION_ROUNDING_ORDER_ID
       ),
     };
-    expect(resolvePrescriptionParameters(noRoundingOrder, nominalExplanationTexts, nominalFloors).ok).toBe(
-      false
-    );
+    expect(
+      resolvePrescriptionParameters(noRoundingOrder, nominalExplanationTexts, nominalFloors).ok
+    ).toBe(false);
 
     const noMacroComposition = {
       ...nominalBundle,
@@ -198,7 +219,11 @@ describe("resolvePrescriptionParameters", () => {
         (id) => id !== PRESCRIPTION_MACRO_COMPOSITION_ID
       ),
     };
-    const result = resolvePrescriptionParameters(noMacroComposition, nominalExplanationTexts, nominalFloors);
+    const result = resolvePrescriptionParameters(
+      noMacroComposition,
+      nominalExplanationTexts,
+      nominalFloors
+    );
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reasonCodes).toEqual(["PRESCRIPTION_METHOD_UNSUPPORTED"]);
@@ -209,9 +234,9 @@ describe("resolvePrescriptionParameters", () => {
         (id) => id !== PRESCRIPTION_GOAL_ADJUSTMENT_RULE_ID
       ),
     };
-    expect(resolvePrescriptionParameters(noGoalAdjustment, nominalExplanationTexts, nominalFloors).ok).toBe(
-      false
-    );
+    expect(
+      resolvePrescriptionParameters(noGoalAdjustment, nominalExplanationTexts, nominalFloors).ok
+    ).toBe(false);
   });
 
   it("a bundle with the FEMALE_ADULT.VERY_ACTIVE coefficient set omitted names the slot", () => {
@@ -223,7 +248,9 @@ describe("resolvePrescriptionParameters", () => {
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reasonCodes).toContain("PRESCRIPTION_PARAMETER_MISSING");
-    expect(result.missingParameterIds).toEqual(["ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.INTERCEPT"]);
+    expect(result.missingParameterIds).toEqual([
+      "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.INTERCEPT",
+    ]);
   });
 
   it("determinism: parameterSetDigest changes iff a parameter value changes", () => {
@@ -231,17 +258,23 @@ describe("resolvePrescriptionParameters", () => {
     const b = resolveOrThrow();
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
 
-    const changedBundle = corruptPrescriptionParameter(nominalBundle, "ROUNDING.ENERGY_KCAL.STEP", (p) => ({
-      ...p,
-      value: 20,
-    }));
+    const changedBundle = corruptPrescriptionParameter(
+      nominalBundle,
+      "ROUNDING.ENERGY_KCAL.STEP",
+      (p) => ({
+        ...p,
+        value: 20,
+      })
+    );
     const changed = resolveOrThrow(changedBundle);
     const aResult = computePrescription(a, baseInput());
     const changedResult = computePrescription(changed, baseInput());
     expect(aResult.status).toBe("PRESCRIBED");
     expect(changedResult.status).toBe("PRESCRIBED");
     if (aResult.status !== "PRESCRIBED" || changedResult.status !== "PRESCRIBED") return;
-    expect(aResult.prescription.parameterSetDigest).not.toBe(changedResult.prescription.parameterSetDigest);
+    expect(aResult.prescription.parameterSetDigest).not.toBe(
+      changedResult.prescription.parameterSetDigest
+    );
   });
 
   it("Amendment 1 §A1.5: parameterSetDigest also changes when a T-1003 floor changes, or when an explanation text changes, not only the 75 values", () => {
@@ -251,8 +284,12 @@ describe("resolvePrescriptionParameters", () => {
     });
     expect(JSON.stringify(withDifferentFloor)).not.toBe(JSON.stringify(nominalParameters));
 
-    const withDifferentExplanationText = resolveOrThrow(nominalBundle, ["a different reviewed sentence"]);
-    expect(JSON.stringify(withDifferentExplanationText)).not.toBe(JSON.stringify(nominalParameters));
+    const withDifferentExplanationText = resolveOrThrow(nominalBundle, [
+      "a different reviewed sentence",
+    ]);
+    expect(JSON.stringify(withDifferentExplanationText)).not.toBe(
+      JSON.stringify(nominalParameters)
+    );
   });
 
   it("deep-freezes the resolved parameter set, not just the top level (m8)", () => {
@@ -265,7 +302,9 @@ describe("resolvePrescriptionParameters", () => {
       (nominalParameters.protein.REGULAR as { target: number }).target = 99;
     }).toThrow();
     expect(() => {
-      (nominalParameters.safetyFloors as { minimumDailyEnergyKcal: number }).minimumDailyEnergyKcal = 0;
+      (
+        nominalParameters.safetyFloors as { minimumDailyEnergyKcal: number }
+      ).minimumDailyEnergyKcal = 0;
     }).toThrow();
   });
 });
@@ -319,26 +358,22 @@ describe("computePrescription — M5: steps 1-4 + population collect independent
     );
   });
 
-  it("PREGNANCY + PESCATARIAN returns both codes", () => {
+  it("PREGNANCY + PESCATARIAN reports only the unsupported population", () => {
     const result = computePrescription(
       nominalParameters,
       baseInput({ energyMethodPopulationCategory: "PREGNANCY", dietaryPattern: "PESCATARIAN" })
     );
     expect(result.status).toBe("UNAVAILABLE");
-    expect(result.reasonCodes).toEqual(
-      ["PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED", "PRESCRIPTION_POPULATION_UNSUPPORTED"].sort()
-    );
+    expect(result.reasonCodes).toEqual(["PRESCRIPTION_POPULATION_UNSUPPORTED"]);
   });
 
-  it("out-of-range age + unsupported dietary pattern returns both codes", () => {
+  it("out-of-range age + OTHER reports only the invalid form value", () => {
     const result = computePrescription(
       nominalParameters,
       baseInput({ ageYears: 17, dietaryPattern: "OTHER" })
     );
     expect(result.status).toBe("UNAVAILABLE");
-    expect(result.reasonCodes).toEqual(
-      ["PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED", "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"].sort()
-    );
+    expect(result.reasonCodes).toEqual(["PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"]);
   });
 });
 
@@ -464,10 +499,7 @@ describe("buildPrescriptionInput", () => {
   });
 
   it("an unrecognised extra key (e.g. gender) fails the whole parse rather than being silently ignored — intakeAnswersSchema is .strict()", () => {
-    const result = buildPrescriptionInput(
-      { ...buildV2Answers(), gender: "FEMALE" },
-      "2026-09-24"
-    );
+    const result = buildPrescriptionInput({ ...buildV2Answers(), gender: "FEMALE" }, "2026-09-24");
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.reasonCodes).toEqual(["PRESCRIPTION_INTAKE_VERSION_UNSUPPORTED"]);
@@ -519,7 +551,10 @@ describe("computePrescription — B2: malformed weightMeasuredOn fails closed", 
   it.each(["2026-09-31", "not-a-date"])(
     "%s -> PRESCRIPTION_WEIGHT_MEASUREMENT_STALE, never silently passes (Date.parse rolls 2026-09-31 to Oct 1, so a bare finite check is not enough)",
     (malformed) => {
-      const result = computePrescription(nominalParameters, baseInput({ weightMeasuredOn: malformed }));
+      const result = computePrescription(
+        nominalParameters,
+        baseInput({ weightMeasuredOn: malformed })
+      );
       expect(result.status).toBe("UNAVAILABLE");
       expect(result.reasonCodes).toEqual(["PRESCRIPTION_WEIGHT_MEASUREMENT_STALE"]);
     }
@@ -548,8 +583,12 @@ describe("computePrescription — population support", () => {
 
 describe("computePrescription — input range bounds (inclusive)", () => {
   it("ageYears at min (18) and max (79) pass; below/above fail", () => {
-    expect(computePrescription(nominalParameters, baseInput({ ageYears: 18 })).status).toBe("PRESCRIBED");
-    expect(computePrescription(nominalParameters, baseInput({ ageYears: 79 })).status).toBe("PRESCRIBED");
+    expect(computePrescription(nominalParameters, baseInput({ ageYears: 18 })).status).toBe(
+      "PRESCRIBED"
+    );
+    expect(computePrescription(nominalParameters, baseInput({ ageYears: 79 })).status).toBe(
+      "PRESCRIBED"
+    );
     const below = computePrescription(nominalParameters, baseInput({ ageYears: 17 }));
     expect(below.status).toBe("UNAVAILABLE");
     expect(below.reasonCodes).toEqual(["PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"]);
@@ -558,17 +597,33 @@ describe("computePrescription — input range bounds (inclusive)", () => {
   });
 
   it("heightCm at min (140) and max (220) pass; below/above fail", () => {
-    expect(computePrescription(nominalParameters, baseInput({ heightCm: 140 })).status).toBe("PRESCRIBED");
-    expect(computePrescription(nominalParameters, baseInput({ heightCm: 220 })).status).toBe("PRESCRIBED");
-    expect(computePrescription(nominalParameters, baseInput({ heightCm: 139 })).status).toBe("UNAVAILABLE");
-    expect(computePrescription(nominalParameters, baseInput({ heightCm: 221 })).status).toBe("UNAVAILABLE");
+    expect(computePrescription(nominalParameters, baseInput({ heightCm: 140 })).status).toBe(
+      "PRESCRIBED"
+    );
+    expect(computePrescription(nominalParameters, baseInput({ heightCm: 220 })).status).toBe(
+      "PRESCRIBED"
+    );
+    expect(computePrescription(nominalParameters, baseInput({ heightCm: 139 })).status).toBe(
+      "UNAVAILABLE"
+    );
+    expect(computePrescription(nominalParameters, baseInput({ heightCm: 221 })).status).toBe(
+      "UNAVAILABLE"
+    );
   });
 
   it("weightKg at min (40) and max (200) pass; below/above fail", () => {
-    expect(computePrescription(nominalParameters, baseInput({ weightKg: 40 })).status).toBe("PRESCRIBED");
-    expect(computePrescription(nominalParameters, baseInput({ weightKg: 200 })).status).toBe("PRESCRIBED");
-    expect(computePrescription(nominalParameters, baseInput({ weightKg: 39 })).status).toBe("UNAVAILABLE");
-    expect(computePrescription(nominalParameters, baseInput({ weightKg: 201 })).status).toBe("UNAVAILABLE");
+    expect(computePrescription(nominalParameters, baseInput({ weightKg: 40 })).status).toBe(
+      "PRESCRIBED"
+    );
+    expect(computePrescription(nominalParameters, baseInput({ weightKg: 200 })).status).toBe(
+      "PRESCRIBED"
+    );
+    expect(computePrescription(nominalParameters, baseInput({ weightKg: 39 })).status).toBe(
+      "UNAVAILABLE"
+    );
+    expect(computePrescription(nominalParameters, baseInput({ weightKg: 201 })).status).toBe(
+      "UNAVAILABLE"
+    );
   });
 
   it("a metric height 1.70m (misencoded as metres, not cm) is rejected as out-of-range, never silently x100", () => {
@@ -719,7 +774,9 @@ describe("computePrescription — minimumDailyEnergyKcal floor", () => {
     const result = computePrescription(parameters, input);
     expect(result.status).toBe("PRESCRIBED");
     if (result.status !== "PRESCRIBED") return;
-    expect(result.prescription.appliedBoundIds).toEqual([SYNTHETIC_MINIMUM_DAILY_ENERGY_PARAMETER_ID]);
+    expect(result.prescription.appliedBoundIds).toEqual([
+      SYNTHETIC_MINIMUM_DAILY_ENERGY_PARAMETER_ID,
+    ]);
     expect(result.prescription.targetEnergyKcal).toBe(1200);
   });
 });
@@ -748,9 +805,9 @@ describe("computePrescription — maximumWeeklyLossRatePercent", () => {
     expect(result.status).toBe("PRESCRIBED");
     if (result.status !== "PRESCRIBED") return;
     expect(result.prescription.appliedBoundIds).toEqual([]);
-    expect(publishedRatePercent(result.prescription.projectedWeeklyWeightChangeKg, 80)).toBeLessThanOrEqual(
-      5
-    );
+    expect(
+      publishedRatePercent(result.prescription.projectedWeeklyWeightChangeKg, 80)
+    ).toBeLessThanOrEqual(5);
   });
 
   it("above the permitted rate raises the target so the *published* rate never exceeds the cap, ID recorded", () => {
@@ -761,10 +818,12 @@ describe("computePrescription — maximumWeeklyLossRatePercent", () => {
     const result = computePrescription(parameters, input);
     expect(result.status).toBe("PRESCRIBED");
     if (result.status !== "PRESCRIBED") return;
-    expect(result.prescription.appliedBoundIds).toEqual([SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID]);
-    expect(publishedRatePercent(result.prescription.projectedWeeklyWeightChangeKg, 80)).toBeLessThanOrEqual(
-      0.5 + 1e-9
-    );
+    expect(result.prescription.appliedBoundIds).toEqual([
+      SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID,
+    ]);
+    expect(
+      publishedRatePercent(result.prescription.projectedWeeklyWeightChangeKg, 80)
+    ).toBeLessThanOrEqual(0.5 + 1e-9);
   });
 
   it("B1 (round 2): a cap the *unrounded* target satisfies but naive rounding alone would breach is still honored by the *published* number", () => {
@@ -783,7 +842,9 @@ describe("computePrescription — maximumWeeklyLossRatePercent", () => {
     if (result.status !== "PRESCRIBED") return;
     const finalRate = publishedRatePercent(result.prescription.projectedWeeklyWeightChangeKg, 80);
     expect(finalRate).toBeLessThanOrEqual(0.905 + 1e-9);
-    expect(result.prescription.appliedBoundIds).toEqual([SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID]);
+    expect(result.prescription.appliedBoundIds).toEqual([
+      SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID,
+    ]);
     // Hand-derivation (pasted in board/reviews/T-2032-web-engineer-r3.md):
     // step 8 clamps to 2072.857143 (0.905% deficit), step 9 rounds to 2070,
     // published -0.73 recomputes to 0.9125% > 0.905% -> loop steps to 2080,
@@ -817,11 +878,14 @@ describe("computePrescription — maximumWeeklyLossRatePercent", () => {
     const result = computePrescription(parameters, input40kg);
     expect(result.status).toBe("PRESCRIBED");
     if (result.status !== "PRESCRIBED") return;
-    const downstreamRate = (Math.max(0, -result.prescription.projectedWeeklyWeightChangeKg) / 40) * 100;
+    const downstreamRate =
+      (Math.max(0, -result.prescription.projectedWeeklyWeightChangeKg) / 40) * 100;
     expect(downstreamRate).toBeLessThanOrEqual(0.35);
     expect(result.prescription.targetEnergyKcal).toBe(1840);
     expect(result.prescription.projectedWeeklyWeightChangeKg).toBe(-0.13);
-    expect(result.prescription.appliedBoundIds).toContain(SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID);
+    expect(result.prescription.appliedBoundIds).toContain(
+      SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID
+    );
   });
 });
 
@@ -845,14 +909,22 @@ describe("computePrescription — protein g/kg bounds", () => {
   });
 
   it("target above MAX clamps down, ID recorded", () => {
-    const bundle = corruptPrescriptionParameter(nominalBundle, proteinParameterId("REGULAR", "MAX"), (p) => ({
-      ...p,
-      value: 2,
-    }));
-    const bundle2 = corruptPrescriptionParameter(bundle, proteinParameterId("REGULAR", "TARGET"), (p) => ({
-      ...p,
-      value: 9,
-    }));
+    const bundle = corruptPrescriptionParameter(
+      nominalBundle,
+      proteinParameterId("REGULAR", "MAX"),
+      (p) => ({
+        ...p,
+        value: 2,
+      })
+    );
+    const bundle2 = corruptPrescriptionParameter(
+      bundle,
+      proteinParameterId("REGULAR", "TARGET"),
+      (p) => ({
+        ...p,
+        value: 9,
+      })
+    );
     const parameters = resolveOrThrow(bundle2);
     const result = computePrescription(
       parameters,
@@ -868,15 +940,20 @@ describe("computePrescription — protein g/kg bounds", () => {
 describe("carbohydrate/fat AMDR ranges round inward", () => {
   it("min ceils, max floors — never wider than policy — derived from the resolved parameters, not a re-typed literal", () => {
     const target = 2333;
-    const { min: carbPercentMin, max: carbPercentMax } = nominalParameters.carbohydratePercentEnergy;
+    const { min: carbPercentMin, max: carbPercentMax } =
+      nominalParameters.carbohydratePercentEnergy;
     const { min: fatPercentMin, max: fatPercentMax } = nominalParameters.fatPercentEnergy;
     const kcalPerGCarb = nominalParameters.energyDensityKcalPerG.carbohydrate;
     const kcalPerGFat = nominalParameters.energyDensityKcalPerG.fat;
     const decimals = nominalParameters.rounding.macroGramsDecimals;
 
     const carb = computeCarbohydrateRangeG(nominalParameters, target);
-    expect(carb.min).toBe(ceilToDecimals((target * (carbPercentMin / 100)) / kcalPerGCarb, decimals));
-    expect(carb.max).toBe(floorToDecimals((target * (carbPercentMax / 100)) / kcalPerGCarb, decimals));
+    expect(carb.min).toBe(
+      ceilToDecimals((target * (carbPercentMin / 100)) / kcalPerGCarb, decimals)
+    );
+    expect(carb.max).toBe(
+      floorToDecimals((target * (carbPercentMax / 100)) / kcalPerGCarb, decimals)
+    );
     expect(carb.min).toBeGreaterThanOrEqual((target * carbPercentMin) / 100 / kcalPerGCarb);
     expect(carb.max).toBeLessThanOrEqual((target * carbPercentMax) / 100 / kcalPerGCarb);
 
@@ -945,7 +1022,10 @@ describe("computePrescription — weight measurement staleness", () => {
 
 describe("computePrescription — goal handling", () => {
   it("goalPaceClass UNDECIDED -> PRESCRIPTION_GOAL_PACE_UNDECIDED", () => {
-    const result = computePrescription(nominalParameters, baseInput({ goalPaceClass: "UNDECIDED" }));
+    const result = computePrescription(
+      nominalParameters,
+      baseInput({ goalPaceClass: "UNDECIDED" })
+    );
     expect(result.status).toBe("UNAVAILABLE");
     expect(result.reasonCodes).toEqual(["PRESCRIPTION_GOAL_PACE_UNDECIDED"]);
   });
@@ -981,11 +1061,11 @@ describe("computePrescription — goal handling", () => {
     expect(result.prescription.projectedWeeklyWeightChangeKg).toBe(0);
   });
 
-  it("nutritionRequiredForGoal is true only for LOSE/GAIN", () => {
+  it("nutritionRequiredForGoal is true for every confirmed goal", () => {
     expect(nutritionRequiredForGoal({ bodyWeightIntent: "LOSE" })).toBe(true);
     expect(nutritionRequiredForGoal({ bodyWeightIntent: "GAIN" })).toBe(true);
-    expect(nutritionRequiredForGoal({ bodyWeightIntent: "MAINTAIN" })).toBe(false);
-    expect(nutritionRequiredForGoal({ bodyWeightIntent: "NO_PREFERENCE" })).toBe(false);
+    expect(nutritionRequiredForGoal({ bodyWeightIntent: "MAINTAIN" })).toBe(true);
+    expect(nutritionRequiredForGoal({ bodyWeightIntent: "NO_PREFERENCE" })).toBe(true);
     expect(nutritionRequiredForGoal({ bodyWeightIntent: null })).toBe(false);
   });
 });
@@ -996,18 +1076,29 @@ describe("computePrescription — goal handling", () => {
 
 describe("computePrescription — dietary pattern scope", () => {
   it.each(["PESCATARIAN", "OTHER"] as const)(
-    "%s -> PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED",
+    "%s computes the same reviewed energy and macro targets without a scope referral",
     (pattern) => {
       const result = computePrescription(nominalParameters, baseInput({ dietaryPattern: pattern }));
-      expect(result.status).toBe("UNAVAILABLE");
-      expect(result.reasonCodes).toEqual(["PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED"]);
+      expect(result.status).toBe("PRESCRIBED");
+      if (result.status !== "PRESCRIBED") return;
+      const omnivore = computePrescription(
+        nominalParameters,
+        baseInput({ dietaryPattern: "OMNIVORE" })
+      );
+      expect(omnivore.status).toBe("PRESCRIBED");
+      if (omnivore.status !== "PRESCRIBED") return;
+      expect(result.prescription.targetEnergyKcal).toBe(omnivore.prescription.targetEnergyKcal);
+      expect(result.prescription.proteinG).toBe(omnivore.prescription.proteinG);
     }
   );
 
   it("MEDICAL_OR_CLINICIAN_DIRECTED -> PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE, even for OMNIVORE", () => {
     const result = computePrescription(
       nominalParameters,
-      baseInput({ dietaryPattern: "OMNIVORE", dietaryPatternReason: "MEDICAL_OR_CLINICIAN_DIRECTED" })
+      baseInput({
+        dietaryPattern: "OMNIVORE",
+        dietaryPatternReason: "MEDICAL_OR_CLINICIAN_DIRECTED",
+      })
     );
     expect(result.status).toBe("UNAVAILABLE");
     expect(result.reasonCodes).toEqual(["PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE"]);
@@ -1033,7 +1124,9 @@ describe("computePrescription — dietary pattern scope", () => {
     expect(explicitResult.status).toBe("PRESCRIBED");
     expect(nullResult.status).toBe("PRESCRIBED");
     if (explicitResult.status !== "PRESCRIBED" || nullResult.status !== "PRESCRIBED") return;
-    expect(explicitResult.prescription.targetEnergyKcal).toBe(nullResult.prescription.targetEnergyKcal);
+    expect(explicitResult.prescription.targetEnergyKcal).toBe(
+      nullResult.prescription.targetEnergyKcal
+    );
   });
 
   it("M6: a null pattern with MEDICAL_OR_CLINICIAN_DIRECTED reason is still out of scope (the reason check is independent of the pattern check)", () => {
@@ -1052,10 +1145,14 @@ describe("computePrescription — dietary pattern scope", () => {
 
 describe("computePrescription — PRESCRIPTION_MACRO_RANGES_INFEASIBLE", () => {
   it("protein alone exceeding target energy is infeasible and protein is never silently reduced", () => {
-    const bundle = corruptPrescriptionParameter(nominalBundle, proteinParameterId("NONE", "MIN"), (p) => ({
-      ...p,
-      value: 40, // 40 g/kg * 80kg = 3200g protein, far above any target.
-    }));
+    const bundle = corruptPrescriptionParameter(
+      nominalBundle,
+      proteinParameterId("NONE", "MIN"),
+      (p) => ({
+        ...p,
+        value: 40, // 40 g/kg * 80kg = 3200g protein, far above any target.
+      })
+    );
     const parameters = resolveOrThrow(bundle);
     const result = computePrescription(parameters, baseInput());
     expect(result.status).toBe("UNAVAILABLE");
@@ -1156,15 +1253,21 @@ describe("Amendment 1 §A1.2 — drift assertions against plan-contract.ts", () 
   }
 
   it("PAYLOAD_TOLERANCE_MAX_PERCENT (20): a payload at that value parses, +0.01 fails", () => {
-    expect(planPayloadSchema.safeParse(minimalPayload({ tolerancePercent: 20 })).success).toBe(true);
-    expect(planPayloadSchema.safeParse(minimalPayload({ tolerancePercent: 20.01 })).success).toBe(false);
+    expect(planPayloadSchema.safeParse(minimalPayload({ tolerancePercent: 20 })).success).toBe(
+      true
+    );
+    expect(planPayloadSchema.safeParse(minimalPayload({ tolerancePercent: 20.01 })).success).toBe(
+      false
+    );
   });
 
   it("PAYLOAD_ASSUMPTION_MAX_COUNT (10): an array of that length parses, +1 fails", () => {
     const ten = Array.from({ length: 10 }, (_, i) => `note-${i}`);
     const eleven = [...ten, "note-10"];
     expect(planPayloadSchema.safeParse(minimalPayload({ assumptions: ten })).success).toBe(true);
-    expect(planPayloadSchema.safeParse(minimalPayload({ assumptions: eleven })).success).toBe(false);
+    expect(planPayloadSchema.safeParse(minimalPayload({ assumptions: eleven })).success).toBe(
+      false
+    );
   });
 
   it("PAYLOAD_ASSUMPTION_MAX_CHARS (300): a string of that length parses, +1 fails", () => {
@@ -1272,7 +1375,12 @@ describe("computePrescription — determinism", () => {
         heightCm: 140 + Math.floor(nextRandom() * 80),
         weightKg: 40 + Math.floor(nextRandom() * 160),
         energyMethodPopulationCategory: pick(["MALE_ADULT", "FEMALE_ADULT"] as const),
-        physicalActivityCategory: pick(["INACTIVE", "LOW_ACTIVE", "ACTIVE", "VERY_ACTIVE"] as const),
+        physicalActivityCategory: pick([
+          "INACTIVE",
+          "LOW_ACTIVE",
+          "ACTIVE",
+          "VERY_ACTIVE",
+        ] as const),
         bodyWeightIntent: pick(["LOSE", "MAINTAIN", "GAIN", "NO_PREFERENCE"] as const),
         goalPaceClass: pick(["MAINTAIN", "GRADUAL", "MODERATE"] as const),
         resistanceTrainingContext: pick(["NONE", "OCCASIONAL", "REGULAR"] as const),
@@ -1299,10 +1407,14 @@ describe("rounding", () => {
   it("B1: a target whose rounding would cross the floor rounds up instead, and the crossing bound's ID is recorded", () => {
     // STEP corrupted to 50, floor set exactly to targetRaw (2072) so step 8
     // never clamps, but round-to-nearest-50 (2050) would fall below the floor.
-    const bundle = corruptPrescriptionParameter(nominalBundle, "ROUNDING.ENERGY_KCAL.STEP", (p) => ({
-      ...p,
-      value: 50,
-    }));
+    const bundle = corruptPrescriptionParameter(
+      nominalBundle,
+      "ROUNDING.ENERGY_KCAL.STEP",
+      (p) => ({
+        ...p,
+        value: 50,
+      })
+    );
     const parameters = resolveOrThrow(bundle, nominalExplanationTexts, {
       ...nominalFloors,
       minimumDailyEnergyKcal: 2072,
@@ -1313,7 +1425,9 @@ describe("rounding", () => {
     );
     expect(result.status).toBe("PRESCRIBED");
     if (result.status !== "PRESCRIBED") return;
-    expect(result.prescription.appliedBoundIds).toEqual([SYNTHETIC_MINIMUM_DAILY_ENERGY_PARAMETER_ID]);
+    expect(result.prescription.appliedBoundIds).toEqual([
+      SYNTHETIC_MINIMUM_DAILY_ENERGY_PARAMETER_ID,
+    ]);
     expect(result.prescription.targetEnergyKcal).toBe(2100); // not roundToStep's 2050
     expect(result.prescription.targetEnergyKcal).toBeGreaterThanOrEqual(2072);
   });
@@ -1326,7 +1440,8 @@ describe("rounding", () => {
     expect(result.status).toBe("PRESCRIBED");
     if (result.status !== "PRESCRIBED") return;
     const expected = roundHalfAwayFromZero(
-      ((result.prescription.targetEnergyKcal - MAINTENANCE_2590) * 7) / nominalParameters.energyPerKgBodyMass,
+      ((result.prescription.targetEnergyKcal - MAINTENANCE_2590) * 7) /
+        nominalParameters.energyPerKgBodyMass,
       2
     );
     expect(result.prescription.projectedWeeklyWeightChangeKg).toBe(expected);
@@ -1399,7 +1514,10 @@ function toExistingFile(candidate: string): string | null {
  * but not followed further; this walk only needs to prove no *local* file in
  * the graph imports `@/lib/db` or `next/*`, or reads `process.env`/`Date.now()`.
  */
-function collectTransitiveLocalImports(entry: string, visited: Set<string> = new Set()): Set<string> {
+function collectTransitiveLocalImports(
+  entry: string,
+  visited: Set<string> = new Set()
+): Set<string> {
   const resolved = toExistingFile(entry);
   if (!resolved || visited.has(resolved)) return visited;
   visited.add(resolved);
@@ -1446,7 +1564,7 @@ describe("hard constraints", () => {
     expect(findNumericLiteralOffenders("const d = 100;")).toEqual([]); // allowed literal
   });
 
-  it("never constructs a number from a string (Number(\"...\")) — the one evasion the literal scan cannot see once strings are stripped", () => {
+  it('never constructs a number from a string (Number("...")) — the one evasion the literal scan cannot see once strings are stripped', () => {
     const offenders: string[] = [];
     for (const file of files) {
       // Comments stripped, but strings intentionally left intact: a
@@ -1468,10 +1586,14 @@ describe("hard constraints", () => {
     const offenders: string[] = [];
     for (const file of visited) {
       const source = stripComments(fs.readFileSync(file, "utf8"));
-      if (/from\s+["']@\/lib\/db["']/.test(source)) offenders.push(`${path.relative(REPO_ROOT, file)}: imports @/lib/db`);
-      if (/from\s+["']next\//.test(source)) offenders.push(`${path.relative(REPO_ROOT, file)}: imports next/*`);
-      if (/process\.env/.test(source)) offenders.push(`${path.relative(REPO_ROOT, file)}: reads process.env`);
-      if (/Date\.now\(\)/.test(source)) offenders.push(`${path.relative(REPO_ROOT, file)}: calls Date.now()`);
+      if (/from\s+["']@\/lib\/db["']/.test(source))
+        offenders.push(`${path.relative(REPO_ROOT, file)}: imports @/lib/db`);
+      if (/from\s+["']next\//.test(source))
+        offenders.push(`${path.relative(REPO_ROOT, file)}: imports next/*`);
+      if (/process\.env/.test(source))
+        offenders.push(`${path.relative(REPO_ROOT, file)}: reads process.env`);
+      if (/Date\.now\(\)/.test(source))
+        offenders.push(`${path.relative(REPO_ROOT, file)}: calls Date.now()`);
     }
     expect(offenders).toEqual([]);
   });

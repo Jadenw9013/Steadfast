@@ -90,21 +90,16 @@ describe("T-2039 — deterministic training and cardio composer", () => {
           for (const exp of experiences) {
             for (const band of bands) {
               caseCount++;
-              const result = composeTraining(
-                syntheticParams,
-                catalog,
-                effortText,
-                {
-                  intakeVersion: 2,
-                  trainingDaysPerWeek: days,
-                  equipmentAccess,
-                  experienceLevel: exp,
-                  sessionLengthBand: band,
-                  trainingContextStatus: "CONFIRMED",
-                  energyReducedRelativeToMaintenance: false,
-                  activeContraindicationRuleIds: [],
-                }
-              );
+              const result = composeTraining(syntheticParams, catalog, effortText, {
+                intakeVersion: 2,
+                trainingDaysPerWeek: days,
+                equipmentAccess,
+                experienceLevel: exp,
+                sessionLengthBand: band,
+                trainingContextStatus: "CONFIRMED",
+                energyReducedRelativeToMaintenance: false,
+                activeContraindicationRuleIds: [],
+              });
 
               expect(result.status).toBe("COMPOSED");
               if (result.status !== "COMPOSED") continue;
@@ -150,9 +145,7 @@ describe("T-2039 — deterministic training and cardio composer", () => {
                   }
                 }
 
-                expect(s.exercises.length).toBeGreaterThanOrEqual(
-                  syntheticParams.exerciseCountMin
-                );
+                expect(s.exercises.length).toBeGreaterThanOrEqual(syntheticParams.exerciseCountMin);
                 expect(s.exercises.length).toBeLessThanOrEqual(
                   syntheticParams.exerciseCountMaxByBand[band]
                 );
@@ -185,9 +178,7 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       expect(result.status).toBe("COMPOSED");
       if (result.status !== "COMPOSED") return;
 
-      const exerciseIds = result.strength.flatMap((s) =>
-        s.exercises.map((e) => e.exerciseId)
-      );
+      const exerciseIds = result.strength.flatMap((s) => s.exercises.map((e) => e.exerciseId));
       expect(exerciseIds).not.toContain("dumbbell-romanian-deadlift");
       expect(exerciseIds).toContain("hip-hinge-to-wall");
 
@@ -369,10 +360,7 @@ describe("T-2039 — deterministic training and cardio composer", () => {
         { id: EFFORT_CARDIO_TEMPLATE_ID, text: "Cardio effort guidance." },
       ];
 
-      const resolution = resolveTrainingParameters(
-        draftBundle.content,
-        explanationTexts
-      );
+      const resolution = resolveTrainingParameters(draftBundle.content, explanationTexts);
       expect(resolution.ok).toBe(false);
       if (resolution.ok) return;
 
@@ -386,9 +374,13 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       );
       const docContent = fs.readFileSync(catalogueDocPath, "utf-8");
 
-      const section42Start = docContent.indexOf("### 4.2 Training Parameters Awaiting Professional Review (23)");
+      const section42Start = docContent.indexOf(
+        "### 4.2 Training Parameters Awaiting Professional Review (23)"
+      );
       expect(section42Start).toBeGreaterThan(0);
-      const section43Start = docContent.indexOf("### 4.3 Progression Parameters Awaiting Professional Review (12)");
+      const section43Start = docContent.indexOf(
+        "### 4.3 Progression Parameters Awaiting Professional Review (12)"
+      );
       expect(section43Start).toBeGreaterThan(section42Start);
 
       const section42Text = docContent.slice(section42Start, section43Start);
@@ -496,6 +488,57 @@ describe("T-2039 — deterministic training and cardio composer", () => {
   });
 
   describe("7. Workload caps", () => {
+    it("reports the catalog session cap when a five-day strength request is reduced to four", () => {
+      const permissive: ResolvedTrainingParameters = {
+        ...syntheticParams,
+        workloadTotalSessionsMax: 20,
+        workloadTrainingMinutesMax: 10_000,
+        workloadTrainingMinutesMaxWhenEnergyReduced: 10_000,
+        workloadConsecutiveTrainingDaysMax: 7,
+      };
+      const result = composeTraining(permissive, catalog, effortText, {
+        intakeVersion: 2,
+        trainingDaysPerWeek: 5,
+        equipmentAccess: ["FULL_GYM"],
+        experienceLevel: "EXPERIENCED",
+        sessionLengthBand: "MIN_45_60",
+        trainingContextStatus: "CONFIRMED",
+        energyReducedRelativeToMaintenance: false,
+        activeContraindicationRuleIds: [],
+      });
+      expect(result.status).toBe("COMPOSED");
+      if (result.status !== "COMPOSED") return;
+      expect(result.strength).toHaveLength(4);
+      expect(result.reasonCodes).toContain("TRAINING_STRENGTH_SESSIONS_REDUCED");
+      expect(result.appliedCapIds).toContain("TRAINING.TEMPLATE.DAYS.SUPPORTED_MAX");
+    });
+
+    it("reports the consecutive-days cap when cardio is reduced to zero", () => {
+      const consecutiveOne: ResolvedTrainingParameters = {
+        ...syntheticParams,
+        workloadTotalSessionsMax: 20,
+        workloadTrainingMinutesMax: 10_000,
+        workloadTrainingMinutesMaxWhenEnergyReduced: 10_000,
+        workloadConsecutiveTrainingDaysMax: 1,
+      };
+      const result = composeTraining(consecutiveOne, catalog, effortText, {
+        intakeVersion: 2,
+        trainingDaysPerWeek: 3,
+        equipmentAccess: ["FULL_GYM"],
+        experienceLevel: "EXPERIENCED",
+        sessionLengthBand: "MIN_45_60",
+        trainingContextStatus: "CONFIRMED",
+        energyReducedRelativeToMaintenance: false,
+        activeContraindicationRuleIds: [],
+      });
+      expect(result.status).toBe("COMPOSED");
+      if (result.status !== "COMPOSED") return;
+      expect(result.cardio).toHaveLength(0);
+      expect(result.reasonCodes).toContain("TRAINING_CARDIO_REDUCED");
+      expect(result.reasonCodes).toContain("TRAINING_CARDIO_NOT_ASSIGNED");
+      expect(result.appliedCapIds).toContain("WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX");
+    });
+
     it("applies energy-reduced workload cap when energyReducedRelativeToMaintenance is true or null", () => {
       const inputTrue: ComposeTrainingInput = {
         intakeVersion: 2,
@@ -520,10 +563,7 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       const strengthMinutesTrue =
         resultTrue.strength.length *
         syntheticParams.plannedMinutesByBand[inputTrue.sessionLengthBand!];
-      const cardioMinutesTrue = resultTrue.cardio.reduce(
-        (sum, s) => sum + s.durationMinutes,
-        0
-      );
+      const cardioMinutesTrue = resultTrue.cardio.reduce((sum, s) => sum + s.durationMinutes, 0);
       expect(strengthMinutesTrue + cardioMinutesTrue).toBeLessThanOrEqual(
         syntheticParams.workloadTrainingMinutesMaxWhenEnergyReduced
       );
@@ -541,6 +581,31 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       expect(resultNull.appliedCapIds).toContain(
         "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED"
       );
+    });
+
+    it("reports the reviewed dose parameter when it explicitly assigns zero cardio", () => {
+      const zeroCardio: ResolvedTrainingParameters = {
+        ...syntheticParams,
+        cardioSessionsPerWeekByExperience: {
+          ...syntheticParams.cardioSessionsPerWeekByExperience,
+          NEW: 0,
+        },
+      };
+      const result = composeTraining(zeroCardio, catalog, effortText, {
+        intakeVersion: 2,
+        trainingDaysPerWeek: 2,
+        equipmentAccess: ["NONE"],
+        experienceLevel: "NEW",
+        sessionLengthBand: "MIN_30_45",
+        trainingContextStatus: "CONFIRMED",
+        energyReducedRelativeToMaintenance: false,
+        activeContraindicationRuleIds: [],
+      });
+      expect(result.status).toBe("COMPOSED");
+      if (result.status !== "COMPOSED") return;
+      expect(result.cardio).toHaveLength(0);
+      expect(result.reasonCodes).toContain("TRAINING_CARDIO_NOT_ASSIGNED");
+      expect(result.appliedCapIds).toContain("CARDIO.DOSE.NEW.SESSIONS_PER_WEEK");
     });
 
     it("applies regular workload cap when energyReducedRelativeToMaintenance is false", () => {
@@ -678,9 +743,9 @@ describe("T-2039 — deterministic training and cardio composer", () => {
         activeContraindicationRuleIds: [],
       };
 
-      const HASH_CASE_1 = "23380456f8c566ff421ddb685b07619b9e6e73747085d2a261fdf35002161e90";
-      const HASH_CASE_2 = "b1afa91c0d9a51748654f61e46c3e1e4fdee62aacd9c927e3a56e8485ce7d811";
-      const HASH_CASE_3 = "c91b0c81ac1e84868e5ac3726b6319d1e6e5e2c38101297fc8186f820533ddca";
+      const HASH_CASE_1 = "381defa04d2767d538805f496a54fc2a1904c0176eb59e64d6ba98b1bf68fa78";
+      const HASH_CASE_2 = "c4b500fe46dc897121d4e356aa9091de9904638947d5ef52431cf497f5062446";
+      const HASH_CASE_3 = "20a61f59a15e0fc918ab457c72ce768b9c481f52a4a1d2298d01278083ba99eb";
 
       for (let i = 0; i < 50; i++) {
         const res1 = composeTraining(syntheticParams, catalog, effortText, case1Input);
@@ -735,16 +800,76 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       };
 
       const expectedHashes = [
-        ["A", ANSWERS_A, "golden-rx", "MACROS", "3d27280a1e0ca039b8754580915bf849b969936a21891fd12e2e4c410f06178e"],
-        ["A", ANSWERS_A, "golden-rx", "MEALS", "2c0695febd5d845f4002a279c88750f64804ae7ed35d02c64f3bb2acd32d6704"],
-        ["B", ANSWERS_B, "golden-rx", "MACROS", "7c931fa2079ec01f794721bff9ce85c89121805b9970658874a6ee5794e4f147"],
-        ["B", ANSWERS_B, "golden-rx", "MEALS", "7a92fba8f16ae6dfe57f428d442cf758ca751a95c45f8f8e4b5878171779795f"],
-        ["C", ANSWERS_C, "rx", "MEALS", "12e47e7b70b30e618e27739ec4aeda5080348bd14bc3dfaa095a059fa66ab359"],
-        ["A", ANSWERS_A, "initial-rx", "MACROS", "d5c96d81f44671a6ee8823d181d7be109a6a0e98bda934fdd6eafd379385a424"],
-        ["A", ANSWERS_A, "initial-rx", "MEALS", "754f1bf1c5247a7467b9adffde92c7f4dbbc84e369b106ea6b7300cf0b1b93a6"],
-        ["B", ANSWERS_B, "initial-rx", "MACROS", "f93b636ee9ce641a27f8e1239c577acb012a633103113e8d60fb8e8e7063faf7"],
-        ["B", ANSWERS_B, "initial-rx", "MEALS", "0066a778069493ee433ccd21fc929637e1914352a1b5583fb2e1139a1c3d6065"],
-        ["C", ANSWERS_C, "initial-rx", "MEALS", "754f1bf1c5247a7467b9adffde92c7f4dbbc84e369b106ea6b7300cf0b1b93a6"],
+        [
+          "A",
+          ANSWERS_A,
+          "golden-rx",
+          "MACROS",
+          "3d27280a1e0ca039b8754580915bf849b969936a21891fd12e2e4c410f06178e",
+        ],
+        [
+          "A",
+          ANSWERS_A,
+          "golden-rx",
+          "MEALS",
+          "2c0695febd5d845f4002a279c88750f64804ae7ed35d02c64f3bb2acd32d6704",
+        ],
+        [
+          "B",
+          ANSWERS_B,
+          "golden-rx",
+          "MACROS",
+          "7c931fa2079ec01f794721bff9ce85c89121805b9970658874a6ee5794e4f147",
+        ],
+        [
+          "B",
+          ANSWERS_B,
+          "golden-rx",
+          "MEALS",
+          "7a92fba8f16ae6dfe57f428d442cf758ca751a95c45f8f8e4b5878171779795f",
+        ],
+        [
+          "C",
+          ANSWERS_C,
+          "rx",
+          "MEALS",
+          "12e47e7b70b30e618e27739ec4aeda5080348bd14bc3dfaa095a059fa66ab359",
+        ],
+        [
+          "A",
+          ANSWERS_A,
+          "initial-rx",
+          "MACROS",
+          "d5c96d81f44671a6ee8823d181d7be109a6a0e98bda934fdd6eafd379385a424",
+        ],
+        [
+          "A",
+          ANSWERS_A,
+          "initial-rx",
+          "MEALS",
+          "754f1bf1c5247a7467b9adffde92c7f4dbbc84e369b106ea6b7300cf0b1b93a6",
+        ],
+        [
+          "B",
+          ANSWERS_B,
+          "initial-rx",
+          "MACROS",
+          "f93b636ee9ce641a27f8e1239c577acb012a633103113e8d60fb8e8e7063faf7",
+        ],
+        [
+          "B",
+          ANSWERS_B,
+          "initial-rx",
+          "MEALS",
+          "0066a778069493ee433ccd21fc929637e1914352a1b5583fb2e1139a1c3d6065",
+        ],
+        [
+          "C",
+          ANSWERS_C,
+          "initial-rx",
+          "MEALS",
+          "754f1bf1c5247a7467b9adffde92c7f4dbbc84e369b106ea6b7300cf0b1b93a6",
+        ],
       ] as const;
 
       for (const [, answers, prescriptionId, mode, expectedHash] of expectedHashes) {
@@ -767,6 +892,9 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       "TRAINING_EXERCISE_COUNT_INFEASIBLE",
       "TRAINING_CONTRAINDICATED_NO_SUBSTITUTE",
       "TRAINING_WORKLOAD_CAPPED",
+      "TRAINING_STRENGTH_SESSIONS_REDUCED",
+      "TRAINING_CARDIO_REDUCED",
+      "TRAINING_CARDIO_NOT_ASSIGNED",
       "TRAINING_WORKLOAD_INFEASIBLE",
       "TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE",
     ]);

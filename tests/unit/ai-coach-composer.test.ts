@@ -17,7 +17,11 @@ import { contentHash } from "@/lib/ai-coach/canonical-json";
 import { computeNutrientTotals } from "@/lib/ai-coach/nutrition-totals";
 import { buildWeeklyFixtureReview } from "@/lib/ai-coach/weekly-controller";
 import { runSnapshotSchema, type RunSnapshot } from "@/lib/ai-coach/run-command";
-import { evaluateAutonomyGate, type AutonomyGateFacts, type ServerAutonomyGateInput } from "@/lib/ai-coach/autonomy/gate";
+import {
+  evaluateAutonomyGate,
+  type AutonomyGateFacts,
+  type ServerAutonomyGateInput,
+} from "@/lib/ai-coach/autonomy/gate";
 import { FOOD_CATALOG_VERSION } from "@/lib/ai-coach/catalog/food-catalog";
 import { EXERCISE_CATALOG_VERSION } from "@/lib/ai-coach/catalog/exercise-catalog";
 import { ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
@@ -51,7 +55,8 @@ const floors = buildSyntheticSafetyFloors();
 const explanationTexts = buildSyntheticExplanationTexts();
 function resolvedParameters() {
   const resolved = resolvePrescriptionParameters(bundle, explanationTexts, floors);
-  if (!resolved.ok) throw new Error(`fixture bundle failed to resolve: ${resolved.reasonCodes.join(",")}`);
+  if (!resolved.ok)
+    throw new Error(`fixture bundle failed to resolve: ${resolved.reasonCodes.join(",")}`);
   return resolved.parameters;
 }
 const PARAMETERS = resolvedParameters();
@@ -93,7 +98,8 @@ function prescribedPrescription(): Prescription {
   const built = buildPrescriptionInput(v2Answers(), EVALUATED_ON);
   if (!built.ok) throw new Error("fixture intake failed to build a prescription input");
   const result = computePrescription(PARAMETERS, built.input);
-  if (result.status !== "PRESCRIBED") throw new Error(`fixture did not prescribe: ${result.reasonCodes.join(",")}`);
+  if (result.status !== "PRESCRIBED")
+    throw new Error(`fixture did not prescribe: ${result.reasonCodes.join(",")}`);
   return result.prescription;
 }
 
@@ -134,7 +140,9 @@ function feasiblePrescriptionFixture(overrides: Partial<Prescription> = {}): Pre
     projectedWeeklyWeightChangeKg: 0,
     appliedBoundIds: [],
     tolerancePercent: 5,
-    assumptions: ["SYNTHETIC FIXTURE: engineered-feasible test vector, not a reviewed prescription."],
+    assumptions: [
+      "SYNTHETIC FIXTURE: engineered-feasible test vector, not a reviewed prescription.",
+    ],
     ...overrides,
   };
 }
@@ -146,7 +154,11 @@ function feasiblePrescriptionFixture(overrides: Partial<Prescription> = {}): Pre
 describe("composeMealsToPrescription", () => {
   it("composes grams that satisfy mealTargetsMatch for all four macros at the bundle tolerance", () => {
     const prescription = feasiblePrescriptionFixture();
-    const meals = composeMealsToPrescription(v2AnswersParsedForMeals(), prescription, BINDING.foodCatalogVersion);
+    const meals = composeMealsToPrescription(
+      v2AnswersParsedForMeals(),
+      prescription,
+      BINDING.foodCatalogVersion
+    );
     expect(meals).not.toBeNull();
     if (!meals) return;
     const candidate: PlanPayload = {
@@ -168,7 +180,10 @@ describe("composeMealsToPrescription", () => {
       strength: [],
       cardio: [],
       policyVersion: BINDING.policyVersion,
-      catalogVersions: { food: BINDING.foodCatalogVersion, exercise: BINDING.exerciseCatalogVersion },
+      catalogVersions: {
+        food: BINDING.foodCatalogVersion,
+        exercise: BINDING.exerciseCatalogVersion,
+      },
     };
     expect(mealTargetsMatch(candidate, v2AnswersParsedForMeals())).toBe(true);
   });
@@ -191,14 +206,18 @@ describe("composeMealsToPrescription", () => {
     // fat-per-energy ceiling is far below any AMDR fat floor — see
     // `feasiblePrescriptionFixture`'s doc comment), so the solved system
     // already yields a wildly negative/out-of-range gram amount here.
-    expect(composeMealsToPrescription(answers, prescription, BINDING.foodCatalogVersion)).toBeNull();
+    expect(
+      composeMealsToPrescription(answers, prescription, BINDING.foodCatalogVersion)
+    ).toBeNull();
     // A second, independent way to force the same rejection from a
     // catalog-reachable baseline: push protein far beyond anything the
     // catalog's protein-per-gram ratios can deliver without a component
     // exceeding 3000 g or going negative.
     const feasible = feasiblePrescriptionFixture();
     const proteinOutOfRange: Prescription = { ...feasible, proteinG: 100000 };
-    expect(composeMealsToPrescription(answers, proteinOutOfRange, BINDING.foodCatalogVersion)).toBeNull();
+    expect(
+      composeMealsToPrescription(answers, proteinOutOfRange, BINDING.foodCatalogVersion)
+    ).toBeNull();
   });
 
   it("returns null (never silently-off meals) when the composed grams cannot reach the target energy within tolerance", () => {
@@ -209,8 +228,13 @@ describe("composeMealsToPrescription", () => {
     // This exercises "energy is verified, not solved" specifically, as
     // distinct from the solve-infeasibility case above.
     const feasible = feasiblePrescriptionFixture();
-    const energyMismatch: Prescription = { ...feasible, targetEnergyKcal: feasible.targetEnergyKcal * 3 };
-    expect(composeMealsToPrescription(answers, energyMismatch, BINDING.foodCatalogVersion)).toBeNull();
+    const energyMismatch: Prescription = {
+      ...feasible,
+      targetEnergyKcal: feasible.targetEnergyKcal * 3,
+    };
+    expect(
+      composeMealsToPrescription(answers, energyMismatch, BINDING.foodCatalogVersion)
+    ).toBeNull();
   });
 });
 
@@ -238,9 +262,14 @@ describe("composeInitialPlan — v2 prescription-first", () => {
     expect(result.prescription.status).toBe("PRESCRIBED");
     expect(result.payload.nutrition?.method).toBe("REVIEWED_PRESCRIPTION_V1");
     expect(result.payload.meals).toBeNull();
-    expect(result.payload.prescriptionOutcome).toMatchObject({ status: "PRESCRIBED", reasonCodes: [] });
+    expect(result.payload.prescriptionOutcome).toMatchObject({
+      status: "PRESCRIBED",
+      reasonCodes: [],
+    });
     if (result.prescription.status === "PRESCRIBED") {
-      expect(result.payload.nutrition?.targets.energyKcal).toBe(result.prescription.prescription.targetEnergyKcal);
+      expect(result.payload.nutrition?.targets.energyKcal).toBe(
+        result.prescription.prescription.targetEnergyKcal
+      );
       expect(result.payload.prescriptionOutcome?.parameterSetDigest).toBe(
         result.prescription.prescription.parameterSetDigest
       );
@@ -289,10 +318,66 @@ describe("composeInitialPlan — v2 prescription-first", () => {
     expect(result.payload.prescriptionOutcome?.reasonCodes).toContain("PRESCRIPTION_INPUT_MISSING");
   });
 
+  it.each(["MAINTAIN", "NO_PREFERENCE"] as const)(
+    "%s cannot bypass an out-of-scope clinical diet screening",
+    (bodyWeightIntent) => {
+      const result = composeInitialPlan({
+        rawAnswers: v2Answers({
+          bodyWeightIntent,
+          goalPaceClass: bodyWeightIntent === "MAINTAIN" ? "MAINTAIN" : "GRADUAL",
+          dietaryPattern: {
+            pattern: "OMNIVORE",
+            reason: "MEDICAL_OR_CLINICIAN_DIRECTED",
+            status: "CONFIRMED",
+            otherLabel: null,
+            mandatory: true,
+          },
+        }),
+        prescriptionId: `rx-${bodyWeightIntent}`,
+        mode: "MACROS",
+        evaluatedOn: EVALUATED_ON,
+        parameters: PARAMETERS,
+        binding: BINDING,
+      });
+      expect(result.payload.prescriptionOutcome).toMatchObject({
+        status: "UNAVAILABLE",
+        nutritionRequired: true,
+        reasonCodes: ["PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE"],
+      });
+      expect(result.decision.action).toBe("PAUSE_REFER");
+    }
+  );
+
   it("v1 intake always routes to the legacy composer, unaffected by `parameters`", () => {
-    const v1 = { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], dietaryRestrictions: [], allergies: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
-    const withParameters = composeInitialPlan({ rawAnswers: v1, prescriptionId: "rx", mode: "MACROS", evaluatedOn: EVALUATED_ON, parameters: PARAMETERS, binding: BINDING });
-    const withoutParameters = composeInitialPlan({ rawAnswers: v1, prescriptionId: "rx", mode: "MACROS", evaluatedOn: EVALUATED_ON, parameters: null, binding: BINDING });
+    const v1 = {
+      goal: "GENERAL_FITNESS",
+      experienceLevel: "NEW",
+      trainingDaysPerWeek: 3,
+      equipmentAccess: ["NONE"],
+      dietaryRestrictions: [],
+      allergies: [],
+      foodBudgetLevel: "LOW",
+      trackingPreference: "NUMBERS_VISIBLE",
+      unitsPreference: "METRIC",
+      heightCm: 170,
+      weightKg: 70,
+    };
+    const withParameters = composeInitialPlan({
+      rawAnswers: v1,
+      prescriptionId: "rx",
+      mode: "MACROS",
+      evaluatedOn: EVALUATED_ON,
+      parameters: PARAMETERS,
+      binding: BINDING,
+    });
+    const withoutParameters = composeInitialPlan({
+      rawAnswers: v1,
+      prescriptionId: "rx",
+      mode: "MACROS",
+      evaluatedOn: EVALUATED_ON,
+      parameters: null,
+      binding: BINDING,
+    });
     expect(withParameters.payload.nutrition?.method).toBe("SYNTHETIC_CATALOG_MATCH");
     expect(contentHash(withParameters.payload)).toBe(contentHash(withoutParameters.payload));
   });
@@ -317,14 +402,13 @@ describe("composeInitialPlan — v2 prescription-first", () => {
   });
 
   it("composeUnavailablePrescriptionPlan reports the caller's real reason codes and still completes strength/cardio", () => {
-    const result = composeUnavailablePrescriptionPlan(
-      v2Answers(),
-      "MACROS",
-      BINDING,
-      ["PRESCRIPTION_METHOD_UNSUPPORTED"]
-    );
+    const result = composeUnavailablePrescriptionPlan(v2Answers(), "MACROS", BINDING, [
+      "PRESCRIPTION_METHOD_UNSUPPORTED",
+    ]);
     expect(result.payload.nutrition).toBeNull();
-    expect(result.payload.prescriptionOutcome?.reasonCodes).toEqual(["PRESCRIPTION_METHOD_UNSUPPORTED"]);
+    expect(result.payload.prescriptionOutcome?.reasonCodes).toEqual([
+      "PRESCRIPTION_METHOD_UNSUPPORTED",
+    ]);
     expect(result.payload.strength.length).toBeGreaterThan(0);
   });
 
@@ -334,12 +418,7 @@ describe("composeInitialPlan — v2 prescription-first", () => {
   // the client can do nothing. The decision now routes off the same three
   // reason classes the gate uses (`prescription/reason-classes.ts`).
   it.each([
-    [
-      "CLIENT_FIXABLE",
-      ["PRESCRIPTION_INPUT_MISSING"] as const,
-      "CLARIFY",
-      "MISSING_INPUT",
-    ],
+    ["CLIENT_FIXABLE", ["PRESCRIPTION_INPUT_MISSING"] as const, "CLARIFY", "MISSING_INPUT"],
     [
       "OUT_OF_SCOPE",
       ["PRESCRIPTION_POPULATION_UNSUPPORTED"] as const,
@@ -376,9 +455,7 @@ describe("composeInitialPlan — v2 prescription-first", () => {
       expect(result.decision.action).toBe(action);
       expect(result.decision.reasonCodes).toEqual([decisionReasonCode]);
       // Only the client-fixable class may ask the client to change anything.
-      expect(result.decision.nextAction.includes("Review and confirm")).toBe(
-        action === "CLARIFY"
-      );
+      expect(result.decision.nextAction.includes("Review and confirm")).toBe(action === "CLARIFY");
       // The payload still carries the engine's real codes either way.
       expect(result.payload.prescriptionOutcome?.reasonCodes).toEqual([...reasonCodes]);
     }
@@ -386,7 +463,19 @@ describe("composeInitialPlan — v2 prescription-first", () => {
 
   it("prescriptionOutcome is present on every payload the composer returns, including the legacy path", () => {
     const legacyWithTargets = composeLegacySyntheticPlan(
-      { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], dietaryRestrictions: [], allergies: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 },
+      {
+        goal: "GENERAL_FITNESS",
+        experienceLevel: "NEW",
+        trainingDaysPerWeek: 3,
+        equipmentAccess: ["NONE"],
+        dietaryRestrictions: [],
+        allergies: [],
+        foodBudgetLevel: "LOW",
+        trackingPreference: "NUMBERS_VISIBLE",
+        unitsPreference: "METRIC",
+        heightCm: 170,
+        weightKg: 70,
+      },
       "rx",
       "MACROS"
     );
@@ -397,7 +486,17 @@ describe("composeInitialPlan — v2 prescription-first", () => {
       parameterSetDigest: null,
     });
     const legacyMissing = composeLegacySyntheticPlan(
-      { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], dietaryRestrictions: [], allergies: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC" },
+      {
+        goal: "GENERAL_FITNESS",
+        experienceLevel: "NEW",
+        trainingDaysPerWeek: 3,
+        equipmentAccess: ["NONE"],
+        dietaryRestrictions: [],
+        allergies: [],
+        foodBudgetLevel: "LOW",
+        trackingPreference: "NUMBERS_VISIBLE",
+        unitsPreference: "METRIC",
+      },
       "rx",
       "MACROS"
     );
@@ -693,7 +792,11 @@ function gateFixture(prescription: AutonomyGateFacts["prescription"]): {
       ruleIds: [],
       escalationTemplateIds: [],
       input: {
-        screening: { instrumentId: "SYNTHETIC_SCREEN", result: "CLEAR", provenance: "SYNTHETIC_SERVER_FIXTURE" },
+        screening: {
+          instrumentId: "SYNTHETIC_SCREEN",
+          result: "CLEAR",
+          provenance: "SYNTHETIC_SERVER_FIXTURE",
+        },
         contraindications: {
           AGE_ELIGIBILITY: "CLEAR",
           PREGNANCY_POSTPARTUM: "CLEAR",
@@ -712,26 +815,59 @@ function gateFixture(prescription: AutonomyGateFacts["prescription"]): {
 
 describe("evaluateAutonomyGate — prescription fact, one case per reason class (T-2003 Contract)", () => {
   it("required:true, available:false, INPUT_MISSING -> FOCUSED_CLARIFICATION", () => {
-    const { input, facts } = gateFixture({ required: true, available: false, reasonCodes: ["PRESCRIPTION_INPUT_MISSING"] });
+    const { input, facts } = gateFixture({
+      required: true,
+      available: false,
+      reasonCodes: ["PRESCRIPTION_INPUT_MISSING"],
+    });
     const result = evaluateAutonomyGate(input, facts);
     expect(result.outcome).toBe("FOCUSED_CLARIFICATION");
     expect(result.orderedReasonCodes).toEqual(
-      expect.arrayContaining(["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", "PRESCRIPTION_INPUT_MISSING"])
+      expect.arrayContaining([
+        "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+        "PRESCRIPTION_INPUT_MISSING",
+      ])
     );
   });
 
   it("POPULATION_UNSUPPORTED -> PAUSE_REFER", () => {
-    const { input, facts } = gateFixture({ required: true, available: false, reasonCodes: ["PRESCRIPTION_POPULATION_UNSUPPORTED"] });
+    const { input, facts } = gateFixture({
+      required: true,
+      available: false,
+      reasonCodes: ["PRESCRIPTION_POPULATION_UNSUPPORTED"],
+    });
     expect(evaluateAutonomyGate(input, facts).outcome).toBe("PAUSE_REFER");
   });
 
+  it("an out-of-range form value is retryable clarification, not a clinical referral", () => {
+    const { input, facts } = gateFixture({
+      required: true,
+      available: false,
+      reasonCodes: ["PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"],
+    });
+    const result = evaluateAutonomyGate(input, facts);
+    expect(result.outcome).toBe("FOCUSED_CLARIFICATION");
+    expect(result.orderedReasonCodes).toEqual([
+      "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+      "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE",
+    ]);
+  });
+
   it("PARAMETER_MISSING -> HOLD", () => {
-    const { input, facts } = gateFixture({ required: true, available: false, reasonCodes: ["PRESCRIPTION_PARAMETER_MISSING"] });
+    const { input, facts } = gateFixture({
+      required: true,
+      available: false,
+      reasonCodes: ["PRESCRIPTION_PARAMETER_MISSING"],
+    });
     expect(evaluateAutonomyGate(input, facts).outcome).toBe("HOLD");
   });
 
   it("an unknown code -> HOLD", () => {
-    const { input, facts } = gateFixture({ required: true, available: false, reasonCodes: ["SOMETHING_NEW_A_FUTURE_TICKET_ADDS"] });
+    const { input, facts } = gateFixture({
+      required: true,
+      available: false,
+      reasonCodes: ["SOMETHING_NEW_A_FUTURE_TICKET_ADDS"],
+    });
     expect(evaluateAutonomyGate(input, facts).outcome).toBe("HOLD");
   });
 
@@ -753,9 +889,24 @@ describe("evaluateAutonomyGate — prescription fact, one case per reason class 
     expect(evaluateAutonomyGate(input, facts).outcome).toBe("HOLD");
   });
 
-  it("required:false, available:false -> unchanged behavior (APPROVE_AUTOMATICALLY still reachable)", () => {
-    const { input, facts } = gateFixture({ required: false, available: false, reasonCodes: ["PRESCRIPTION_INPUT_MISSING"] });
-    expect(evaluateAutonomyGate(input, facts).outcome).toBe("APPROVE_AUTOMATICALLY");
+  it("fails closed on an explicit unavailable prescription even when required is false", () => {
+    const { input, facts } = gateFixture({
+      required: false,
+      available: false,
+      reasonCodes: ["PRESCRIPTION_INPUT_MISSING"],
+    });
+    expect(evaluateAutonomyGate(input, facts).outcome).toBe("FOCUSED_CLARIFICATION");
+  });
+
+  it("never discards an out-of-scope clinical result for a non-required goal", () => {
+    const { input, facts } = gateFixture({
+      required: false,
+      available: false,
+      reasonCodes: ["PRESCRIPTION_POPULATION_UNSUPPORTED"],
+    });
+    const result = evaluateAutonomyGate(input, facts);
+    expect(result.outcome).toBe("PAUSE_REFER");
+    expect(result.orderedReasonCodes).toContain("PRESCRIPTION_POPULATION_UNSUPPORTED");
   });
 
   it("prescription: null (legacy) -> unchanged behavior, APPROVE_AUTOMATICALLY still reachable", () => {
@@ -808,18 +959,89 @@ describe("evaluateAutonomyGate — prescription fact, one case per reason class 
 // ---------------------------------------------------------------------------
 
 describe("T-2033 regression: synthetic v1 corpus is unchanged except the additive prescriptionOutcome field", () => {
-  const ANSWERS_A = { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], dietaryRestrictions: [], allergies: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
-  const ANSWERS_B = { goal: "BODY_COMPOSITION", experienceLevel: "NEW", trainingDaysPerWeek: 2, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
+  const ANSWERS_A = {
+    goal: "GENERAL_FITNESS",
+    experienceLevel: "NEW",
+    trainingDaysPerWeek: 3,
+    equipmentAccess: ["NONE"],
+    dietaryRestrictions: [],
+    allergies: [],
+    foodBudgetLevel: "LOW",
+    trackingPreference: "NUMBERS_VISIBLE",
+    unitsPreference: "METRIC",
+    heightCm: 170,
+    weightKg: 70,
+  };
+  const ANSWERS_B = {
+    goal: "BODY_COMPOSITION",
+    experienceLevel: "NEW",
+    trainingDaysPerWeek: 2,
+    equipmentAccess: ["NONE"],
+    allergies: [],
+    dietaryRestrictions: [],
+    foodBudgetLevel: "LOW",
+    trackingPreference: "NUMBERS_VISIBLE",
+    unitsPreference: "METRIC",
+    heightCm: 170,
+    weightKg: 70,
+  };
   // Verbatim from ai-coach-experience.test.ts:56-72 / :184-200, including its
   // "rx" prescriptionId and MEALS mode — the fourth corpus file the spec named.
-  const ANSWERS_C = { goal: "GENERAL_FITNESS", experienceLevel: "NEW", trainingDaysPerWeek: 3, equipmentAccess: ["NONE"], allergies: [], dietaryRestrictions: [], foodBudgetLevel: "LOW", trackingPreference: "NUMBERS_VISIBLE", unitsPreference: "METRIC", heightCm: 170, weightKg: 70 };
+  const ANSWERS_C = {
+    goal: "GENERAL_FITNESS",
+    experienceLevel: "NEW",
+    trainingDaysPerWeek: 3,
+    equipmentAccess: ["NONE"],
+    allergies: [],
+    dietaryRestrictions: [],
+    foodBudgetLevel: "LOW",
+    trackingPreference: "NUMBERS_VISIBLE",
+    unitsPreference: "METRIC",
+    heightCm: 170,
+    weightKg: 70,
+  };
 
   it.each([
-    ["A (plan-contract/representation corpus)", ANSWERS_A, "golden-rx", "MACROS" as const, "3d27280a1e0ca039b8754580915bf849b969936a21891fd12e2e4c410f06178e", "1c7f680eb3ac7306652fd393256510f8e12682b975f7fd6b0d33e4f96ba2cc4f"],
-    ["A (plan-contract/representation corpus)", ANSWERS_A, "golden-rx", "MEALS" as const, "2c0695febd5d845f4002a279c88750f64804ae7ed35d02c64f3bb2acd32d6704", "a455c924bcf0c65506f22f3dd06dcec21db904a9ccb2553ff998940ce7b06235"],
-    ["B (weekly-controller corpus)", ANSWERS_B, "golden-rx", "MACROS" as const, "7c931fa2079ec01f794721bff9ce85c89121805b9970658874a6ee5794e4f147", "f41c1211d9a980c9cbb89d8e942b723f751e0d54121740ded681b6963d72cecf"],
-    ["B (weekly-controller corpus)", ANSWERS_B, "golden-rx", "MEALS" as const, "7a92fba8f16ae6dfe57f428d442cf758ca751a95c45f8f8e4b5878171779795f", "87d989170162f65b7513d8e507cb7449d49e0d7ea4e0c738a3b30106f7cc6ab5"],
-    ["C (experience corpus)", ANSWERS_C, "rx", "MEALS" as const, "12e47e7b70b30e618e27739ec4aeda5080348bd14bc3dfaa095a059fa66ab359", "888c050d55ce74a8bebb63d84f905a996842897231d94928ba43d63326b57301"],
+    [
+      "A (plan-contract/representation corpus)",
+      ANSWERS_A,
+      "golden-rx",
+      "MACROS" as const,
+      "3d27280a1e0ca039b8754580915bf849b969936a21891fd12e2e4c410f06178e",
+      "1c7f680eb3ac7306652fd393256510f8e12682b975f7fd6b0d33e4f96ba2cc4f",
+    ],
+    [
+      "A (plan-contract/representation corpus)",
+      ANSWERS_A,
+      "golden-rx",
+      "MEALS" as const,
+      "2c0695febd5d845f4002a279c88750f64804ae7ed35d02c64f3bb2acd32d6704",
+      "a455c924bcf0c65506f22f3dd06dcec21db904a9ccb2553ff998940ce7b06235",
+    ],
+    [
+      "B (weekly-controller corpus)",
+      ANSWERS_B,
+      "golden-rx",
+      "MACROS" as const,
+      "7c931fa2079ec01f794721bff9ce85c89121805b9970658874a6ee5794e4f147",
+      "f41c1211d9a980c9cbb89d8e942b723f751e0d54121740ded681b6963d72cecf",
+    ],
+    [
+      "B (weekly-controller corpus)",
+      ANSWERS_B,
+      "golden-rx",
+      "MEALS" as const,
+      "7a92fba8f16ae6dfe57f428d442cf758ca751a95c45f8f8e4b5878171779795f",
+      "87d989170162f65b7513d8e507cb7449d49e0d7ea4e0c738a3b30106f7cc6ab5",
+    ],
+    [
+      "C (experience corpus)",
+      ANSWERS_C,
+      "rx",
+      "MEALS" as const,
+      "12e47e7b70b30e618e27739ec4aeda5080348bd14bc3dfaa095a059fa66ab359",
+      "888c050d55ce74a8bebb63d84f905a996842897231d94928ba43d63326b57301",
+    ],
   ] as const)(
     "%s / %s: pinned golden hash, and the hash excluding prescriptionOutcome is the pre-T-2033 hash",
     (_label, answers, prescriptionId, mode, fullHash, withoutOutcomeHash) => {

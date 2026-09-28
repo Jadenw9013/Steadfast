@@ -280,7 +280,10 @@ export type EnergyCoefficientSet = {
 };
 
 export type ResolvedPrescriptionParameters = {
-  energyCoefficients: Record<PopulationWithCoefficients, Record<PhysicalActivityCategory, EnergyCoefficientSet>>;
+  energyCoefficients: Record<
+    PopulationWithCoefficients,
+    Record<PhysicalActivityCategory, EnergyCoefficientSet>
+  >;
   inputRanges: {
     ageYears: { min: number; max: number };
     heightCm: { min: number; max: number };
@@ -311,7 +314,7 @@ export type ResolvedPrescriptionParameters = {
    * "no DB" purity constraint transitively. */
   safetyFloors: PrescriptionSafetyFloors;
   /** Pre-resolved ESCALATION_TEMPLATES `nextStepText` values, in
-   * `policy.explanationTemplateIds` order, unbounded — computePrescription
+   * `policy.prescriptionExplanationTemplateIds` order, unbounded — computePrescription
    * (step 16) applies the count/length caps. */
   explanationTexts: readonly string[];
 };
@@ -386,7 +389,9 @@ export function resolvePrescriptionParameters(
   const proteinBasisDeclared = policy.calculationMethodIds.includes(
     PRESCRIPTION_PROTEIN_WEIGHT_BASIS_ID
   );
-  const roundingOrderDeclared = policy.calculationMethodIds.includes(PRESCRIPTION_ROUNDING_ORDER_ID);
+  const roundingOrderDeclared = policy.calculationMethodIds.includes(
+    PRESCRIPTION_ROUNDING_ORDER_ID
+  );
   const macroCompositionDeclared = policy.calculationMethodIds.includes(
     PRESCRIPTION_MACRO_COMPOSITION_ID
   );
@@ -427,7 +432,9 @@ export function resolvePrescriptionParameters(
     for (const activity of ACTIVITY_CATEGORIES) {
       energyCoefficients[population][activity] = {
         intercept: value(energyCoefficientParameterId(population, activity, "INTERCEPT")),
-        ageCoefficient: value(energyCoefficientParameterId(population, activity, "AGE_COEFFICIENT")),
+        ageCoefficient: value(
+          energyCoefficientParameterId(population, activity, "AGE_COEFFICIENT")
+        ),
         weightCoefficient: value(
           energyCoefficientParameterId(population, activity, "WEIGHT_COEFFICIENT")
         ),

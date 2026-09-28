@@ -122,7 +122,10 @@ const SYNTHETIC_PROGRESSION_PARAMETER_SPECS = [
   { id: "PROGRESSION.STRENGTH.SETS.INCREMENT", unit: "SETS" },
   { id: "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL", unit: "SETS" },
   { id: "PROGRESSION.STRENGTH.LOAD.INCREMENT_FRACTION", unit: "FRACTION_OF_CURRENT_LOAD" },
-  { id: "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW", unit: "FRACTION_OF_CURRENT_LOAD" },
+  {
+    id: "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW",
+    unit: "FRACTION_OF_CURRENT_LOAD",
+  },
   { id: "PROGRESSION.CARDIO.MINUTES.INCREMENT", unit: "MINUTES_PER_SESSION" },
   { id: "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL", unit: "MINUTES_PER_SESSION" },
   { id: "PROGRESSION.EVIDENCE.MIN_COMPLETE_SESSION_WEEKS", unit: "WEEKS" },
@@ -180,7 +183,6 @@ export function syntheticTrainingParameterValue(id: string): number {
   if (id === "PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES") return 14;
   throw new Error(`No synthetic value defined for training parameter ${id}`);
 }
-
 
 function reviewMetadata(namespace: string): SignedArtifactReviewMetadata {
   return {
@@ -500,6 +502,7 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
           "SYNTHETIC_CONSECUTIVE_DEFICIT_BLOCKED",
           "SYNTHETIC_RATE_INPUT_MISSING",
           "SYNTHETIC_HISTORY_UNVERIFIABLE",
+          "NUTRITION_SAFETY_PARAMETERS_PENDING",
           "PROVIDER_TIMEOUT",
           "PROVIDER_ERROR",
           "PROVIDER_RESPONSE_INVALID",
@@ -535,6 +538,16 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
         geographies: ["SYNTHETIC_TEST_ONLY"],
         pausedDomains: ["CARDIO"],
         nextStepText: "Conversational pace, RPE 4-5 out of 10; breathing comfortably.",
+        nonMonitoringStatement: "Synthetic fixture: this service is not monitoring you.",
+      },
+      {
+        id: "SYNTHETIC.NUTRITION.EXPLANATION.V1",
+        version: 1,
+        reasonCodes: ["SYNTHETIC_RULE"],
+        locale: "en-US",
+        geographies: ["SYNTHETIC_TEST_ONLY"],
+        pausedDomains: ["NUTRITION"],
+        nextStepText: "Synthetic nutrition targets use reviewed test-only policy parameters.",
         nonMonitoringStatement: "Synthetic fixture: this service is not monitoring you.",
       },
     ],
@@ -617,15 +630,12 @@ export function buildSyntheticArtifactSet(namespace = "t1005-fixture", policyVer
       evidenceRuleIds: ["SYNTHETIC_EVIDENCE_RULE"],
       escalationTemplateIds: [
         "synthetic-pause-refer-template",
+        "SYNTHETIC.NUTRITION.EXPLANATION.V1",
         EFFORT_STRENGTH_TEMPLATE_ID,
         EFFORT_CARDIO_TEMPLATE_ID,
       ],
-      explanationTemplateIds: [
-        "synthetic-pause-refer-template",
-        "SYNTHETIC_EXPLANATION_TEMPLATE",
-        EFFORT_STRENGTH_TEMPLATE_ID,
-        EFFORT_CARDIO_TEMPLATE_ID,
-      ],
+      prescriptionExplanationTemplateIds: ["SYNTHETIC.NUTRITION.EXPLANATION.V1"],
+      trainingEffortTemplateIds: [EFFORT_STRENGTH_TEMPLATE_ID, EFFORT_CARDIO_TEMPLATE_ID],
       safetyControls: {
         schemaVersion: 1,
         screening: {

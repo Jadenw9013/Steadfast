@@ -28,7 +28,7 @@ const PRESCRIPTION_REASON_CLASS: Record<PrescriptionReasonCode, PrescriptionReas
   PRESCRIPTION_POPULATION_UNSUPPORTED: "OUT_OF_SCOPE",
   PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED: "OUT_OF_SCOPE",
   PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE: "OUT_OF_SCOPE",
-  PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE: "OUT_OF_SCOPE",
+  PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE: "CLIENT_FIXABLE",
   PRESCRIPTION_INTAKE_VERSION_UNSUPPORTED: "POLICY_NOT_READY",
   PRESCRIPTION_MAINTENANCE_BELOW_MINIMUM: "POLICY_NOT_READY",
   PRESCRIPTION_MACRO_RANGES_INFEASIBLE: "POLICY_NOT_READY",
@@ -55,9 +55,7 @@ export function classifyPrescriptionReasonCode(code: string): PrescriptionReason
 /** The most protective class present, mirroring `outcomeFor`'s
  * `PAUSE_REFER` > `HOLD` > `FOCUSED_CLARIFICATION` precedence. An empty set
  * is `POLICY_NOT_READY` (the gate's documented "no reason given" -> HOLD). */
-export function classifyPrescriptionReasonCodes(
-  codes: readonly string[]
-): PrescriptionReasonClass {
+export function classifyPrescriptionReasonCodes(codes: readonly string[]): PrescriptionReasonClass {
   let result: PrescriptionReasonClass = codes.length === 0 ? "POLICY_NOT_READY" : "CLIENT_FIXABLE";
   for (const code of codes) {
     const current = classifyPrescriptionReasonCode(code);

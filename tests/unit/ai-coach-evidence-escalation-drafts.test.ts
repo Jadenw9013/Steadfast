@@ -27,6 +27,7 @@ import {
   resolveTrainingParameters,
 } from "@/lib/ai-coach/training/parameters";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
+import { NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE } from "@/lib/ai-coach/nutrition-safety";
 
 /**
  * S-V1-artifacts — the two artifact kinds a v1 launch requires and that existed
@@ -164,6 +165,7 @@ describe("S-V1-artifacts — escalation reason-code coverage", () => {
       nutritionLimits.noConsecutiveDeficitReasonCode,
       nutritionLimits.missingRateInputReasonCode,
       nutritionLimits.unverifiableHistoryReasonCode,
+      NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE,
     ];
     expect(safetyCodes.length).toBeGreaterThan(0);
     for (const code of safetyCodes) {
@@ -187,9 +189,11 @@ describe("S-V1-artifacts — escalation reason-code coverage", () => {
         nutritionLimits.noConsecutiveDeficitReasonCode,
       ],
       ["GATE_NUTRITION_SAFETY_HOLD", nutritionLimits.unverifiableHistoryReasonCode],
+      ["GATE_NUTRITION_SAFETY_HOLD", NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE],
       ["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", "PRESCRIPTION_PARAMETER_MISSING"],
       ["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", "PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE"],
       ["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", "PRESCRIPTION_GOAL_PACE_UNDECIDED"],
+      ["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"],
     ];
     for (const codes of composites) {
       expect({ codes, covered: Boolean(templateCovering(codes)) }).toMatchObject({
@@ -197,6 +201,12 @@ describe("S-V1-artifacts — escalation reason-code coverage", () => {
         covered: true,
       });
     }
+    expect(
+      templateCovering([
+        "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+        "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE",
+      ])?.id
+    ).toBe("ESCALATION.NUTRITION.TARGET.NEEDS_ANSWERS.V1");
   });
 
   it("degrades a mixed-class prescription set to the most protective copy, which pins array order", () => {
@@ -227,6 +237,7 @@ describe("S-V1-artifacts — escalation reason-code coverage", () => {
       bundleFile.content.safetyControls.nutritionLimits.noConsecutiveDeficitReasonCode,
       bundleFile.content.safetyControls.nutritionLimits.missingRateInputReasonCode,
       bundleFile.content.safetyControls.nutritionLimits.unverifiableHistoryReasonCode,
+      NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE,
     ]);
     for (const code of declared) {
       expect({ code, emittable: emittable.has(code) }).toMatchObject({ code, emittable: true });
@@ -246,7 +257,10 @@ describe("S-V1-artifacts — the draft policy bundle binds the draft templates, 
     const byId = new Map(templates.map((template) => [template.id, template]));
     const { screening, contraindications } = bundleFile.content.safetyControls;
     const bindings = [
-      { templateId: screening.escalationTemplateId, codes: [screening.flaggedReasonCode, screening.unknownReasonCode] },
+      {
+        templateId: screening.escalationTemplateId,
+        codes: [screening.flaggedReasonCode, screening.unknownReasonCode],
+      },
       ...contraindications.map((rule) => ({
         templateId: rule.escalationTemplateId,
         codes: [rule.reasonCode],
@@ -299,7 +313,7 @@ describe("S-V1-artifacts — omitted clinical values fail closed", () => {
 
     // The bundle still declares the ids, so the resolver's own lookup is what
     // fails — exactly the T-2039 shape (absent value, named refusal).
-    const explanationTexts = bundleFile.content.explanationTemplateIds
+    const explanationTexts = (bundleFile.content.trainingEffortTemplateIds ?? [])
       .map((id) => templates.find((template) => template.id === id))
       .filter((template): template is (typeof templates)[number] => Boolean(template))
       .map((template) => ({ id: template.id, text: template.nextStepText }));
@@ -355,8 +369,10 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
       if (!expected) {
         // The only claims without a bundle parameter are the explicit
         // no-evidence placeholders, which must point at no real source.
-        expect({ id: claim.id, pending: claim.id.startsWith(PENDING_EVIDENCE_CLAIM_ID_PREFIX) })
-          .toMatchObject({ id: claim.id, pending: true });
+        expect({
+          id: claim.id,
+          pending: claim.id.startsWith(PENDING_EVIDENCE_CLAIM_ID_PREFIX),
+        }).toMatchObject({ id: claim.id, pending: true });
         expect(new URL(claim.sourceUrl).hostname.endsWith("example.invalid")).toBe(true);
         continue;
       }
@@ -439,8 +455,11 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
       });
       for (const limitation of claim.limitations) {
         if (!ANY_DIGIT.test(limitation)) continue;
-        expect({ id: claim.id, limitation, prefixed: limitation.startsWith(LOCATOR_PREFIX) })
-          .toMatchObject({ id: claim.id, limitation, prefixed: true });
+        expect({
+          id: claim.id,
+          limitation,
+          prefixed: limitation.startsWith(LOCATOR_PREFIX),
+        }).toMatchObject({ id: claim.id, limitation, prefixed: true });
       }
     }
   });
@@ -594,7 +613,10 @@ describe("S-V1-artifacts — the draft content stays out of every client-reachab
 
   it("keeps each draft JSON behind exactly one static importer, the guarded loader", () => {
     for (const [json, loader] of [
-      ["evidence-registry.draft-unsigned.v1.json", "lib/ai-coach/artifacts/drafts/evidence-registry.ts"],
+      [
+        "evidence-registry.draft-unsigned.v1.json",
+        "lib/ai-coach/artifacts/drafts/evidence-registry.ts",
+      ],
       [
         "escalation-templates.draft-unsigned.v1.json",
         "lib/ai-coach/artifacts/drafts/escalation-templates.ts",

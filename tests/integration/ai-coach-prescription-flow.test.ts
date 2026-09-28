@@ -28,7 +28,10 @@ import { confirmIntake } from "@/lib/ai-coach/intake";
 import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
 import { planPayloadSchema, type PlanPayload } from "@/lib/ai-coach/plan-contract";
 import { finalizeCurrentClientPlan } from "@/lib/ai-coach/finalization";
-import { acceptPlanVersionAtomic, type AcceptPlanVersionInput } from "@/lib/ai-coach/plan-acceptance";
+import {
+  acceptPlanVersionAtomic,
+  type AcceptPlanVersionInput,
+} from "@/lib/ai-coach/plan-acceptance";
 import { requestAiRun } from "@/lib/ai-coach/run-command";
 import { claimQueuedRun } from "@/lib/ai-coach/runs";
 import { processClaimedRun } from "@/lib/ai-coach/executor";
@@ -180,7 +183,9 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
     ]) {
       const existing = await db.aiCoachArtifactVersion.findUnique({ where: { id: artifact.id } });
       if (!existing) await registerArtifactVersion(artifact);
-      const current = await db.aiCoachArtifactVersion.findUniqueOrThrow({ where: { id: artifact.id } });
+      const current = await db.aiCoachArtifactVersion.findUniqueOrThrow({
+        where: { id: artifact.id },
+      });
       if (current.state === "DRAFT") {
         await publishArtifactVersion({
           id: artifact.id,
@@ -250,7 +255,9 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
     const decisionInput = decision.inputSnapshot as unknown as NutritionSafetyEvaluationInput;
     // gate.ts:428-432's energyMatchesSafety link — the value the gate/safety
     // layer verified against is the exact number on the accepted payload.
-    expect(decisionInput.proposal?.proposedDailyEnergyKcal).toBe(payload.nutrition?.targets.energyKcal);
+    expect(decisionInput.proposal?.proposedDailyEnergyKcal).toBe(
+      payload.nutrition?.targets.energyKcal
+    );
     // T-2000's hard-coded `null` is now the engine's real, non-null number —
     // for LOSE/GRADUAL at this body it is strictly negative (a real deficit,
     // not the old neutral fixture zero).
@@ -265,7 +272,9 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
       expectedObservationRevision: candidate.observationRevision,
       expectedSafetyRevision: candidate.safetyRevision,
     };
-    await expect(acceptPlanVersionAtomic(user.id, candidate.id, acceptInput)).resolves.toMatchObject({
+    await expect(
+      acceptPlanVersionAtomic(user.id, candidate.id, acceptInput)
+    ).resolves.toMatchObject({
       success: true,
       activeVersionId: candidate.id,
     });
@@ -276,7 +285,10 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
     const candidate = await runToCompletion(user.id, "MACROS");
     const payload = planPayloadSchema.parse(candidate.payload);
     expect(payload.nutrition).toBeNull();
-    expect(payload.prescriptionOutcome).toMatchObject({ status: "UNAVAILABLE", nutritionRequired: true });
+    expect(payload.prescriptionOutcome).toMatchObject({
+      status: "UNAVAILABLE",
+      nutritionRequired: true,
+    });
     expect(payload.prescriptionOutcome?.reasonCodes).toContain("PRESCRIPTION_INPUT_MISSING");
 
     const result = await finalizeCurrentClientPlan(candidate.id);
@@ -284,7 +296,10 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
     expect(result).not.toMatchObject({ outcome: "APPROVE_AUTOMATICALLY" });
     if ("reasonCodes" in result) {
       expect(result.reasonCodes).toEqual(
-        expect.arrayContaining(["GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE", "PRESCRIPTION_INPUT_MISSING"])
+        expect.arrayContaining([
+          "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+          "PRESCRIPTION_INPUT_MISSING",
+        ])
       );
     }
   });
@@ -349,7 +364,10 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
   it("MAJOR 2: a reason code no reviewed escalation template declares still resolves a template — the gate writes a HOLD decision row instead of throwing ARTIFACT_INCOMPATIBLE (503, no row)", async () => {
     const user = await v2ClientFixture();
     const set = await ensureRuntimeArtifacts();
-    const request = { policyArtifactKey: set.policyKey, engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION };
+    const request = {
+      policyArtifactKey: set.policyKey,
+      engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+    };
     // A code this bundle has no obligation to declare: a future
     // PrescriptionReasonCode, or a row written by a newer deploy. The
     // synthetic ESCALATION_TEMPLATES artifact declares the 15 codes that
@@ -368,7 +386,10 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
       strength: [],
       cardio: [],
       policyVersion: set.policyBundle.artifactKey,
-      catalogVersions: { food: set.foodCatalog.artifactKey, exercise: set.exerciseCatalog.artifactKey },
+      catalogVersions: {
+        food: set.foodCatalog.artifactKey,
+        exercise: set.exerciseCatalog.artifactKey,
+      },
       prescriptionOutcome: {
         status: "UNAVAILABLE",
         reasonCodes: [unknownReasonCode],
@@ -392,7 +413,11 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
         catalogVersions: payload.catalogVersions,
         reviewerStatus: "NOT_REQUIRED",
         sourceRefs: [],
-        validationReport: { engine: "managed-v1", passed: true, inputHash: contentHash({ fixture: "t2033-unknown-code" }) },
+        validationReport: {
+          engine: "managed-v1",
+          passed: true,
+          inputHash: contentHash({ fixture: "t2033-unknown-code" }),
+        },
       },
     });
     const policyContent = policyBundleContentSchema.parse(set.policyBundle.content);
@@ -400,7 +425,11 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
       requestedScopeClasses: ["GENERAL_BEHAVIOR_NUTRITION_EDUCATION"],
       requestedDomains: ["NUTRITION"],
       requiredInputs: policyContent.requiredInputIds.map((id) => ({ id, status: "CONFIRMED" })),
-      evidence: policyContent.evidenceRuleIds.map((ruleId) => ({ ruleId, status: "SUFFICIENT", sourceRefs: [] })),
+      evidence: policyContent.evidenceRuleIds.map((ruleId) => ({
+        ruleId,
+        status: "SUFFICIENT",
+        sourceRefs: [],
+      })),
       candidatePlanVersionId: plan.id,
     };
     const result = await evaluateCurrentClientAutonomyGate(request, gateInput);
@@ -455,7 +484,9 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
     ).payload as unknown as Record<string, unknown>;
     delete legacyPayload.prescriptionOutcome;
     const payload = legacyPayload as unknown as PlanPayload;
-    const context = await db.clientCoachingContext.findUniqueOrThrow({ where: { clientId: user.id } });
+    const context = await db.clientCoachingContext.findUniqueOrThrow({
+      where: { clientId: user.id },
+    });
     const profile = await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: user.id } });
     const candidate = await db.aiPlanVersion.create({
       data: {
@@ -483,7 +514,10 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
   it("a second consecutive calorie reduction on REVIEWED_PRESCRIPTION_V1 history -> HOLD noConsecutiveDeficitReasonCode, proving readNutritionHistory parses the widened method enum", async () => {
     const user = await v2ClientFixture();
     const set = await ensureRuntimeArtifacts();
-    const request = { policyArtifactKey: set.policyKey, engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION };
+    const request = {
+      policyArtifactKey: set.policyKey,
+      engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+    };
 
     function prescribedPayload(energyKcal: number): PlanPayload {
       return planPayloadSchema.parse({
@@ -500,7 +534,10 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
         strength: [],
         cardio: [],
         policyVersion: set.policyBundle.artifactKey,
-        catalogVersions: { food: set.foodCatalog.artifactKey, exercise: set.exerciseCatalog.artifactKey },
+        catalogVersions: {
+          food: set.foodCatalog.artifactKey,
+          exercise: set.exerciseCatalog.artifactKey,
+        },
         prescriptionOutcome: {
           status: "PRESCRIBED",
           reasonCodes: [],
@@ -548,8 +585,13 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
       },
     });
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     const input: NutritionSafetyEvaluationInput = {
-      screening: { instrumentId: policy.screening.instrumentId, result: "CLEAR", provenance: "SYNTHETIC_SERVER_FIXTURE" },
+      screening: {
+        instrumentId: policy.screening.instrumentId,
+        result: "CLEAR",
+        provenance: "SYNTHETIC_SERVER_FIXTURE",
+      },
       contraindications: {
         AGE_ELIGIBILITY: "CLEAR",
         PREGNANCY_POSTPARTUM: "CLEAR",
@@ -573,12 +615,20 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
   it("floor breach: a hand-built REVIEWED_PRESCRIPTION_V1 candidate below SYNTHETIC_MINIMUM_DAILY_ENERGY -> evaluateNutritionSafety HOLD (minimumDailyEnergyReasonCode) AND the gate GATE_NUTRITION_SAFETY_HOLD — the engine itself never produces this value (it clamps; see ai-coach-prescription.test.ts's floor vectors), so both layers are proven independently here", async () => {
     const user = await v2ClientFixture();
     const set = await ensureRuntimeArtifacts();
-    const request = { policyArtifactKey: set.policyKey, engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION };
+    const request = {
+      policyArtifactKey: set.policyKey,
+      engineVersion: SYNTHETIC_ARTIFACT_ENGINE_VERSION,
+    };
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     const belowFloor = policy.nutritionLimits.minimumDailyEnergyKcal - 1;
 
     const input: NutritionSafetyEvaluationInput = {
-      screening: { instrumentId: policy.screening.instrumentId, result: "CLEAR", provenance: "SYNTHETIC_SERVER_FIXTURE" },
+      screening: {
+        instrumentId: policy.screening.instrumentId,
+        result: "CLEAR",
+        provenance: "SYNTHETIC_SERVER_FIXTURE",
+      },
       contraindications: {
         AGE_ELIGIBILITY: "CLEAR",
         PREGNANCY_POSTPARTUM: "CLEAR",
@@ -617,7 +667,10 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
       strength: [],
       cardio: [],
       policyVersion: set.policyBundle.artifactKey,
-      catalogVersions: { food: set.foodCatalog.artifactKey, exercise: set.exerciseCatalog.artifactKey },
+      catalogVersions: {
+        food: set.foodCatalog.artifactKey,
+        exercise: set.exerciseCatalog.artifactKey,
+      },
       prescriptionOutcome: {
         status: "PRESCRIBED",
         reasonCodes: [],
@@ -641,7 +694,11 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
         catalogVersions: payload.catalogVersions,
         reviewerStatus: "NOT_REQUIRED",
         sourceRefs: [],
-        validationReport: { engine: "managed-v1", passed: true, inputHash: contentHash({ fixture: "t2033-floor" }) },
+        validationReport: {
+          engine: "managed-v1",
+          passed: true,
+          inputHash: contentHash({ fixture: "t2033-floor" }),
+        },
       },
     });
     const policyContent = policyBundleContentSchema.parse(set.policyBundle.content);
@@ -649,7 +706,11 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
       requestedScopeClasses: ["GENERAL_BEHAVIOR_NUTRITION_EDUCATION"],
       requestedDomains: ["NUTRITION"],
       requiredInputs: policyContent.requiredInputIds.map((id) => ({ id, status: "CONFIRMED" })),
-      evidence: policyContent.evidenceRuleIds.map((ruleId) => ({ ruleId, status: "SUFFICIENT", sourceRefs: [] })),
+      evidence: policyContent.evidenceRuleIds.map((ruleId) => ({
+        ruleId,
+        status: "SUFFICIENT",
+        sourceRefs: [],
+      })),
       candidatePlanVersionId: plan.id,
     };
     const result = await evaluateCurrentClientAutonomyGate(request, gateInput);

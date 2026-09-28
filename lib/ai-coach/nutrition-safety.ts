@@ -15,10 +15,7 @@ import { policyBundleContentSchema, type PolicyBundleContent } from "./artifacts
  * synthetic fixture or server-validated current-client state; caller/model
  * provenance is never accepted.
  */
-const provenanceSchema = z.enum([
-  "SYNTHETIC_SERVER_FIXTURE",
-  "SERVER_VALIDATED_CLIENT_STATE",
-]);
+const provenanceSchema = z.enum(["SYNTHETIC_SERVER_FIXTURE", "SERVER_VALIDATED_CLIENT_STATE"]);
 const contraindicationStatusSchema = z.enum(["CLEAR", "EXCLUDED", "UNKNOWN"]);
 
 export const nutritionSafetyEvaluationInputSchema = z
@@ -53,14 +50,32 @@ export const nutritionSafetyEvaluationInputSchema = z
 
 export type NutritionSafetyEvaluationInput = z.infer<typeof nutritionSafetyEvaluationInputSchema>;
 
-export type NutritionSafetyPolicy = {
+type NutritionSafetyPolicyBase = {
   screening: PolicyBundleContent["safetyControls"]["screening"];
   contraindications: PolicyBundleContent["safetyControls"]["contraindications"];
-  nutritionLimits: PolicyBundleContent["safetyControls"]["nutritionLimits"] & {
-    minimumDailyEnergyKcal: number;
-    maximumWeeklyLossRatePercent: number;
-  };
 };
+
+export type NutritionSafetyPolicy = NutritionSafetyPolicyBase &
+  (
+    | {
+        resolutionStatus: "RESOLVED";
+        pendingDecision: null;
+        pendingParameterIds: [];
+        nutritionLimits: PolicyBundleContent["safetyControls"]["nutritionLimits"] & {
+          minimumDailyEnergyKcal: number;
+          maximumWeeklyLossRatePercent: number;
+        };
+      }
+    | {
+        resolutionStatus: "PENDING";
+        pendingDecision: NutritionSafetyDecision;
+        pendingParameterIds: string[];
+        nutritionLimits: PolicyBundleContent["safetyControls"]["nutritionLimits"];
+      }
+  );
+
+export const NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE =
+  "NUTRITION_SAFETY_PARAMETERS_PENDING";
 
 export type NutritionSafetyHistory = {
   currentDailyEnergyKcal: number | null;
@@ -93,10 +108,20 @@ function decision(
   };
 }
 
-/** Resolves numeric hooks only from a strict reviewed-policy shape. */
+/**
+ * Resolves numeric hooks only from a strict reviewed-policy shape. An
+ * explicit PENDING_RD_DECISION hook is an expected policy state, not corrupt
+ * artifact data: it returns a HOLD decision without manufacturing numeric
+ * limits. A non-pending missing or incompatible reviewed parameter still
+ * throws.
+ */
 export function resolveNutritionSafetyPolicy(raw: unknown): NutritionSafetyPolicy {
   const policy = policyBundleContentSchema.parse(raw);
   const controls = policy.safetyControls;
+  const minimumPending =
+    controls.nutritionLimits.minimumDailyEnergyParameterId.startsWith("PENDING_RD_DECISION");
+  const maximumRatePending =
+    controls.nutritionLimits.maximumWeeklyLossRateParameterId.startsWith("PENDING_RD_DECISION");
   const minimum = policy.numericParameters.find(
     (parameter) => parameter.id === controls.nutritionLimits.minimumDailyEnergyParameterId
   );
@@ -104,10 +129,11 @@ export function resolveNutritionSafetyPolicy(raw: unknown): NutritionSafetyPolic
     (parameter) => parameter.id === controls.nutritionLimits.maximumWeeklyLossRateParameterId
   );
   if (
-    !minimum ||
-    minimum.unit !== "KCAL_PER_DAY" ||
-    minimum.value <= 0 ||
-    !minimum.applicabilityRuleIds.includes(controls.nutritionLimits.minimumDailyEnergyRuleId)
+    !minimumPending &&
+    (!minimum ||
+      minimum.unit !== "KCAL_PER_DAY" ||
+      minimum.value <= 0 ||
+      !minimum.applicabilityRuleIds.includes(controls.nutritionLimits.minimumDailyEnergyRuleId))
   ) {
     throw new ArtifactLoadError(
       "ARTIFACT_INCOMPATIBLE",
@@ -115,23 +141,51 @@ export function resolveNutritionSafetyPolicy(raw: unknown): NutritionSafetyPolic
     );
   }
   if (
-    !maximumRate ||
-    maximumRate.unit !== "PERCENT_BODY_WEIGHT_PER_WEEK" ||
-    maximumRate.value <= 0 ||
-    !maximumRate.applicabilityRuleIds.includes(controls.nutritionLimits.maximumWeeklyLossRateRuleId)
+    !maximumRatePending &&
+    (!maximumRate ||
+      maximumRate.unit !== "PERCENT_BODY_WEIGHT_PER_WEEK" ||
+      maximumRate.value <= 0 ||
+      !maximumRate.applicabilityRuleIds.includes(
+        controls.nutritionLimits.maximumWeeklyLossRateRuleId
+      ))
   ) {
     throw new ArtifactLoadError(
       "ARTIFACT_INCOMPATIBLE",
       "The reviewed weekly loss-rate hook is missing or incompatible."
     );
   }
+  const pendingParameterIds = [
+    minimumPending ? controls.nutritionLimits.minimumDailyEnergyParameterId : null,
+    maximumRatePending ? controls.nutritionLimits.maximumWeeklyLossRateParameterId : null,
+  ].filter((id): id is string => id !== null);
+  if (pendingParameterIds.length > 0) {
+    const pendingRuleIds = [
+      minimumPending ? controls.nutritionLimits.minimumDailyEnergyRuleId : null,
+      maximumRatePending ? controls.nutritionLimits.maximumWeeklyLossRateRuleId : null,
+    ].filter((id): id is string => id !== null);
+    return {
+      resolutionStatus: "PENDING",
+      pendingDecision: decision(
+        "HOLD",
+        [NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE],
+        pendingRuleIds
+      ),
+      pendingParameterIds,
+      screening: controls.screening,
+      contraindications: controls.contraindications,
+      nutritionLimits: controls.nutritionLimits,
+    };
+  }
   return {
+    resolutionStatus: "RESOLVED",
+    pendingDecision: null,
+    pendingParameterIds: [],
     screening: controls.screening,
     contraindications: controls.contraindications,
     nutritionLimits: {
       ...controls.nutritionLimits,
-      minimumDailyEnergyKcal: minimum.value,
-      maximumWeeklyLossRatePercent: maximumRate.value,
+      minimumDailyEnergyKcal: minimum!.value,
+      maximumWeeklyLossRatePercent: maximumRate!.value,
     },
   };
 }
@@ -145,6 +199,9 @@ export function evaluateNutritionSafety(
   input: NutritionSafetyEvaluationInput,
   history: NutritionSafetyHistory
 ): NutritionSafetyDecision {
+  if (policy.resolutionStatus === "PENDING") {
+    return policy.pendingDecision;
+  }
   const pauseReasons: string[] = [];
   const pauseRules: string[] = [];
   const escalationTemplateIds: string[] = [];

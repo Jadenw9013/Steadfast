@@ -82,6 +82,7 @@ suite("T-1003 — PostgreSQL-backed synthetic nutrition safety gate", () => {
     set: Awaited<ReturnType<typeof publishedArtifacts>>
   ): NutritionSafetyEvaluationInput {
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     return {
       screening: {
         instrumentId: policy.screening.instrumentId,
@@ -139,6 +140,7 @@ suite("T-1003 — PostgreSQL-backed synthetic nutrition safety gate", () => {
     ).resolves.toMatchObject({ outcome: "PAUSE_REFER" });
 
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     const belowFloor = clearInput(set);
     belowFloor.proposal!.proposedDailyEnergyKcal =
       policy.nutritionLimits.minimumDailyEnergyKcal - 1;
@@ -223,6 +225,7 @@ suite("T-1003 — PostgreSQL-backed synthetic nutrition safety gate", () => {
     const input = clearInput(set);
     input.proposal!.proposedDailyEnergyKcal = reduced.nutrition!.targets.energyKcal - 100;
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     await expect(
       evaluateCurrentClientNutritionSafety(request(set.policyKey), input)
     ).resolves.toMatchObject({

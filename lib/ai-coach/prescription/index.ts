@@ -19,9 +19,19 @@ import {
   deepFreeze,
 } from "./parameters";
 import type { ResolvedPrescriptionParameters } from "./parameters";
-import type { Prescription, PrescriptionInput, PrescriptionReasonCode, PrescriptionResult } from "./types";
+import type {
+  Prescription,
+  PrescriptionInput,
+  PrescriptionReasonCode,
+  PrescriptionResult,
+} from "./types";
 
-export type { PrescriptionInput, PrescriptionReasonCode, PrescriptionResult, Prescription } from "./types";
+export type {
+  PrescriptionInput,
+  PrescriptionReasonCode,
+  PrescriptionResult,
+  Prescription,
+} from "./types";
 export {
   resolvePrescriptionParameters,
   PRESCRIPTION_METHOD_STRUCTURE_ID,
@@ -102,8 +112,10 @@ function daysBetween(fromDate: string, toDate: string): number {
 }
 
 /** Product rule, not a clinical rule: which goals need an energy target at all. */
-export function nutritionRequiredForGoal(input: Pick<PrescriptionInput, "bodyWeightIntent">): boolean {
-  return input.bodyWeightIntent === "LOSE" || input.bodyWeightIntent === "GAIN";
+export function nutritionRequiredForGoal(
+  input: Pick<PrescriptionInput, "bodyWeightIntent">
+): boolean {
+  return input.bodyWeightIntent !== null;
 }
 
 /**
@@ -168,7 +180,9 @@ function evaluateBoundsOnce(
   const deficitKcal = maintenanceKcalRaw - t; // positive = below maintenance
   if (deficitKcal > 0) {
     const maxDeficitKcal =
-      (parameters.safetyFloors.maximumWeeklyLossRatePercent * parameters.energyPerKgBodyMass * weightKg) /
+      (parameters.safetyFloors.maximumWeeklyLossRatePercent *
+        parameters.energyPerKgBodyMass *
+        weightKg) /
       (7 * 100);
     if (exceeds(deficitKcal, maxDeficitKcal)) {
       t = maintenanceKcalRaw - maxDeficitKcal;
@@ -285,7 +299,14 @@ export function computePrescription(
   // prescription proceeds, never PAUSE_REFER (lead ruling on review r1
   // finding M6, T-2032.md Log 2026-09-25). `dietaryPatternReason` is still
   // checked regardless of pattern, including when pattern is null.
-  const supportedDietaryPatterns = ["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "NONE_DECLARED"];
+  const supportedDietaryPatterns: readonly NonNullable<PrescriptionInput["dietaryPattern"]>[] = [
+    "OMNIVORE",
+    "LACTO_OVO_VEGETARIAN",
+    "VEGAN",
+    "PESCATARIAN",
+    "OTHER",
+    "NONE_DECLARED",
+  ];
   if (input.dietaryPattern !== null && !supportedDietaryPatterns.includes(input.dietaryPattern)) {
     earlyReasonCodes.push("PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED");
   }
@@ -319,7 +340,9 @@ export function computePrescription(
   const activity = input.physicalActivityCategory as NonNullable<
     PrescriptionInput["physicalActivityCategory"]
   >;
-  const bodyWeightIntent = input.bodyWeightIntent as NonNullable<PrescriptionInput["bodyWeightIntent"]>;
+  const bodyWeightIntent = input.bodyWeightIntent as NonNullable<
+    PrescriptionInput["bodyWeightIntent"]
+  >;
   const goalPaceClass = input.goalPaceClass as NonNullable<PrescriptionInput["goalPaceClass"]>;
   const resistanceTrainingContext = input.resistanceTrainingContext as NonNullable<
     PrescriptionInput["resistanceTrainingContext"]
@@ -332,7 +355,12 @@ export function computePrescription(
   }
 
   // Step 5.
-  const maintenanceKcalRaw = computeMaintenanceEnergyKcalRaw(coefficients, ageYears, heightCm, weightKg);
+  const maintenanceKcalRaw = computeMaintenanceEnergyKcalRaw(
+    coefficients,
+    ageYears,
+    heightCm,
+    weightKg
+  );
 
   // Step 6.
   if (maintenanceKcalRaw < parameters.safetyFloors.minimumDailyEnergyKcal) {
@@ -393,7 +421,12 @@ export function computePrescription(
     return unavailable(["PRESCRIPTION_PARAMETER_INCOMPATIBLE"]);
   }
   let iterations = 0;
-  let roundingViolations = boundViolationIds(parameters, targetEnergyKcal, maintenanceKcalRaw, weightKg);
+  let roundingViolations = boundViolationIds(
+    parameters,
+    targetEnergyKcal,
+    maintenanceKcalRaw,
+    weightKg
+  );
   while (roundingViolations.length > 0) {
     appliedBoundIds.push(...roundingViolations);
     targetEnergyKcal += roundingViolations.includes(GOAL_BOUND_MAX_INCREASE_ID) ? -step : step;
@@ -401,7 +434,12 @@ export function computePrescription(
     if (iterations > maxIterations) {
       return unavailable(["PRESCRIPTION_PARAMETER_INCOMPATIBLE"]);
     }
-    roundingViolations = boundViolationIds(parameters, targetEnergyKcal, maintenanceKcalRaw, weightKg);
+    roundingViolations = boundViolationIds(
+      parameters,
+      targetEnergyKcal,
+      maintenanceKcalRaw,
+      weightKg
+    );
   }
 
   // Step 10: display-only maintenance rounding.
@@ -418,7 +456,13 @@ export function computePrescription(
 
   // Step 14: feasibility (GAP-N05 §5). Never silently reduces protein.
   if (
-    macroRangesAreInfeasible(parameters, targetEnergyKcal, proteinEnergyKcal, carbohydrateRangeG, fatRangeG)
+    macroRangesAreInfeasible(
+      parameters,
+      targetEnergyKcal,
+      proteinEnergyKcal,
+      carbohydrateRangeG,
+      fatRangeG
+    )
   ) {
     return unavailable(["PRESCRIPTION_MACRO_RANGES_INFEASIBLE"]);
   }
@@ -435,7 +479,9 @@ export function computePrescription(
   }
   const assumptions = parameters.explanationTexts
     .slice(0, MAX_ASSUMPTIONS_ENTRIES)
-    .map((text) => (text.length > MAX_ASSUMPTION_CHARACTERS ? text.slice(0, MAX_ASSUMPTION_CHARACTERS) : text));
+    .map((text) =>
+      text.length > MAX_ASSUMPTION_CHARACTERS ? text.slice(0, MAX_ASSUMPTION_CHARACTERS) : text
+    );
 
   // Step 17. Scope: the whole resolved parameter set, not only the 75
   // numeric values — see `Prescription.parameterSetDigest`'s own doc
