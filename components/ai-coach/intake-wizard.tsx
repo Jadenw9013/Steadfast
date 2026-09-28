@@ -1,293 +1,684 @@
 "use client";
+
 import { useState } from "react";
-import type { AiWorkspace } from "@/lib/queries/ai-coach";
-// Leaf module only — no `lib/db.ts` in its import graph (T-2024 review
-// round 4). Never import from "@/lib/ai-coach/intake" here; that module
-// imports `db`/`pg`, and Next.js bundles by module, not by tree-shaken
-// export, so any value import from it would pull `pg`'s Node-only
-// internals (dns/fs/net/tls) into this client component's browser bundle.
-import { PENDING_G01_WORDING, intakeV2ConfirmObjectSchema } from "@/lib/ai-coach/intake-contract";
-// `intake-allergens.ts` is client-safe too (only a type-only import from
-// `intake-contract.ts`, no runtime import at all) — reuse its
-// `EMPTY_ALLERGEN_DECLARATIONS` instead of duplicating it here.
-import { EMPTY_ALLERGEN_DECLARATIONS } from "@/lib/ai-coach/intake-allergens";
-import { button, primary, fieldClass, inputStyle } from "./controls";
+import {
+  allergenDeclarationsSchema,
+  intakeV2ConfirmObjectSchema,
+  intakeV2ConfirmSchema,
+  type AllergenDeclaration,
+  type AllergenDeclarations,
+  type IntakeV2ConfirmAnswers,
+} from "@/lib/ai-coach/intake-contract";
+import { button, inputStyle, primary } from "./controls";
 
 /**
- * T-2002/T-2024 — five-stage intake wizard (eligibility → about you → food →
- * training → review), replacing the single long form that used to live
- * inline in `experience.tsx`. Continue is never disabled because a status
- * is DECLINED/UNKNOWN — it is disabled only when a chosen CONFIRMED status
- * is missing its value. Each stage's Continue saves only that stage's
- * fields (SAVE_INTAKE, or ALLERGIES for the allergen sub-section) before
- * advancing, so a dropped connection never loses more than one stage.
+ * T-2028 — four-step AI Coach onboarding.
  *
- * No calorie/gram/rate/coefficient anywhere below. The physiological
- * category and activity classification questions use the neutral
- * `PENDING_G01_WORDING` placeholder — the real wording is gate G01's
- * deliverable, not an engineering decision.
+ * Plain-language choices are mapped into the existing v2 intake contract at
+ * the boundary. Unasked governed fields stay UNKNOWN and their values stay
+ * absent. SAFETY and ALLERGIES still run before CONFIRM_INTAKE so the server's
+ * independent safety and draft-consistency guarantees remain intact.
  */
 
 type Answers = Record<string, unknown>;
-type Dislike = { label: string; canonicalFoodId: string | null };
+type GoalChoice = "FAT_LOSS" | "BUILD_MUSCLE" | "STRENGTH" | "GENERAL_FITNESS";
+type ExperienceChoice = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+type EquipmentChoice = "BODYWEIGHT" | "HOME_DUMBBELLS" | "FULL_GYM";
+type SessionLengthChoice = "MIN_30_45" | "MIN_45_60" | "MIN_60_PLUS";
+type DietaryStyleChoice = "BALANCED" | "HIGH_PROTEIN" | "PLANT_BASED" | "LOW_CARB";
+type TrackingStyleChoice = "PORTIONS" | "EXACT_MACROS";
+type AllergenChoice = "DAIRY" | "TREE_NUTS" | "PEANUTS" | "GLUTEN" | "SHELLFISH" | "NONE";
+type UnitSystem = "IMPERIAL" | "METRIC";
+type SafetyAnswer = "YES" | "NO" | "UNSURE";
+type SafetyKey =
+  | "chestPainDuringExercise"
+  | "dizzinessOrFainting"
+  | "heartCondition"
+  | "pregnantOrPostpartum"
+  | "recentInjuryOrSurgery"
+  | "ageEligibilityConcern"
+  | "eatingDisorderHistoryOrConcern"
+  | "type1Diabetes";
 
-const safetyFields: Record<string, string> = {
-  chestPainDuringExercise: "Chest pain during exercise?",
-  dizzinessOrFainting: "Dizziness or fainting?",
-  heartCondition: "A known heart condition?",
-  pregnantOrPostpartum: "Pregnant or postpartum?",
-  recentInjuryOrSurgery: "A recent injury or surgery?",
-  ageEligibilityConcern: "Any age-eligibility concern?",
-  eatingDisorderHistoryOrConcern: "Any eating-disorder history or concern?",
-  type1Diabetes: "Type 1 diabetes?",
-};
+export type SafetyAnswers = Partial<Record<SafetyKey, SafetyAnswer>>;
 
-const EMPTY_DIETARY_PATTERN = {
-  pattern: "NONE_DECLARED",
-  otherLabel: null,
-  mandatory: false,
-  reason: "NOT_STATED",
+export interface IntakeSelections {
+  goal?: GoalChoice;
+  experience?: ExperienceChoice;
+  trainingDaysPerWeek?: number;
+  equipment?: EquipmentChoice;
+  sessionLength?: SessionLengthChoice;
+  dietaryStyle?: DietaryStyleChoice;
+  trackingStyle?: TrackingStyleChoice;
+  allergens: AllergenChoice[];
+  unitSystem: UnitSystem;
+  heightCm?: number;
+  weightKg?: number;
+  ageYears?: number;
+  weightMeasuredOn: string;
+}
+
+const STAGES = ["Goal", "Training setup", "Nutrition & tracking", "Body stats & confirm"];
+
+const SAFETY_FIELDS: { key: SafetyKey; label: string }[] = [
+  { key: "chestPainDuringExercise", label: "Chest pain during exercise" },
+  { key: "dizzinessOrFainting", label: "Dizziness or fainting" },
+  { key: "heartCondition", label: "A known heart condition" },
+  { key: "pregnantOrPostpartum", label: "Pregnant or postpartum" },
+  { key: "recentInjuryOrSurgery", label: "A recent injury or surgery" },
+  { key: "ageEligibilityConcern", label: "An age-related eligibility concern" },
+  { key: "eatingDisorderHistoryOrConcern", label: "An eating-disorder history or concern" },
+  { key: "type1Diabetes", label: "Type 1 diabetes" },
+];
+
+const EMPTY_ALLERGEN_DECLARATIONS: AllergenDeclarations = {
   status: "UNKNOWN",
+  noKnownAllergens: false,
+  items: [],
 };
 
-export function defaultAnswers(seed: Answers): Answers {
+const INPUT_CLASS =
+  "mt-2 min-h-12 w-full rounded-xl border border-white/[0.12] bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 transition-colors placeholder:text-zinc-600 focus-visible:border-blue-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
+const CHOICE_BASE =
+  "min-h-12 cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+
+const GOAL_OPTIONS: {
+  value: GoalChoice;
+  label: string;
+  description: string;
+  icon: "down" | "up" | "bar" | "spark";
+}[] = [
+  {
+    value: "FAT_LOSS",
+    label: "Fat Loss / Cut",
+    description: "Build a sustainable routine around leaning out.",
+    icon: "down",
+  },
+  {
+    value: "BUILD_MUSCLE",
+    label: "Build Muscle",
+    description: "Prioritize muscle gain and consistent training.",
+    icon: "up",
+  },
+  {
+    value: "STRENGTH",
+    label: "Strength",
+    description: "Focus your plan on getting stronger.",
+    icon: "bar",
+  },
+  {
+    value: "GENERAL_FITNESS",
+    label: "General Fitness",
+    description: "Create a balanced routine you can stick with.",
+    icon: "spark",
+  },
+];
+
+const EXPERIENCE_OPTIONS = [
+  { value: "BEGINNER", label: "Beginner" },
+  { value: "INTERMEDIATE", label: "Intermediate" },
+  { value: "ADVANCED", label: "Advanced" },
+] satisfies { value: ExperienceChoice; label: string }[];
+
+const EQUIPMENT_OPTIONS = [
+  { value: "BODYWEIGHT", label: "Bodyweight", description: "No equipment needed" },
+  { value: "HOME_DUMBBELLS", label: "Home Dumbbells", description: "A simple home setup" },
+  { value: "FULL_GYM", label: "Full Gym", description: "Machines, cables, and free weights" },
+] satisfies { value: EquipmentChoice; label: string; description: string }[];
+
+const SESSION_OPTIONS = [
+  { value: "MIN_30_45", label: "30–45m" },
+  { value: "MIN_45_60", label: "45–60m" },
+  { value: "MIN_60_PLUS", label: "60m+" },
+] satisfies { value: SessionLengthChoice; label: string }[];
+
+const DIETARY_OPTIONS = [
+  { value: "BALANCED", label: "Balanced" },
+  { value: "HIGH_PROTEIN", label: "High Protein" },
+  { value: "PLANT_BASED", label: "Plant-Based" },
+  { value: "LOW_CARB", label: "Low Carb" },
+] satisfies { value: DietaryStyleChoice; label: string }[];
+
+const TRACKING_OPTIONS = [
+  {
+    value: "PORTIONS",
+    label: "Portions",
+    description: "Simple serving guidance without weighing everything.",
+  },
+  {
+    value: "EXACT_MACROS",
+    label: "Exact Macros",
+    description: "Show calories, protein, carbs, and fats.",
+  },
+] satisfies { value: TrackingStyleChoice; label: string; description: string }[];
+
+const ALLERGEN_OPTIONS = [
+  { value: "DAIRY", label: "Dairy" },
+  { value: "TREE_NUTS", label: "Tree Nuts" },
+  { value: "PEANUTS", label: "Peanuts" },
+  { value: "GLUTEN", label: "Gluten" },
+  { value: "SHELLFISH", label: "Shellfish" },
+  { value: "NONE", label: "None" },
+] satisfies { value: AllergenChoice; label: string }[];
+
+const CONFIRM_KEYS = Object.keys(intakeV2ConfirmObjectSchema.shape);
+
+function record(value: unknown): Answers {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Answers)
+    : {};
+}
+
+function localDateString(now = new Date()): string {
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
+function round(value: number, precision = 1): number {
+  const factor = 10 ** precision;
+  return Math.round(value * factor) / factor;
+}
+
+export function poundsToKilograms(pounds: number): number {
+  return round(pounds / 2.2046226218, 2);
+}
+
+export function kilogramsToPounds(kilograms: number): number {
+  return round(kilograms * 2.2046226218, 1);
+}
+
+export function feetAndInchesToCentimeters(feet: number, inches: number): number {
+  return round((feet * 12 + inches) * 2.54, 1);
+}
+
+export function centimetersToFeetAndInches(centimeters?: number): {
+  feet?: number;
+  inches?: number;
+} {
+  if (centimeters === undefined) return {};
+  const totalInches = centimeters / 2.54;
+  let feet = Math.floor(totalInches / 12);
+  let inches = Math.round(totalInches - feet * 12);
+  if (inches === 12) {
+    feet += 1;
+    inches = 0;
+  }
+  return { feet, inches };
+}
+
+function goalFromSeed(seed: Answers): GoalChoice | undefined {
+  if (seed.goal === "STRENGTH") return "STRENGTH";
+  if (seed.goal === "GENERAL_FITNESS") return "GENERAL_FITNESS";
+  if (seed.goal === "BODY_COMPOSITION" && seed.bodyWeightIntent === "GAIN") return "BUILD_MUSCLE";
+  if (seed.goal === "BODY_COMPOSITION" && seed.bodyWeightIntent === "LOSE") return "FAT_LOSS";
+  return undefined;
+}
+
+function experienceFromSeed(seed: Answers): ExperienceChoice | undefined {
+  if (seed.experienceLevel === "NEW") return "BEGINNER";
+  if (seed.experienceLevel === "RETURNING") return "INTERMEDIATE";
+  if (seed.experienceLevel === "EXPERIENCED") return "ADVANCED";
+  return undefined;
+}
+
+function equipmentFromSeed(seed: Answers): EquipmentChoice | undefined {
+  const values = Array.isArray(seed.equipmentAccess) ? seed.equipmentAccess : [];
+  if (values.includes("FULL_GYM")) return "FULL_GYM";
+  if (values.includes("HOME_BASIC")) return "HOME_DUMBBELLS";
+  if (values.includes("NONE")) return "BODYWEIGHT";
+  return undefined;
+}
+
+function sessionLengthFromSeed(seed: Answers): SessionLengthChoice | undefined {
+  if (seed.sessionLengthBand === "MIN_30_45") return "MIN_30_45";
+  if (seed.sessionLengthBand === "MIN_45_60") return "MIN_45_60";
+  if (seed.sessionLengthBand === "MIN_60_90" || seed.sessionLengthBand === "OVER_90")
+    return "MIN_60_PLUS";
+  return undefined;
+}
+
+function dietaryStyleFromSeed(seed: Answers): DietaryStyleChoice | undefined {
+  const pattern = record(seed.dietaryPattern);
+  const label = typeof pattern.otherLabel === "string" ? pattern.otherLabel.toLowerCase() : "";
+  if (label === "balanced") return "BALANCED";
+  if (label === "high protein") return "HIGH_PROTEIN";
+  if (label === "plant-based" || label === "plant based") return "PLANT_BASED";
+  if (label === "low carb") return "LOW_CARB";
+  return undefined;
+}
+
+function allergenChoiceFor(item: AllergenDeclaration): AllergenChoice | undefined {
+  if (item.category === "MILK") return "DAIRY";
+  if (item.category === "TREE_NUT") return "TREE_NUTS";
+  if (item.category === "PEANUT") return "PEANUTS";
+  if (item.category === "CRUSTACEAN_SHELLFISH") return "SHELLFISH";
+  if (item.category === "OTHER" && item.specificity?.toLowerCase() === "gluten") return "GLUTEN";
+  return undefined;
+}
+
+function allergensFromSeed(declarations?: AllergenDeclarations): AllergenChoice[] {
+  if (!declarations || declarations.status !== "CONFIRMED") return [];
+  if (declarations.noKnownAllergens) return ["NONE"];
+  return [
+    ...new Set(declarations.items.map(allergenChoiceFor).filter(Boolean)),
+  ] as AllergenChoice[];
+}
+
+export function createIntakeSelections(seed: Answers, today = localDateString()): IntakeSelections {
+  const parsedDeclarations = allergenDeclarationsSchema.safeParse(seed.allergenDeclarations);
+  const sourceAllergenDeclarations = parsedDeclarations.success
+    ? parsedDeclarations.data
+    : undefined;
   return {
-    intakeVersion: 2,
-    ageStatus: "UNKNOWN",
-    energyMethodPopulationCategoryStatus: "UNKNOWN",
-    physicalActivityCategoryStatus: "UNKNOWN",
-    bodyMeasurementStatus: "UNKNOWN",
-    goalStatus: "UNKNOWN",
-    trainingContextStatus: "UNKNOWN",
-    cookingAccessStatus: "UNKNOWN",
-    dislikes: [],
-    cuisinePreferences: [],
-    allergenDeclarations: EMPTY_ALLERGEN_DECLARATIONS,
-    dietaryPattern: EMPTY_DIETARY_PATTERN,
-    ...seed,
+    goal: goalFromSeed(seed),
+    experience: experienceFromSeed(seed),
+    trainingDaysPerWeek:
+      typeof seed.trainingDaysPerWeek === "number" ? seed.trainingDaysPerWeek : undefined,
+    equipment: equipmentFromSeed(seed),
+    sessionLength: sessionLengthFromSeed(seed),
+    dietaryStyle: dietaryStyleFromSeed(seed),
+    trackingStyle:
+      seed.trackingPreference === "PORTIONS_ONLY"
+        ? "PORTIONS"
+        : seed.trackingPreference === "NUMBERS_VISIBLE"
+          ? "EXACT_MACROS"
+          : undefined,
+    allergens: allergensFromSeed(sourceAllergenDeclarations),
+    unitSystem: seed.unitsPreference === "METRIC" ? "METRIC" : "IMPERIAL",
+    heightCm: typeof seed.heightCm === "number" ? seed.heightCm : undefined,
+    weightKg: typeof seed.weightKg === "number" ? seed.weightKg : undefined,
+    ageYears: typeof seed.ageYears === "number" ? seed.ageYears : undefined,
+    weightMeasuredOn: typeof seed.weightMeasuredOn === "string" ? seed.weightMeasuredOn : today,
   };
 }
 
-/** Strips a governed value when its status is not CONFIRMED — "absent" per
- * the frozen contract means the key is omitted, not null/zero. */
-export function pruneUnconfirmed(answers: Answers): Answers {
-  const a = { ...answers };
-  if (a.ageStatus !== "CONFIRMED") delete a.ageYears;
-  if (a.energyMethodPopulationCategoryStatus !== "CONFIRMED") delete a.energyMethodPopulationCategory;
-  if (a.physicalActivityCategoryStatus !== "CONFIRMED") delete a.physicalActivityCategory;
-  if (a.bodyMeasurementStatus !== "CONFIRMED") {
-    delete a.heightCm;
-    delete a.weightKg;
-    delete a.weightMeasuredOn;
-  }
-  if (a.goalStatus !== "CONFIRMED") {
-    delete a.bodyWeightIntent;
-    delete a.goalPaceClass;
-    delete a.weightNeutralAccepted;
-  }
-  if (a.trainingContextStatus !== "CONFIRMED") {
-    delete a.resistanceTrainingContext;
-    delete a.sessionLengthBand;
-  }
-  if (a.cookingAccessStatus !== "CONFIRMED") delete a.cookingAccess;
-  return a;
+function mappedGoal(choice?: GoalChoice): IntakeV2ConfirmAnswers["goal"] | undefined {
+  if (choice === "FAT_LOSS" || choice === "BUILD_MUSCLE") return "BODY_COMPOSITION";
+  if (choice === "STRENGTH") return "STRENGTH";
+  if (choice === "GENERAL_FITNESS") return "GENERAL_FITNESS";
+  return undefined;
 }
 
-/** Every status-governed group the frozen `superRefine` on
- * `intakeV2ConfirmSchema` enforces jointly: `CONFIRMED` requires every
- * `valueKeys` entry present, else they must be absent. `stage` is the
- * wizard stage (0-indexed) that collects it, used to scope the Continue
- * disable rule to the stage the client is actually on. */
-const GOVERNED_GROUPS: { statusKey: string; valueKeys: string[]; label: string; stage: number }[] = [
-  { statusKey: "ageStatus", valueKeys: ["ageYears"], label: "Age", stage: 1 },
-  {
-    statusKey: "energyMethodPopulationCategoryStatus",
-    valueKeys: ["energyMethodPopulationCategory"],
-    label: "Physiological category",
-    stage: 1,
-  },
-  {
-    statusKey: "physicalActivityCategoryStatus",
-    valueKeys: ["physicalActivityCategory"],
-    label: "Activity level",
-    stage: 1,
-  },
-  {
-    statusKey: "bodyMeasurementStatus",
-    valueKeys: ["heightCm", "weightKg", "weightMeasuredOn"],
-    label: "Height and weight",
-    stage: 1,
-  },
-  {
-    statusKey: "goalStatus",
-    valueKeys: ["bodyWeightIntent", "goalPaceClass", "weightNeutralAccepted"],
-    label: "Goal and pace",
-    stage: 1,
-  },
-  {
-    statusKey: "trainingContextStatus",
-    valueKeys: ["resistanceTrainingContext", "sessionLengthBand"],
-    label: "Training context and session length",
-    stage: 3,
-  },
-  { statusKey: "cookingAccessStatus", valueKeys: ["cookingAccess"], label: "Cooking and storage access", stage: 3 },
-];
-
-/** `select()` writes `""` when a client re-picks the placeholder option —
- * treated identically to `undefined` ("absent") everywhere a required or
- * status-governed value is checked, so an emptied dropdown can never look
- * "answered" to `confirmedWithoutValue`/`buildConfirmPayload`/
- * `requiredAnswerIssues`. */
-export function isAbsent(value: unknown): boolean {
-  return value === undefined || value === "";
+function mappedGoalDetails(
+  choice?: GoalChoice
+):
+  | Pick<
+      IntakeV2ConfirmAnswers,
+      "goalStatus" | "bodyWeightIntent" | "goalPaceClass" | "weightNeutralAccepted"
+    >
+  | { goalStatus: "UNKNOWN" } {
+  if (choice === "FAT_LOSS") {
+    return {
+      goalStatus: "CONFIRMED",
+      bodyWeightIntent: "LOSE",
+      goalPaceClass: "UNDECIDED",
+      weightNeutralAccepted: false,
+    };
+  }
+  if (choice === "BUILD_MUSCLE") {
+    return {
+      goalStatus: "CONFIRMED",
+      bodyWeightIntent: "GAIN",
+      goalPaceClass: "UNDECIDED",
+      weightNeutralAccepted: false,
+    };
+  }
+  return { goalStatus: "UNKNOWN" };
 }
 
-/** Named groups whose status is CONFIRMED but a required value is missing
- * — the *only* thing Continue may ever be disabled by (T-2002 "Web UI
- * rules"). Scope to a single stage, or omit `stage` for every group
- * (used by the review summary). */
-export function confirmedWithoutValue(
-  a: Answers,
-  stage?: number
-): { statusKey: string; valueKeys: string[]; label: string; stage: number }[] {
-  return GOVERNED_GROUPS.filter((group) => stage === undefined || group.stage === stage).filter(
-    (group) => a[group.statusKey] === "CONFIRMED" && group.valueKeys.some((key) => isAbsent(a[key]))
+function mappedExperience(
+  choice?: ExperienceChoice
+): IntakeV2ConfirmAnswers["experienceLevel"] | undefined {
+  if (choice === "BEGINNER") return "NEW";
+  if (choice === "INTERMEDIATE") return "RETURNING";
+  if (choice === "ADVANCED") return "EXPERIENCED";
+  return undefined;
+}
+
+function mappedEquipment(
+  choice?: EquipmentChoice
+): IntakeV2ConfirmAnswers["equipmentAccess"] | undefined {
+  if (choice === "BODYWEIGHT") return ["NONE"];
+  if (choice === "HOME_DUMBBELLS") return ["HOME_BASIC"];
+  if (choice === "FULL_GYM") return ["FULL_GYM"];
+  return undefined;
+}
+
+function mappedResistanceContext(
+  choice?: ExperienceChoice
+): IntakeV2ConfirmAnswers["resistanceTrainingContext"] | undefined {
+  // Conservative compatibility mapping for the jointly-governed legacy pair.
+  if (choice === "BEGINNER") return "NONE";
+  if (choice === "INTERMEDIATE") return "OCCASIONAL";
+  if (choice === "ADVANCED") return "REGULAR";
+  return undefined;
+}
+
+function mappedSessionLength(
+  choice?: SessionLengthChoice
+): IntakeV2ConfirmAnswers["sessionLengthBand"] | undefined {
+  if (choice === "MIN_60_PLUS") return "MIN_60_90";
+  return choice;
+}
+
+function mappedDietaryPattern(
+  choice?: DietaryStyleChoice
+): IntakeV2ConfirmAnswers["dietaryPattern"] {
+  const label: Record<DietaryStyleChoice, string> = {
+    BALANCED: "Balanced",
+    HIGH_PROTEIN: "High protein",
+    PLANT_BASED: "Plant-based",
+    LOW_CARB: "Low carb",
+  };
+  if (!choice)
+    return {
+      pattern: "NONE_DECLARED",
+      otherLabel: null,
+      mandatory: false,
+      reason: "NOT_STATED",
+      status: "UNKNOWN",
+    };
+  // Preserve the user's exact preference instead of translating
+  // "plant-based" into vegan or "high protein" into omnivore.
+  return {
+    pattern: "OTHER",
+    otherLabel: label[choice],
+    mandatory: false,
+    reason: "PREFERENCE",
+    status: "CONFIRMED",
+  };
+}
+
+function declarationForChoice(choice: Exclude<AllergenChoice, "NONE">): AllergenDeclaration {
+  const common = { kind: "ALLERGY" as const, crossContactAvoidanceRequired: "UNSURE" as const };
+  if (choice === "DAIRY") return { category: "MILK", specificity: null, ...common };
+  if (choice === "TREE_NUTS") return { category: "TREE_NUT", specificity: null, ...common };
+  if (choice === "PEANUTS") return { category: "PEANUT", specificity: null, ...common };
+  if (choice === "SHELLFISH")
+    return { category: "CRUSTACEAN_SHELLFISH", specificity: null, ...common };
+  // Gluten is broader than wheat, so keep it explicit and fail-closed.
+  return { category: "OTHER", specificity: "gluten", ...common };
+}
+
+export function buildAllergenDeclarations(selections: IntakeSelections): AllergenDeclarations {
+  if (selections.allergens.includes("NONE"))
+    return { status: "CONFIRMED", noKnownAllergens: true, items: [] };
+  if (selections.allergens.length === 0) return EMPTY_ALLERGEN_DECLARATIONS;
+
+  const selected = selections.allergens.filter(
+    (choice): choice is Exclude<AllergenChoice, "NONE"> => choice !== "NONE"
+  );
+  // The compact flow only re-confirms what its visible tags can express.
+  // It deliberately does not copy hidden species, kind, or cross-contact
+  // detail from an older intake into a new user confirmation.
+  const items = selected.map(declarationForChoice);
+  return allergenDeclarationsSchema.parse({
+    status: "CONFIRMED",
+    noKnownAllergens: false,
+    items,
+  });
+}
+
+export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
+  const goal = mappedGoal(selections.goal);
+  const experienceLevel = mappedExperience(selections.experience);
+  const equipmentAccess = mappedEquipment(selections.equipment);
+  const resistanceTrainingContext = mappedResistanceContext(selections.experience);
+  const sessionLengthBand = mappedSessionLength(selections.sessionLength);
+  const goalDetails = mappedGoalDetails(selections.goal);
+  const hasBodyMeasurements =
+    selections.heightCm !== undefined &&
+    selections.weightKg !== undefined &&
+    Boolean(selections.weightMeasuredOn);
+  const hasTrainingContext =
+    resistanceTrainingContext !== undefined && sessionLengthBand !== undefined;
+
+  return {
+    intakeVersion: 2,
+    ...(goal ? { goal } : {}),
+    ...(experienceLevel ? { experienceLevel } : {}),
+    ...(selections.trainingDaysPerWeek !== undefined
+      ? { trainingDaysPerWeek: selections.trainingDaysPerWeek }
+      : {}),
+    ...(equipmentAccess ? { equipmentAccess } : {}),
+    foodBudgetLevel: "MODERATE",
+    ...(selections.trackingStyle
+      ? {
+          trackingPreference:
+            selections.trackingStyle === "PORTIONS" ? "PORTIONS_ONLY" : "NUMBERS_VISIBLE",
+        }
+      : {}),
+    unitsPreference: selections.unitSystem,
+    ageStatus: selections.ageYears === undefined ? "UNKNOWN" : "CONFIRMED",
+    ...(selections.ageYears === undefined ? {} : { ageYears: selections.ageYears }),
+    energyMethodPopulationCategoryStatus: "UNKNOWN",
+    physicalActivityCategoryStatus: "UNKNOWN",
+    bodyMeasurementStatus: hasBodyMeasurements ? "CONFIRMED" : "UNKNOWN",
+    ...(hasBodyMeasurements
+      ? {
+          heightCm: selections.heightCm,
+          weightKg: selections.weightKg,
+          weightMeasuredOn: selections.weightMeasuredOn,
+        }
+      : {}),
+    ...goalDetails,
+    trainingContextStatus: hasTrainingContext ? "CONFIRMED" : "UNKNOWN",
+    ...(hasTrainingContext ? { resistanceTrainingContext, sessionLengthBand } : {}),
+    cookingAccessStatus: "UNKNOWN",
+    dislikes: [],
+    cuisinePreferences: [],
+    allergenDeclarations: buildAllergenDeclarations(selections),
+    dietaryPattern: mappedDietaryPattern(selections.dietaryStyle),
+  };
+}
+
+export function buildConfirmPayload(selections: IntakeSelections): IntakeV2ConfirmAnswers {
+  const mapped = mapSelectionsToAnswers(selections);
+  const payload = Object.fromEntries(
+    Object.entries(mapped).filter(
+      ([key, value]) => CONFIRM_KEYS.includes(key) && value !== undefined
+    )
+  );
+  return intakeV2ConfirmSchema.parse(payload);
+}
+
+export function toggleAllergen(
+  selected: AllergenChoice[],
+  choice: AllergenChoice
+): AllergenChoice[] {
+  if (choice === "NONE") return selected.includes("NONE") ? [] : ["NONE"];
+  const withoutNone = selected.filter((item) => item !== "NONE");
+  return withoutNone.includes(choice)
+    ? withoutNone.filter((item) => item !== choice)
+    : [...withoutNone, choice];
+}
+
+export function safetyAnswersComplete(
+  answers: SafetyAnswers
+): answers is Record<SafetyKey, SafetyAnswer> {
+  return SAFETY_FIELDS.every(({ key }) => answers[key] !== undefined);
+}
+
+export function intakeStepIssues(
+  stage: number,
+  selections: IntakeSelections,
+  safetyAnswers: SafetyAnswers,
+  needsSafetyDisclosure: boolean
+): string[] {
+  const issues: string[] = [];
+  if (stage === 0) {
+    if (!selections.goal) issues.push("Choose your main goal.");
+    if (!selections.experience) issues.push("Choose your experience level.");
+  }
+  if (stage === 1) {
+    if (!selections.trainingDaysPerWeek) issues.push("Choose your training days.");
+    if (!selections.equipment) issues.push("Choose your equipment setup.");
+    if (!selections.sessionLength) issues.push("Choose a session length.");
+  }
+  if (stage === 2) {
+    if (!selections.dietaryStyle) issues.push("Choose a dietary style.");
+    if (!selections.trackingStyle) issues.push("Choose a tracking style.");
+    if (selections.allergens.length === 0) issues.push("Choose any allergens, or choose None.");
+  }
+  if (stage === 3) {
+    if (
+      selections.heightCm === undefined ||
+      !Number.isFinite(selections.heightCm) ||
+      selections.heightCm <= 0 ||
+      selections.heightCm > 300
+    )
+      issues.push("Enter a valid height.");
+    if (
+      selections.weightKg === undefined ||
+      !Number.isFinite(selections.weightKg) ||
+      selections.weightKg <= 0 ||
+      selections.weightKg > 400
+    )
+      issues.push("Enter a valid weight.");
+    if (
+      selections.ageYears === undefined ||
+      !Number.isInteger(selections.ageYears) ||
+      selections.ageYears <= 0 ||
+      selections.ageYears > 120
+    )
+      issues.push("Enter your age in whole years.");
+    if (needsSafetyDisclosure && !safetyAnswersComplete(safetyAnswers))
+      issues.push("Complete the quick safety check.");
+  }
+  return issues;
+}
+
+export async function confirmAndRedirect({
+  selections,
+  safetyAnswers,
+  needsSafetyDisclosure,
+  command,
+  redirect,
+}: {
+  selections: IntakeSelections;
+  safetyAnswers: SafetyAnswers;
+  needsSafetyDisclosure: boolean;
+  command: (input: Record<string, unknown>) => Promise<unknown>;
+  redirect: () => void;
+}) {
+  if (needsSafetyDisclosure) {
+    if (!safetyAnswersComplete(safetyAnswers)) throw new Error("Complete the quick safety check.");
+    await command({ operation: "SAFETY", answers: safetyAnswers });
+  }
+  const allergenDeclarations = buildAllergenDeclarations(selections);
+  await command({ operation: "ALLERGIES", allergenDeclarations });
+  await command({ operation: "CONFIRM_INTAKE", answers: buildConfirmPayload(selections) });
+  redirect();
+}
+
+function GoalIcon({ kind }: { kind: "down" | "up" | "bar" | "spark" }) {
+  if (kind === "bar")
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-6 w-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M5 8v8M3 10v4m16-6v8m2-6v4M5 12h14" />
+      </svg>
+    );
+  if (kind === "spark")
+    return (
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-6 w-6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+      >
+        <path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8m0-12.8L5.6 18.4" />
+      </svg>
+    );
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-6 w-6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d={kind === "down" ? "M5 7l6 6 4-4 4 4" : "M5 17l6-6 4 4 4-8"} />
+      <path d={kind === "down" ? "M19 9v4h-4" : "M15 7h4v4"} />
+    </svg>
   );
 }
 
-/** The seven v1 fields `intakeV2ConfirmSchema` requires unconditionally
- * (no governing status) — `trainingDaysPerWeek`/`equipmentAccess` are
- * already named by `trainingStageIssues`; these five plain selects had no
- * equivalent guard (T-2024 review round 3, MAJOR 1 = parity BLOCKER 1). */
-const REQUIRED_V1_SCALAR_FIELDS: { key: string; label: string; stage: number }[] = [
-  { key: "goal", label: "Goal", stage: 1 },
-  { key: "experienceLevel", label: "Training experience", stage: 1 },
-  { key: "trackingPreference", label: "Preferred nutrition display", stage: 1 },
-  { key: "unitsPreference", label: "Preferred units", stage: 1 },
-  { key: "foodBudgetLevel", label: "Food budget", stage: 2 },
-];
-
-export function requiredAnswerIssues(a: Answers, stage?: number): string[] {
-  return REQUIRED_V1_SCALAR_FIELDS.filter((field) => stage === undefined || field.stage === stage)
-    .filter((field) => isAbsent(a[field.key]))
-    .map((field) => `${field.label}: choose an answer.`);
+function CheckIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 20 20"
+      className="h-4 w-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+    >
+      <path d="m4 10 4 4 8-8" />
+    </svg>
+  );
 }
 
-function pendingItems(a: Answers): string[] {
-  const items: string[] = [];
-  for (const group of GOVERNED_GROUPS) {
-    if (a[group.statusKey] !== "CONFIRMED") items.push(group.label);
-  }
-  const declarations = a.allergenDeclarations as { status?: string } | undefined;
-  if (declarations?.status !== "CONFIRMED") items.push("Allergy disclosures");
-  const pattern = a.dietaryPattern as { status?: string } | undefined;
-  if (pattern?.status !== "CONFIRMED") items.push("Dietary pattern");
-  return items;
+function ChoicePills({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value?: string | number;
+  options: { value: string | number; label: string }[];
+  onChange: (value: string | number) => void;
+}) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className="text-sm font-semibold text-zinc-200">{label}</legend>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => {
+          const selected = value === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              aria-pressed={selected}
+              className={`${CHOICE_BASE} inline-flex items-center justify-center gap-2 ${
+                selected
+                  ? "border-blue-500 bg-blue-500/15 text-blue-100"
+                  : "border-white/[0.1] bg-zinc-900/60 text-zinc-300 hover:border-white/[0.2] hover:bg-zinc-800/70"
+              }`}
+              onClick={() => onChange(option.value)}
+            >
+              {selected && <CheckIcon />}
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
 }
 
-const ALLERGEN_SPECIFICITY_CATEGORIES = ["TREE_NUT", "FISH", "CRUSTACEAN_SHELLFISH", "OTHER"];
-
-/** T-2024 review round 3, parity MINOR 7 — mirrors iOS's self-repair
- * (`AICoachAllergenEditor`): adding a declaration or checking "no known
- * allergens" sets status to CONFIRMED; emptying both back out (no
- * declarations and the checkbox unchecked) resets it to UNKNOWN. The
- * client-facing Status picker is a separate, manual override and is not
- * touched by this helper. */
-export function autoAllergenStatus(noKnownAllergens: boolean, items: unknown[]): string {
-  return noKnownAllergens || items.length > 0 ? "CONFIRMED" : "UNKNOWN";
-}
-
-/** Named, inline-shown reasons Continue is blocked on the Food stage — the
- * same client-side invariants the frozen `superRefine`s on
- * `allergenDeclarationSchema`/`allergenDeclarationsSchema`/`dietaryPatternSchema`
- * enforce server-side, checked here so an ordinary interaction (adding a
- * declaration while status is still "Not sure", an unfinished "Other" box,
- * a blank dislike) surfaces a named message instead of an opaque 422. */
-export function foodStageIssues(a: Answers): string[] {
-  const issues: string[] = [];
-  const declarations =
-    (a.allergenDeclarations as {
-      status?: string;
-      noKnownAllergens?: boolean;
-      items?: { category?: string; specificity?: string | null }[];
-    }) ?? EMPTY_ALLERGEN_DECLARATIONS;
-  const items = declarations.items ?? [];
-  if (declarations.status === "CONFIRMED") {
-    if (Boolean(declarations.noKnownAllergens) === (items.length > 0))
-      issues.push('Allergy disclosures: choose "no known allergens" or add at least one declaration, not both.');
-  } else if (declarations.noKnownAllergens || items.length > 0) {
-    issues.push('Allergy disclosures: set status to "Answer now" to save these, or clear them.');
-  }
-  for (const item of items) {
-    const category = item.category ?? "";
-    if (category === "OTHER" && !item.specificity?.trim())
-      issues.push('Allergy disclosures: describe the "Other" allergen or remove it.');
-    if (!ALLERGEN_SPECIFICITY_CATEGORIES.includes(category) && item.specificity)
-      issues.push(`Allergy disclosures: ${category.replaceAll("_", " ").toLowerCase()} cannot include a specific type.`);
-  }
-  const pattern = (a.dietaryPattern as Record<string, unknown>) ?? EMPTY_DIETARY_PATTERN;
-  if (pattern.pattern === "OTHER" && !(pattern.otherLabel as string | null)?.trim())
-    issues.push("Dietary pattern: describe your pattern or choose a different option.");
-  const dislikes = (a.dislikes as Dislike[] | undefined) ?? [];
-  if (dislikes.some((dislike) => !dislike.label.trim()))
-    issues.push("Foods you dislike: remove the blank entry or give it a name.");
-  const cuisines = (a.cuisinePreferences as string[] | undefined) ?? [];
-  if (cuisines.length > 10) issues.push("Cuisines you enjoy: choose at most 10.");
-  return issues;
-}
-
-/** Named reasons Continue is blocked on the Training stage: the two
- * frozen bounds (`trainingDaysPerWeek` 1–7, `equipmentAccess` non-empty)
- * `intakeV2ConfirmSchema` already enforces server-side. */
-export function trainingStageIssues(a: Answers): string[] {
-  const issues: string[] = [];
-  const days = a.trainingDaysPerWeek as number | undefined;
-  if (days === undefined || days < 1 || days > 7)
-    issues.push("Available training days: enter a number from 1 to 7.");
-  const equipment = (a.equipmentAccess as string[] | undefined) ?? [];
-  if (equipment.length === 0) issues.push("Available equipment: choose at least one option.");
-  if (a.cookingAccessStatus === "CONFIRMED") {
-    const cookingEquipment = (a.cookingAccess as { equipment?: string[] } | undefined)?.equipment ?? [];
-    if (cookingEquipment.length === 0)
-      issues.push("Cooking and storage access: choose at least one cooking equipment option.");
-  }
-  return issues;
-}
-
-/** The only things that may ever block Confirm: a CONFIRMED status missing
- * its value anywhere in the intake, or an ordinary interaction invariant
- * (allergen status/items mismatch, an unfinished "Other" box, a blank
- * dislike, an out-of-range training-days/empty-equipment value) — never a
- * DECLINED/UNKNOWN status by itself. */
-export function reviewBlockingIssues(a: Answers): string[] {
-  return [
-    ...requiredAnswerIssues(a),
-    ...confirmedWithoutValue(a).map((group) => `${group.label}: add the value or change its status.`),
-    ...foodStageIssues(a),
-    ...trainingStageIssues(a),
-  ];
-}
-
-const STAGE_LABELS = ["Eligibility", "About you", "Food", "Training", "Review"];
-
-// The exact 31 frozen `intakeV2ConfirmSchema` keys, read off the schema
-// itself (never hand-duplicated) so this can never drift from what the
-// server actually accepts. `answers` in this component is hydrated from
-// `confirmedIntake`/`draft`, both of which may legitimately carry
-// server-owned keys (`allergies`, `dietaryRestrictions`, `capturedAt`) that
-// `intakeV2ConfirmSchema` is `.strict()` about rejecting — building the
-// confirm body from this allow-list, instead of forwarding `answers`
-// as-is, is what keeps those keys out.
-const CONFIRM_KEYS = Object.keys(intakeV2ConfirmObjectSchema.shape);
-
-/** Picks only the frozen confirm keys with a defined value out of a working
- * answers object. */
-export function buildConfirmPayload(answers: Answers): Answers {
-  const payload: Answers = {};
-  for (const key of CONFIRM_KEYS) {
-    if (!isAbsent(answers[key])) payload[key] = answers[key];
-  }
-  return payload;
+function IssueList({ issues }: { issues: string[] }) {
+  if (issues.length === 0) return null;
+  return (
+    <div role="alert" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
+      <p className="text-sm font-semibold text-amber-200">A couple of choices are still needed:</p>
+      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-100/90">
+        {issues.map((issue) => (
+          <li key={issue}>{issue}</li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 export function IntakeWizard({
@@ -295,907 +686,676 @@ export function IntakeWizard({
   busy,
   act,
   command,
-  post,
   initialStage = 0,
 }: {
-  view: AiWorkspace;
+  view: { confirmedIntake: unknown; draft: unknown };
   busy: boolean;
   act: (work: () => Promise<unknown>, success: string) => Promise<void>;
   command: (input: Record<string, unknown>) => Promise<unknown>;
   post: (url: string, input: Record<string, unknown>) => Promise<unknown>;
-  /** Test-only: renders straight to a given stage without simulating every
-   * Continue click. Production never passes this (always starts at 0). */
   initialStage?: number;
 }) {
+  const seed = { ...record(view.confirmedIntake), ...record(view.draft) };
   const [stage, setStage] = useState(initialStage);
-  const [safety, setSafety] = useState<Record<string, string>>({});
-  const [answers, setAnswers] = useState<Answers>(() =>
-    // A draft row is a subset by construction (each stage's Continue saves
-    // only that stage's keys) — it must layer OVER the confirmed intake,
-    // never shadow it, or every stage the client hasn't revisited since
-    // their last edit renders empty despite the row still holding the data
-    // (release-safety rule 4).
-    defaultAnswers({
-      ...((view.confirmedIntake as Answers | null) ?? {}),
-      ...((view.draft as Answers | null) ?? {}),
-    })
+  const [selections, setSelections] = useState<IntakeSelections>(() =>
+    createIntakeSelections(seed)
   );
+  const [safetyAnswers, setSafetyAnswers] = useState<SafetyAnswers>({});
+  const [showSafetyDetails, setShowSafetyDetails] = useState(false);
+  const [issueStage, setIssueStage] = useState<number | null>(null);
+  const needsSafetyDisclosure = view.confirmedIntake === null;
 
-  function set<K extends string>(key: K, value: unknown) {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
-  }
+  const update = (patch: Partial<IntakeSelections>) =>
+    setSelections((current) => ({ ...current, ...patch }));
 
-  const saveFields = (keys: string[]) =>
-    command({
+  const saveFields = (keys: string[]) => {
+    const mapped = mapSelectionsToAnswers(selections);
+    return command({
       operation: "SAVE_INTAKE",
-      answers: Object.fromEntries(
-        Object.entries(pruneUnconfirmed(answers)).filter(([key]) => keys.includes(key))
-      ),
+      answers: Object.fromEntries(Object.entries(mapped).filter(([key]) => keys.includes(key))),
     });
+  };
 
-  const saveAllergies = () =>
-    command({ operation: "ALLERGIES", allergenDeclarations: answers.allergenDeclarations });
-
-  function statusSelect(key: string, label: string) {
-    return (
-      <label key={key} className="block text-sm text-zinc-300">
-        {label}
-        <select
-          className={fieldClass}
-          style={inputStyle}
-          value={(answers[key] as string) ?? "UNKNOWN"}
-          onChange={(e) => set(key, e.target.value)}
-        >
-          <option value="CONFIRMED">Answer now</option>
-          <option value="DECLINED">Prefer not to say</option>
-          <option value="UNKNOWN">Not sure</option>
-        </select>
-      </label>
-    );
-  }
-
-  function select(key: string, label: string, options: [string, string][]) {
-    return (
-      <label key={key} className="block text-sm text-zinc-300">
-        {label}
-        <select
-          className={fieldClass}
-          style={inputStyle}
-          value={(answers[key] as string) ?? ""}
-          onChange={(e) => set(key, e.target.value === "" ? undefined : e.target.value)}
-        >
-          <option value="">Choose an answer</option>
-          {options.map(([value, text]) => (
-            <option key={value} value={value}>
-              {text}
-            </option>
-          ))}
-        </select>
-      </label>
-    );
-  }
-
-  function numberInput(key: string, label: string) {
-    return (
-      <label key={key} className="block text-sm text-zinc-300">
-        {label}
-        <input
-          type="number"
-          inputMode="decimal"
-          className={fieldClass}
-          style={inputStyle}
-          value={(answers[key] as number | undefined) ?? ""}
-          onChange={(e) => set(key, e.target.value === "" ? undefined : Number(e.target.value))}
-        />
-      </label>
-    );
-  }
-
-  function dateInput(key: string, label: string) {
-    return (
-      <label key={key} className="block text-sm text-zinc-300">
-        {label}
-        <input
-          type="date"
-          className={fieldClass}
-          style={inputStyle}
-          value={(answers[key] as string) ?? ""}
-          onChange={(e) => set(key, e.target.value || undefined)}
-        />
-      </label>
-    );
-  }
-
-  function checkbox(key: string, label: string) {
-    return (
-      <label key={key} className="flex min-h-12 items-center gap-3 text-zinc-300">
-        <input
-          type="checkbox"
-          className="h-5 w-5"
-          checked={Boolean(answers[key])}
-          onChange={(e) => set(key, e.target.checked)}
-        />
-        {label}
-      </label>
-    );
-  }
-
-  function tagListInput(key: string, label: string) {
-    const value = (answers[key] as string[] | undefined) ?? [];
-    return (
-      <label key={key} className="block text-sm text-zinc-300">
-        {label} (comma-separated)
-        <input
-          className={fieldClass}
-          style={inputStyle}
-          value={value.join(", ")}
-          onChange={(e) =>
-            set(
-              key,
-              e.target.value
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean)
-            )
-          }
-        />
-      </label>
-    );
-  }
-
-  async function goTo(next: number, saveKeys?: string[], saveAllergensToo = false) {
+  async function advance(next: number, keys: string[], saveAllergens = false) {
     if (busy) return;
-    // `act` (experience.tsx) catches and swallows — it never rejects, so a
-    // failed save must not silently be followed by `setStage`. Track
-    // success via this flag rather than relying on `act`'s return value
-    // (release-safety: "a dropped connection never loses more than one
-    // stage" only holds if a *failed* save keeps the client on the stage
-    // whose answers only exist in React state).
     let succeeded = false;
     await act(async () => {
-      if (saveAllergensToo) await saveAllergies();
-      if (saveKeys) await saveFields(saveKeys);
+      if (saveAllergens)
+        await command({
+          operation: "ALLERGIES",
+          allergenDeclarations: buildAllergenDeclarations(selections),
+        });
+      await saveFields(keys);
       succeeded = true;
-    }, "Saved. You can return to this step later.");
+    }, "Saved. You can pick up here anytime.");
     if (succeeded) setStage(next);
   }
 
+  const currentIssues = intakeStepIssues(stage, selections, safetyAnswers, needsSafetyDisclosure);
+  const visibleIssues = issueStage === stage ? currentIssues : [];
+  const continueFromStage = (next: number, keys: string[], saveAllergens = false) => {
+    if (currentIssues.length > 0) {
+      setIssueStage(stage);
+      return;
+    }
+    setIssueStage(null);
+    void advance(next, keys, saveAllergens);
+  };
+  const imperialHeight = centimetersToFeetAndInches(selections.heightCm);
+
   return (
     <div className="space-y-6">
-      <ol aria-label="Intake steps" className="flex flex-wrap gap-2 text-sm text-zinc-400">
-        {STAGE_LABELS.map((label, index) => (
-          <li
-            key={label}
-            className={`min-h-12 rounded-xl border px-3 py-2 flex items-center ${
-              index === stage ? "border-blue-500 text-zinc-100" : "border-white/10"
-            }`}
-          >
-            {index + 1}. {label}
-          </li>
-        ))}
-      </ol>
-
-      {stage === 0 && (
-        <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-          <h2 className="text-xl font-semibold text-zinc-100">1. Eligibility and safety</h2>
-          <p className="text-sm text-zinc-400">
-            Choose Yes, No, or Unsure for every question. A new concern is saved independently of
-            the rest of your intake.
-          </p>
-          {Object.entries(safetyFields).map(([key, label]) => (
-            <label key={key} className="block text-sm text-zinc-300">
-              {label}
-              <select
-                className={fieldClass}
-                style={inputStyle}
-                value={safety[key] ?? ""}
-                onChange={(e) => setSafety({ ...safety, [key]: e.target.value })}
-              >
-                <option value="">Choose an answer</option>
-                <option value="YES">Yes</option>
-                <option value="NO">No</option>
-                <option value="UNSURE">Unsure</option>
-              </select>
-            </label>
-          ))}
-          <button
-            className={button}
-            disabled={busy || !Object.values(safety).some((v) => v === "YES" || v === "UNSURE")}
-            onClick={() =>
-              act(
-                () =>
-                  post("/api/client/ai-coach/concerns", {
-                    payload: {
-                      safetyChanged: Object.values(safety).includes("YES") ? "YES" : "UNSURE",
-                    },
-                  }),
-                "Concern saved. Affected advice is restricted while you complete the remaining answers."
-              )
-            }
-          >
-            Save selected concern now
-          </button>
-          {!Object.keys(safetyFields).every((k) => safety[k]) && (
-            <p className="text-sm text-amber-300">
-              Answer all eight questions to save your safety answers now. You can continue without
-              finishing — nothing here is lost — but confirming your intake later requires coming
-              back to this stage first.
-            </p>
-          )}
-          <button
-            className={primary}
-            disabled={busy}
-            onClick={() =>
-              act(async () => {
-                if (Object.keys(safetyFields).every((k) => safety[k]))
-                  await command({ operation: "SAFETY", answers: safety });
-                setStage(1);
-              }, "Safety answers saved.")
-            }
-          >
-            Continue
-          </button>
-        </section>
-      )}
-
-      {stage === 1 && (
-        <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-          <h2 className="text-xl font-semibold text-zinc-100">2. About you</h2>
-          {select("goal", "Goal", [
-            ["GENERAL_FITNESS", "General fitness"],
-            ["STRENGTH", "Strength"],
-            ["ENDURANCE", "Endurance"],
-            ["BODY_COMPOSITION", "Body composition"],
-          ])}
-          {select("experienceLevel", "Training experience", [
-            ["NEW", "New"],
-            ["RETURNING", "Returning"],
-            ["EXPERIENCED", "Experienced"],
-          ])}
-          {select("trackingPreference", "Preferred nutrition display", [
-            ["NUMBERS_VISIBLE", "Show numbers"],
-            ["PORTIONS_ONLY", "Prefer portions"],
-          ])}
-          {select("unitsPreference", "Preferred units", [
-            ["METRIC", "Metric"],
-            ["IMPERIAL", "Imperial"],
-          ])}
-
-          {statusSelect("ageStatus", "Age")}
-          {answers.ageStatus === "CONFIRMED" && numberInput("ageYears", "Age in whole years")}
-
-          {statusSelect("energyMethodPopulationCategoryStatus", PENDING_G01_WORDING)}
-          {answers.energyMethodPopulationCategoryStatus === "CONFIRMED" &&
-            select("energyMethodPopulationCategory", PENDING_G01_WORDING, [
-              ["MALE_ADULT", "Male adult"],
-              ["FEMALE_ADULT", "Female adult"],
-              ["PREGNANCY", "Pregnancy"],
-              ["LACTATION", "Lactation"],
-              ["NOT_LISTED", "Not listed"],
-            ])}
-
-          {statusSelect("physicalActivityCategoryStatus", PENDING_G01_WORDING)}
-          {answers.physicalActivityCategoryStatus === "CONFIRMED" &&
-            select("physicalActivityCategory", PENDING_G01_WORDING, [
-              ["INACTIVE", "Inactive"],
-              ["LOW_ACTIVE", "Low active"],
-              ["ACTIVE", "Active"],
-              ["VERY_ACTIVE", "Very active"],
-            ])}
-
-          {statusSelect("bodyMeasurementStatus", "Height and weight")}
-          {answers.bodyMeasurementStatus === "CONFIRMED" && (
-            <>
-              {numberInput("heightCm", "Height in centimetres")}
-              {numberInput("weightKg", "Weight in kilograms")}
-              {dateInput("weightMeasuredOn", "Date measured")}
-            </>
-          )}
-
-          {statusSelect("goalStatus", "Goal and pace")}
-          {answers.goalStatus === "CONFIRMED" && (
-            <>
-              {select("bodyWeightIntent", "Body weight intent", [
-                ["LOSE", "Lose"],
-                ["MAINTAIN", "Maintain"],
-                ["GAIN", "Gain"],
-                ["NO_PREFERENCE", "No preference"],
-              ])}
-              {select("goalPaceClass", "Goal pace", [
-                ["MAINTAIN", "Maintain"],
-                ["GRADUAL", "Gradual"],
-                ["MODERATE", "Moderate"],
-                ["UNDECIDED", "Undecided"],
-              ])}
-              {checkbox("weightNeutralAccepted", "I would accept a weight-neutral plan")}
-            </>
-          )}
-
-          {(() => {
-            const stage1Issues = [
-              ...requiredAnswerIssues(answers, 1),
-              ...confirmedWithoutValue(answers, 1).map((group) => `${group.label}: add the value or change its status.`),
-            ];
-            return (
-              stage1Issues.length > 0 && (
-                <ul className="space-y-1 text-sm text-amber-300">
-                  {stage1Issues.map((issue) => (
-                    <li key={issue}>{issue}</li>
-                  ))}
-                </ul>
-              )
-            );
-          })()}
-          <div className="flex flex-wrap gap-3">
-            <button className={button} disabled={busy} onClick={() => setStage(0)}>
-              Back
-            </button>
-            <button
-              className={primary}
-              disabled={
-                busy || requiredAnswerIssues(answers, 1).length > 0 || confirmedWithoutValue(answers, 1).length > 0
-              }
-              onClick={() =>
-                goTo(2, [
-                  "intakeVersion",
-                  "goal",
-                  "experienceLevel",
-                  "trackingPreference",
-                  "unitsPreference",
-                  "ageStatus",
-                  "ageYears",
-                  "energyMethodPopulationCategoryStatus",
-                  "energyMethodPopulationCategory",
-                  "physicalActivityCategoryStatus",
-                  "physicalActivityCategory",
-                  "bodyMeasurementStatus",
-                  "heightCm",
-                  "weightKg",
-                  "weightMeasuredOn",
-                  "goalStatus",
-                  "bodyWeightIntent",
-                  "goalPaceClass",
-                  "weightNeutralAccepted",
-                ])
-              }
-            >
-              Continue
-            </button>
+      <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0a1224]">
+        <div className="border-b border-white/[0.06] px-5 py-4 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
+                Your setup
+              </p>
+              <p className="mt-1 text-sm text-zinc-400">Four focused steps.</p>
+            </div>
+            <p className="font-mono text-sm tabular-nums text-zinc-300">{stage + 1} / 4</p>
           </div>
-        </section>
-      )}
-
-      {stage === 2 && (
-        <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-          <h2 className="text-xl font-semibold text-zinc-100">3. Food</h2>
-          {select("foodBudgetLevel", "Food budget", [
-            ["LOW", "Low"],
-            ["MODERATE", "Moderate"],
-            ["FLEXIBLE", "Flexible"],
-          ])}
-          {tagListInput("cuisinePreferences", "Cuisines you enjoy")}
-
-          <fieldset className="space-y-3">
-            <legend className="text-sm text-zinc-300">Foods you dislike</legend>
-            {((answers.dislikes as Dislike[] | undefined) ?? []).map((dislike, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <input
-                  className={fieldClass}
-                  style={inputStyle}
-                  value={dislike.label}
-                  onChange={(e) => {
-                    const next: Dislike[] = [...((answers.dislikes as Dislike[]) ?? [])];
-                    next[index] = { label: e.target.value, canonicalFoodId: null };
-                    set("dislikes", next);
-                  }}
-                />
-                <button
-                  type="button"
-                  className={button}
-                  onClick={() => {
-                    const next = ((answers.dislikes as Dislike[]) ?? []).filter((_, i) => i !== index);
-                    set("dislikes", next);
-                  }}
-                >
-                  Remove
-                </button>
-              </div>
+          <div className="mt-4 grid grid-cols-4 gap-2" aria-hidden="true">
+            {STAGES.map((label, index) => (
+              <div
+                key={label}
+                className={`h-1.5 rounded-full transition-colors duration-200 ${
+                  index <= stage ? "bg-blue-500" : "bg-zinc-800"
+                }`}
+              />
             ))}
-            <button
-              type="button"
-              className={button}
-              onClick={() =>
-                set("dislikes", [
-                  ...((answers.dislikes as Dislike[]) ?? []),
-                  { label: "", canonicalFoodId: null } satisfies Dislike,
-                ])
-              }
-            >
-              Add a dislike
-            </button>
-          </fieldset>
-
-          <div className="space-y-3 rounded-xl border border-white/10 p-4">
-            <h3 className="font-semibold text-zinc-100">Dietary pattern</h3>
-            {(() => {
-              const pattern = (answers.dietaryPattern as Record<string, unknown>) ?? EMPTY_DIETARY_PATTERN;
-              const setPattern = (patch: Record<string, unknown>) =>
-                set("dietaryPattern", { ...pattern, ...patch });
-              return (
-                <>
-                  <label className="block text-sm text-zinc-300">
-                    Pattern
-                    <select
-                      className={fieldClass}
-                      style={inputStyle}
-                      value={(pattern.pattern as string) ?? "NONE_DECLARED"}
-                      onChange={(e) =>
-                        setPattern({
-                          pattern: e.target.value,
-                          otherLabel: e.target.value === "OTHER" ? (pattern.otherLabel ?? "") : null,
-                        })
-                      }
-                    >
-                      <option value="OMNIVORE">Omnivore</option>
-                      <option value="LACTO_OVO_VEGETARIAN">Lacto-ovo vegetarian</option>
-                      <option value="VEGAN">Vegan</option>
-                      <option value="PESCATARIAN">Pescatarian</option>
-                      <option value="OTHER">Other</option>
-                      <option value="NONE_DECLARED">Prefer not to say</option>
-                    </select>
-                  </label>
-                  {pattern.pattern === "OTHER" && (
-                    <label className="block text-sm text-zinc-300">
-                      Describe your pattern
-                      <input
-                        className={fieldClass}
-                        style={inputStyle}
-                        value={(pattern.otherLabel as string) ?? ""}
-                        onChange={(e) => setPattern({ otherLabel: e.target.value })}
-                      />
-                    </label>
-                  )}
-                  <label className="flex min-h-12 items-center gap-3 text-zinc-300">
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5"
-                      checked={Boolean(pattern.mandatory)}
-                      onChange={(e) => setPattern({ mandatory: e.target.checked })}
-                    />
-                    This is a hard exclusion, not just a preference
-                  </label>
-                  <label className="block text-sm text-zinc-300">
-                    Reason
-                    <select
-                      className={fieldClass}
-                      style={inputStyle}
-                      value={(pattern.reason as string) ?? "NOT_STATED"}
-                      onChange={(e) => setPattern({ reason: e.target.value })}
-                    >
-                      <option value="PREFERENCE">Preference</option>
-                      <option value="RELIGIOUS_OR_ETHICAL">Religious or ethical</option>
-                      <option value="MEDICAL_OR_CLINICIAN_DIRECTED">Medical or clinician-directed</option>
-                      <option value="NOT_STATED">Prefer not to say</option>
-                    </select>
-                  </label>
-                  <label className="block text-sm text-zinc-300">
-                    Status
-                    <select
-                      className={fieldClass}
-                      style={inputStyle}
-                      value={(pattern.status as string) ?? "UNKNOWN"}
-                      onChange={(e) => setPattern({ status: e.target.value })}
-                    >
-                      <option value="CONFIRMED">Answer now</option>
-                      <option value="DECLINED">Prefer not to say</option>
-                      <option value="UNKNOWN">Not sure</option>
-                    </select>
-                  </label>
-                </>
-              );
-            })()}
           </div>
+        </div>
 
-          <div className="space-y-3 rounded-xl border border-white/10 p-4">
-            <h3 className="font-semibold text-zinc-100">Allergy disclosures</h3>
-            <p className="text-sm text-zinc-400">Saved immediately and separately from the rest of this step.</p>
-            {(() => {
-              const declarations =
-                (answers.allergenDeclarations as {
-                  status: string;
-                  noKnownAllergens: boolean;
-                  items: Record<string, unknown>[];
-                }) ?? EMPTY_ALLERGEN_DECLARATIONS;
-              const setDeclarations = (patch: Record<string, unknown>) =>
-                set("allergenDeclarations", { ...declarations, ...patch });
-              return (
-                <>
-                  <label className="block text-sm text-zinc-300">
-                    Status
-                    <select
-                      className={fieldClass}
-                      style={inputStyle}
-                      value={declarations.status}
-                      onChange={(e) => setDeclarations({ status: e.target.value })}
-                    >
-                      <option value="CONFIRMED">Answer now</option>
-                      <option value="DECLINED">Prefer not to say</option>
-                      <option value="UNKNOWN">Not sure</option>
-                    </select>
-                  </label>
-                  <label className="flex min-h-12 items-center gap-3 text-zinc-300">
-                    <input
-                      type="checkbox"
-                      className="h-5 w-5"
-                      checked={declarations.noKnownAllergens}
-                      onChange={(e) => {
-                        const nextItems = e.target.checked ? [] : declarations.items;
-                        setDeclarations({
-                          noKnownAllergens: e.target.checked,
-                          items: nextItems,
-                          status: autoAllergenStatus(e.target.checked, nextItems),
-                        });
-                      }}
-                    />
-                    No known allergens or intolerances
-                  </label>
-                  {!declarations.noKnownAllergens &&
-                    declarations.items.map((item, index) => {
-                      const category = item.category as string;
-                      const acceptsSpecificity = ["TREE_NUT", "FISH", "CRUSTACEAN_SHELLFISH", "OTHER"].includes(
-                        category
-                      );
-                      const update = (patch: Record<string, unknown>) => {
-                        const next = [...declarations.items];
-                        next[index] = { ...item, ...patch };
-                        setDeclarations({ items: next });
-                      };
-                      return (
-                        <div key={index} className="space-y-2 rounded-xl border border-white/10 p-3">
-                          <select
-                            className={fieldClass}
-                            style={inputStyle}
-                            value={category ?? "MILK"}
-                            onChange={(e) =>
-                              update({
-                                category: e.target.value,
-                                specificity: ["TREE_NUT", "FISH", "CRUSTACEAN_SHELLFISH"].includes(e.target.value)
-                                  ? null
-                                  : e.target.value === "OTHER"
-                                    ? ""
-                                    : null,
-                              })
-                            }
-                          >
-                            {[
-                              "MILK",
-                              "EGG",
-                              "FISH",
-                              "CRUSTACEAN_SHELLFISH",
-                              "TREE_NUT",
-                              "PEANUT",
-                              "WHEAT",
-                              "SOYBEAN",
-                              "SESAME",
-                              "OTHER",
-                            ].map((c) => (
-                              <option key={c} value={c}>
-                                {c.replaceAll("_", " ")}
-                              </option>
-                            ))}
-                          </select>
-                          {acceptsSpecificity && (
-                            <input
-                              className={fieldClass}
-                              style={inputStyle}
-                              placeholder={category === "OTHER" ? "Describe (required)" : "Specific type (optional)"}
-                              value={(item.specificity as string) ?? ""}
-                              onChange={(e) => update({ specificity: e.target.value || (category === "OTHER" ? "" : null) })}
-                            />
-                          )}
-                          <select
-                            className={fieldClass}
-                            style={inputStyle}
-                            value={(item.kind as string) ?? "ALLERGY"}
-                            onChange={(e) => update({ kind: e.target.value })}
-                          >
-                            <option value="ALLERGY">Allergy</option>
-                            <option value="INTOLERANCE_OR_SENSITIVITY">Intolerance or sensitivity</option>
-                          </select>
-                          <select
-                            className={fieldClass}
-                            style={inputStyle}
-                            value={(item.crossContactAvoidanceRequired as string) ?? "UNSURE"}
-                            onChange={(e) => update({ crossContactAvoidanceRequired: e.target.value })}
-                          >
-                            <option value="YES">Cross-contact avoidance required</option>
-                            <option value="NO">Cross-contact avoidance not required</option>
-                            <option value="UNSURE">Unsure about cross-contact</option>
-                          </select>
-                          <button
-                            type="button"
-                            className={button}
-                            onClick={() => {
-                              const nextItems = declarations.items.filter((_, i) => i !== index);
-                              setDeclarations({
-                                items: nextItems,
-                                status: autoAllergenStatus(declarations.noKnownAllergens, nextItems),
-                              });
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      );
-                    })}
-                  {!declarations.noKnownAllergens && (
-                    <button
-                      type="button"
-                      className={button}
-                      onClick={() => {
-                        const nextItems = [
-                          ...declarations.items,
-                          { category: "MILK", specificity: null, kind: "ALLERGY", crossContactAvoidanceRequired: "UNSURE" },
-                        ];
-                        setDeclarations({
-                          items: nextItems,
-                          status: autoAllergenStatus(declarations.noKnownAllergens, nextItems),
-                        });
-                      }}
-                    >
-                      Add a declaration
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </div>
+        <ol aria-label="Intake steps" className="sr-only">
+          {STAGES.map((label, index) => (
+            <li key={label} aria-current={index === stage ? "step" : undefined}>
+              Step {index + 1}: {label}
+            </li>
+          ))}
+        </ol>
 
-          {(() => {
-            const stage2Issues = [...requiredAnswerIssues(answers, 2), ...foodStageIssues(answers)];
-            return (
-              stage2Issues.length > 0 && (
-                <ul className="space-y-1 text-sm text-amber-300">
-                  {stage2Issues.map((issue) => (
-                    <li key={issue}>{issue}</li>
-                  ))}
-                </ul>
-              )
-            );
-          })()}
-          <div className="flex flex-wrap gap-3">
-            <button className={button} disabled={busy} onClick={() => setStage(1)}>
-              Back
-            </button>
-            <button
-              className={primary}
-              disabled={busy || requiredAnswerIssues(answers, 2).length > 0 || foodStageIssues(answers).length > 0}
-              onClick={() =>
-                goTo(3, ["intakeVersion", "foodBudgetLevel", "cuisinePreferences", "dislikes", "dietaryPattern"], true)
-              }
-            >
-              Continue
-            </button>
-          </div>
-        </section>
-      )}
-
-      {stage === 3 && (
-        <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-          <h2 className="text-xl font-semibold text-zinc-100">4. Training</h2>
-          {numberInput("trainingDaysPerWeek", "Available training days each week (1–7)")}
-          <fieldset className="space-y-2">
-            <legend className="text-sm text-zinc-300">Available equipment</legend>
-            {["NONE", "HOME_BASIC", "FULL_GYM"].map((value) => {
-              const current = (answers.equipmentAccess as string[] | undefined) ?? [];
-              return (
-                <label key={value} className="flex min-h-12 items-center gap-3 text-zinc-300">
-                  <input
-                    type="checkbox"
-                    className="h-5 w-5"
-                    checked={current.includes(value)}
-                    onChange={(e) =>
-                      set(
-                        "equipmentAccess",
-                        e.target.checked ? [...current, value] : current.filter((v) => v !== value)
-                      )
-                    }
-                  />
-                  {value === "NONE" ? "No equipment" : value === "HOME_BASIC" ? "Basic home equipment" : "Full gym"}
-                </label>
-              );
-            })}
-          </fieldset>
-
-          {statusSelect("trainingContextStatus", "Training context and session length")}
-          {answers.trainingContextStatus === "CONFIRMED" && (
-            <>
-              {select("resistanceTrainingContext", "Resistance training", [
-                ["NONE", "None"],
-                ["OCCASIONAL", "Occasional"],
-                ["REGULAR", "Regular"],
-              ])}
-              {select("sessionLengthBand", "Typical session length", [
-                ["UNDER_30", "Under 30 minutes"],
-                ["MIN_30_45", "30–45 minutes"],
-                ["MIN_45_60", "45–60 minutes"],
-                ["MIN_60_90", "60–90 minutes"],
-                ["OVER_90", "Over 90 minutes"],
-              ])}
-            </>
-          )}
-
-          {statusSelect("cookingAccessStatus", "Cooking and storage access")}
-          {answers.cookingAccessStatus === "CONFIRMED" &&
-            (() => {
-              const cookingAccess =
-                (answers.cookingAccess as Record<string, unknown>) ?? {
-                  equipment: [],
-                  refrigeration: "FRIDGE",
-                  mealPrepCapacity: "SOME",
-                  typicalPrepMinutesBand: "MIN_15_30",
-                };
-              const setCooking = (patch: Record<string, unknown>) => set("cookingAccess", { ...cookingAccess, ...patch });
-              const equipment = (cookingAccess.equipment as string[]) ?? [];
-              return (
-                <div className="space-y-2 rounded-xl border border-white/10 p-4">
-                  <fieldset className="space-y-2">
-                    <legend className="text-sm text-zinc-300">Cooking equipment</legend>
-                    {["NONE", "MICROWAVE", "STOVETOP", "OVEN", "FULL_KITCHEN"].map((value) => (
-                      <label key={value} className="flex min-h-12 items-center gap-3 text-zinc-300">
-                        <input
-                          type="checkbox"
-                          className="h-5 w-5"
-                          checked={equipment.includes(value)}
-                          onChange={(e) =>
-                            setCooking({
-                              equipment: e.target.checked
-                                ? [...equipment, value]
-                                : equipment.filter((v) => v !== value),
-                            })
-                          }
-                        />
-                        {value.replaceAll("_", " ")}
-                      </label>
-                    ))}
-                  </fieldset>
-                  <label className="block text-sm text-zinc-300">
-                    Refrigeration
-                    <select
-                      className={fieldClass}
-                      style={inputStyle}
-                      value={(cookingAccess.refrigeration as string) ?? "FRIDGE"}
-                      onChange={(e) => setCooking({ refrigeration: e.target.value })}
-                    >
-                      <option value="NONE">None</option>
-                      <option value="FRIDGE">Fridge</option>
-                      <option value="FRIDGE_AND_FREEZER">Fridge and freezer</option>
-                    </select>
-                  </label>
-                  <label className="block text-sm text-zinc-300">
-                    Meal prep capacity
-                    <select
-                      className={fieldClass}
-                      style={inputStyle}
-                      value={(cookingAccess.mealPrepCapacity as string) ?? "SOME"}
-                      onChange={(e) => setCooking({ mealPrepCapacity: e.target.value })}
-                    >
-                      <option value="NONE">None</option>
-                      <option value="SOME">Some</option>
-                      <option value="BATCH">Batch cooking</option>
-                    </select>
-                  </label>
-                  <label className="block text-sm text-zinc-300">
-                    Typical prep time
-                    <select
-                      className={fieldClass}
-                      style={inputStyle}
-                      value={(cookingAccess.typicalPrepMinutesBand as string) ?? "MIN_15_30"}
-                      onChange={(e) => setCooking({ typicalPrepMinutesBand: e.target.value })}
-                    >
-                      <option value="UNDER_15">Under 15 minutes</option>
-                      <option value="MIN_15_30">15–30 minutes</option>
-                      <option value="MIN_30_60">30–60 minutes</option>
-                      <option value="OVER_60">Over 60 minutes</option>
-                    </select>
-                  </label>
-                </div>
-              );
-            })()}
-
-          {[...trainingStageIssues(answers), ...confirmedWithoutValue(answers, 3).map((g) => `${g.label}: choose a value or set status to "Prefer not to say"/"Not sure".`)].length > 0 && (
-            <ul className="space-y-1 text-sm text-amber-300">
-              {[
-                ...trainingStageIssues(answers),
-                ...confirmedWithoutValue(answers, 3).map(
-                  (g) => `${g.label}: choose a value or set status to "Prefer not to say"/"Not sure".`
-                ),
-              ].map((issue) => (
-                <li key={issue}>{issue}</li>
-              ))}
-            </ul>
-          )}
-          <div className="flex flex-wrap gap-3">
-            <button className={button} disabled={busy} onClick={() => setStage(2)}>
-              Back
-            </button>
-            <button
-              className={primary}
-              disabled={
-                busy || trainingStageIssues(answers).length > 0 || confirmedWithoutValue(answers, 3).length > 0
-              }
-              onClick={() =>
-                goTo(4, [
-                  "intakeVersion",
-                  "trainingDaysPerWeek",
-                  "equipmentAccess",
-                  "trainingContextStatus",
-                  "resistanceTrainingContext",
-                  "sessionLengthBand",
-                  "cookingAccessStatus",
-                  "cookingAccess",
-                ])
-              }
-            >
-              Continue
-            </button>
-          </div>
-        </section>
-      )}
-
-      {stage === 4 && (
-        <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-          <h2 className="text-xl font-semibold text-zinc-100">5. Review</h2>
-          {pendingItems(answers).length > 0 && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-zinc-300">
-              <p className="font-semibold text-amber-200">Personalized nutrition stays pending for:</p>
-              <ul className="mt-2 list-disc pl-5">
-                {pendingItems(answers).map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <p className="mt-2 text-sm text-zinc-400">
-                You can confirm now and answer these later — nothing here blocks confirmation.
+        {stage === 0 && (
+          <section aria-labelledby="intake-goal-heading" className="space-y-7 p-5 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-blue-400">Step 1</p>
+              <h2 id="intake-goal-heading" className="mt-1 text-2xl font-bold text-zinc-100">
+                What are we building toward?
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                Pick the goal that matters most right now. You can change it later.
               </p>
             </div>
-          )}
-          {reviewBlockingIssues(answers).length > 0 ? (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-red-300">
-              <p className="font-semibold">Fix these before confirming:</p>
-              <ul className="mt-2 list-disc pl-5">
-                {reviewBlockingIssues(answers).map((issue) => (
-                  <li key={issue}>{issue}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="text-zinc-300">Ready to confirm.</p>
-          )}
-          <div className="flex flex-wrap gap-3">
-            <button className={button} disabled={busy} onClick={() => setStage(3)}>
-              Back
-            </button>
-            <button
-              className={primary}
-              disabled={busy || reviewBlockingIssues(answers).length > 0}
-              onClick={() =>
-                act(async () => {
-                  await saveAllergies();
-                  const finalAnswers = buildConfirmPayload(
-                    pruneUnconfirmed({ ...answers, intakeVersion: 2 })
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold text-zinc-200">Main goal</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {GOAL_OPTIONS.map((option) => {
+                  const selected = selections.goal === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      className={`${CHOICE_BASE} relative p-4 ${
+                        selected
+                          ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/[0.06]"
+                          : "border-white/[0.08] bg-zinc-950/40 hover:border-blue-500/30 hover:bg-zinc-900/80"
+                      }`}
+                      onClick={() => update({ goal: option.value })}
+                    >
+                      <span className="flex items-start gap-3">
+                        <span
+                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                            selected ? "bg-blue-500/20 text-blue-300" : "bg-zinc-800 text-zinc-400"
+                          }`}
+                        >
+                          <GoalIcon kind={option.icon} />
+                        </span>
+                        <span>
+                          <span className="flex items-center gap-2 font-semibold text-zinc-100">
+                            {option.label}
+                            {selected && (
+                              <span className="inline-flex items-center gap-1 text-xs text-blue-300">
+                                <CheckIcon /> Selected
+                              </span>
+                            )}
+                          </span>
+                          <span className="mt-1 block text-sm leading-relaxed text-zinc-400">
+                            {option.description}
+                          </span>
+                        </span>
+                      </span>
+                    </button>
                   );
-                  await command({ operation: "CONFIRM_INTAKE", answers: finalAnswers });
-                  if (typeof window !== "undefined") {
-                    window.location.assign("/client/ai-coach");
+                })}
+              </div>
+            </fieldset>
+
+            <ChoicePills
+              label="Experience level"
+              value={selections.experience}
+              options={EXPERIENCE_OPTIONS}
+              onChange={(value) => update({ experience: value as ExperienceChoice })}
+            />
+
+            <IssueList issues={visibleIssues} />
+            <div className="flex justify-end">
+              <button
+                className={`${primary} min-w-36 cursor-pointer`}
+                disabled={busy}
+                onClick={() =>
+                  continueFromStage(1, [
+                    "intakeVersion",
+                    "goal",
+                    "experienceLevel",
+                    "goalStatus",
+                    "bodyWeightIntent",
+                    "goalPaceClass",
+                    "weightNeutralAccepted",
+                  ])
+                }
+              >
+                {busy ? "Saving..." : "Continue"}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 1 && (
+          <section aria-labelledby="intake-training-heading" className="space-y-7 p-5 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-blue-400">Step 2</p>
+              <h2 id="intake-training-heading" className="mt-1 text-2xl font-bold text-zinc-100">
+                Set up your training week
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                We will shape the plan around the time and equipment you actually have.
+              </p>
+            </div>
+
+            <ChoicePills
+              label="Days per week"
+              value={selections.trainingDaysPerWeek}
+              options={[2, 3, 4, 5, 6].map((day) => ({ value: day, label: String(day) }))}
+              onChange={(value) => update({ trainingDaysPerWeek: Number(value) })}
+            />
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold text-zinc-200">Equipment</legend>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {EQUIPMENT_OPTIONS.map((option) => {
+                  const selected = selections.equipment === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      className={`${CHOICE_BASE} ${
+                        selected
+                          ? "border-blue-500 bg-blue-500/15 text-zinc-100"
+                          : "border-white/[0.1] bg-zinc-950/40 text-zinc-300 hover:border-white/[0.2]"
+                      }`}
+                      onClick={() => update({ equipment: option.value })}
+                    >
+                      <span className="flex items-center gap-2 font-semibold">
+                        {selected && <CheckIcon />}
+                        {option.label}
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
+                        {option.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <ChoicePills
+              label="Typical session length"
+              value={selections.sessionLength}
+              options={SESSION_OPTIONS}
+              onChange={(value) => update({ sessionLength: value as SessionLengthChoice })}
+            />
+
+            <IssueList issues={visibleIssues} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                className={`${button} cursor-pointer`}
+                disabled={busy}
+                onClick={() => setStage(0)}
+              >
+                Back
+              </button>
+              <button
+                className={`${primary} min-w-36 cursor-pointer`}
+                disabled={busy}
+                onClick={() =>
+                  continueFromStage(2, [
+                    "intakeVersion",
+                    "trainingDaysPerWeek",
+                    "equipmentAccess",
+                    "trainingContextStatus",
+                    "resistanceTrainingContext",
+                    "sessionLengthBand",
+                  ])
+                }
+              >
+                {busy ? "Saving..." : "Continue"}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 2 && (
+          <section aria-labelledby="intake-nutrition-heading" className="space-y-7 p-5 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-blue-400">Step 3</p>
+              <h2 id="intake-nutrition-heading" className="mt-1 text-2xl font-bold text-zinc-100">
+                Make nutrition fit your style
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                A few clear preferences are more useful than a long food questionnaire.
+              </p>
+            </div>
+
+            <ChoicePills
+              label="Dietary style"
+              value={selections.dietaryStyle}
+              options={DIETARY_OPTIONS}
+              onChange={(value) => update({ dietaryStyle: value as DietaryStyleChoice })}
+            />
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold text-zinc-200">
+                How do you want to track?
+              </legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {TRACKING_OPTIONS.map((option) => {
+                  const selected = selections.trackingStyle === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      className={`${CHOICE_BASE} ${
+                        selected
+                          ? "border-blue-500 bg-blue-500/15"
+                          : "border-white/[0.1] bg-zinc-950/40 hover:border-white/[0.2]"
+                      }`}
+                      onClick={() => update({ trackingStyle: option.value })}
+                    >
+                      <span className="flex items-center gap-2 font-semibold text-zinc-100">
+                        {selected && <CheckIcon />}
+                        {option.label}
+                      </span>
+                      <span className="mt-1 block text-sm leading-relaxed text-zinc-400">
+                        {option.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold text-zinc-200">
+                Allergies or foods that must be avoided
+              </legend>
+              <p className="text-sm text-zinc-500">
+                Choose every item that applies, or choose None.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ALLERGEN_OPTIONS.map((option) => {
+                  const selected = selections.allergens.includes(option.value);
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      aria-pressed={selected}
+                      className={`${CHOICE_BASE} inline-flex items-center gap-2 ${
+                        selected
+                          ? option.value === "NONE"
+                            ? "border-emerald-500 bg-emerald-500/10 text-emerald-200"
+                            : "border-blue-500 bg-blue-500/15 text-blue-100"
+                          : "border-white/[0.1] bg-zinc-900/60 text-zinc-300 hover:border-white/[0.2]"
+                      }`}
+                      onClick={() =>
+                        update({ allergens: toggleAllergen(selections.allergens, option.value) })
+                      }
+                    >
+                      {selected && <CheckIcon />}
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            <IssueList issues={visibleIssues} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <button
+                className={`${button} cursor-pointer`}
+                disabled={busy}
+                onClick={() => setStage(1)}
+              >
+                Back
+              </button>
+              <button
+                className={`${primary} min-w-36 cursor-pointer`}
+                disabled={busy}
+                onClick={() =>
+                  continueFromStage(
+                    3,
+                    [
+                      "intakeVersion",
+                      "foodBudgetLevel",
+                      "trackingPreference",
+                      "dietaryPattern",
+                      "dislikes",
+                      "cuisinePreferences",
+                    ],
+                    true
+                  )
+                }
+              >
+                {busy ? "Saving..." : "Continue"}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {stage === 3 && (
+          <section aria-labelledby="intake-stats-heading" className="space-y-7 p-5 sm:p-6">
+            <div>
+              <p className="text-sm font-medium text-blue-400">Step 4</p>
+              <h2 id="intake-stats-heading" className="mt-1 text-2xl font-bold text-zinc-100">
+                Last step: your starting stats
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+                These help size the starting plan. We will not guess missing details.
+              </p>
+            </div>
+
+            <ChoicePills
+              label="Units"
+              value={selections.unitSystem}
+              options={[
+                { value: "IMPERIAL", label: "lb / ft–in" },
+                { value: "METRIC", label: "kg / cm" },
+              ]}
+              onChange={(value) => update({ unitSystem: value as UnitSystem })}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {selections.unitSystem === "IMPERIAL" ? (
+                <fieldset className="space-y-2">
+                  <legend className="text-sm font-semibold text-zinc-200">Height</legend>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="text-sm text-zinc-400">
+                      Feet
+                      <input
+                        aria-label="Height in feet"
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={9}
+                        className={INPUT_CLASS}
+                        style={inputStyle}
+                        value={imperialHeight.feet ?? ""}
+                        onChange={(event) => {
+                          const feet =
+                            event.target.value === "" ? undefined : Number(event.target.value);
+                          update({
+                            heightCm:
+                              feet === undefined
+                                ? undefined
+                                : feetAndInchesToCentimeters(feet, imperialHeight.inches ?? 0),
+                          });
+                        }}
+                      />
+                    </label>
+                    <label className="text-sm text-zinc-400">
+                      Inches
+                      <input
+                        aria-label="Additional height in inches"
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={11}
+                        className={INPUT_CLASS}
+                        style={inputStyle}
+                        value={imperialHeight.inches ?? ""}
+                        onChange={(event) => {
+                          const inches =
+                            event.target.value === "" ? undefined : Number(event.target.value);
+                          update({
+                            heightCm:
+                              inches === undefined || imperialHeight.feet === undefined
+                                ? undefined
+                                : feetAndInchesToCentimeters(imperialHeight.feet, inches),
+                          });
+                        }}
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+              ) : (
+                <label className="text-sm font-semibold text-zinc-200">
+                  Height (cm)
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min={1}
+                    max={300}
+                    step="0.1"
+                    className={INPUT_CLASS}
+                    style={inputStyle}
+                    value={selections.heightCm ?? ""}
+                    onChange={(event) =>
+                      update({
+                        heightCm:
+                          event.target.value === "" ? undefined : Number(event.target.value),
+                      })
+                    }
+                  />
+                </label>
+              )}
+
+              <label className="text-sm font-semibold text-zinc-200">
+                Weight ({selections.unitSystem === "IMPERIAL" ? "lb" : "kg"})
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min={1}
+                  step="0.1"
+                  className={INPUT_CLASS}
+                  style={inputStyle}
+                  value={
+                    selections.weightKg === undefined
+                      ? ""
+                      : selections.unitSystem === "IMPERIAL"
+                        ? kilogramsToPounds(selections.weightKg)
+                        : round(selections.weightKg, 1)
                   }
-                }, "Intake confirmed. Returning to your coaching plan...")
-              }
-            >
-              Confirm intake
-            </button>
-          </div>
-        </section>
-      )}
+                  onChange={(event) => {
+                    const value =
+                      event.target.value === "" ? undefined : Number(event.target.value);
+                    update({
+                      weightKg:
+                        value === undefined
+                          ? undefined
+                          : selections.unitSystem === "IMPERIAL"
+                            ? poundsToKilograms(value)
+                            : value,
+                      ...(value === undefined ? {} : { weightMeasuredOn: localDateString() }),
+                    });
+                  }}
+                />
+              </label>
+
+              <label className="text-sm font-semibold text-zinc-200 sm:col-span-2 sm:max-w-[calc(50%-0.5rem)]">
+                Age
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={120}
+                  step={1}
+                  className={INPUT_CLASS}
+                  style={inputStyle}
+                  value={selections.ageYears ?? ""}
+                  onChange={(event) =>
+                    update({
+                      ageYears: event.target.value === "" ? undefined : Number(event.target.value),
+                    })
+                  }
+                />
+              </label>
+            </div>
+
+            {needsSafetyDisclosure && (
+              <div className="space-y-4 rounded-2xl border border-white/[0.08] bg-zinc-950/40 p-4 sm:p-5">
+                <div>
+                  <h3 className="font-semibold text-zinc-100">Quick safety check</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-zinc-400">
+                    We need this once before building a plan. If none apply, it is one tap.
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    aria-pressed={
+                      safetyAnswersComplete(safetyAnswers) &&
+                      Object.values(safetyAnswers).every((answer) => answer === "NO")
+                    }
+                    className={`${CHOICE_BASE} ${
+                      safetyAnswersComplete(safetyAnswers) &&
+                      Object.values(safetyAnswers).every((answer) => answer === "NO")
+                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-200"
+                        : "border-white/[0.1] bg-zinc-900/60 text-zinc-200 hover:border-white/[0.2]"
+                    }`}
+                    onClick={() => {
+                      setSafetyAnswers(
+                        Object.fromEntries(SAFETY_FIELDS.map(({ key }) => [key, "NO"])) as Record<
+                          SafetyKey,
+                          SafetyAnswer
+                        >
+                      );
+                      setShowSafetyDetails(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2 font-semibold">
+                      {safetyAnswersComplete(safetyAnswers) &&
+                        Object.values(safetyAnswers).every((answer) => answer === "NO") && (
+                          <CheckIcon />
+                        )}
+                      None of these apply
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-expanded={showSafetyDetails}
+                    className={`${CHOICE_BASE} border-white/[0.1] bg-zinc-900/60 text-zinc-200 hover:border-white/[0.2]`}
+                    onClick={() => setShowSafetyDetails((shown) => !shown)}
+                  >
+                    Something applies or I’m unsure
+                  </button>
+                </div>
+
+                {showSafetyDetails && (
+                  <div className="space-y-4 border-t border-white/[0.06] pt-4">
+                    {SAFETY_FIELDS.map(({ key, label }) => (
+                      <ChoicePills
+                        key={key}
+                        label={label}
+                        value={safetyAnswers[key]}
+                        options={[
+                          { value: "YES", label: "Yes" },
+                          { value: "NO", label: "No" },
+                          { value: "UNSURE", label: "Not sure" },
+                        ]}
+                        onChange={(value) =>
+                          setSafetyAnswers((current) => ({
+                            ...current,
+                            [key]: value as SafetyAnswer,
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-2 rounded-xl border border-white/[0.06] bg-zinc-950/30 p-3 text-center">
+              <div>
+                <p className="text-xs text-zinc-500">Goal</p>
+                <p className="mt-1 text-sm font-medium text-zinc-200">
+                  {GOAL_OPTIONS.find((option) => option.value === selections.goal)?.label ??
+                    "Not set"}
+                </p>
+              </div>
+              <div className="border-x border-white/[0.06] px-2">
+                <p className="text-xs text-zinc-500">Training</p>
+                <p className="mt-1 text-sm font-medium text-zinc-200">
+                  {selections.trainingDaysPerWeek ?? "–"} days
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500">Tracking</p>
+                <p className="mt-1 text-sm font-medium text-zinc-200">
+                  {selections.trackingStyle === "EXACT_MACROS"
+                    ? "Macros"
+                    : selections.trackingStyle === "PORTIONS"
+                      ? "Portions"
+                      : "Not set"}
+                </p>
+              </div>
+            </div>
+
+            <IssueList issues={visibleIssues} />
+            <div className="space-y-3">
+              <button
+                className={`${primary} inline-flex w-full cursor-pointer items-center justify-center text-base font-semibold`}
+                disabled={busy}
+                onClick={() => {
+                  if (currentIssues.length > 0) {
+                    setIssueStage(stage);
+                    return;
+                  }
+                  void act(
+                    () =>
+                      confirmAndRedirect({
+                        selections,
+                        safetyAnswers,
+                        needsSafetyDisclosure,
+                        command,
+                        redirect: () => {
+                          // A hard navigation reloads the confirmed workspace instead of
+                          // leaving stale wizard state mounted after the command succeeds.
+                          // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+                          window.location.assign("/client/ai-coach");
+                        },
+                      }),
+                    "Intake confirmed. Returning to your coaching plan..."
+                  );
+                }}
+              >
+                {busy ? "Building your plan..." : "Confirm & Build Plan"}
+              </button>
+              <button
+                className={`${button} inline-flex w-full cursor-pointer items-center justify-center`}
+                disabled={busy}
+                onClick={() => setStage(2)}
+              >
+                Back
+              </button>
+            </div>
+          </section>
+        )}
+      </div>
     </div>
   );
 }

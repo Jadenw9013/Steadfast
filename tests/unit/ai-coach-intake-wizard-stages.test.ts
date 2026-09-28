@@ -1,48 +1,13 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { IntakeWizard } from "@/components/ai-coach/intake-wizard";
-import type { AiWorkspace } from "@/lib/queries/ai-coach";
-
-/**
- * T-2024 review round 1, MAJOR 11 — release-safety rule 1 ("nothing
- * user-facing ships without being run"). A five-stage rewrite needs runtime
- * evidence, not just type-check/eslint/unit-shape tests. This is the
- * engineer's rendering-test half of that evidence (ui-qa screenshots the
- * same states separately at 390px in a real browser); it proves every
- * stage renders without throwing for null/v1/v2 `confirmedIntake`, and
- * — the two states that produced BLOCKER 1 — that a draft which only
- * covers one stage never empties a *different* stage's already-confirmed
- * v2 answers ("reload mid-wizard" and "edit one stage of a confirmed v2
- * intake" are the same underlying scenario: a subset draft layered over a
- * full confirmed intake).
- */
+import { createIntakeSelections, IntakeWizard } from "@/components/ai-coach/intake-wizard";
 
 const noopAct = async (work: () => Promise<unknown>) => {
   await work();
 };
 const noopCommand = async () => ({});
 const noopPost = async () => ({});
-
-const baseView: AiWorkspace = {
-  schemaVersion: 1,
-  intakeSchemaVersions: [1, 2],
-  experience: { mode: "SYNTHETIC", disclosure: null },
-  substitutions: [],
-  origin: "AI",
-  contextRevision: 1,
-  profileRevision: 1,
-  observationRevision: 0,
-  safetyRevision: 0,
-  confirmedIntake: null,
-  draft: null,
-  reviewTimezone: "America/Los_Angeles",
-  permissions: { nutrition: "ALLOW", strength: "ALLOW", cardio: "ALLOW" },
-  safetyDisposition: "CLEAR",
-  activePlan: null,
-  proposals: [],
-  runs: [],
-};
 
 const v1ConfirmedIntake = {
   goal: "GENERAL_FITNESS",
@@ -58,134 +23,157 @@ const v1ConfirmedIntake = {
 
 const fullV2ConfirmedIntake = {
   intakeVersion: 2,
-  goal: "GENERAL_FITNESS",
-  experienceLevel: "NEW",
+  goal: "BODY_COMPOSITION",
+  experienceLevel: "EXPERIENCED",
   trainingDaysPerWeek: 5,
   equipmentAccess: ["FULL_GYM"],
-  allergies: ["TREE_NUT"],
-  dietaryRestrictions: [],
   foodBudgetLevel: "FLEXIBLE",
   trackingPreference: "NUMBERS_VISIBLE",
   unitsPreference: "METRIC",
-  capturedAt: "2026-09-20T00:00:00.000Z",
   ageStatus: "CONFIRMED",
   ageYears: 31,
-  energyMethodPopulationCategoryStatus: "CONFIRMED",
-  energyMethodPopulationCategory: "MALE_ADULT",
-  physicalActivityCategoryStatus: "CONFIRMED",
-  physicalActivityCategory: "ACTIVE",
+  energyMethodPopulationCategoryStatus: "UNKNOWN",
+  physicalActivityCategoryStatus: "UNKNOWN",
   bodyMeasurementStatus: "CONFIRMED",
   heightCm: 180,
   weightKg: 82,
   weightMeasuredOn: "2026-09-20",
   goalStatus: "CONFIRMED",
-  bodyWeightIntent: "MAINTAIN",
-  goalPaceClass: "MAINTAIN",
+  bodyWeightIntent: "GAIN",
+  goalPaceClass: "GRADUAL",
   weightNeutralAccepted: true,
   trainingContextStatus: "CONFIRMED",
   resistanceTrainingContext: "REGULAR",
   sessionLengthBand: "MIN_45_60",
-  cookingAccessStatus: "CONFIRMED",
-  cookingAccess: {
-    equipment: ["FULL_KITCHEN"],
-    refrigeration: "FRIDGE_AND_FREEZER",
-    mealPrepCapacity: "BATCH",
-    typicalPrepMinutesBand: "MIN_15_30",
-  },
+  cookingAccessStatus: "UNKNOWN",
   dislikes: [{ label: "cilantro", canonicalFoodId: null }],
   cuisinePreferences: ["Thai", "Mexican"],
   allergenDeclarations: {
     status: "CONFIRMED",
     noKnownAllergens: false,
-    items: [{ category: "TREE_NUT", specificity: "cashew", kind: "ALLERGY", crossContactAvoidanceRequired: "YES" }],
+    items: [
+      {
+        category: "TREE_NUT",
+        specificity: "cashew",
+        kind: "ALLERGY",
+        crossContactAvoidanceRequired: "YES",
+      },
+    ],
   },
-  dietaryPattern: { pattern: "VEGAN", otherLabel: null, mandatory: true, reason: "PREFERENCE", status: "CONFIRMED" },
+  dietaryPattern: {
+    pattern: "OTHER",
+    otherLabel: "High protein",
+    mandatory: false,
+    reason: "PREFERENCE",
+    status: "CONFIRMED",
+  },
 };
 
 const STAGE_HEADINGS = [
-  "1. Eligibility and safety",
-  "2. About you",
-  "3. Food",
-  "4. Training",
-  "5. Review",
+  "What are we building toward?",
+  "Set up your training week",
+  "Make nutrition fit your style",
+  "Last step: your starting stats",
 ];
 
-describe("T-2024 intake wizard — every stage renders for null/v1/v2 confirmedIntake", () => {
+function renderStage(confirmedIntake: unknown, stage: number, draft: unknown = null) {
+  return renderToStaticMarkup(
+    createElement(IntakeWizard, {
+      view: { confirmedIntake, draft },
+      busy: false,
+      act: noopAct,
+      command: noopCommand,
+      post: noopPost,
+      initialStage: stage,
+    })
+  );
+}
+
+describe("T-2028 four-step intake wizard rendering", () => {
   for (const [label, confirmedIntake] of [
     ["null (never confirmed)", null],
     ["v1", v1ConfirmedIntake],
     ["v2", fullV2ConfirmedIntake],
   ] as const) {
-    for (let stage = 0; stage < 5; stage++) {
-      it(`stage ${stage + 1} renders without throwing for confirmedIntake = ${label}`, () => {
-        const view: AiWorkspace = { ...baseView, confirmedIntake };
-        let html = "";
-        expect(() => {
-          html = renderToStaticMarkup(
-            createElement(IntakeWizard, {
-              view,
-              busy: false,
-              act: noopAct,
-              command: noopCommand,
-              post: noopPost,
-              initialStage: stage,
-            })
-          );
-        }).not.toThrow();
+    for (let stage = 0; stage < 4; stage += 1) {
+      it(`renders step ${stage + 1} for confirmedIntake = ${label}`, () => {
+        const html = renderStage(confirmedIntake, stage);
         expect(html).toContain(STAGE_HEADINGS[stage]);
+        expect(html).toContain(`${stage + 1} / 4`);
       });
     }
   }
-});
 
-describe("T-2024 review round 1 BLOCKER 1 — a one-stage draft over a confirmed v2 intake never empties the other stages", () => {
-  // The draft only ever covers the "About you" stage's keys — exactly what
-  // a single Continue click on that stage saves. Reloading (or editing just
-  // that one stage) must not make the Food/Training stages render empty
-  // despite the confirmed row still holding every answer.
-  const aboutYouOnlyDraft = {
-    intakeVersion: 2,
-    ageStatus: "CONFIRMED",
-    ageYears: 31,
-    energyMethodPopulationCategoryStatus: "CONFIRMED",
-    energyMethodPopulationCategory: "MALE_ADULT",
-  };
-  const view: AiWorkspace = {
-    ...baseView,
-    confirmedIntake: fullV2ConfirmedIntake,
-    draft: aboutYouOnlyDraft,
-  };
+  it("shows all requested tap targets and no retired clinical questionnaire labels", () => {
+    const allStages = STAGE_HEADINGS.map((_, stage) => renderStage(null, stage)).join("\n");
 
-  it("Food stage (reload-mid-wizard scenario) still shows the confirmed dietary pattern, cuisines and dislikes", () => {
-    const html = renderToStaticMarkup(
-      createElement(IntakeWizard, {
-        view,
-        busy: false,
-        act: noopAct,
-        command: noopCommand,
-        post: noopPost,
-        initialStage: 2,
-      })
-    );
-    expect(html).toContain('value="VEGAN" selected=""');
-    expect(html).toContain('value="Thai, Mexican"');
-    expect(html).toContain('value="cilantro"');
-    expect(html).toContain('value="FLEXIBLE" selected=""');
+    for (const label of [
+      "Fat Loss / Cut",
+      "Build Muscle",
+      "Strength",
+      "General Fitness",
+      "Beginner",
+      "Intermediate",
+      "Advanced",
+      "Bodyweight",
+      "Home Dumbbells",
+      "Full Gym",
+      "30–45m",
+      "45–60m",
+      "60m+",
+      "Balanced",
+      "High Protein",
+      "Plant-Based",
+      "Low Carb",
+      "Portions",
+      "Exact Macros",
+      "Dairy",
+      "Tree Nuts",
+      "Peanuts",
+      "Gluten",
+      "Shellfish",
+      "Confirm &amp; Build Plan",
+    ]) {
+      expect(allStages).toContain(label);
+    }
+    expect(allStages).not.toContain("Population category");
+    expect(allStages).not.toContain("Physical activity category");
+    expect(allStages).not.toContain("Cross-contact");
+    expect(allStages).not.toContain("Cooking and storage");
   });
 
-  it("Training stage (edit-one-stage-of-a-confirmed-v2-intake scenario) still shows the confirmed days, equipment and cooking access", () => {
-    const html = renderToStaticMarkup(
-      createElement(IntakeWizard, {
-        view,
-        busy: false,
-        act: noopAct,
-        command: noopCommand,
-        post: noopPost,
-        initialStage: 3,
-      })
-    );
-    expect(html).toContain('value="5"');
-    expect(html).toContain('value="REGULAR" selected=""');
-    expect(html).toContain('value="MIN_45_60" selected=""');
+  it("does not greet an untouched step with validation warnings", () => {
+    const html = renderStage(null, 0);
+    expect(html).not.toContain('role="alert"');
+    expect(html).not.toContain("A couple of choices are still needed");
+  });
+
+  it("keeps the required safety gate compact for new intake and does not repeat it during edits", () => {
+    expect(renderStage(null, 3)).toContain("None of these apply");
+    expect(renderStage(null, 3)).toContain("Something applies or I’m unsure");
+    expect(renderStage(fullV2ConfirmedIntake, 3)).not.toContain("Quick safety check");
+  });
+});
+
+describe("T-2028 hydration preserves prior answers underneath a partial draft", () => {
+  it("layers draft changes over the confirmed intake without emptying other steps", () => {
+    const selections = createIntakeSelections({
+      ...fullV2ConfirmedIntake,
+      trainingDaysPerWeek: 2,
+    });
+
+    expect(selections).toMatchObject({
+      goal: "BUILD_MUSCLE",
+      experience: "ADVANCED",
+      trainingDaysPerWeek: 2,
+      equipment: "FULL_GYM",
+      sessionLength: "MIN_45_60",
+      dietaryStyle: "HIGH_PROTEIN",
+      trackingStyle: "EXACT_MACROS",
+      allergens: ["TREE_NUTS"],
+      heightCm: 180,
+      weightKg: 82,
+      ageYears: 31,
+    });
   });
 });

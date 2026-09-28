@@ -1,129 +1,161 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
-  autoAllergenStatus,
-  buildConfirmPayload,
-  confirmedWithoutValue,
-  defaultAnswers,
-  foodStageIssues,
-  isAbsent,
-  pruneUnconfirmed,
-  requiredAnswerIssues,
-  reviewBlockingIssues,
-  trainingStageIssues,
+  confirmAndRedirect,
+  feetAndInchesToCentimeters,
+  intakeStepIssues,
+  kilogramsToPounds,
+  poundsToKilograms,
+  safetyAnswersComplete,
+  toggleAllergen,
+  type IntakeSelections,
+  type SafetyAnswers,
 } from "@/components/ai-coach/intake-wizard";
-import { intakeV2ConfirmSchema } from "@/lib/ai-coach/intake";
 
-/**
- * T-2024 review round 3 fixes.
- */
+const completeSelections: IntakeSelections = {
+  goal: "GENERAL_FITNESS",
+  experience: "BEGINNER",
+  trainingDaysPerWeek: 3,
+  equipment: "BODYWEIGHT",
+  sessionLength: "MIN_30_45",
+  dietaryStyle: "BALANCED",
+  trackingStyle: "PORTIONS",
+  allergens: ["NONE"],
+  unitSystem: "IMPERIAL",
+  heightCm: 167.6,
+  weightKg: 68,
+  ageYears: 29,
+  weightMeasuredOn: "2026-09-27",
+};
 
-describe("MAJOR 1 (r2 finding 1 / parity BLOCKER 1) — the seven unconditionally-required v1 fields are named and gate Confirm", () => {
-  it("hydrating from an untouched draft leaves Goal etc. unanswered, named by requiredAnswerIssues and reviewBlockingIssues", () => {
-    const answers = defaultAnswers({});
-    expect(requiredAnswerIssues(answers, 1)).toEqual(
-      expect.arrayContaining([
-        "Goal: choose an answer.",
-        "Training experience: choose an answer.",
-        "Preferred nutrition display: choose an answer.",
-        "Preferred units: choose an answer.",
-      ])
-    );
-    expect(requiredAnswerIssues(answers, 2)).toEqual(["Food budget: choose an answer."]);
-    expect(reviewBlockingIssues(answers).length).toBeGreaterThan(0);
-    expect(reviewBlockingIssues(answers)).toEqual(expect.arrayContaining(["Goal: choose an answer."]));
+const allNoSafety: SafetyAnswers = {
+  chestPainDuringExercise: "NO",
+  dizzinessOrFainting: "NO",
+  heartCondition: "NO",
+  pregnantOrPostpartum: "NO",
+  recentInjuryOrSurgery: "NO",
+  ageEligibilityConcern: "NO",
+  eatingDisorderHistoryOrConcern: "NO",
+  type1Diabetes: "NO",
+};
+
+describe("T-2028 four-step validation", () => {
+  it("names only the missing choices on each step", () => {
+    const empty: IntakeSelections = {
+      allergens: [],
+      unitSystem: "IMPERIAL",
+      weightMeasuredOn: "2026-09-27",
+    };
+
+    expect(intakeStepIssues(0, empty, {}, true)).toEqual([
+      "Choose your main goal.",
+      "Choose your experience level.",
+    ]);
+    expect(intakeStepIssues(1, empty, {}, true)).toEqual([
+      "Choose your training days.",
+      "Choose your equipment setup.",
+      "Choose a session length.",
+    ]);
+    expect(intakeStepIssues(2, empty, {}, true)).toEqual([
+      "Choose a dietary style.",
+      "Choose a tracking style.",
+      "Choose any allergens, or choose None.",
+    ]);
+    expect(intakeStepIssues(3, empty, {}, true)).toEqual([
+      "Enter a valid height.",
+      "Enter a valid weight.",
+      "Enter your age in whole years.",
+      "Complete the quick safety check.",
+    ]);
   });
 
-  it("isAbsent and requiredAnswerIssues treat a re-picked placeholder (\"\") the same as never-answered", () => {
-    const answers = defaultAnswers({ goal: "" });
-    expect(isAbsent(answers.goal)).toBe(true);
-    expect(requiredAnswerIssues(answers, 1)).toContain("Goal: choose an answer.");
+  it("allows a confirmed user to edit without repeating the one-time safety disclosure", () => {
+    expect(intakeStepIssues(3, completeSelections, {}, false)).toEqual([]);
+    expect(intakeStepIssues(3, completeSelections, {}, true)).toEqual([
+      "Complete the quick safety check.",
+    ]);
   });
 
-  it("buildConfirmPayload omits an empty-string field rather than sending an invalid value", () => {
-    const answers = defaultAnswers({ goal: "" });
-    const payload = buildConfirmPayload(pruneUnconfirmed(answers));
-    expect(payload).not.toHaveProperty("goal");
+  it("requires every safety answer and treats unsure as a real completed answer", () => {
+    expect(safetyAnswersComplete({ ...allNoSafety, type1Diabetes: undefined })).toBe(false);
+    expect(safetyAnswersComplete({ ...allNoSafety, type1Diabetes: "UNSURE" })).toBe(true);
   });
 
-  it("invariant: whenever reviewBlockingIssues is empty, buildConfirmPayload parses under intakeV2ConfirmSchema", () => {
-    const fullAnswers = defaultAnswers({
-      intakeVersion: 2,
-      goal: "GENERAL_FITNESS",
-      experienceLevel: "NEW",
-      trainingDaysPerWeek: 3,
-      equipmentAccess: ["NONE"],
-      foodBudgetLevel: "LOW",
-      trackingPreference: "NUMBERS_VISIBLE",
-      unitsPreference: "METRIC",
-    });
-    expect(reviewBlockingIssues(fullAnswers)).toEqual([]);
-    const payload = buildConfirmPayload(pruneUnconfirmed(fullAnswers));
-    expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(true);
+  it("makes None mutually exclusive with individual allergen tags", () => {
+    expect(toggleAllergen(["DAIRY"], "NONE")).toEqual(["NONE"]);
+    expect(toggleAllergen(["NONE"], "PEANUTS")).toEqual(["PEANUTS"]);
+    expect(toggleAllergen(["DAIRY", "PEANUTS"], "DAIRY")).toEqual(["PEANUTS"]);
   });
 
-  it("a client who never opens Goal cannot reach an empty blocking list (Confirm stays disabled)", () => {
-    const answers = defaultAnswers({
-      experienceLevel: "NEW",
-      trainingDaysPerWeek: 3,
-      equipmentAccess: ["NONE"],
-      foodBudgetLevel: "LOW",
-      trackingPreference: "NUMBERS_VISIBLE",
-      unitsPreference: "METRIC",
-    });
-    expect(reviewBlockingIssues(answers)).toContain("Goal: choose an answer.");
-  });
-});
-
-describe("MINOR 4 (parity MINOR 7) — autoAllergenStatus mirrors iOS's self-repair", () => {
-  it("adding the first item (noKnownAllergens false, items non-empty) resolves CONFIRMED", () => {
-    expect(autoAllergenStatus(false, [{ category: "MILK" }])).toBe("CONFIRMED");
-  });
-
-  it("checking no known allergens resolves CONFIRMED", () => {
-    expect(autoAllergenStatus(true, [])).toBe("CONFIRMED");
-  });
-
-  it("emptying both (no items, no known allergens unchecked) resolves UNKNOWN", () => {
-    expect(autoAllergenStatus(false, [])).toBe("UNKNOWN");
-  });
-});
-
-describe("MINOR 5 (parity MINOR 9) — cookingAccess.equipment min 1 and cuisinePreferences max 10 named client-side", () => {
-  it("cookingAccessStatus CONFIRMED with an empty equipment list is named on the Training stage", () => {
-    const answers = defaultAnswers({
-      cookingAccessStatus: "CONFIRMED",
-      cookingAccess: { equipment: [], refrigeration: "FRIDGE", mealPrepCapacity: "SOME", typicalPrepMinutesBand: "MIN_15_30" },
-      trainingDaysPerWeek: 3,
-      equipmentAccess: ["NONE"],
-    });
-    expect(trainingStageIssues(answers)).toContain(
-      "Cooking and storage access: choose at least one cooking equipment option."
-    );
-  });
-
-  it("cookingAccessStatus not CONFIRMED does not require equipment", () => {
-    const answers = defaultAnswers({ trainingDaysPerWeek: 3, equipmentAccess: ["NONE"] });
-    expect(trainingStageIssues(answers)).not.toContain(
-      "Cooking and storage access: choose at least one cooking equipment option."
-    );
-  });
-
-  it("more than 10 cuisinePreferences is named on the Food stage", () => {
-    const answers = defaultAnswers({
-      cuisinePreferences: Array.from({ length: 11 }, (_, i) => `Cuisine ${i}`),
-    });
-    expect(foodStageIssues(answers)).toContain("Cuisines you enjoy: choose at most 10.");
-  });
-
-  it("10 or fewer cuisinePreferences is not flagged", () => {
-    const answers = defaultAnswers({ cuisinePreferences: Array.from({ length: 10 }, (_, i) => `Cuisine ${i}`) });
-    expect(foodStageIssues(answers)).not.toContain("Cuisines you enjoy: choose at most 10.");
+  it("converts displayed imperial stats into canonical metric values", () => {
+    expect(feetAndInchesToCentimeters(5, 6)).toBe(167.6);
+    expect(poundsToKilograms(150)).toBeCloseTo(68.04, 2);
+    expect(kilogramsToPounds(68.04)).toBeCloseTo(150, 1);
   });
 });
 
-describe("confirmedWithoutValue and buildConfirmPayload still treat DECLINED/UNKNOWN as legal gaps", () => {
-  it("does not name a group whose status is DECLINED or UNKNOWN", () => {
-    const answers = defaultAnswers({ ageStatus: "DECLINED", energyMethodPopulationCategoryStatus: "UNKNOWN" });
-    expect(confirmedWithoutValue(answers)).toEqual([]);
+describe("T-2028 confirm workflow", () => {
+  it("saves safety, then allergens, then the existing CONFIRM_INTAKE command before redirecting", async () => {
+    const operations: string[] = [];
+    const command = vi.fn(async (input: Record<string, unknown>) => {
+      operations.push(String(input.operation));
+      return {};
+    });
+    const redirect = vi.fn();
+
+    await confirmAndRedirect({
+      selections: completeSelections,
+      safetyAnswers: allNoSafety,
+      needsSafetyDisclosure: true,
+      command,
+      redirect,
+    });
+
+    expect(operations).toEqual(["SAFETY", "ALLERGIES", "CONFIRM_INTAKE"]);
+    expect(command).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        operation: "CONFIRM_INTAKE",
+        answers: expect.objectContaining({ intakeVersion: 2 }),
+      })
+    );
+    expect(redirect).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not repeat safety for an already-confirmed intake", async () => {
+    const command = vi.fn(async (input: Record<string, unknown>) => {
+      void input;
+      return {};
+    });
+
+    await confirmAndRedirect({
+      selections: completeSelections,
+      safetyAnswers: {},
+      needsSafetyDisclosure: false,
+      command,
+      redirect: vi.fn(),
+    });
+
+    expect(command.mock.calls.map(([input]) => input.operation)).toEqual([
+      "ALLERGIES",
+      "CONFIRM_INTAKE",
+    ]);
+  });
+
+  it("never redirects when confirm fails, so the UI can show the real error and keep the answers", async () => {
+    const command = vi.fn(async (input: Record<string, unknown>) => {
+      if (input.operation === "CONFIRM_INTAKE") throw new Error("schema rejected");
+      return {};
+    });
+    const redirect = vi.fn();
+
+    await expect(
+      confirmAndRedirect({
+        selections: completeSelections,
+        safetyAnswers: allNoSafety,
+        needsSafetyDisclosure: true,
+        command,
+        redirect,
+      })
+    ).rejects.toThrow("schema rejected");
+    expect(redirect).not.toHaveBeenCalled();
   });
 });

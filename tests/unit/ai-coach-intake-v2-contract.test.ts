@@ -8,7 +8,12 @@ function source(path: string) {
 }
 
 function fixture() {
-  return JSON.parse(readFileSync(resolve(process.cwd(), "tests/fixtures/ai-coach/intake-v2-confirm-v1.json"), "utf8"));
+  return JSON.parse(
+    readFileSync(
+      resolve(process.cwd(), "tests/fixtures/ai-coach/intake-v2-confirm-v1.json"),
+      "utf8"
+    )
+  );
 }
 
 // Frozen key list (parent contract T-2002, "intakeV2ConfirmSchema required
@@ -72,13 +77,17 @@ describe("T-2002/T-2024 intake v2 golden contract fixture", () => {
   // internals back into the browser bundle), and the leaf contract module
   // it does import must stay free of any server-only import. This test
   // would have failed on the pre-fix (round 3) state.
-  it("components/ai-coach/intake-wizard.tsx imports only the client-safe intake contract, never lib/ai-coach/intake", () => {
+  it("components/ai-coach/intake-wizard.tsx imports only the client-safe intake contract from lib/ai-coach", () => {
     const wizard = source("components/ai-coach/intake-wizard.tsx");
     // Anchored on `import ... from "..."` (not just any quoted mention of
     // the path — the file's own warning comment about this rule contains
     // the literal string as prose, which must not trip the check).
     expect(wizard).not.toMatch(/^\s*import[^;]*from ["']@\/lib\/ai-coach\/intake["']/m);
     expect(wizard).toContain('from "@/lib/ai-coach/intake-contract"');
+    expect(
+      [...wizard.matchAll(/from ["'](@\/lib\/ai-coach\/[^"']+)["']/g)].map((match) => match[1])
+    ).toEqual(["@/lib/ai-coach/intake-contract"]);
+    expect(wizard).not.toMatch(/@\/lib\/db|generated\/prisma/);
   });
 
   it("lib/ai-coach/intake-contract.ts never imports db or the generated Prisma client", () => {

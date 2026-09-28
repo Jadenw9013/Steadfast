@@ -1,73 +1,191 @@
 import { describe, expect, it } from "vitest";
-import { buildConfirmPayload, defaultAnswers, pruneUnconfirmed } from "@/components/ai-coach/intake-wizard";
-import { intakeV2ConfirmSchema } from "@/lib/ai-coach/intake";
+import {
+  buildAllergenDeclarations,
+  buildConfirmPayload,
+  createIntakeSelections,
+  type IntakeSelections,
+} from "@/components/ai-coach/intake-wizard";
+import { intakeV2ConfirmSchema } from "@/lib/ai-coach/intake-contract";
 
-/**
- * T-2024 review round 1, BLOCKER 2 — the confirm payload must never carry
- * the three server-owned keys (`allergies`, `dietaryRestrictions`,
- * `capturedAt`), which hydration legitimately picks up from either a v1
- * `confirmedIntake` (both keys are required v1 fields) or a draft the
- * `ALLERGIES` v2 command wrote (`allergies` is the derived projection).
- * `intakeV2ConfirmSchema` is `.strict()` and rejects all three outright, so
- * either path used to be a permanent 422 with no way to recover from the
- * wizard.
- */
-
-const v1ConfirmedIntake = {
-  goal: "GENERAL_FITNESS",
-  experienceLevel: "NEW",
-  trainingDaysPerWeek: 3,
-  equipmentAccess: ["NONE"],
-  allergies: ["peanuts"],
-  dietaryRestrictions: ["vegetarian"],
-  foodBudgetLevel: "LOW",
-  trackingPreference: "NUMBERS_VISIBLE",
-  unitsPreference: "METRIC",
-};
-
-function confirmPayloadFrom(confirmedIntake: unknown, draft: unknown = null) {
-  const merged = defaultAnswers({
-    ...((confirmedIntake as Record<string, unknown>) ?? {}),
-    ...((draft as Record<string, unknown>) ?? {}),
-  });
-  return buildConfirmPayload(pruneUnconfirmed({ ...merged, intakeVersion: 2 }));
+function completeSelections(patch: Partial<IntakeSelections> = {}): IntakeSelections {
+  return {
+    goal: "FAT_LOSS",
+    experience: "INTERMEDIATE",
+    trainingDaysPerWeek: 4,
+    equipment: "HOME_DUMBBELLS",
+    sessionLength: "MIN_45_60",
+    dietaryStyle: "HIGH_PROTEIN",
+    trackingStyle: "PORTIONS",
+    allergens: ["NONE"],
+    unitSystem: "IMPERIAL",
+    heightCm: 175.3,
+    weightKg: 78.25,
+    ageYears: 34,
+    weightMeasuredOn: "2026-09-27",
+    ...patch,
+  };
 }
 
-describe("T-2024 intake wizard confirm payload never leaks server-owned keys", () => {
-  it("a v1-shaped confirmedIntake (allergies + dietaryRestrictions required v1 fields) never reaches the confirm payload", () => {
-    const payload = confirmPayloadFrom(v1ConfirmedIntake);
+describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () => {
+  it("builds a schema-valid payload with safe defaults for every unasked clinical group", () => {
+    const payload = buildConfirmPayload(completeSelections());
+
+    expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(true);
+    expect(payload).toMatchObject({
+      intakeVersion: 2,
+      goal: "BODY_COMPOSITION",
+      experienceLevel: "RETURNING",
+      trainingDaysPerWeek: 4,
+      equipmentAccess: ["HOME_BASIC"],
+      foodBudgetLevel: "MODERATE",
+      trackingPreference: "PORTIONS_ONLY",
+      unitsPreference: "IMPERIAL",
+      ageStatus: "CONFIRMED",
+      bodyMeasurementStatus: "CONFIRMED",
+      energyMethodPopulationCategoryStatus: "UNKNOWN",
+      physicalActivityCategoryStatus: "UNKNOWN",
+      goalStatus: "CONFIRMED",
+      bodyWeightIntent: "LOSE",
+      goalPaceClass: "UNDECIDED",
+      weightNeutralAccepted: false,
+      cookingAccessStatus: "UNKNOWN",
+      trainingContextStatus: "CONFIRMED",
+      resistanceTrainingContext: "OCCASIONAL",
+      sessionLengthBand: "MIN_45_60",
+      dietaryPattern: {
+        pattern: "OTHER",
+        otherLabel: "High protein",
+        mandatory: false,
+        reason: "PREFERENCE",
+        status: "CONFIRMED",
+      },
+      allergenDeclarations: {
+        status: "CONFIRMED",
+        noKnownAllergens: true,
+        items: [],
+      },
+      dislikes: [],
+      cuisinePreferences: [],
+    });
+    expect(payload).not.toHaveProperty("energyMethodPopulationCategory");
+    expect(payload).not.toHaveProperty("physicalActivityCategory");
+    expect(payload).not.toHaveProperty("cookingAccess");
+  });
+
+  it.each([
+    ["FAT_LOSS", "BODY_COMPOSITION"],
+    ["BUILD_MUSCLE", "BODY_COMPOSITION"],
+    ["STRENGTH", "STRENGTH"],
+    ["GENERAL_FITNESS", "GENERAL_FITNESS"],
+  ] as const)("maps goal %s to %s", (goal, expected) => {
+    const payload = buildConfirmPayload(completeSelections({ goal }));
+    expect(payload.goal).toBe(expected);
+    if (goal === "FAT_LOSS") expect(payload.bodyWeightIntent).toBe("LOSE");
+    if (goal === "BUILD_MUSCLE") expect(payload.bodyWeightIntent).toBe("GAIN");
+    if (goal === "STRENGTH" || goal === "GENERAL_FITNESS") {
+      expect(payload.goalStatus).toBe("UNKNOWN");
+      expect(payload).not.toHaveProperty("bodyWeightIntent");
+    }
+  });
+
+  it.each([
+    ["BEGINNER", "NEW", "NONE"],
+    ["INTERMEDIATE", "RETURNING", "OCCASIONAL"],
+    ["ADVANCED", "EXPERIENCED", "REGULAR"],
+  ] as const)(
+    "maps experience %s without inventing a clinical category",
+    (experience, level, context) => {
+      const payload = buildConfirmPayload(completeSelections({ experience }));
+      expect(payload.experienceLevel).toBe(level);
+      expect(payload.resistanceTrainingContext).toBe(context);
+    }
+  );
+
+  it("maps quick allergen tags conservatively and keeps gluten broader than wheat", () => {
+    const declarations = buildAllergenDeclarations(
+      completeSelections({ allergens: ["DAIRY", "TREE_NUTS", "PEANUTS", "GLUTEN", "SHELLFISH"] })
+    );
+
+    expect(declarations.status).toBe("CONFIRMED");
+    expect(declarations.noKnownAllergens).toBe(false);
+    expect(declarations.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ category: "MILK", specificity: null }),
+        expect.objectContaining({ category: "TREE_NUT", specificity: null }),
+        expect.objectContaining({ category: "PEANUT", specificity: null }),
+        expect.objectContaining({ category: "OTHER", specificity: "gluten" }),
+        expect.objectContaining({ category: "CRUSTACEAN_SHELLFISH", specificity: null }),
+      ])
+    );
+    expect(
+      declarations.items.every((item) => item.crossContactAvoidanceRequired === "UNSURE")
+    ).toBe(true);
+  });
+
+  it("does not silently re-assert hidden legacy allergen detail", () => {
+    const selections = createIntakeSelections({
+      allergenDeclarations: {
+        status: "CONFIRMED",
+        noKnownAllergens: false,
+        items: [
+          {
+            category: "FISH",
+            specificity: "salmon",
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "YES",
+          },
+        ],
+      },
+    });
+
+    expect(selections.allergens).toEqual([]);
+    selections.allergens = ["DAIRY"];
+    expect(buildAllergenDeclarations(selections).items).toEqual([
+      expect.objectContaining({ category: "MILK", specificity: null }),
+    ]);
+  });
+
+  it("does not silently loosen a mandatory legacy dietary pattern", () => {
+    const selections = createIntakeSelections({
+      dietaryPattern: {
+        pattern: "VEGAN",
+        otherLabel: null,
+        mandatory: true,
+        reason: "RELIGIOUS_OR_ETHICAL",
+        status: "CONFIRMED",
+      },
+    });
+
+    expect(selections.dietaryStyle).toBeUndefined();
+  });
+
+  it("never leaks server-owned compatibility keys into CONFIRM_INTAKE", () => {
+    const selections = createIntakeSelections({
+      goal: "GENERAL_FITNESS",
+      experienceLevel: "NEW",
+      trainingDaysPerWeek: 3,
+      equipmentAccess: ["NONE"],
+      foodBudgetLevel: "LOW",
+      trackingPreference: "NUMBERS_VISIBLE",
+      unitsPreference: "METRIC",
+      allergies: ["peanuts"],
+      dietaryRestrictions: ["vegetarian"],
+      capturedAt: "2020-01-01T00:00:00.000Z",
+    });
+    const payload = buildConfirmPayload({
+      ...completeSelections(),
+      ...selections,
+      dietaryStyle: "BALANCED",
+      trackingStyle: "EXACT_MACROS",
+      allergens: ["NONE"],
+      heightCm: 175,
+      weightKg: 75,
+      ageYears: 30,
+    });
+
     expect(payload).not.toHaveProperty("allergies");
     expect(payload).not.toHaveProperty("dietaryRestrictions");
     expect(payload).not.toHaveProperty("capturedAt");
     expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(true);
-  });
-
-  it("a draft carrying the ALLERGIES v2 command's derived `allergies` array never reaches the confirm payload", () => {
-    const draftAfterAllergiesCommand = {
-      intakeVersion: 2,
-      allergenDeclarations: { status: "CONFIRMED", noKnownAllergens: false, items: [] },
-      allergies: ["TREE_NUT"], // deriveLegacyAllergyTokens output, written into the draft
-    };
-    const payload = confirmPayloadFrom(v1ConfirmedIntake, draftAfterAllergiesCommand);
-    expect(payload).not.toHaveProperty("allergies");
-    expect(payload).not.toHaveProperty("dietaryRestrictions");
-    expect(payload).not.toHaveProperty("capturedAt");
-  });
-
-  it("a client-set capturedAt in local state is stripped rather than forwarded", () => {
-    const payload = confirmPayloadFrom({ ...v1ConfirmedIntake, capturedAt: "2020-01-01T00:00:00.000Z" });
-    expect(payload).not.toHaveProperty("capturedAt");
-  });
-
-  it("every required v2 confirm key is still present with gaps left legal (UNKNOWN defaults)", () => {
-    const payload = confirmPayloadFrom(null);
-    expect(payload).toMatchObject({
-      intakeVersion: 2,
-      ageStatus: "UNKNOWN",
-      allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
-      dietaryPattern: { pattern: "NONE_DECLARED", status: "UNKNOWN" },
-      dislikes: [],
-      cuisinePreferences: [],
-    });
   });
 });
