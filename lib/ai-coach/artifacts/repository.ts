@@ -965,7 +965,8 @@ export function reviewedCatalogDisplayNames(artifacts: ReviewedArtifactSet): str
 
 /**
  * T-2033 (board/tickets/T-2003.md prescription step 16) — the reviewed
- * `nextStepText` for each id in `policy.explanationTemplateIds` that
+ * `nextStepText` for each id in
+ * `policy.prescriptionExplanationTemplateIds` that
  * resolves to a template in the loaded ESCALATION_TEMPLATES artifact, in
  * bundle-declared order. An id with no matching template is skipped, not an
  * error: `resolvePrescriptionParameters`/`computePrescription` fail closed
@@ -982,7 +983,7 @@ export function resolveReviewedPrescriptionExplanationTexts(
   const content = escalationTemplatesContentSchema.parse(artifacts.escalationTemplates.content);
   const byId = new Map(content.templates.map((template) => [template.id, template]));
   const texts: string[] = [];
-  for (const id of policy.explanationTemplateIds) {
+  for (const id of policy.prescriptionExplanationTemplateIds ?? []) {
     const template = byId.get(id);
     if (template) texts.push(template.nextStepText);
   }
@@ -1063,11 +1064,7 @@ export async function loadRunBoundArtifactSet(
   const persistedClassification = profile.isSynthetic ? "SYNTHETIC" : "LIVE";
   const context = { engineVersion: input.engineVersion, now };
 
-  const policy = await loadArtifactByReference(
-    tx,
-    referencesByKind.get("POLICY_BUNDLE")!,
-    context
-  );
+  const policy = await loadArtifactByReference(tx, referencesByKind.get("POLICY_BUNDLE")!, context);
   assertAccountClassification(policy, persistedClassification);
   if (policy.dependencies.length !== 4) {
     throw new ArtifactLoadError(

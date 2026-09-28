@@ -182,32 +182,33 @@ describe("T-1005 — reviewed artifact schemas", () => {
   });
 });
 
-describe("T-2038 — the additive exercise-catalog fields move no already-registered byte", () => {
+describe("T-2038/S-15 — synthetic artifact digest regression", () => {
   /**
    * Pinned digests for synthetic artifacts. In T-2039, evidenceRegistry gained
    * the 6 training/progression rule IDs in its claim, escalationTemplates gained
    * the two reviewed effort explanation templates, and policyBundle gained the 46
-   * training and progression parameters. The food and exercise catalogs are 100%
-   * byte-identical to their pre-change digests.
+   * training and progression parameters. S-15 then separated prescription
+   * copy from training effort copy. The food and exercise catalogs remain
+   * byte-identical.
    */
   const DIGESTS_BEFORE_T2038: Record<string, Record<string, string>> = {
     "t1005-fixture": {
       foodCatalog: "5c5153170d060f62937fb58eea635e869978f2e5445413709732fd5b577d7a7a",
       exerciseCatalog: "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594",
       evidenceRegistry: "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233",
-      escalationTemplates: "fab8e295214943dfaee468a9fd1742e4f05648fe33a24942da112f960959b34b",
-      policyBundle: "639505c6c22b955f22cf13bd06b680cd32ac816a23d406ce95610288fadc5030",
+      escalationTemplates: "a39e7c45cdbc04ff6a74826320bde13fc3c13fd7fca26ef7c6a526631170ce14",
+      policyBundle: "b2936c64bb5a52cfbe02c3e9b0eff1af18940b62f81598fe7d6f2094f5c8e52b",
     },
     "t1008-runtime": {
       foodCatalog: "9d7eb3f81a2fc045345f79a315aead0a5c2779178ab0385eca13fef3abd92695",
       exerciseCatalog: "17af02f644e7e6effba953e9ba97f6ffe9cb5c75572992e927649ce09bea469f",
       evidenceRegistry: "187785ffba971a5620f3cc684d561f994f815fc0ae304061f6b68e1e6545cfee",
-      escalationTemplates: "73e61e47f5523db815e77fde9e460f0649d8106cc95099046e2898161a050293",
-      policyBundle: "b3dad92c335d2b1d3ac38ab5c6561eec18f9de35d765b0f2ee962639306fc1f0",
+      escalationTemplates: "b9ad91e2c7c4b9f21bfcc5743d01b3fdc623b909551efc18afd3421c34bd6a7a",
+      policyBundle: "a6ce19ac8af1fc42bbbfa2d73b1218ede75224218c833e273a336bf584404dec",
     },
   };
 
-  it("still parses every synthetic artifact to its pre-change digest", () => {
+  it("parses every synthetic artifact to its pinned current digest", () => {
     for (const [namespace, expected] of Object.entries(DIGESTS_BEFORE_T2038)) {
       const set =
         namespace === "t1005-fixture"
@@ -260,6 +261,23 @@ describe("T-2039 — training and progression parameters in synthetic and draft 
     if (!("templates" in escalation)) throw new Error("fixture shape changed");
 
     const explanationTexts = escalation.templates.map((t) => ({ id: t.id, text: t.nextStepText }));
+    expect(policy.prescriptionExplanationTemplateIds).toEqual([
+      "SYNTHETIC.NUTRITION.EXPLANATION.V1",
+    ]);
+    expect(policy.trainingEffortTemplateIds).toEqual([
+      "TRAINING.EFFORT.STRENGTH.V1",
+      "TRAINING.EFFORT.CARDIO.V1",
+    ]);
+    expect(policy.prescriptionExplanationTemplateIds).not.toEqual(
+      expect.arrayContaining(policy.trainingEffortTemplateIds ?? [])
+    );
+    const nutritionExplanationTexts = (policy.prescriptionExplanationTemplateIds ?? [])
+      .map((id) => explanationTexts.find((item) => item.id === id)?.text)
+      .filter((text): text is string => Boolean(text));
+    expect(nutritionExplanationTexts).toEqual([
+      "Synthetic nutrition targets use reviewed test-only policy parameters.",
+    ]);
+    expect(nutritionExplanationTexts.join(" ")).not.toContain("reps in reserve");
     const trainingResolution = resolveTrainingParameters(policy, explanationTexts);
 
     expect(trainingResolution.ok).toBe(true);
@@ -275,6 +293,9 @@ describe("T-2039 — training and progression parameters in synthetic and draft 
     expect(rxResolution.ok).toBe(true);
 
     const safetyPolicy = resolveNutritionSafetyPolicy(policy);
+    if (safetyPolicy.resolutionStatus !== "RESOLVED") {
+      throw new Error("fixture safety policy changed");
+    }
     expect(safetyPolicy.nutritionLimits.minimumDailyEnergyKcal).toBe(1234);
   });
 
@@ -284,7 +305,10 @@ describe("T-2039 — training and progression parameters in synthetic and draft 
     const draftBundleRuleIds = new Set(draftBundle.content.ruleIds);
 
     for (const ex of draftCatalog.content.exercises) {
-      for (const ruleId of [...(ex.contraindicationRuleIds ?? []), ...(ex.beginnerConstraintIds ?? [])]) {
+      for (const ruleId of [
+        ...(ex.contraindicationRuleIds ?? []),
+        ...(ex.beginnerConstraintIds ?? []),
+      ]) {
         expect(draftBundleRuleIds.has(ruleId)).toBe(true);
       }
     }

@@ -113,7 +113,9 @@ function buildLiveCatalogArtifacts(namespace: string) {
 
 suite("T-2040 — a plan bound to a catalog this build does not carry in code", () => {
   const artifacts = buildLiveCatalogArtifacts(`live-catalog-${randomUUID()}`);
-  const exerciseKey = artifacts.leaves.find((leaf) => leaf.kind === "EXERCISE_CATALOG")!.artifactKey;
+  const exerciseKey = artifacts.leaves.find(
+    (leaf) => leaf.kind === "EXERCISE_CATALOG"
+  )!.artifactKey;
   const foodKey = artifacts.leaves.find((leaf) => leaf.kind === "FOOD_CATALOG")!.artifactKey;
   let actorId: string;
 
@@ -276,6 +278,7 @@ suite("T-2040 — a plan bound to a catalog this build does not carry in code", 
    * turns a parse failure into UNVERIFIABLE -> a permanent HOLD. */
   async function recordNutritionSafety() {
     const policy = resolveNutritionSafetyPolicy(artifacts.policy.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     return evaluateCurrentClientNutritionSafety(request(), {
       screening: {
         instrumentId: policy.screening.instrumentId,
@@ -348,6 +351,7 @@ suite("T-2040 — a plan bound to a catalog this build does not carry in code", 
     // 6. nutrition-safety.ts readNutritionHistory — the accepted live-keyed
     // payload parses, so the history is verifiable and never HOLDs forever.
     const policy = resolveNutritionSafetyPolicy(artifacts.policy.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     const safety = await recordNutritionSafety();
     expect(safety.outcome).toBe("PASS");
     expect(safety.reasonCodes).not.toContain(policy.nutritionLimits.unverifiableHistoryReasonCode);
@@ -356,13 +360,7 @@ suite("T-2040 — a plan bound to a catalog this build does not carry in code", 
   it("approves a live-keyed candidate automatically, with no reviewer grant (read path 7)", async () => {
     const { user, context, profile } = await liveClientFixture();
     await recordNutritionSafety();
-    const candidate = await seedPlan(
-      user,
-      context,
-      profile,
-      "PROPOSED",
-      trainingOnlyPayload()
-    );
+    const candidate = await seedPlan(user, context, profile, "PROPOSED", trainingOnlyPayload());
 
     const result = await evaluateCurrentClientAutonomyGate(request(), gateInput(candidate.id));
     expect(result).toMatchObject({
@@ -414,11 +412,13 @@ suite("T-2040 — a plan bound to a catalog this build does not carry in code", 
     await recordNutritionSafety();
     const payload = trainingOnlyPayload({ exerciseId: CARDIO_ITEM_ID });
     // It parses: the in-code loader does not serve this catalog key.
-    expect(validatedManagedPayload({
-      payload,
-      payloadHash: contentHash(payload),
-      validationReport: { engine: "managed-v1", passed: true, inputHash: "b".repeat(64) },
-    })).not.toBeNull();
+    expect(
+      validatedManagedPayload({
+        payload,
+        payloadHash: contentHash(payload),
+        validationReport: { engine: "managed-v1", passed: true, inputHash: "b".repeat(64) },
+      })
+    ).not.toBeNull();
     const candidate = await seedPlan(user, context, profile, "PROPOSED", payload);
 
     const result = await evaluateCurrentClientAutonomyGate(request(), gateInput(candidate.id));

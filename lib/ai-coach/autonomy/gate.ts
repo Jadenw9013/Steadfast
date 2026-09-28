@@ -194,7 +194,9 @@ function stoppedEvaluation(
  * Multiple codes resolve to the most protective outcome: `PAUSE_REFER` >
  * `HOLD` > `FOCUSED_CLARIFICATION`.
  */
-function outcomeFor(reasonCodes: readonly string[]): Exclude<AutonomyOutcome, "APPROVE_AUTOMATICALLY"> {
+function outcomeFor(
+  reasonCodes: readonly string[]
+): Exclude<AutonomyOutcome, "APPROVE_AUTOMATICALLY"> {
   const reasonClass = classifyPrescriptionReasonCodes(reasonCodes);
   if (reasonClass === "OUT_OF_SCOPE") return "PAUSE_REFER";
   if (reasonClass === "POLICY_NOT_READY") return "HOLD";
@@ -249,11 +251,14 @@ export function evaluateAutonomyGate(
   // T-2033: placed before the nutritionSafety checks below (T-2003 Contract
   // "Gate"), so GATE_ORDER and the validationReport.checks shape are
   // unchanged — this still runs inside the TARGET_AND_LIMITS stage. Makes
-  // APPROVE_AUTOMATICALLY unreachable whenever the goal needs an energy
-  // target and the engine did not produce one, closing the hole where a
-  // candidate with `payload.nutrition === null` could satisfy `domainsMatch`
-  // simply by NUTRITION being absent from `requestedDomains`.
-  if (facts.prescription && facts.prescription.required && !facts.prescription.available) {
+  // APPROVE_AUTOMATICALLY unreachable whenever the engine explicitly says
+  // the prescription is unavailable. `required` remains durable context for
+  // old payload readers, but it must not suppress an OUT_OF_SCOPE or invalid-
+  // input result: that was the hole that let MAINTAIN / NO_PREFERENCE (and an
+  // otherwise incomplete goal) discard a clinical exclusion the engine had
+  // already found. A genuinely legacy candidate has `prescription: null` and
+  // retains the historical path below.
+  if (facts.prescription && !facts.prescription.available) {
     return stoppedEvaluation(
       "TARGET_AND_LIMITS",
       outcomeFor(facts.prescription.reasonCodes),

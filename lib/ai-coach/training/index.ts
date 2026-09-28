@@ -17,6 +17,7 @@ export function daySpread(i: number, days: number): number {
 const SEQ_1 = 1;
 const SEQ_2 = 1 + 1;
 const SEQ_3 = 1 + 1 + 1;
+const SUPPORTED_STRENGTH_SESSIONS_MAX = SEQ_3 + SEQ_1;
 
 const EFFORT_TEXT_MAX_LENGTH = (7 + 1) * (1 + 1 + 1 + 1 + 1) * (1 + 1 + 1 + 1 + 1);
 
@@ -184,16 +185,23 @@ export function composeTraining(
 
   const appliedCapIds: string[] = [];
   const reasonCodes: TrainingReasonCode[] = [];
+  const recordReduction = (reasonCode: TrainingReasonCode, capId: string) => {
+    if (!reasonCodes.includes(reasonCode)) reasonCodes.push(reasonCode);
+    if (!appliedCapIds.includes(capId)) appliedCapIds.push(capId);
+  };
 
   // Step 4: Strength days cap
   const maxStrengthSessions = parameters.maxStrengthSessionsByExperience[input.experienceLevel];
   let strengthDays = input.trainingDaysPerWeek;
   if (strengthDays > maxStrengthSessions) {
     strengthDays = maxStrengthSessions;
-    appliedCapIds.push(
-      `TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.${input.experienceLevel}`
-    );
+    appliedCapIds.push(`TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.${input.experienceLevel}`);
     reasonCodes.push("TRAINING_WORKLOAD_CAPPED");
+    reasonCodes.push("TRAINING_STRENGTH_SESSIONS_REDUCED");
+  }
+  if (strengthDays > SUPPORTED_STRENGTH_SESSIONS_MAX) {
+    strengthDays = SUPPORTED_STRENGTH_SESSIONS_MAX;
+    recordReduction("TRAINING_STRENGTH_SESSIONS_REDUCED", "TRAINING.TEMPLATE.DAYS.SUPPORTED_MAX");
   }
 
   // Step 5: Template set selection
@@ -324,16 +332,21 @@ export function composeTraining(
   // Step 11: Cardio dose & modality
   const postTrimStrengthDays = selectedTemplates.length;
   const maxAvailableCardioDays = 7 - postTrimStrengthDays;
-  const targetCardioSessions = Math.min(
-    parameters.cardioSessionsPerWeekByExperience[input.experienceLevel],
-    maxAvailableCardioDays
-  );
-  let cardioSessionsCount = targetCardioSessions > 0 ? targetCardioSessions : 0;
+  const configuredCardioSessions =
+    parameters.cardioSessionsPerWeekByExperience[input.experienceLevel];
+  const targetCardioSessions = Math.min(configuredCardioSessions, maxAvailableCardioDays);
+  if (targetCardioSessions < configuredCardioSessions) {
+    recordReduction("TRAINING_CARDIO_REDUCED", "CARDIO.WEEKLY.AVAILABLE_DAYS.MAX");
+  }
+  const cardioSessionsCount = targetCardioSessions > 0 ? targetCardioSessions : 0;
 
   const cardioDurationMinutes = Math.min(
     parameters.cardioSessionMinutesByExperience[input.experienceLevel],
     parameters.cardioMaxSessionMinutes
   );
+  if (cardioDurationMinutes < parameters.cardioSessionMinutesByExperience[input.experienceLevel]) {
+    recordReduction("TRAINING_CARDIO_REDUCED", "CARDIO.DOSE.MAX_SESSION_MINUTES");
+  }
   const cardioIntensity = effortText.cardio;
 
   let cardioExercise: TrainingCatalogExercise | null = null;
@@ -375,7 +388,13 @@ export function composeTraining(
       }
     }
     if (!cardioExercise) {
-      cardioSessionsCount = 0;
+      return {
+        status: "UNAVAILABLE",
+        strength: [],
+        cardio: [],
+        appliedCapIds: [],
+        reasonCodes: ["TRAINING_CATALOG_EMPTY_FOR_EQUIPMENT"],
+      };
     }
   }
 
@@ -394,6 +413,7 @@ export function composeTraining(
 
   const cardioDaysList: number[] = remainingWeekDays.slice(0, cardioSessionsCount);
 
+  const cardioDaysBeforeConsecutiveCap = cardioDaysList.length;
   while (
     cardioDaysList.length > 0 &&
     maxConsecutiveDays([...strengthDaysList, ...cardioDaysList]) >
@@ -401,7 +421,9 @@ export function composeTraining(
   ) {
     cardioDaysList.pop();
   }
-
+  if (cardioDaysList.length < cardioDaysBeforeConsecutiveCap) {
+    recordReduction("TRAINING_CARDIO_REDUCED", "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX");
+  }
   // Step 13: Combined-workload check
   const plannedSessionMinutes = parameters.plannedMinutesByBand[input.sessionLengthBand];
   const minutesCap =
@@ -437,9 +459,15 @@ export function composeTraining(
 
     if (cardioDaysList.length > 0) {
       cardioDaysList.pop();
+      if (!reasonCodes.includes("TRAINING_CARDIO_REDUCED")) {
+        reasonCodes.push("TRAINING_CARDIO_REDUCED");
+      }
     } else if (selectedTemplates.length > 1) {
       selectedTemplates.pop();
       sessionExerciseLists.pop();
+      if (!reasonCodes.includes("TRAINING_STRENGTH_SESSIONS_REDUCED")) {
+        reasonCodes.push("TRAINING_STRENGTH_SESSIONS_REDUCED");
+      }
       strengthDaysList = [];
       for (let i = 0; i < selectedTemplates.length; i++) {
         strengthDaysList.push(daySpread(i, selectedTemplates.length));
@@ -453,6 +481,15 @@ export function composeTraining(
         reasonCodes: ["TRAINING_WORKLOAD_INFEASIBLE"],
       };
     }
+  }
+  if (cardioDaysList.length === 0) {
+    const zeroCardioCapId =
+      configuredCardioSessions === 0
+        ? `CARDIO.DOSE.${input.experienceLevel}.SESSIONS_PER_WEEK`
+        : (appliedCapIds.find(
+            (id) => id.startsWith("CARDIO.") || id.startsWith("WORKLOAD.")
+          ) ?? "CARDIO.WEEKLY.AVAILABLE_DAYS.MAX");
+    recordReduction("TRAINING_CARDIO_NOT_ASSIGNED", zeroCardioCapId);
   }
 
   // Step 14: Build payload objects

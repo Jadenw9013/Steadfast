@@ -160,8 +160,9 @@ export function resolveTrainingParameters(
     };
   }
 
-  const strengthEffortDeclared = policy.explanationTemplateIds.includes(EFFORT_STRENGTH_TEMPLATE_ID);
-  const cardioEffortDeclared = policy.explanationTemplateIds.includes(EFFORT_CARDIO_TEMPLATE_ID);
+  const trainingEffortTemplateIds = policy.trainingEffortTemplateIds ?? [];
+  const strengthEffortDeclared = trainingEffortTemplateIds.includes(EFFORT_STRENGTH_TEMPLATE_ID);
+  const cardioEffortDeclared = trainingEffortTemplateIds.includes(EFFORT_CARDIO_TEMPLATE_ID);
   const strengthEffort = explanationTexts.find((item) => item.id === EFFORT_STRENGTH_TEMPLATE_ID);
   const cardioEffort = explanationTexts.find((item) => item.id === EFFORT_CARDIO_TEMPLATE_ID);
 
@@ -269,9 +270,7 @@ export function resolveTrainingParameters(
     workloadTrainingMinutesMaxWhenEnergyReduced: value(
       "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED"
     ),
-    workloadConsecutiveTrainingDaysMax: value(
-      "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX"
-    ),
+    workloadConsecutiveTrainingDaysMax: value("WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX"),
     parameterSetDigest,
   };
 

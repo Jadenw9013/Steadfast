@@ -316,6 +316,7 @@ suite("T-1007 constrained provider boundary with real PostgreSQL constraints", (
     set: Awaited<ReturnType<typeof publishedArtifacts>>
   ): NutritionSafetyEvaluationInput {
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     return {
       screening: {
         instrumentId: policy.screening.instrumentId,
@@ -501,9 +502,7 @@ suite("T-1007 constrained provider boundary with real PostgreSQL constraints", (
     // declared union so the runtime null-check below is a real check.
     const seenEnvelope = seen as ConstrainedProviderEnvelope | null;
     if (!seenEnvelope) throw new Error("provider was never invoked");
-    expect(
-      JSON.stringify({ ...seenEnvelope, explanationInputs: null })
-    ).not.toContain("1734");
+    expect(JSON.stringify({ ...seenEnvelope, explanationInputs: null })).not.toContain("1734");
     expect(serializedEnvelope).not.toContain("numericParameters");
     expect(seenEnvelope.explanationInputs?.numericFields).toContainEqual(
       expect.objectContaining({

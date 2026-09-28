@@ -615,7 +615,8 @@
       "ESCALATION.EVIDENCE.HOLD.V1",
       "ESCALATION.PLAN.NOT_USABLE.V1"
     ],
-    "explanationTemplateIds": [
+    "prescriptionExplanationTemplateIds": [],
+    "trainingEffortTemplateIds": [
       "TRAINING.EFFORT.STRENGTH.V1",
       "TRAINING.EFFORT.CARDIO.V1"
     ],

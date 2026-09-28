@@ -21,9 +21,7 @@ import {
 } from "@/lib/ai-coach/nutrition-safety";
 import { submitSafetyDisclosure } from "@/lib/ai-coach/safety";
 import { planPayloadSchema } from "@/lib/ai-coach/plan-contract";
-import {
-  runConstrainedProviderBoundary,
-} from "@/lib/ai-coach/provider/constrained-boundary";
+import { runConstrainedProviderBoundary } from "@/lib/ai-coach/provider/constrained-boundary";
 import { SyntheticConstrainedProvider } from "@/lib/ai-coach/provider/synthetic-provider";
 import type {
   ConstrainedModelProvider,
@@ -472,9 +470,9 @@ suite("T-2030 bounded explanation prose — golden digest, accept/reject, projec
     await expect(finalizeCurrentClientPlan(overCeilingCandidate.id)).resolves.toMatchObject({
       outcome: "APPROVE_AUTOMATICALLY",
     });
-    await expect(finalizeCurrentClientPlan(strayClarificationCandidate.id)).resolves.toMatchObject(
-      { outcome: "APPROVE_AUTOMATICALLY" }
-    );
+    await expect(finalizeCurrentClientPlan(strayClarificationCandidate.id)).resolves.toMatchObject({
+      outcome: "APPROVE_AUTOMATICALLY",
+    });
 
     const workspace = await getAiWorkspace(user.id);
     for (const candidateId of [
@@ -526,7 +524,9 @@ suite("T-2030 bounded explanation prose — golden digest, accept/reject, projec
     const approval = await db.aiAutomaticPlanApproval.findUniqueOrThrow({
       where: { planVersionId: candidate.id },
     });
-    expect((approval.providerSelection as { explanation: { text?: string } }).explanation.text).toBeTruthy();
+    expect(
+      (approval.providerSelection as { explanation: { text?: string } }).explanation.text
+    ).toBeTruthy();
 
     const workspace = await getAiWorkspace(user.id);
     const proposal = workspace.proposals.find((entry) => entry.id === candidate.id);
@@ -582,7 +582,8 @@ suite("T-2030 bounded explanation prose — golden digest, accept/reject, projec
     });
     const text = (approval.providerSelection as { explanation: { text: string } }).explanation.text;
     expect(
-      "text" in (rejectedApproval.providerSelection as { explanation: Record<string, unknown> }).explanation
+      "text" in
+        (rejectedApproval.providerSelection as { explanation: Record<string, unknown> }).explanation
     ).toBe(false);
 
     const exported: { dataset: string; record: unknown }[] = [];
@@ -653,6 +654,7 @@ suite("T-2030 R10 structural retention (direct boundary calls)", () => {
     set: Awaited<ReturnType<typeof publishedArtifacts>>
   ): NutritionSafetyEvaluationInput {
     const policy = resolveNutritionSafetyPolicy(set.policyBundle.content);
+    if (policy.resolutionStatus !== "RESOLVED") throw new Error("fixture safety policy changed");
     return {
       screening: {
         instrumentId: policy.screening.instrumentId,

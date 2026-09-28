@@ -31,12 +31,7 @@ export type TrainingCatalogSource = {
   templates: readonly TrainingCatalogTemplate[];
 };
 
-export type SessionLengthBand =
-  | "UNDER_30"
-  | "MIN_30_45"
-  | "MIN_45_60"
-  | "MIN_60_90"
-  | "OVER_90";
+export type SessionLengthBand = "UNDER_30" | "MIN_30_45" | "MIN_45_60" | "MIN_60_90" | "OVER_90";
 
 export type ExperienceLevel = "NEW" | "RETURNING" | "EXPERIENCED";
 
@@ -64,6 +59,9 @@ export type TrainingReasonCode =
   | "TRAINING_EXERCISE_COUNT_INFEASIBLE"
   | "TRAINING_CONTRAINDICATED_NO_SUBSTITUTE"
   | "TRAINING_WORKLOAD_CAPPED"
+  | "TRAINING_STRENGTH_SESSIONS_REDUCED"
+  | "TRAINING_CARDIO_REDUCED"
+  | "TRAINING_CARDIO_NOT_ASSIGNED"
   | "TRAINING_WORKLOAD_INFEASIBLE"
   | "TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE";
 

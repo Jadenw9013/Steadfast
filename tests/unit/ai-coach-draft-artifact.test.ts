@@ -13,7 +13,10 @@ import {
   type PolicyBundleContent,
 } from "@/lib/ai-coach/artifacts/schema";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
-import { resolveNutritionSafetyPolicy } from "@/lib/ai-coach/nutrition-safety";
+import {
+  NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE,
+  resolveNutritionSafetyPolicy,
+} from "@/lib/ai-coach/nutrition-safety";
 import {
   PRESCRIPTION_PARAMETER_SPECS,
   resolvePrescriptionParameters,
@@ -35,13 +38,13 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     expect(artifactContentDigest(set.exerciseCatalog)).toBe(
       "9ec1b46668a9f3334ce310500f88ef4591b1d193033cdaf2cd5c81cbe07cb594"
     );
-    // T-2039: evidenceRegistry gained the 6 training/progression rule IDs in its claim,
-    // and escalationTemplates gained the two reviewed effort explanation templates.
+    // T-2039 added effort templates; S-15 added a distinct nutrition-copy
+    // template so those effort strings cannot leak into nutrition assumptions.
     expect(artifactContentDigest(set.evidenceRegistry)).toBe(
       "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233"
     );
     expect(artifactContentDigest(set.escalationTemplates)).toBe(
-      "fab8e295214943dfaee468a9fd1742e4f05648fe33a24942da112f960959b34b"
+      "a39e7c45cdbc04ff6a74826320bde13fc3c13fd7fca26ef7c6a526631170ce14"
     );
   });
 
@@ -223,8 +226,24 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     const safetyPolicy = resolveNutritionSafetyPolicy(
       set.policyBundle.content as PolicyBundleContent
     );
+    if (safetyPolicy.resolutionStatus !== "RESOLVED") {
+      throw new Error("fixture safety policy changed");
+    }
     expect(safetyPolicy.nutritionLimits.minimumDailyEnergyKcal).toBe(1234);
     expect(safetyPolicy.nutritionLimits.maximumWeeklyLossRatePercent).toBe(9.99);
+  });
+
+  it("returns a renderable HOLD when the draft safety floors await RD review", () => {
+    const resolution = resolveNutritionSafetyPolicy(loadDraftUnsignedPolicyBundle().content);
+    expect(resolution.resolutionStatus).toBe("PENDING");
+    expect(resolution.pendingParameterIds).toEqual([
+      "PENDING_RD_DECISION_MIN_DAILY_ENERGY",
+      "PENDING_RD_DECISION_MAX_WEEKLY_LOSS_RATE",
+    ]);
+    expect(resolution.pendingDecision).toMatchObject({
+      outcome: "HOLD",
+      reasonCodes: [NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE],
+    });
   });
 
   it("draftPolicyBundleToArtifactDraftInput produces an ArtifactDraftInput requiring a signed review metadata argument", () => {

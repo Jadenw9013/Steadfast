@@ -283,7 +283,14 @@ export const policyBundleContentSchema = z
     contraindicationRuleIds: z.array(identifierSchema).min(1).max(100),
     evidenceRuleIds: z.array(identifierSchema).min(1).max(100),
     escalationTemplateIds: z.array(identifierSchema).min(1).max(100),
-    explanationTemplateIds: z.array(identifierSchema).min(1).max(100),
+    /**
+     * Deprecated compatibility field for already-stored v1 artifacts. New
+     * bundles must declare consumer-specific IDs below so workout effort copy
+     * can never be rendered as a nutrition-prescription assumption.
+     */
+    explanationTemplateIds: z.array(identifierSchema).max(100).optional(),
+    prescriptionExplanationTemplateIds: z.array(identifierSchema).max(100).optional(),
+    trainingEffortTemplateIds: z.array(identifierSchema).max(100).optional(),
     safetyControls: safetyControlsSchema,
     numericParameters: z
       .array(
@@ -516,7 +523,12 @@ export const sourcedFoodCatalogItemSchema = z
     energyFact: z
       .object({
         kcal: z.number().finite().nonnegative().nullable(),
-        method: z.enum(["ATWATER_GENERAL", "ATWATER_SPECIFIC", "SOURCE_REPORTED_UNSPECIFIED", "UNKNOWN"]),
+        method: z.enum([
+          "ATWATER_GENERAL",
+          "ATWATER_SPECIFIC",
+          "SOURCE_REPORTED_UNSPECIFIED",
+          "UNKNOWN",
+        ]),
         methodDetail: z.string().max(240).nullable(),
         macroEnergyDiscrepancyKcal: z.number().finite().nullable(),
       })

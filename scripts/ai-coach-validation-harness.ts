@@ -119,10 +119,7 @@ import {
   type NutritionSafetyPolicy,
 } from "../lib/ai-coach/nutrition-safety";
 import { evaluateAutonomyGate } from "../lib/ai-coach/autonomy/gate";
-import type {
-  AutonomyGateFacts,
-  ServerAutonomyGateInput,
-} from "../lib/ai-coach/autonomy/gate";
+import type { AutonomyGateFacts, ServerAutonomyGateInput } from "../lib/ai-coach/autonomy/gate";
 import { composeInitialPlan } from "../lib/ai-coach/initial-plan";
 import { checkMealComposition } from "../lib/ai-coach/composition-feasibility";
 import { getFoodItem } from "../lib/ai-coach/catalog/loader";
@@ -228,13 +225,7 @@ function shiftDate(isoDate: string, deltaDays: number): string {
 
 /* ------------------------------------------------------------------- axes */
 
-const POPULATIONS = [
-  "MALE_ADULT",
-  "FEMALE_ADULT",
-  "PREGNANCY",
-  "LACTATION",
-  "NOT_LISTED",
-] as const;
+const POPULATIONS = ["MALE_ADULT", "FEMALE_ADULT", "PREGNANCY", "LACTATION", "NOT_LISTED"] as const;
 const ACTIVITIES = ["INACTIVE", "LOW_ACTIVE", "ACTIVE", "VERY_ACTIVE"] as const;
 const INTENTS = ["LOSE", "MAINTAIN", "GAIN", "NO_PREFERENCE"] as const;
 const PACES = ["MAINTAIN", "GRADUAL", "MODERATE", "UNDECIDED"] as const;
@@ -506,14 +497,12 @@ function buildGrid(options: {
   for (const pattern of PATTERNS)
     for (const patternReason of PATTERN_REASONS)
       for (const patternStatus of ["CONFIRMED", "DECLINED"] as const)
-        for (const intent of INTENTS)
-          push("P", { pattern, patternReason, patternStatus, intent });
+        for (const intent of INTENTS) push("P", { pattern, patternReason, patternStatus, intent });
 
   // Block B — body-metric grid, boundaries and one point outside each. 7^3.
   for (const ageYears of body.ages)
     for (const heightCm of body.heights)
-      for (const weightKg of body.weights)
-        push("B", { ageYears, heightCm, weightKg });
+      for (const weightKg of body.weights) push("B", { ageYears, heightCm, weightKg });
 
   // Block T — training factorial: days x equipment x experience x band.
   // 7*7*3*5 = 735.
@@ -568,9 +557,21 @@ function buildGrid(options: {
   }
   const histories: NutritionSafetyHistory[] = [
     NEUTRAL_HISTORY,
-    { currentDailyEnergyKcal: 2600, lastMaterialEnergyDirection: "REDUCTION", sourcePlanVersionIds: [] },
-    { currentDailyEnergyKcal: 2600, lastMaterialEnergyDirection: "NON_REDUCTION", sourcePlanVersionIds: [] },
-    { currentDailyEnergyKcal: null, lastMaterialEnergyDirection: "UNVERIFIABLE", sourcePlanVersionIds: [] },
+    {
+      currentDailyEnergyKcal: 2600,
+      lastMaterialEnergyDirection: "REDUCTION",
+      sourcePlanVersionIds: [],
+    },
+    {
+      currentDailyEnergyKcal: 2600,
+      lastMaterialEnergyDirection: "NON_REDUCTION",
+      sourcePlanVersionIds: [],
+    },
+    {
+      currentDailyEnergyKcal: null,
+      lastMaterialEnergyDirection: "UNVERIFIABLE",
+      sourcePlanVersionIds: [],
+    },
   ];
   for (const screeningResult of ["CLEAR", "FLAGGED", "UNKNOWN"] as const)
     for (const nutritionContraindications of contraPatterns)
@@ -661,9 +662,21 @@ function buildGrid(options: {
       nutritionContraindications,
       history: pick(random, [
         NEUTRAL_HISTORY,
-        { currentDailyEnergyKcal: 2600, lastMaterialEnergyDirection: "REDUCTION", sourcePlanVersionIds: [] },
-        { currentDailyEnergyKcal: 1800, lastMaterialEnergyDirection: "NON_REDUCTION", sourcePlanVersionIds: [] },
-        { currentDailyEnergyKcal: null, lastMaterialEnergyDirection: "UNVERIFIABLE", sourcePlanVersionIds: [] },
+        {
+          currentDailyEnergyKcal: 2600,
+          lastMaterialEnergyDirection: "REDUCTION",
+          sourcePlanVersionIds: [],
+        },
+        {
+          currentDailyEnergyKcal: 1800,
+          lastMaterialEnergyDirection: "NON_REDUCTION",
+          sourcePlanVersionIds: [],
+        },
+        {
+          currentDailyEnergyKcal: null,
+          lastMaterialEnergyDirection: "UNVERIFIABLE",
+          sourcePlanVersionIds: [],
+        },
       ]),
     });
   }
@@ -766,7 +779,7 @@ function prescriptionExplanationTexts(
 ): string[] {
   const byId = new Map(templates.map((template) => [template.id, template]));
   const texts: string[] = [];
-  for (const id of policy.explanationTemplateIds) {
+  for (const id of policy.prescriptionExplanationTemplateIds ?? []) {
     const template = byId.get(id);
     if (template) texts.push(template.nextStepText);
   }
@@ -821,7 +834,8 @@ function loadDraftSource(): ParameterSource {
       exerciseCatalog: contentHash(exerciseFile.content),
       evidenceRegistry: contentHash(evidenceFile.content),
       escalationTemplates: contentHash(escalationFile.content),
-      foodCatalog: foodArtifactKey === "(not generated)" ? "(absent)" : `${foodArtifactKey}:${foodItemCount}`,
+      foodCatalog:
+        foodArtifactKey === "(not generated)" ? "(absent)" : `${foodArtifactKey}:${foodItemCount}`,
     },
     notes,
   };
@@ -835,7 +849,8 @@ function loadFixtureSource(): ParameterSource {
   return {
     key: "fixture",
     label: "Repository SYNTHETIC fixture policy bundle (shape demonstration of mode 2)",
-    provenance: "lib/ai-coach/artifacts/synthetic-fixtures.ts buildSyntheticArtifactSet(\"t1008-runtime\")",
+    provenance:
+      'lib/ai-coach/artifacts/synthetic-fixtures.ts buildSyntheticArtifactSet("t1008-runtime")',
     policy,
     escalationTemplates: escalation.templates.map((template) => ({
       id: template.id,
@@ -915,7 +930,7 @@ function resolveBinding(source: ParameterSource): Binding {
   let prescriptionParameters: ResolvedPrescriptionParameters | null = null;
   let prescriptionResolveReasonCodes: string[] = [];
   let prescriptionMissingIds: string[] = [];
-  if (safetyPolicy) {
+  if (safetyPolicy?.resolutionStatus === "RESOLVED") {
     const resolved = resolvePrescriptionParameters(source.policy, explanationTexts, {
       minimumDailyEnergyKcal: safetyPolicy.nutritionLimits.minimumDailyEnergyKcal,
       minimumDailyEnergyParameterId: safetyPolicy.nutritionLimits.minimumDailyEnergyParameterId,
@@ -930,14 +945,18 @@ function resolveBinding(source: ParameterSource): Binding {
       prescriptionMissingIds = resolved.missingParameterIds;
     }
   } else {
-    // The floors could not be resolved at all, so the prescription engine's
-    // parameter set cannot even be attempted — the production wrapper throws
-    // here rather than returning reason codes.
+    // Pending floors or incompatible artifact data cannot authorize a
+    // prescription parameter set. Pending review is a named HOLD; only
+    // malformed non-pending content reaches the catch above.
     const declaredIds = new Set(source.policy.numericParameters.map((parameter) => parameter.id));
     prescriptionMissingIds = PRESCRIPTION_PARAMETER_SPECS.filter(
       (spec) => !declaredIds.has(spec.id)
     ).map((spec) => spec.id);
-    prescriptionResolveReasonCodes = ["SAFETY_FLOOR_RESOLUTION_THREW"];
+    prescriptionResolveReasonCodes = [
+      safetyPolicy?.resolutionStatus === "PENDING"
+        ? "PRESCRIPTION_PARAMETER_MISSING"
+        : "SAFETY_FLOOR_RESOLUTION_THREW",
+    ];
   }
 
   const trainingResolved = resolveTrainingParameters(
@@ -1024,7 +1043,10 @@ function attributeCompositionFailure(
     policyVersion,
   });
   if (!feasibility.feasible) {
-    return `FEASIBILITY_${feasibility.reasons.map((reason) => reason.code).sort().join("+")}`;
+    return `FEASIBILITY_${feasibility.reasons
+      .map((reason) => reason.code)
+      .sort()
+      .join("+")}`;
   }
   return "SOLVER_OR_TOLERANCE";
 }
@@ -1057,19 +1079,25 @@ function envelopeChecks(
 
   const proteinEnergy = proteinG * densities.protein;
   if (proteinEnergy > target) flags.push("PROTEIN_ENERGY_EXCEEDS_TARGET");
-  const lowBand = proteinEnergy + carbRange.min * densities.carbohydrate + fatRange.min * densities.fat;
-  const highBand = proteinEnergy + carbRange.max * densities.carbohydrate + fatRange.max * densities.fat;
+  const lowBand =
+    proteinEnergy + carbRange.min * densities.carbohydrate + fatRange.min * densities.fat;
+  const highBand =
+    proteinEnergy + carbRange.max * densities.carbohydrate + fatRange.max * densities.fat;
   const tolerance = (target * parameters.compositionTolerancePercent) / 100;
   if (lowBand > target + tolerance) flags.push("MACRO_BAND_MINIMUM_ABOVE_TARGET");
   if (highBand < target - tolerance) flags.push("MACRO_BAND_MAXIMUM_BELOW_TARGET");
 
   if (axes.weightKg !== null && projectedKg < 0) {
     const rate = (-projectedKg / axes.weightKg) * 100;
-    if (rate > floors.maximumWeeklyLossRatePercent) flags.push("PROJECTED_LOSS_RATE_ABOVE_BUNDLE_CAP");
+    if (rate > floors.maximumWeeklyLossRatePercent)
+      flags.push("PROJECTED_LOSS_RATE_ABOVE_BUNDLE_CAP");
   }
   if (axes.intent === "LOSE" && projectedKg > 0) flags.push("LOSE_INTENT_PROJECTS_GAIN");
   if (axes.intent === "GAIN" && projectedKg < 0) flags.push("GAIN_INTENT_PROJECTS_LOSS");
-  if ((axes.intent === "MAINTAIN" || axes.intent === "NO_PREFERENCE") && Math.abs(projectedKg) > 0.1) {
+  if (
+    (axes.intent === "MAINTAIN" || axes.intent === "NO_PREFERENCE") &&
+    Math.abs(projectedKg) > 0.1
+  ) {
     flags.push("MAINTAIN_INTENT_PROJECTS_MATERIAL_CHANGE");
   }
   return flags;
@@ -1171,7 +1199,9 @@ function evaluateProfile(
     evaluatedOn,
     parameters: binding.prescriptionParameters,
     binding: binding3,
-    trainingParameters: binding.trainingParameters.ok ? binding.trainingParameters.parameters : null,
+    trainingParameters: binding.trainingParameters.ok
+      ? binding.trainingParameters.parameters
+      : null,
     trainingCatalog: source.trainingCatalog,
     trainingEffortText: binding.trainingParameters.ok
       ? binding.trainingParameters.effortText
@@ -1205,7 +1235,8 @@ function evaluateProfile(
     }
   } catch (error) {
     result.composerStatus = "THREW";
-    result.composerThrew = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    result.composerThrew =
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   }
 
   // Training, through the real composer, reported separately from the plan
@@ -1283,7 +1314,9 @@ function evaluateProfile(
     const gateInput: ServerAutonomyGateInput = {
       requestedScopeClasses: ["GENERAL_FITNESS_PROGRAMMING"],
       requestedDomains:
-        result.targetEnergyKcal !== null ? ["NUTRITION", "STRENGTH", "CARDIO"] : ["STRENGTH", "CARDIO"],
+        result.targetEnergyKcal !== null
+          ? ["NUTRITION", "STRENGTH", "CARDIO"]
+          : ["STRENGTH", "CARDIO"],
       requiredInputs: [...new Set(source.policy.requiredInputIds)].map((id) => ({
         id,
         status: "CONFIRMED" as const,
@@ -1394,12 +1427,19 @@ function gateReachabilityProbes(source: ParameterSource): GateProbe[] {
     candidateValid: true,
   };
 
-  const cases: { name: string; input?: Partial<ServerAutonomyGateInput>; facts?: Partial<AutonomyGateFacts> }[] = [
+  const cases: {
+    name: string;
+    input?: Partial<ServerAutonomyGateInput>;
+    facts?: Partial<AutonomyGateFacts>;
+  }[] = [
     { name: "all facts clean" },
     { name: "authority ineligible", facts: { authorityEligible: false } },
     { name: "requested scope not allowed", input: { requestedScopeClasses: ["DIAGNOSIS"] } },
     { name: "safety disposition not CLEAR", facts: { safetyDisposition: "REFER" } },
-    { name: "domain permission not ALLOW", facts: { permissions: { NUTRITION: "PAUSED", STRENGTH: "ALLOW", CARDIO: "ALLOW" } } },
+    {
+      name: "domain permission not ALLOW",
+      facts: { permissions: { NUTRITION: "PAUSED", STRENGTH: "ALLOW", CARDIO: "ALLOW" } },
+    },
     {
       name: "required input not in the policy's set",
       input: { requiredInputs: [{ id: "NOT_A_REQUIRED_INPUT", status: "CONFIRMED" }] },
@@ -1418,7 +1458,11 @@ function gateReachabilityProbes(source: ParameterSource): GateProbe[] {
     {
       name: "prescription required but unavailable (client fixable)",
       facts: {
-        prescription: { required: true, available: false, reasonCodes: ["PRESCRIPTION_INPUT_MISSING"] },
+        prescription: {
+          required: true,
+          available: false,
+          reasonCodes: ["PRESCRIPTION_INPUT_MISSING"],
+        },
       },
     },
     {
@@ -1500,12 +1544,48 @@ const PLAN_SCHEMA_BOUNDS: {
   max: number;
   integer: boolean;
 }[] = [
-  { label: "sets per exercise (planPayloadSchema 1..10, integer)", read: (p) => Object.values(p.setsPerExerciseByExperience), min: 1, max: 10, integer: true },
-  { label: "reps per set (planPayloadSchema 1..50, integer)", read: (p) => Object.values(p.repsPerSetByExperience), min: 1, max: 50, integer: true },
-  { label: "rest seconds (planPayloadSchema 0..600, integer)", read: (p) => Object.values(p.restSecondsByExperience), min: 0, max: 600, integer: true },
-  { label: "cardio session minutes (planPayloadSchema >0..180)", read: (p) => [...Object.values(p.cardioSessionMinutesByExperience), p.cardioMaxSessionMinutes], min: 0.000001, max: 180, integer: false },
-  { label: "exercises per session (planPayloadSchema 1..12)", read: (p) => Object.values(p.exerciseCountMaxByBand), min: 1, max: 12, integer: false },
-  { label: "strength sessions per week (planPayloadSchema 0..7)", read: (p) => Object.values(p.maxStrengthSessionsByExperience), min: 0, max: 7, integer: false },
+  {
+    label: "sets per exercise (planPayloadSchema 1..10, integer)",
+    read: (p) => Object.values(p.setsPerExerciseByExperience),
+    min: 1,
+    max: 10,
+    integer: true,
+  },
+  {
+    label: "reps per set (planPayloadSchema 1..50, integer)",
+    read: (p) => Object.values(p.repsPerSetByExperience),
+    min: 1,
+    max: 50,
+    integer: true,
+  },
+  {
+    label: "rest seconds (planPayloadSchema 0..600, integer)",
+    read: (p) => Object.values(p.restSecondsByExperience),
+    min: 0,
+    max: 600,
+    integer: true,
+  },
+  {
+    label: "cardio session minutes (planPayloadSchema >0..180)",
+    read: (p) => [...Object.values(p.cardioSessionMinutesByExperience), p.cardioMaxSessionMinutes],
+    min: 0.000001,
+    max: 180,
+    integer: false,
+  },
+  {
+    label: "exercises per session (planPayloadSchema 1..12)",
+    read: (p) => Object.values(p.exerciseCountMaxByBand),
+    min: 1,
+    max: 12,
+    integer: false,
+  },
+  {
+    label: "strength sessions per week (planPayloadSchema 0..7)",
+    read: (p) => Object.values(p.maxStrengthSessionsByExperience),
+    min: 0,
+    max: 7,
+    integer: false,
+  },
 ];
 
 function planSchemaBoundFindings(binding: Binding): string[] {
@@ -1568,11 +1648,7 @@ type RunReport = {
   sections: string[];
 };
 
-function runOne(
-  source: ParameterSource,
-  profiles: Profile[],
-  evaluatedOn: string
-): RunReport {
+function runOne(source: ParameterSource, profiles: Profile[], evaluatedOn: string): RunReport {
   const binding = resolveBinding(source);
   const results = profiles.map((profile) => evaluateProfile(profile, source, binding, evaluatedOn));
   const probes = gateReachabilityProbes(source);
@@ -1593,10 +1669,12 @@ function runOne(
   bindingLines.push("|---|---|");
   bindingLines.push(
     `| \`resolveNutritionSafetyPolicy\` (the two T-1003 floors) | ${
-      binding.safetyPolicy
+      binding.safetyPolicy?.resolutionStatus === "RESOLVED"
         ? `resolved: floor ${binding.safetyPolicy.nutritionLimits.minimumDailyEnergyKcal} kcal/day, ` +
           `max loss rate ${binding.safetyPolicy.nutritionLimits.maximumWeeklyLossRatePercent} %BW/week`
-        : `**THREW** — ${binding.safetyPolicyError}`
+        : binding.safetyPolicy?.resolutionStatus === "PENDING"
+          ? `**HOLD** — ${binding.safetyPolicy.pendingDecision?.reasonCodes.join(", ")}`
+          : `**THREW** — ${binding.safetyPolicyError}`
     } |`
   );
   bindingLines.push(
@@ -1608,9 +1686,9 @@ function runOne(
     } |`
   );
   bindingLines.push(
-    `| prescription explanation copy (\`policy.explanationTemplateIds\` -> ESCALATION_TEMPLATES) | ${
+    `| prescription explanation copy (\`policy.prescriptionExplanationTemplateIds\` -> ESCALATION_TEMPLATES) | ${
       binding.explanationTexts.length
-    } text(s) resolved from ${source.policy.explanationTemplateIds.length} declared id(s) |`
+    } text(s) resolved from ${source.policy.prescriptionExplanationTemplateIds?.length ?? 0} declared id(s) |`
   );
   bindingLines.push(
     `| \`resolveTrainingParameters\` (34 composer parameters + 2 effort texts) | ${
@@ -1678,40 +1756,17 @@ function runOne(
         "reason, not because nothing fired."
     );
   }
-  if (missingPrescription.length > 0 || binding.trainingMissingIds.length > 0 || missingEffort.length > 0) {
+  if (
+    missingPrescription.length > 0 ||
+    binding.trainingMissingIds.length > 0 ||
+    missingEffort.length > 0
+  ) {
     flags.push(
       `Absent reviewed values: ${missingPrescription.length} of 75 prescription parameters, ` +
         `${binding.trainingMissingIds.length} of 34 training composer parameters, ` +
         `${binding.progressionMissingIds.length} of 12 progression parameters, ` +
         `${missingEffort.length} of 2 effort texts. Listed individually in the binding table above — ` +
         "this is the list of values a signature has to cover."
-    );
-  }
-  const effortIdsInExplanationList = source.policy.explanationTemplateIds.filter(
-    (id) => id === EFFORT_STRENGTH_TEMPLATE_ID || id === EFFORT_CARDIO_TEMPLATE_ID
-  );
-  if (
-    effortIdsInExplanationList.length > 0 &&
-    effortIdsInExplanationList.length === source.policy.explanationTemplateIds.length
-  ) {
-    flags.push(
-      "`policy.explanationTemplateIds` contains **only** the two training-effort template IDs " +
-        "(`TRAINING.EFFORT.STRENGTH.V1`, `TRAINING.EFFORT.CARDIO.V1`). That list is read by two " +
-        "different consumers: `resolveTrainingParameters` uses it to declare the effort copy, and " +
-        "`resolveReviewedPrescriptionExplanationTexts` uses it as the source of " +
-        "`Prescription.assumptions` — the client-facing 'how this was worked out' lines. As written, " +
-        "the moment those two effort sentences exist the nutrition prescription will publish " +
-        "*training effort guidance* as its nutrition assumptions. Either the bundle needs its own " +
-        "prescription explanation template IDs added to that list, or the two readers need separate " +
-        "lists."
-    );
-  } else if (effortIdsInExplanationList.length > 0) {
-    flags.push(
-      "`policy.explanationTemplateIds` mixes the two training-effort template IDs with prescription " +
-        "explanation IDs. `resolveReviewedPrescriptionExplanationTexts` takes every entry it can " +
-        "resolve, so the effort sentences end up inside the client-facing " +
-        "`Prescription.assumptions` list alongside the nutrition copy. Worth separating the two " +
-        "readers before signing either."
     );
   }
 
@@ -1722,7 +1777,10 @@ function runOne(
   for (const result of results) {
     rxStatus.add(result.prescriptionStatus);
     for (const code of result.prescriptionReasonCodes) rxReasons.add(code);
-    if (result.prescriptionReasonCodes.length === 0 && result.prescriptionStatus === "UNAVAILABLE") {
+    if (
+      result.prescriptionReasonCodes.length === 0 &&
+      result.prescriptionStatus === "UNAVAILABLE"
+    ) {
       rxReasons.add("(no reason code)");
     }
   }
@@ -1769,30 +1827,34 @@ function runOne(
     for (const [key, count] of classes.entries()) {
       classLines.push(`| \`${key}\` | ${count} | ${meaning[key] ?? "—"} |`);
     }
-    // An out-of-range measurement is classified OUT_OF_SCOPE, so a client one
-    // unit outside a bound is referred out rather than asked to check a typo.
     const onlyOutOfRange = unavailable.filter(
       (result) =>
         result.prescriptionReasonCodes.length === 1 &&
         result.prescriptionReasonCodes[0] === "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"
     );
     if (onlyOutOfRange.length > 0) {
+      const outOfRangeClass = classifyPrescriptionReasonCodes([
+        "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE",
+      ]);
       classLines.push("");
       classLines.push(
         `Profiles whose **only** reason was a measurement outside the bundle's declared range: ` +
-          `**${onlyOutOfRange.length}**. That code is classified \`OUT_OF_SCOPE\`, so a value one ` +
-          "kilogram, one centimetre or one year past a bound produces PAUSE_REFER — the same response " +
-          "as a clinician-directed therapeutic diet — rather than a clarification asking the client to " +
-          "check what they typed."
+          `**${onlyOutOfRange.length}**. That code is classified \`${outOfRangeClass}\`, so the gate ` +
+          (outOfRangeClass === "CLIENT_FIXABLE"
+            ? "asks the client to confirm or correct the form value."
+            : "does not currently route the value to a retryable form correction.")
       );
-      flags.push(
-        `${onlyOutOfRange.length} profile(s) were paused and referred out solely because a height, mass ` +
-          "or age sat outside the bundle's declared input range. `PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_" +
-          "RANGE` is classified `OUT_OF_SCOPE`, so a mistyped digit is treated as a clinical exclusion " +
-          "and the client cannot correct it from the clarification screen."
-      );
+      if (outOfRangeClass !== "CLIENT_FIXABLE") {
+        flags.push(
+          `${onlyOutOfRange.length} profile(s) cannot retry a height, mass or age outside the bundle's ` +
+            "declared input range because `PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE` is not classified " +
+            "as `CLIENT_FIXABLE`."
+        );
+      }
     }
-    sections.push(["### What an unavailable prescription tells the client", "", ...classLines].join("\n"));
+    sections.push(
+      ["### What an unavailable prescription tells the client", "", ...classLines].join("\n")
+    );
   }
 
   // Which declared eating patterns the engine refuses outright. Derived from
@@ -1824,7 +1886,8 @@ function runOne(
 
   /* ---- fail-closed proof ---- */
   const composedAnything = results.filter(
-    (result) => result.composerStatus === "COMPOSED_WITH_MEALS" || result.composerStatus === "MACROS_ONLY"
+    (result) =>
+      result.composerStatus === "COMPOSED_WITH_MEALS" || result.composerStatus === "MACROS_ONLY"
   );
   const v2Profiles = results.filter((result) => result.profile.axes.intakeVersion === 2);
   const v2Composed = composedAnything.filter((result) => result.profile.axes.intakeVersion === 2);
@@ -1880,7 +1943,7 @@ function runOne(
         `**${v1Composed.length} v1-intake profile${v1Composed.length === 1 ? "" : "s"} did compose a ` +
           "full plan**, because a v1 intake routes to `composeLegacySyntheticPlan`, which never calls " +
           "the prescription engine: it scales three fixture foods by body mass and stamps " +
-          "`method: \"SYNTHETIC_CATALOG_MATCH\"` with `contentKind: \"SYNTHETIC_FIXTURE\"`. Measured " +
+          '`method: "SYNTHETIC_CATALOG_MATCH"` with `contentKind: "SYNTHETIC_FIXTURE"`. Measured ' +
           `outcome for those profiles: ${observed}. The payload's ` +
           "`prescriptionOutcome.nutritionRequired` is hard-coded `false` on that path, so the gate's " +
           "TARGET_AND_LIMITS prescription check never fires for it and the gate's verdict rests " +
@@ -1925,10 +1988,14 @@ function runOne(
         ).length
       : 0;
     const collapsedCarb = prescribed.filter(
-      (result) => (result.carbRange as { min: number; max: number }).min >= (result.carbRange as { max: number }).max
+      (result) =>
+        (result.carbRange as { min: number; max: number }).min >=
+        (result.carbRange as { max: number }).max
     ).length;
     const collapsedFat = prescribed.filter(
-      (result) => (result.fatRange as { min: number; max: number }).min >= (result.fatRange as { max: number }).max
+      (result) =>
+        (result.fatRange as { min: number; max: number }).min >=
+        (result.fatRange as { max: number }).max
     ).length;
 
     const numericLines: string[] = [];
@@ -1945,7 +2012,9 @@ function runOne(
     numericLines.push("");
     numericLines.push(
       `- Target energy at or below the bundle's own energy floor (${
-        floors ? `${floors.minimumDailyEnergyKcal} kcal/day, \`${floors.minimumDailyEnergyParameterId}\`` : "n/a"
+        floors
+          ? `${floors.minimumDailyEnergyKcal} kcal/day, \`${floors.minimumDailyEnergyParameterId}\``
+          : "n/a"
       }): **${atFloor}** of ${prescribed.length}.`
     );
     numericLines.push(`- Carbohydrate range collapsed or inverted: **${collapsedCarb}**.`);
@@ -1988,11 +2057,10 @@ function runOne(
       flags.push(
         `Verified by running it, not by reading it: **${leaked.length}** of ${prescribed.length} ` +
           "prescriptions publish a `TRAINING.EFFORT.*` template's text inside " +
-          "`Prescription.assumptions`, the client-facing \"how this was worked out\" list on a " +
+          '`Prescription.assumptions`, the client-facing "how this was worked out" list on a ' +
           "nutrition target. `resolveReviewedPrescriptionExplanationTexts` takes every id in " +
-          "`policy.explanationTemplateIds`, and that list is also where `resolveTrainingParameters` " +
-          "looks for the effort copy. The two readers need separate lists before either set of " +
-          "sentences is signed."
+          "`policy.prescriptionExplanationTemplateIds`; that nutrition-only list must not contain " +
+          "any ID declared in `policy.trainingEffortTemplateIds`."
       );
     }
     sections.push(
@@ -2037,7 +2105,9 @@ function runOne(
     } else {
       boundLines.push("Every bound and floor listed above clamped at least one result.");
     }
-    sections.push(["### Which safety floors and bounds actually bind", "", ...boundLines].join("\n"));
+    sections.push(
+      ["### Which safety floors and bounds actually bind", "", ...boundLines].join("\n")
+    );
 
     /* ---- envelope flags ---- */
     const envelope = new Counter();
@@ -2140,7 +2210,9 @@ function runOne(
   for (const [key, count] of composer.entries()) compositionLines.push(`| ${key} | ${count} |`);
   if (compositionBuckets.total > 0) {
     compositionLines.push("");
-    compositionLines.push("Why meal composition failed (attributed with the composer's own public checks):");
+    compositionLines.push(
+      "Why meal composition failed (attributed with the composer's own public checks):"
+    );
     compositionLines.push("");
     compositionLines.push("| Bucket | Profiles |");
     compositionLines.push("|---|---|");
@@ -2171,7 +2243,8 @@ function runOne(
   decisionLines.push("");
   decisionLines.push("| Decision reason code | Profiles |");
   decisionLines.push("|---|---|");
-  for (const [key, count] of decisionReasons.entries()) decisionLines.push(`| \`${key}\` | ${count} |`);
+  for (const [key, count] of decisionReasons.entries())
+    decisionLines.push(`| \`${key}\` | ${count} |`);
   sections.push(["### Composer decision", "", ...decisionLines].join("\n"));
 
   /* ---- training ---- */
@@ -2190,13 +2263,18 @@ function runOne(
   trainingLines.push("");
   trainingLines.push("| Training reason code | Profiles |");
   trainingLines.push("|---|---|");
-  for (const [key, count] of trainingReasons.entries()) trainingLines.push(`| \`${key}\` | ${count} |`);
+  for (const [key, count] of trainingReasons.entries())
+    trainingLines.push(`| \`${key}\` | ${count} |`);
   if (composedTraining.length > 0) {
     trainingLines.push("");
     trainingLines.push("| Quantity | Unit | n | Min | Median | Max | Mean |");
     trainingLines.push("|---|---|---|---|---|---|---|");
     trainingLines.push(
-      statsRow("strength sessions", "per week", stats(composedTraining.map((r) => r.strengthSessions)))
+      statsRow(
+        "strength sessions",
+        "per week",
+        stats(composedTraining.map((r) => r.strengthSessions))
+      )
     );
     trainingLines.push(
       statsRow("cardio sessions", "per week", stats(composedTraining.map((r) => r.cardioSessions)))
@@ -2227,29 +2305,31 @@ function runOne(
     for (const [key, count] of capIds.entries()) trainingLines.push(`| \`${key}\` | ${count} |`);
   }
   if (composedTraining.length > 0) {
-    // Two silent reductions the composer performs with no reason code and no
-    // applied-cap ID, found by comparing what was asked for with what came out.
+    // A reduction is silent only when the result carries neither the specific
+    // reduction reason nor the older aggregate workload-cap reason.
     const silentStrength = composedTraining.filter(
       (result) =>
         result.profile.axes.trainingDaysPerWeek > result.strengthSessions &&
+        !result.trainingReasonCodes.includes("TRAINING_STRENGTH_SESSIONS_REDUCED") &&
         !result.trainingReasonCodes.includes("TRAINING_WORKLOAD_CAPPED")
     );
     const zeroCardio = composedTraining.filter((result) => result.cardioSessions === 0);
-    // A workload trim that pops cardio days does emit TRAINING_WORKLOAD_CAPPED.
-    // The ones with no code at all are the silent losses.
     const zeroCardioSilent = zeroCardio.filter(
-      (result) => !result.trainingReasonCodes.includes("TRAINING_WORKLOAD_CAPPED")
+      (result) =>
+        !result.trainingReasonCodes.includes("TRAINING_CARDIO_NOT_ASSIGNED") &&
+        !result.trainingReasonCodes.includes("TRAINING_CARDIO_REDUCED") &&
+        !result.trainingReasonCodes.includes("TRAINING_WORKLOAD_CAPPED")
     );
     trainingLines.push("");
     trainingLines.push(
-      `- Composed plans with **fewer strength sessions than the client asked for, and no ` +
-        `\`TRAINING_WORKLOAD_CAPPED\` reason code and no applied cap ID to say so**: ` +
+      `- Composed plans with **fewer strength sessions than the client asked for and no explicit ` +
+        `strength-reduction/workload-cap reason code**: ` +
         `**${silentStrength.length}** of ${composedTraining.length}.`
     );
     trainingLines.push(
       `- Composed plans with **zero cardio sessions**: **${zeroCardio.length}** of ${composedTraining.length}; ` +
-        `of those, **${zeroCardioSilent.length}** carry no \`TRAINING_WORKLOAD_CAPPED\` code, so nothing ` +
-        "in the result says the cardio prescription was dropped."
+        `of those, **${zeroCardioSilent.length}** carry no cardio-reduction/not-assigned or workload-cap ` +
+        "reason code."
     );
     if (silentStrength.length > 0) {
       const byDays = new Counter();
@@ -2264,8 +2344,8 @@ function runOne(
       for (const [key, count] of byDays.entries()) trainingLines.push(`| ${key} | ${count} |`);
       flags.push(
         `${silentStrength.length} composed plan(s) give the client fewer strength sessions than they ` +
-          "asked for with no reason code and no applied cap ID. `composeTraining`'s template selection " +
-          "has sets for 1, 2, 3 and \"4 or more\" strength days only, so any request above 4 is " +
+          "asked for with no explicit reduction reason. `composeTraining`'s template selection " +
+          'has sets for 1, 2, 3 and "4 or more" strength days only, so any request above 4 is ' +
           "truncated to 4 silently — the client is never told, and the decision carries no code a " +
           "screen could render."
       );
@@ -2273,8 +2353,8 @@ function runOne(
     if (zeroCardioSilent.length > 0) {
       flags.push(
         `${zeroCardio.length} of ${composedTraining.length} composed plans contain **no cardio at all**, ` +
-          `and ${zeroCardioSilent.length} of those carry no reason code of any kind. A workload trim ` +
-          "does emit `TRAINING_WORKLOAD_CAPPED`; the other paths that zero cardio in `composeTraining` " +
+          `and ${zeroCardioSilent.length} of those carry no reduction/not-assigned reason code. A workload trim ` +
+          "does emit `TRAINING_WORKLOAD_CAPPED`; paths that zero cardio in `composeTraining` " +
           "(no free day left after strength placement, the consecutive-training-days trim, or no " +
           "eligible cardio movement for the equipment/contraindication set) set the count to zero " +
           "silently. The harness cannot tell which of those three fired, because the result does not " +
@@ -2381,9 +2461,9 @@ function runOne(
   const unfiredGateCodes = gateReasons.zeroKeys();
   gateLines.push("");
   gateLines.push(
-    "The grid holds every non-engine gate fact at \"nothing else is wrong\", so the codes above are " +
+    'The grid holds every non-engine gate fact at "nothing else is wrong", so the codes above are ' +
       "the ones the engines can reach on their own. The probe table below perturbs one fact at a " +
-      "time to separate \"unreachable from engine state\" from \"dead branch\"."
+      'time to separate "unreachable from engine state" from "dead branch".'
   );
   gateLines.push("");
   gateLines.push("| Probe | Outcome | Reason codes |");
@@ -2419,7 +2499,8 @@ function runOne(
 
   /* ---- cross-engine disagreement ---- */
   const approvedWithoutPrescription = results.filter(
-    (result) => result.gateOutcome === "APPROVE_AUTOMATICALLY" && result.prescriptionStatus !== "PRESCRIBED"
+    (result) =>
+      result.gateOutcome === "APPROVE_AUTOMATICALLY" && result.prescriptionStatus !== "PRESCRIBED"
   );
   const composerVsGate = results.filter(
     (result) =>
@@ -2443,13 +2524,8 @@ function runOne(
     for (const [key, count] of byReason.entries()) conflictLines.push(`| \`${key}\` | ${count} |`);
     conflictLines.push("");
     conflictLines.push(
-      "The gate's prescription check is `required && !available`, and " +
-        "`nutritionRequiredForGoal` is `true` only for `LOSE` and `GAIN`. So a `MAINTAIN` or " +
-        "`NO_PREFERENCE` client whose prescription came back UNAVAILABLE — including for a " +
-        "PAUSE_REFER-class reason such as a clinician-directed diet or an unsupported population — " +
-        "still passes TARGET_AND_LIMITS and can be approved automatically for the training domains. " +
-        "Whether anything else stops it depends on `safetyDisposition` and the domain permissions, " +
-        "which are persisted facts this harness holds at CLEAR/ALLOW."
+      "An explicit UNAVAILABLE prescription is expected to stop TARGET_AND_LIMITS. These profiles " +
+        "indicate a remaining mismatch between prescription production and gate routing."
     );
     const severe = approvedWithoutPrescription.filter((result) =>
       result.prescriptionReasonCodes.some(
@@ -2464,9 +2540,8 @@ function runOne(
         `${severe.length} profile(s) reached \`APPROVE_AUTOMATICALLY\` while their own prescription ` +
           "result said the request is out of the reviewed scope " +
           "(`PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE`, `PRESCRIPTION_POPULATION_UNSUPPORTED` or " +
-          "`PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED`). The gate only asks whether a prescription was " +
-          "*required*, and `nutritionRequiredForGoal` says no for `MAINTAIN` / `NO_PREFERENCE`, so an " +
-          "out-of-scope signal the engine already produced is discarded rather than escalated. " +
+          "`PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED`). An out-of-scope signal the engine already " +
+          "produced is being discarded rather than escalated. " +
           `Example: ${describeProfile(severe[0])}`
       );
     }
@@ -2491,19 +2566,15 @@ function runOne(
     );
   }
   sections.push(
-    [
-      "### Where two engines disagree on the same profile",
-      "",
-      ...conflictLines,
-    ].join("\n")
+    ["### Where two engines disagree on the same profile", "", ...conflictLines].join("\n")
   );
 
   /* ---- per-axis breakdown, for a reader who is not opening the code ---- */
-  const axisTable = (
-    title: string,
-    keyOf: (result: ProfileResult) => string
-  ): string[] => {
-    const rows = new Map<string, { total: number; prescribed: number; approved: number; pauseRefer: number }>();
+  const axisTable = (title: string, keyOf: (result: ProfileResult) => string): string[] => {
+    const rows = new Map<
+      string,
+      { total: number; prescribed: number; approved: number; pauseRefer: number }
+    >();
     for (const result of results) {
       const key = keyOf(result);
       const row = rows.get(key) ?? { total: 0, prescribed: 0, approved: 0, pauseRefer: 0 };
@@ -2522,7 +2593,9 @@ function runOne(
       "|---|---|---|---|---|",
     ];
     for (const [key, row] of [...rows.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-      lines.push(`| ${key} | ${row.total} | ${row.prescribed} | ${row.approved} | ${row.pauseRefer} |`);
+      lines.push(
+        `| ${key} | ${row.total} | ${row.prescribed} | ${row.approved} | ${row.pauseRefer} |`
+      );
     }
     lines.push("");
     return lines;
@@ -2535,10 +2608,7 @@ function runOne(
       "own construction, never an estimate of how common it is among clients.",
       "",
       ...axisTable("Eating pattern", (result) => result.profile.axes.pattern ?? "(absent)"),
-      ...axisTable(
-        "Eating-pattern reason",
-        (result) => result.profile.axes.patternReason
-      ),
+      ...axisTable("Eating-pattern reason", (result) => result.profile.axes.patternReason),
       ...axisTable(
         "Energy-method population category",
         (result) => result.profile.axes.population ?? "(absent)"
@@ -2549,9 +2619,8 @@ function runOne(
         "Session-length band",
         (result) => result.profile.axes.sessionLengthBand ?? "(absent)"
       ),
-      ...axisTable(
-        "Equipment access",
-        (result) => result.profile.axes.equipmentAccess.slice().sort().join("+")
+      ...axisTable("Equipment access", (result) =>
+        result.profile.axes.equipmentAccess.slice().sort().join("+")
       ),
       ...axisTable("Experience level", (result) => result.profile.axes.experienceLevel),
     ].join("\n")
@@ -2579,12 +2648,18 @@ function runOne(
   }
   structural.push("");
   structural.push(...catalogSurvey(source));
-  const unusedContra = catalogSurvey(source).filter((line) => line.includes("is carried by 0 movement"));
+  const unusedContra = catalogSurvey(source).filter((line) =>
+    line.includes("is carried by 0 movement")
+  );
   for (const line of unusedContra) {
     flags.push(`Declared rule with no catalog coverage: ${line.replace(/^- /, "")}`);
   }
   sections.push(
-    ["### Parameter values against the plan schema, and catalog rule coverage", "", ...structural].join("\n")
+    [
+      "### Parameter values against the plan schema, and catalog rule coverage",
+      "",
+      ...structural,
+    ].join("\n")
   );
 
   return { source, binding, results, probes, flags, sections };
@@ -2635,7 +2710,10 @@ function parseArgs(argv: readonly string[]) {
 function main(): void {
   assertNoDatabaseReachable();
   const args = parseArgs(process.argv.slice(2));
-  const runs = (args.get("runs") ?? "draft").split(",").map((value) => value.trim()).filter(Boolean);
+  const runs = (args.get("runs") ?? "draft")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
   const seed = Number(args.get("seed") ?? 20260927);
   const randomCount = Number(args.get("random") ?? 1000);
   const evaluatedOn = args.get("evaluated-on") ?? "2026-09-27";
@@ -2689,8 +2767,12 @@ function main(): void {
       "Steadfast's real clients, and no distribution here is evidence about them."
   );
   out.push("");
-  out.push(`- Evaluation date handed to the engines: ${evaluatedOn} (not the system clock — the engines stay pure)`);
-  out.push(`- Tool: \`scripts/ai-coach-validation-harness.ts\` (web repo; outside every bundle graph)`);
+  out.push(
+    `- Evaluation date handed to the engines: ${evaluatedOn} (not the system clock — the engines stay pure)`
+  );
+  out.push(
+    `- Tool: \`scripts/ai-coach-validation-harness.ts\` (web repo; outside every bundle graph)`
+  );
   out.push(`- Profiles: **${profiles.length}**`);
   out.push(`- Seed: ${seed}; random block size: ${randomCount}`);
   out.push(`- Run key (grid + seed + artifact digests): \`${runKey}\``);
@@ -2774,7 +2856,9 @@ function main(): void {
   out.push(
     `| P | eating pattern (6, incl. vegan and pescatarian) x reason (4) x pattern status (2) x intent (4) | ${blockCounts.get("P")} |`
   );
-  out.push(`| B | age (7) x height (7) x mass (7), bundle bounds and one point outside each | ${blockCounts.get("B")} |`);
+  out.push(
+    `| B | age (7) x height (7) x mass (7), bundle bounds and one point outside each | ${blockCounts.get("B")} |`
+  );
   out.push(
     `| T | training days (7) x equipment tier subsets (7) x experience (3) x session-length band (5) | ${blockCounts.get("T")} |`
   );
@@ -2798,13 +2882,17 @@ function main(): void {
   out.push("");
   out.push("Exercised, with the real shipped implementations:");
   out.push("");
-  out.push("- `resolvePrescriptionParameters`, `computePrescription` (the 17-step prescription engine)");
+  out.push(
+    "- `resolvePrescriptionParameters`, `computePrescription` (the 17-step prescription engine)"
+  );
   out.push("- `resolveTrainingParameters`, `composeTraining` (the 14-step training composer)");
   out.push("- `composeInitialPlan` (v2 prescription-first path), in both MACROS and MEALS mode");
   out.push("- `checkMealComposition` (allergen, dietary-tag and policy-version feasibility)");
   out.push("- `resolveNutritionSafetyPolicy`, `evaluateNutritionSafety` (the T-1003 floors)");
   out.push("- `evaluateAutonomyGate` (the fixed-order gate), plus a one-fact-at-a-time probe set");
-  out.push("- The real checked-in DRAFT_UNSIGNED policy bundle, exercise catalog, evidence registry and escalation templates");
+  out.push(
+    "- The real checked-in DRAFT_UNSIGNED policy bundle, exercise catalog, evidence registry and escalation templates"
+  );
   out.push("");
   out.push("**Not** exercised, and why — stated rather than quietly dropped:");
   out.push("");

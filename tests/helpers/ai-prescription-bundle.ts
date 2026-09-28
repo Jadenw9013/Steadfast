@@ -36,7 +36,8 @@ import {
  * genuinely fake and are unchanged.
  */
 
-export const SYNTHETIC_MINIMUM_DAILY_ENERGY_PARAMETER_ID = "SYNTHETIC_PRESCRIPTION_MIN_DAILY_ENERGY";
+export const SYNTHETIC_MINIMUM_DAILY_ENERGY_PARAMETER_ID =
+  "SYNTHETIC_PRESCRIPTION_MIN_DAILY_ENERGY";
 export const SYNTHETIC_MAXIMUM_WEEKLY_LOSS_RATE_PARAMETER_ID =
   "SYNTHETIC_PRESCRIPTION_MAX_WEEKLY_LOSS_RATE";
 
@@ -62,7 +63,12 @@ export function buildSyntheticExplanationTexts(): readonly string[] {
 /** Per-population base coefficients; only `activityCoefficient` varies by activity. */
 const ENERGY_BASE = {
   MALE_ADULT: { intercept: 700, ageCoefficient: -5, weightCoefficient: 10, heightCoefficient: 500 },
-  FEMALE_ADULT: { intercept: 600, ageCoefficient: -5, weightCoefficient: 9, heightCoefficient: 450 },
+  FEMALE_ADULT: {
+    intercept: 600,
+    ageCoefficient: -5,
+    weightCoefficient: 9,
+    heightCoefficient: 450,
+  },
 } as const;
 const ACTIVITY_MULTIPLIER: Record<"INACTIVE" | "LOW_ACTIVE" | "ACTIVE" | "VERY_ACTIVE", number> = {
   INACTIVE: 1,
@@ -71,7 +77,10 @@ const ACTIVITY_MULTIPLIER: Record<"INACTIVE" | "LOW_ACTIVE" | "ACTIVE" | "VERY_A
   VERY_ACTIVE: 1.3,
 };
 
-const PROTEIN_BASE: Record<"NONE" | "OCCASIONAL" | "REGULAR", { min: number; target: number; max: number }> = {
+const PROTEIN_BASE: Record<
+  "NONE" | "OCCASIONAL" | "REGULAR",
+  { min: number; target: number; max: number }
+> = {
   NONE: { min: 0.5, target: 1, max: 1.5 },
   OCCASIONAL: { min: 1, target: 1.5, max: 2 },
   REGULAR: { min: 1.5, target: 2.5, max: 3.5 },
@@ -92,7 +101,8 @@ function valueForSpec(id: string): number {
   for (const population of ["MALE_ADULT", "FEMALE_ADULT"] as const) {
     for (const activity of ["INACTIVE", "LOW_ACTIVE", "ACTIVE", "VERY_ACTIVE"] as const) {
       const base = ENERGY_BASE[population];
-      if (id === energyCoefficientParameterId(population, activity, "INTERCEPT")) return base.intercept;
+      if (id === energyCoefficientParameterId(population, activity, "INTERCEPT"))
+        return base.intercept;
       if (id === energyCoefficientParameterId(population, activity, "AGE_COEFFICIENT"))
         return base.ageCoefficient;
       if (id === energyCoefficientParameterId(population, activity, "WEIGHT_COEFFICIENT"))
@@ -153,9 +163,12 @@ export function buildSyntheticPrescriptionBundle(
 
   const floors = buildSyntheticSafetyFloors();
   numericParameters.push(
-    numericParameter(floors.minimumDailyEnergyParameterId, floors.minimumDailyEnergyKcal, "KCAL_PER_DAY", [
-      "SYNTHETIC_MINIMUM_DAILY_ENERGY_RULE",
-    ]),
+    numericParameter(
+      floors.minimumDailyEnergyParameterId,
+      floors.minimumDailyEnergyKcal,
+      "KCAL_PER_DAY",
+      ["SYNTHETIC_MINIMUM_DAILY_ENERGY_RULE"]
+    ),
     numericParameter(
       floors.maximumWeeklyLossRateParameterId,
       floors.maximumWeeklyLossRatePercent,
@@ -170,7 +183,14 @@ export function buildSyntheticPrescriptionBundle(
     version: 1,
     supportedPopulation: "Synthetic test subjects only.",
     supportedGoals: ["SYNTHETIC_GENERAL_FITNESS"],
-    requiredInputIds: ["SYNTHETIC_SCREEN_RESULT", "AGE_ELIGIBILITY", "PREGNANCY_POSTPARTUM", "EATING_DISORDER_HISTORY_OR_CONCERN", "TYPE_1_DIABETES", "CARDIAC_CONDITION"],
+    requiredInputIds: [
+      "SYNTHETIC_SCREEN_RESULT",
+      "AGE_ELIGIBILITY",
+      "PREGNANCY_POSTPARTUM",
+      "EATING_DISORDER_HISTORY_OR_CONCERN",
+      "TYPE_1_DIABETES",
+      "CARDIAC_CONDITION",
+    ],
     ruleIds: [
       PRESCRIPTION_METHOD_STRUCTURE_ID,
       PRESCRIPTION_PROTEIN_WEIGHT_BASIS_ID,
@@ -198,7 +218,8 @@ export function buildSyntheticPrescriptionBundle(
     contraindicationRuleIds: ["SYNTHETIC_CONTRAINDICATION_RULE"],
     evidenceRuleIds: ["SYNTHETIC_EVIDENCE_RULE"],
     escalationTemplateIds: ["synthetic-pause-refer-template"],
-    explanationTemplateIds: ["SYNTHETIC_EXPLANATION_TEMPLATE"],
+    prescriptionExplanationTemplateIds: ["SYNTHETIC_EXPLANATION_TEMPLATE"],
+    trainingEffortTemplateIds: [],
     safetyControls: {
       schemaVersion: 1,
       screening: {
@@ -257,7 +278,9 @@ export function omitPrescriptionParameter(
 export function corruptPrescriptionParameter(
   bundle: PolicyBundleContent,
   id: string,
-  mutate: (parameter: PolicyBundleContent["numericParameters"][number]) => PolicyBundleContent["numericParameters"][number]
+  mutate: (
+    parameter: PolicyBundleContent["numericParameters"][number]
+  ) => PolicyBundleContent["numericParameters"][number]
 ): PolicyBundleContent {
   return {
     ...bundle,
