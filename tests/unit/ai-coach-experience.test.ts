@@ -20,6 +20,7 @@ const initial: AiWorkspace = {
   confirmedIntake: null,
   draft: null,
   reviewTimezone: "America/Los_Angeles",
+  consentedAt: null,
   permissions: { nutrition: "ALLOW", strength: "ALLOW", cardio: "ALLOW" },
   safetyDisposition: "CLEAR",
   activePlan: null,

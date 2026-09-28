@@ -177,6 +177,7 @@ export async function getAiWorkspace(clientId: string) {
       confirmedIntake: profile.confirmedIntake,
       draft: draft?.answers ?? null,
       reviewTimezone: profile.reviewTimezone,
+      consentedAt: profile.consentedAt ? profile.consentedAt.toISOString() : null,
       permissions: {
         nutrition: profile.nutritionPermission,
         strength: profile.strengthPermission,

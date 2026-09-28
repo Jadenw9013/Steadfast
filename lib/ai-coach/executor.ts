@@ -25,6 +25,7 @@ import {
 } from "./acceptance-notifications";
 import { reportServerError } from "@/lib/observability/report";
 import { CRON_FAILED } from "@/lib/observability/events";
+import { AiCoachError } from "./error";
 
 /**
  * A05 — durable job executor.
@@ -46,6 +47,18 @@ import { CRON_FAILED } from "@/lib/observability/events";
  */
 
 const MAX_CONCURRENT_CLAIMS_PER_SWEEP = 3; // docs/ai-coach/08 A05 engineering default
+
+/**
+ * T-2009 — the one place the executor's default provider is constructed.
+ *
+ * Both entry points (the cron sweep and the enqueue-time drain) take their
+ * default from here, so a future change of default provider cannot apply to
+ * one path and not the other. Two independent `new SyntheticFixtureProvider()`
+ * defaults is precisely the drift this codebase keeps paying for.
+ */
+function defaultModelProvider(): ModelProvider {
+  return new SyntheticFixtureProvider();
+}
 
 export type ProcessedOutcome = "completed" | "requeued" | "failed" | "rateLimited";
 
@@ -196,7 +209,7 @@ async function runAcceptanceNotificationPhase(): Promise<AcceptanceNotificationD
 }
 
 export async function runExecutorSweep(
-  provider: ModelProvider = new SyntheticFixtureProvider()
+  provider: ModelProvider = defaultModelProvider()
 ): Promise<ExecutorSweepSummary> {
   const notifications = await runAcceptanceNotificationPhase();
 
@@ -255,4 +268,62 @@ export async function runExecutorSweep(
     rateLimited,
     notifications,
   };
+}
+
+/**
+ * T-2009 — the outcome of one enqueue-time drain attempt.
+ *
+ * The first four are `ProcessedOutcome` verbatim (the drain reports exactly
+ * what `processClaimedRun` reported); the last four are the reasons the drain
+ * never reached the provider at all.
+ */
+export type KickOutcome =
+  | ProcessedOutcome
+  | "not_claimed"
+  | "flag_disabled"
+  | "paused"
+  | "error";
+
+/**
+ * T-2009 — advances exactly ONE run id by exactly one stage, under the same
+ * claim, lease, fencing, flag and operational-scope rules as
+ * `runExecutorSweep`.
+ *
+ * This is not a sweep and must never become one: it never reconciles, never
+ * selects rows, and never touches an id but the one it was given. It is the
+ * *fast path*; the cron sweep remains the durable floor, and nothing in the
+ * system may assume this ran.
+ *
+ * Never throws — a caller in a post-response `after()` callback has no
+ * response left to fail. Never writes FAILED on its own either: every
+ * terminal transition goes through the same `runs.ts` accounting the sweep
+ * uses, so a drain that dies after claiming leaves the row RUNNING with a
+ * lease the sweep's `reconcileExpiredRuns` will pick up.
+ */
+export async function drainRunNow(
+  runId: string,
+  provider: ModelProvider = defaultModelProvider()
+): Promise<KickOutcome> {
+  try {
+    // Before any database access: with generation unset there is nothing to
+    // drain and nothing to pay for.
+    if (!isAiCoachGenerationEnabled()) return "flag_disabled";
+    try {
+      // Same two scopes, same order, as the sweep. In production this is also
+      // where the sole ACTIVE live-release readiness assertion runs.
+      await assertAiCoachOperationEnabled("GENERATION");
+      await assertAiCoachOperationEnabled("PROVIDER");
+    } catch (error) {
+      if (error instanceof AiCoachError) return "paused";
+      throw error;
+    }
+    const claim = await claimQueuedRun(runId);
+    // The sweep (or a duplicate kick) already claimed it, or it is not
+    // QUEUED. Either way this caller does nothing — that single conditional
+    // update is the whole double-execution guard.
+    if (!claim.claimed) return "not_claimed";
+    return await processClaimedRun(claim, provider);
+  } catch {
+    return "error";
+  }
 }

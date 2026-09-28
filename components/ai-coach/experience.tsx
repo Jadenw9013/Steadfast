@@ -7,6 +7,132 @@ import { PlanDisplay } from "./plan-display";
 import { IntakeWizard } from "./intake-wizard";
 import { button, primary, fieldClass } from "./controls";
 
+function AiRunProgressTracker({
+  run,
+}: {
+  run: { id: string; kind: string; status: string };
+}) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - start) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [run.id]);
+
+  const progressPercent =
+    run.status === "QUEUED"
+      ? Math.min(25, 10 + elapsed * 5)
+      : Math.min(95, 30 + elapsed * 6);
+
+  const currentStage =
+    progressPercent < 35
+      ? 1
+      : progressPercent < 65
+        ? 2
+        : progressPercent < 88
+          ? 3
+          : 4;
+
+  const stages = [
+    {
+      id: 1,
+      title: "Metabolic Profiling",
+      detail: "Analyzing intake metrics & calculating DRI energy expenditure",
+    },
+    {
+      id: 2,
+      title: "Nutrition Optimization",
+      detail: "Matching USDA whole-food templates & solving exact portion weights",
+    },
+    {
+      id: 3,
+      title: "Training Periodization",
+      detail: "Structuring exercise splits, volume targets, and rest intervals",
+    },
+    {
+      id: 4,
+      title: "Safety & Verification",
+      detail: "Verifying clinical macronutrient floors and allergen rules",
+    },
+  ];
+
+  return (
+    <section className="sf-glass-card rounded-2xl border border-blue-500/30 bg-blue-950/20 p-5 space-y-4 shadow-lg shadow-blue-500/5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+          </span>
+          <h2 className="font-semibold text-zinc-100">
+            {run.kind === "INITIAL" ? "Preparing Your Coaching Plan" : "Generating Weekly Review"}
+          </h2>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-medium text-blue-300 border border-blue-500/30">
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+          {run.status === "QUEUED" ? "Claiming task..." : "Synthesizing plan..."} ({elapsed}s)
+        </span>
+      </div>
+
+      <div>
+        <div className="flex justify-between text-xs text-zinc-400 mb-1.5 font-mono">
+          <span>Active proposal synthesis</span>
+          <span>{progressPercent}%</span>
+        </div>
+        <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-900 border border-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-400 transition-all duration-700 ease-out"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 pt-1">
+        {stages.map((stage) => {
+          const isDone = currentStage > stage.id;
+          const isCurrent = currentStage === stage.id;
+          return (
+            <div
+              key={stage.id}
+              className={`rounded-xl border p-3 transition-colors ${
+                isCurrent
+                  ? "border-blue-500/40 bg-blue-500/10 text-zinc-100"
+                  : isDone
+                    ? "border-emerald-500/30 bg-emerald-500/5 text-zinc-300"
+                    : "border-white/5 bg-zinc-950/40 text-zinc-500"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                {isDone ? (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                    ✓
+                  </span>
+                ) : isCurrent ? (
+                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                ) : (
+                  <span className="h-3.5 w-3.5 rounded-full border border-zinc-700 inline-block" />
+                )}
+                <span className="text-xs font-semibold">{stage.title}</span>
+              </div>
+              <p className="mt-1 text-[11px] leading-relaxed opacity-80 pl-6">
+                {stage.detail}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="text-xs text-zinc-400 flex items-center gap-2 pt-1">
+        <span>⏱️</span>
+        <span>The engine runs in the background. Typical preparation completes in 5–15 seconds.</span>
+      </p>
+    </section>
+  );
+}
+
 export function AiCoachExperience({
   initial,
   path = [],
@@ -103,6 +229,8 @@ export function AiCoachExperience({
   }
   const proposal = view.proposals.find((p) => p.id === path[1]);
   const review = view.runs.find((r) => r.id === path[1]);
+  const activeRun = view.runs.find((run) => ["QUEUED", "RUNNING", "RETRY_WAIT"].includes(run.status));
+  const readyProposal = view.proposals.find((p) => p.status === "READY");
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header>
@@ -142,12 +270,22 @@ export function AiCoachExperience({
         ))}
       </nav>
       {error && (
-        <p
+        <div
           role="alert"
-          className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300"
+          className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300 space-y-2"
         >
-          {error}
-        </p>
+          <p>{error}</p>
+          {(error.includes("intake") || error.includes("consent")) && (
+            <div className="pt-1">
+              <Link
+                href="/client/ai-coach/intake"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-200 underline underline-offset-2 hover:text-white"
+              >
+                Go to intake questionnaire →
+              </Link>
+            </div>
+          )}
+        </div>
       )}
       {message && (
         <p role="status" className="rounded-xl border border-emerald-500/30 p-4 text-emerald-300">
@@ -165,125 +303,158 @@ export function AiCoachExperience({
         </section>
       )}
       {(screen === "start" || screen === "home") && (
-        <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
-          <h2 className="text-xl font-semibold text-zinc-100">
-            {view.confirmedIntake ? "Your next step" : "Begin with your preferences"}
-          </h2>
-          {!view.confirmedIntake ? (
-            <Link className={`${primary} inline-flex items-center`} href="/client/ai-coach/intake">
-              Complete your intake
-            </Link>
-          ) : view.origin !== "AI" ? (
-            <>
-              {liveDisclosure && (
-                <div className="space-y-3 rounded-xl border border-white/10 p-4 text-zinc-300">
-                  <h3 className="font-semibold text-zinc-100">
-                    {liveDisclosure.informationHeading}
-                  </h3>
-                  {liveDisclosure.disclosureParagraphs.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
-                  ))}
-                  <a
-                    className="underline underline-offset-4"
-                    href={liveDisclosure.privacyNoticeUrl}
-                  >
-                    {liveDisclosure.privacyNoticeLabel}
-                  </a>
-                </div>
-              )}
-              <label className="flex min-h-12 items-start gap-3 text-zinc-300">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-5 w-5"
-                  checked={consent}
-                  onChange={(e) => setConsent(e.target.checked)}
-                />
-                {liveDisclosure
-                  ? liveDisclosure.consentLabel
-                  : "I consent to this synthetic AI coaching preview and understand it changes my current coaching provider."}
-              </label>
-              <button
-                className={primary}
-                disabled={busy || !consent}
-                onClick={() =>
-                  act(
-                    () =>
-                      command({
-                        operation: "ENROLL",
-                        consent: true,
-                        expectedContextRevision: view.contextRevision,
-                        reviewTimezone:
-                          view.reviewTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
-                        ...(liveDisclosure
-                          ? {
-                              consentConfigurationId: liveDisclosure.configurationId,
-                              consentConfigurationVersion: liveDisclosure.configurationVersion,
-                              privacyNoticeVersion: liveDisclosure.privacyNoticeVersion,
-                              consentTextDigest: liveDisclosure.consentTextDigest,
-                            }
-                          : {}),
-                      }),
-                    "Enrollment confirmed."
-                  )
-                }
-              >
-                {liveDisclosure?.confirmLabel ?? "Confirm enrollment"}
-              </button>
-            </>
-          ) : (
-            <>
-              <label className="block text-zinc-300">
-                Nutrition presentation
-                <select
-                  className={fieldClass}
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value as "MACROS" | "MEALS")}
-                >
-                  <option value="MACROS">Macro targets</option>
-                  <option value="MEALS">Meal portions</option>
-                </select>
-              </label>
-              <button
-                className={primary}
-                disabled={busy}
-                onClick={() =>
-                  act(
-                    () =>
-                      post("/api/client/ai-coach/runs", {
-                        kind: view.activePlan ? "WEEKLY_REVIEW" : "INITIAL",
-                        representation: mode,
-                        expectedContextRevision: view.contextRevision,
-                        expectedProfileRevision: view.profileRevision,
-                      }),
-                    "Preparation request saved. You may leave and return."
-                  )
-                }
-              >
-                {view.activePlan ? "Request this week’s review" : "Prepare initial proposal"}
-              </button>
-              {view.activePlan && (
+        <>
+          {activeRun && <AiRunProgressTracker run={activeRun} />}
+          {readyProposal && !view.activePlan && (
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-5 shadow-lg shadow-emerald-500/5">
+              <div>
+                <h3 className="font-semibold text-emerald-200 flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
+                    ✓
+                  </span>
+                  Your Coaching Plan Proposal is Ready!
+                </h3>
+                <p className="mt-1 text-sm text-zinc-300">
+                  Your personalized training schedule and measured meal portions are ready to review.
+                </p>
+              </div>
+              <Link href={`/client/ai-coach/proposals/${readyProposal.id}`} className={primary}>
+                Review proposal →
+              </Link>
+            </div>
+          )}
+          <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
+            <h2 className="text-xl font-semibold text-zinc-100">
+              {view.confirmedIntake ? "Your next step" : "Begin with your preferences"}
+            </h2>
+            {!view.confirmedIntake ? (
+              <Link className={`${primary} inline-flex items-center`} href="/client/ai-coach/intake">
+                Complete your intake
+              </Link>
+            ) : view.origin !== "AI" || !view.consentedAt ? (
+              <>
+                {liveDisclosure && (
+                  <div className="space-y-3 rounded-xl border border-white/10 p-4 text-zinc-300">
+                    <h3 className="font-semibold text-zinc-100">
+                      {liveDisclosure.informationHeading}
+                    </h3>
+                    {liveDisclosure.disclosureParagraphs.map((paragraph) => (
+                      <p key={paragraph}>{paragraph}</p>
+                    ))}
+                    <a
+                      className="underline underline-offset-4"
+                      href={liveDisclosure.privacyNoticeUrl}
+                    >
+                      {liveDisclosure.privacyNoticeLabel}
+                    </a>
+                  </div>
+                )}
+                <label className="flex min-h-12 items-start gap-3 text-zinc-300">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-5 w-5"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                  />
+                  {liveDisclosure
+                    ? liveDisclosure.consentLabel
+                    : "I consent to this synthetic AI coaching preview and understand it changes my current coaching provider."}
+                </label>
                 <button
-                  className={button}
-                  disabled={busy}
+                  className={primary}
+                  disabled={busy || !consent}
                   onClick={() =>
                     act(
                       () =>
-                        post("/api/client/ai-coach/runs", {
-                          kind: "REPRESENTATION",
-                          representation: mode,
+                        command({
+                          operation: "ENROLL",
+                          consent: true,
                           expectedContextRevision: view.contextRevision,
-                          expectedProfileRevision: view.profileRevision,
+                          reviewTimezone:
+                            view.reviewTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+                          ...(liveDisclosure
+                            ? {
+                                consentConfigurationId: liveDisclosure.configurationId,
+                                consentConfigurationVersion: liveDisclosure.configurationVersion,
+                                privacyNoticeVersion: liveDisclosure.privacyNoticeVersion,
+                                consentTextDigest: liveDisclosure.consentTextDigest,
+                              }
+                            : {}),
                         }),
-                      "Presentation request saved. Review the proposal when preparation finishes."
+                      "Enrollment confirmed."
                     )
                   }
                 >
-                  Preview presentation change
+                  {liveDisclosure?.confirmLabel ?? "Confirm enrollment"}
                 </button>
-              )}
-            </>
-          )}
-        </section>
+              </>
+            ) : (
+              <>
+                <label className="block text-zinc-300">
+                  Nutrition presentation
+                  <select
+                    className={fieldClass}
+                    value={mode}
+                    onChange={(e) => setMode(e.target.value as "MACROS" | "MEALS")}
+                  >
+                    <option value="MACROS">Macro targets</option>
+                    <option value="MEALS">Meal portions</option>
+                  </select>
+                  <span className="mt-1.5 block text-xs text-zinc-400">
+                    {mode === "MEALS"
+                      ? "Both options give exact measurements (e.g. 100g rice, 150g chicken). Meal portions lets you plate without daily macro math."
+                      : "Both options give exact measurements. Macro targets also displays daily calorie, protein, carb, and fat totals."}
+                  </span>
+                </label>
+                {activeRun ? (
+                  <div className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent shrink-0" />
+                    <span>Plan preparation in progress. Follow the live tracker above — your proposal will be ready shortly.</span>
+                  </div>
+                ) : (
+                  <button
+                    className={primary}
+                    disabled={busy}
+                    onClick={() =>
+                      act(
+                        () =>
+                          post("/api/client/ai-coach/runs", {
+                            kind: view.activePlan ? "WEEKLY_REVIEW" : "INITIAL",
+                            representation: mode,
+                            expectedContextRevision: view.contextRevision,
+                            expectedProfileRevision: view.profileRevision,
+                          }),
+                        "Preparation request saved. You may leave and return."
+                      )
+                    }
+                  >
+                    {view.activePlan ? "Request this week’s review" : "Prepare initial proposal"}
+                  </button>
+                )}
+                {view.activePlan && !activeRun && (
+                  <button
+                    className={button}
+                    disabled={busy}
+                    onClick={() =>
+                      act(
+                        () =>
+                          post("/api/client/ai-coach/runs", {
+                            kind: "REPRESENTATION",
+                            representation: mode,
+                            expectedContextRevision: view.contextRevision,
+                            expectedProfileRevision: view.profileRevision,
+                          }),
+                        "Presentation request saved. Review the proposal when preparation finishes."
+                      )
+                    }
+                  >
+                    Preview presentation change
+                  </button>
+                )}
+              </>
+            )}
+          </section>
+        </>
       )}
       {screen === "check-in" && <AiCheckInForm onRefresh={refresh} />}
       {screen === "sessions" && <AiSessionForm view={view} onRefresh={refresh} />}

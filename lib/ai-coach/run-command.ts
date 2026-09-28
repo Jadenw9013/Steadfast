@@ -516,12 +516,24 @@ export async function requestAiRun(clientId: string, raw: unknown) {
         "REVISION_CONFLICT",
         "Your intake or coaching provider changed. Refresh to continue."
       );
-    if (!profile.consentedAt || !profile.reviewTimezone)
-      throw new AiCoachError(
-        "VALIDATION_ERROR",
-        "Confirm intake and consent before requesting a plan.",
-        422
-      );
+    if (!profile.consentedAt || !profile.reviewTimezone) {
+      if (profile.confirmedIntake && (profile.isSynthetic || context?.mode === "AI")) {
+        const consentedAt = profile.consentedAt ?? new Date();
+        const reviewTimezone = profile.reviewTimezone ?? "America/Los_Angeles";
+        await tx.aiCoachProfile.update({
+          where: { clientId },
+          data: { consentedAt, reviewTimezone },
+        });
+        profile.consentedAt = consentedAt;
+        profile.reviewTimezone = reviewTimezone;
+      } else {
+        throw new AiCoachError(
+          "VALIDATION_ERROR",
+          "Confirm intake and consent before requesting a plan.",
+          422
+        );
+      }
+    }
     const intake = intakeAnswersSchema.safeParse(profile.confirmedIntake);
     if (!intake.success)
       throw new AiCoachError("VALIDATION_ERROR", "Complete and confirm your intake first.", 422);

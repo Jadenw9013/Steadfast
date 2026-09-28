@@ -511,6 +511,41 @@ database access — while `FEATURE_AI_COACH_GENERATION` is unset, which is every
 at `04:00 UTC`, alongside its existing 19:00 piggyback inside `checkin-reminders` (F08, unchanged). A
 fourth `vercel.json` entry is reserved for T-998's alert evaluator.
 
+**T-2009 (2026-09-28, shipped as S-18):** a newly requested run no longer waits for the daily sweep.
+`POST /api/client/ai-coach/runs` and `POST /api/client/ai-coach/runs/[runId]/retry` schedule a
+post-response drain of **that one run id** with `after()` from `next/server`
+(`lib/ai-coach/kick.ts` → `drainRunNow`, `lib/ai-coach/executor.ts`); both routes carry
+`runtime = "nodejs"` and `maxDuration = 120` (15s request phase + 45s `PROVIDER_TIMEOUT_MS` + 45s
+for the rest of `processManagedRun`, and above the 90s lease so a drain that finishes does so inside
+its own lease). Rules that must survive any future edit:
+- **The kick never double-executes.** It claims through the same `claimQueuedRun` conditional update
+  (`{ id, status: "QUEUED", fencingToken }`, `attempts` incremented in the same statement) that the
+  cron sweep uses, so exactly one of {kick, sweep, second kick} wins and the losers do nothing.
+- **The kick never writes FAILED and never reconciles.** A drain that faults after claiming leaves
+  the row RUNNING with a lease; the sweep's `reconcileExpiredRuns` is what recovers it. It also
+  never selects rows and never touches an id but its own — it is not a second sweep.
+- **The cron is the durable floor and is unchanged** (`5 4 * * *`). Nothing may assume the kick ran;
+  the UI keeps polling exactly as before.
+- **Inert while `FEATURE_AI_COACH_GENERATION` is unset**, on two layers: `requestAiRun` throws
+  before creating a row, and `drainRunNow` returns `"flag_disabled"` before any database access. The
+  no-deploy kill lever is the existing `AiCoachOperationalControl` GENERATION/PROVIDER row, which
+  stops the kick in the same call it stops the sweep.
+- **`after()` throws synchronously at the call site** with no request scope (Next E468) or no
+  `waitUntil` (E91) — including under vitest. `scheduleRunDrain` catches that, emits one
+  `sf.aicoach.run_kick` beacon with `outcome: "schedule_unavailable"`, and run creation is
+  unaffected. Beacon allow-list is frozen at `["outcome", "runKind"]`; no failure reason, no ids.
+
+**S-16 (2026-09-28):** `CONFIRM_INTAKE` (v2) now defaults the seven bookkeeping status fields to
+`UNKNOWN` server-side when they are absent (`applyIntakeV2ConfirmDefaults`,
+`lib/ai-coach/intake-contract.ts`, called from `confirmIntake`). `UNKNOWN` is the restrictive value
+— the governed values must then be absent and personalized nutrition stays pending. It only ever
+fills what is absent (missing/`undefined`/`null`), never overwrites an answered status, and never
+infers `CONFIRMED` from the presence of a governed value. **No clinical or safety field is
+defaulted**: `allergenDeclarations` (still a hard 422 when absent, still hash-compared against the
+saved draft), `dietaryPattern`, `dislikes` and `cuisinePreferences` stay required, because "no
+pattern declared" and "no dislikes" are the *least* restrictive states and a default there would
+silently widen what a plan may contain.
+
 **A03v2 release-packet note (T-2024 review round 3, MINOR 6):** the
 fail-closed sentinel `UNVERIFIABLE_ALLERGEN_STATUS_NOT_CONFIRMED`
 (`lib/ai-coach/intake-allergens.ts`, exported as
@@ -558,7 +593,8 @@ lib/ai-coach/
   provider/constrained-boundary.ts T-1007 runConstrainedProviderBoundary — the only writer of AiAutomaticPlanApproval.providerSelection
   provider/explanation-prose.ts T-2006/T-2030 Pure validateExplanationProse — the only authority on bounded model prose (no db/fetch/env/Date)
   provider/spend-limits.ts      A05  Rate limit (real) + token ceiling (safety backstop, not real pricing)
-  executor.ts                   A05  runExecutorSweep / processClaimedRun
+  executor.ts                   A05  runExecutorSweep / processClaimedRun / drainRunNow (T-2009) / defaultModelProvider
+  kick.ts                       T-2009 runIdOf + scheduleRunDrain — the ONLY lib/ai-coach file that imports next/server
   run-status.ts                 A05  getRunStatusForClient — safe minimized DTO
   plan-acceptance.ts            A10  acceptPlanVersionAtomic / declinePlanVersion — THE real acceptance service
   acceptance-notifications.ts   T-502 drainAcceptanceNotifications — bounded outbox drain phase in runExecutorSweep
@@ -567,7 +603,9 @@ lib/ai-coach/
 ### Routes
 
 ```
-app/api/cron/ai-coach-executor/route.ts             A05  authenticated sweep trigger — scheduled hourly at :05 UTC (T-503), maxDuration=180, no-op while flag unset
+app/api/cron/ai-coach-executor/route.ts             A05  authenticated sweep trigger — scheduled daily at 04:05 UTC (T-503, `5 4 * * *`), maxDuration=180, no-op while flag unset
+app/api/client/ai-coach/runs/route.ts                A02/T-2009 creates the run, then schedules the post-response drain; nodejs, maxDuration=120
+app/api/client/ai-coach/runs/[runId]/retry/route.ts  A05/T-2009 same shape; kicks the NEW retry run id
 app/api/client/ai-coach/runs/[runId]/route.ts        A05  safe run-status read
 app/api/client/ai-coach/plans/[id]/accept/route.ts   A10
 app/api/client/ai-coach/plans/[id]/decline/route.ts  A10
@@ -596,6 +634,10 @@ tests/integration/ai-coach-intake-safety.test.ts     A03  (18 tests incl. T-2024
 tests/unit/ai-coach-catalog.test.ts                  A04  (18 tests, no DB needed)
 tests/integration/ai-coach-executor.test.ts          A05  (17 tests)
 tests/unit/cron-schedule.test.ts                     A05  (4 tests, no DB needed — pins vercel.json + route segment config, T-503)
+tests/unit/ai-coach-run-kick.test.ts                 T-2009 (16 tests, no DB needed — runIdOf, scheduleRunDrain, source guards)
+tests/integration/ai-coach-run-kick.test.ts          T-2009 (8 tests — claim idempotency with the sweep, torn-down kick recovery, flag/pause inertness)
+tests/unit/ai-coach-intake-confirm-defaults.test.ts  S-16   (9 tests, no DB needed — the seven status defaults)
+tests/integration/ai-coach-intake-wizard-confirm.test.ts S-16 (4 tests — the four-step wizard's real command sequence confirms cleanly)
 tests/integration/ai-coach-plan-acceptance.test.ts   A10  (38 tests after takeover correction)
 tests/integration/account-deletion.test.ts           purge coverage extended at every slice
 ```

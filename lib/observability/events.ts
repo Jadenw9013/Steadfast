@@ -106,3 +106,17 @@ export const AICOACH_RUNTIME_BINDING_DEGRADED = {
   evt: "sf.aicoach.runtime_binding_degraded",
   allow: AICOACH_RUNTIME_BINDING_DEGRADED_ALLOW,
 } as const;
+
+/** T-2009: one beacon per enqueue-time drain scheduling attempt.
+ *  `outcome` is a `KickOutcome` (`lib/ai-coach/executor.ts`) or
+ *  `"schedule_unavailable"` when the runtime provides no `after()` scope;
+ *  `runKind` is the `AiRunKind` value when the caller knows it. The
+ *  allow-list is deliberately this narrow: the obvious "helpful" addition —
+ *  the failure reason — is exactly the field that can carry gate reason
+ *  codes and health-adjacent content. Widening it is an architect decision. */
+export const AICOACH_RUN_KICK_ALLOW = ["outcome", "runKind"] as const;
+
+export const AICOACH_RUN_KICK = {
+  evt: "sf.aicoach.run_kick",
+  allow: AICOACH_RUN_KICK_ALLOW,
+} as const;

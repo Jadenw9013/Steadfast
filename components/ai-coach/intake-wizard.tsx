@@ -86,69 +86,88 @@ const GOAL_OPTIONS: {
   value: GoalChoice;
   label: string;
   description: string;
+  badge: string;
   icon: "down" | "up" | "bar" | "spark";
 }[] = [
   {
     value: "FAT_LOSS",
     label: "Fat Loss / Cut",
-    description: "Build a sustainable routine around leaning out.",
+    description: "Targeted caloric deficit designed to preserve lean muscle tissue while losing body fat.",
+    badge: "Preserve muscle · Drop body fat",
     icon: "down",
   },
   {
     value: "BUILD_MUSCLE",
     label: "Build Muscle",
-    description: "Prioritize muscle gain and consistent training.",
+    description: "Controlled caloric surplus with high-protein intake to maximize lean muscle gain.",
+    badge: "Muscle growth · Progressive overload",
     icon: "up",
   },
   {
     value: "STRENGTH",
     label: "Strength",
-    description: "Focus your plan on getting stronger.",
+    description: "Focus on neuromuscular adaptations, heavy compound lifts, and raw performance.",
+    badge: "Compound lifts · Lower rep ranges",
     icon: "bar",
   },
   {
     value: "GENERAL_FITNESS",
     label: "General Fitness",
-    description: "Create a balanced routine you can stick with.",
+    description: "A balanced, sustainable routine for cardiovascular conditioning, mobility, and overall vigor.",
+    badge: "Sustainable · All-around health",
     icon: "spark",
   },
 ];
 
 const EXPERIENCE_OPTIONS = [
-  { value: "BEGINNER", label: "Beginner" },
-  { value: "INTERMEDIATE", label: "Intermediate" },
-  { value: "ADVANCED", label: "Advanced" },
-] satisfies { value: ExperienceChoice; label: string }[];
+  { value: "BEGINNER", label: "Beginner", description: "< 1 year structured training" },
+  { value: "INTERMEDIATE", label: "Intermediate", description: "1–3 years consistent lifting" },
+  { value: "ADVANCED", label: "Advanced", description: "3+ years dedicated training" },
+] satisfies { value: ExperienceChoice; label: string; description: string }[];
 
 const EQUIPMENT_OPTIONS = [
-  { value: "BODYWEIGHT", label: "Bodyweight", description: "No equipment needed" },
-  { value: "HOME_DUMBBELLS", label: "Home Dumbbells", description: "A simple home setup" },
-  { value: "FULL_GYM", label: "Full Gym", description: "Machines, cables, and free weights" },
+  {
+    value: "BODYWEIGHT",
+    label: "Bodyweight",
+    description: "Calisthenics, floor work, and pull-up bar (no weights needed).",
+  },
+  {
+    value: "HOME_DUMBBELLS",
+    label: "Home Dumbbells",
+    description: "Adjustable dumbbells, incline bench, and resistance bands.",
+  },
+  {
+    value: "FULL_GYM",
+    label: "Full Gym",
+    description: "Barbells, power racks, cable stacks, and selectorized machines.",
+  },
 ] satisfies { value: EquipmentChoice; label: string; description: string }[];
 
 const SESSION_OPTIONS = [
-  { value: "MIN_30_45", label: "30–45m" },
-  { value: "MIN_45_60", label: "45–60m" },
-  { value: "MIN_60_PLUS", label: "60m+" },
-] satisfies { value: SessionLengthChoice; label: string }[];
+  { value: "MIN_30_45", label: "30–45m", description: "Fast, dense workouts" },
+  { value: "MIN_45_60", label: "45–60m", description: "Standard complete session" },
+  { value: "MIN_60_PLUS", label: "60m+", description: "Extended accessories & cardio" },
+] satisfies { value: SessionLengthChoice; label: string; description: string }[];
 
 const DIETARY_OPTIONS = [
-  { value: "BALANCED", label: "Balanced" },
-  { value: "HIGH_PROTEIN", label: "High Protein" },
-  { value: "PLANT_BASED", label: "Plant-Based" },
-  { value: "LOW_CARB", label: "Low Carb" },
-] satisfies { value: DietaryStyleChoice; label: string }[];
+  { value: "BALANCED", label: "Balanced", description: "Whole-food carbs, lean proteins, healthy fats" },
+  { value: "HIGH_PROTEIN", label: "High Protein", description: "Optimized for muscle repair (≥2.0g/kg)" },
+  { value: "PLANT_BASED", label: "Plant-Based", description: "Vegetarian/vegan whole foods" },
+  { value: "LOW_CARB", label: "Low Carb", description: "Higher healthy fats and vegetables" },
+] satisfies { value: DietaryStyleChoice; label: string; description: string }[];
 
 const TRACKING_OPTIONS = [
   {
     value: "PORTIONS",
     label: "Portions",
-    description: "Simple serving guidance without weighing everything.",
+    description:
+      "Follow exact ingredient measurements (e.g. 100 g rice, 150 g chicken, 1 cup oats) without having to calculate or track daily macro totals.",
   },
   {
     value: "EXACT_MACROS",
     label: "Exact Macros",
-    description: "Show calories, protein, carbs, and fats.",
+    description:
+      "Exact measured meals plus full daily calories and macronutrient targets (protein, carbs, fats) for detailed daily tracking.",
   },
 ] satisfies { value: TrackingStyleChoice; label: string; description: string }[];
 
@@ -633,15 +652,20 @@ function ChoicePills({
   value,
   options,
   onChange,
+  hint,
 }: {
   label: string;
   value?: string | number;
-  options: { value: string | number; label: string }[];
+  options: { value: string | number; label: string; description?: string }[];
   onChange: (value: string | number) => void;
+  hint?: string;
 }) {
   return (
-    <fieldset className="space-y-3">
-      <legend className="text-sm font-semibold text-zinc-200">{label}</legend>
+    <fieldset className="space-y-2.5">
+      <div>
+        <legend className="text-sm font-semibold text-zinc-200">{label}</legend>
+        {hint && <p className="mt-0.5 text-xs text-zinc-400">{hint}</p>}
+      </div>
       <div className="flex flex-wrap gap-2">
         {options.map((option) => {
           const selected = value === option.value;
@@ -658,7 +682,12 @@ function ChoicePills({
               onClick={() => onChange(option.value)}
             >
               {selected && <CheckIcon />}
-              {option.label}
+              <span>
+                <span className="font-medium">{option.label}</span>
+                {option.description && (
+                  <span className="ml-1.5 text-xs opacity-75 font-normal">· {option.description}</span>
+                )}
+              </span>
             </button>
           );
         })}
@@ -825,6 +854,9 @@ export function IntakeWizard({
                           <span className="mt-1 block text-sm leading-relaxed text-zinc-400">
                             {option.description}
                           </span>
+                          <span className="mt-2 inline-flex items-center rounded-md bg-white/[0.05] px-2 py-0.5 text-xs font-medium text-blue-200/90 border border-white/[0.06]">
+                            {option.badge}
+                          </span>
                         </span>
                       </span>
                     </button>
@@ -835,6 +867,7 @@ export function IntakeWizard({
 
             <ChoicePills
               label="Experience level"
+              hint="How long you have consistently engaged in structured lifting or training."
               value={selections.experience}
               options={EXPERIENCE_OPTIONS}
               onChange={(value) => update({ experience: value as ExperienceChoice })}
@@ -877,13 +910,25 @@ export function IntakeWizard({
 
             <ChoicePills
               label="Days per week"
+              hint="Choose how many days you can realistically commit to training every week."
               value={selections.trainingDaysPerWeek}
-              options={[2, 3, 4, 5, 6].map((day) => ({ value: day, label: String(day) }))}
+              options={[
+                { value: 2, label: "2 days", description: "Minimal" },
+                { value: 3, label: "3 days", description: "Full body" },
+                { value: 4, label: "4 days", description: "Upper / Lower" },
+                { value: 5, label: "5 days", description: "Body-part split" },
+                { value: 6, label: "6 days", description: "Push / Pull / Legs" },
+              ]}
               onChange={(value) => update({ trainingDaysPerWeek: Number(value) })}
             />
 
             <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-zinc-200">Equipment</legend>
+              <div>
+                <legend className="text-sm font-semibold text-zinc-200">Equipment setup</legend>
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  The plan will select exercise variations that strictly match your equipment access.
+                </p>
+              </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {EQUIPMENT_OPTIONS.map((option) => {
                   const selected = selections.equipment === option.value;
@@ -903,7 +948,7 @@ export function IntakeWizard({
                         {selected && <CheckIcon />}
                         {option.label}
                       </span>
-                      <span className="mt-1 block text-xs leading-relaxed text-zinc-500">
+                      <span className="mt-1 block text-xs leading-relaxed text-zinc-400">
                         {option.description}
                       </span>
                     </button>
@@ -914,6 +959,7 @@ export function IntakeWizard({
 
             <ChoicePills
               label="Typical session length"
+              hint="Total workout duration including warm-up."
               value={selections.sessionLength}
               options={SESSION_OPTIONS}
               onChange={(value) => update({ sessionLength: value as SessionLengthChoice })}
@@ -962,15 +1008,34 @@ export function IntakeWizard({
 
             <ChoicePills
               label="Dietary style"
+              hint="Select your preferred nutritional pattern. The planner balances macros within this framework."
               value={selections.dietaryStyle}
               options={DIETARY_OPTIONS}
               onChange={(value) => update({ dietaryStyle: value as DietaryStyleChoice })}
             />
 
             <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-zinc-200">
-                How do you want to track?
-              </legend>
+              <div>
+                <legend className="text-sm font-semibold text-zinc-200">
+                  How do you want to track?
+                </legend>
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  Choose how your meal and nutrition targets are presented on your dashboard.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-200 space-y-1.5">
+                <p className="font-semibold flex items-center gap-1.5 text-blue-100">
+                  <span className="text-sm">⚖️</span> Both tracking styles provide exact ingredient measurements
+                </p>
+                <p className="text-blue-200/90 leading-relaxed">
+                  Every proposed meal gives precise gram and cup quantities (e.g. <strong>100 g Jasmine Rice</strong>, <strong>150 g Chicken Breast</strong>, <strong>1 cup Rolled Oats</strong>).
+                </p>
+                <p className="text-zinc-300 leading-relaxed">
+                  Choose <strong>Meal Portions</strong> to follow exact food weights on your plate without logging daily macro math. Choose <strong>Exact Macros</strong> to also see your daily calorie, protein, carb, and fat targets displayed on your dashboard.
+                </p>
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-2">
                 {TRACKING_OPTIONS.map((option) => {
                   const selected = selections.trackingStyle === option.value;
@@ -1000,12 +1065,14 @@ export function IntakeWizard({
             </fieldset>
 
             <fieldset className="space-y-3">
-              <legend className="text-sm font-semibold text-zinc-200">
-                Allergies or foods that must be avoided
-              </legend>
-              <p className="text-sm text-zinc-500">
-                Choose every item that applies, or choose None.
-              </p>
+              <div>
+                <legend className="text-sm font-semibold text-zinc-200">
+                  Allergies or foods that must be avoided
+                </legend>
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  Choose every item to exclude from your meals, or choose None if you have no restrictions.
+                </p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {ALLERGEN_OPTIONS.map((option) => {
                   const selected = selections.allergens.includes(option.value);
@@ -1074,7 +1141,7 @@ export function IntakeWizard({
                 Last step: your starting stats
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                These help size the starting plan. We will not guess missing details.
+                Height, weight, and age are used to calculate your baseline energy expenditure (BMR &amp; TDEE) under clinical DRI equations, ensuring your calorie and protein targets are tailored directly to you.
               </p>
             </div>
 
@@ -1220,7 +1287,7 @@ export function IntakeWizard({
                 <div>
                   <h3 className="font-semibold text-zinc-100">Quick safety check</h3>
                   <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-                    We need this once before building a plan. If none apply, it is one tap.
+                    Standard exercise readiness screening (PAR-Q). If you have no chest pain, heart or joint conditions, or physician warnings restricting physical training, simply select &ldquo;None of these apply&rdquo;.
                   </p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">

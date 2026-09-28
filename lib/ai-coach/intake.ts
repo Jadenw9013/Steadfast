@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { deriveLegacyAllergyTokens, deriveLegacyDietaryRestrictions } from "./intake-allergens";
-import { intakeAnswersSchema, intakeDraftSchema, intakeV2ConfirmSchema, isV2Intake } from "./intake-contract";
+import { applyIntakeV2ConfirmDefaults, intakeAnswersSchema, intakeDraftSchema, intakeV2ConfirmSchema, isV2Intake } from "./intake-contract";
 import type { IntakeDraftAnswers } from "./intake-contract";
 
 /**
@@ -73,7 +73,13 @@ export async function confirmIntake(clientId: string, rawAnswers: unknown, trans
   let dataToStore: Prisma.InputJsonValue;
 
   if (version === 2) {
-    const parsed = intakeV2ConfirmSchema.safeParse(rawAnswers);
+    // S-16: fill the seven bookkeeping statuses the caller left out *before*
+    // validating, so a client that was never shown a governed question is not
+    // 422'd about it. Fills only what is absent and never infers CONFIRMED —
+    // see `applyIntakeV2ConfirmDefaults`. A payload that already carries all
+    // seven is passed through byte-identically, so nothing that validates
+    // today changes shape, stored value or `profileRevision` behaviour.
+    const parsed = intakeV2ConfirmSchema.safeParse(applyIntakeV2ConfirmDefaults(rawAnswers));
     if (!parsed.success) {
       return { success: false, error: parsed.error.flatten().fieldErrors };
     }
@@ -95,10 +101,18 @@ export async function confirmIntake(clientId: string, rawAnswers: unknown, trans
   }
 
   const confirm = async (tx: Prisma.TransactionClient) => {
+    const existing = await tx.aiCoachProfile.findUnique({ where: { clientId } });
+    const consentedAt = existing?.consentedAt ?? new Date();
+    const reviewTimezone = existing?.reviewTimezone ?? "America/Los_Angeles";
     const updated = await tx.aiCoachProfile.upsert({
       where: { clientId },
-      create: { clientId, confirmedIntake: dataToStore, profileRevision: 1, consentedAt: new Date() },
-      update: { confirmedIntake: dataToStore, profileRevision: { increment: 1 } },
+      create: { clientId, confirmedIntake: dataToStore, profileRevision: 1, consentedAt, reviewTimezone },
+      update: {
+        confirmedIntake: dataToStore,
+        profileRevision: { increment: 1 },
+        consentedAt,
+        ...(existing?.reviewTimezone ? {} : { reviewTimezone }),
+      },
     });
     await tx.aiIntakeDraft.deleteMany({ where: { clientId } });
     return updated;

@@ -879,6 +879,8 @@ adds:
 | Method | Endpoint | Purpose |
 |---|---|---|
 | POST | `/api/client/ai-coach/plans/[id]/finalize` | Finalizes the client's current AI-generated plan version, via `lib/ai-coach/finalization.ts` — resolves FIXTURE vs LIVE from the account and the sole ACTIVE release (T-2000), 503s when neither applies regardless of flags |
+| POST | `/api/client/ai-coach/runs` | Creates an `AiCoachRun` (`lib/ai-coach/run-command.ts`) and then (T-2009) schedules a post-response drain of **that one run id** via `after()` from `next/server` → `drainRunNow` (`lib/ai-coach/executor.ts`). `runtime = "nodejs"`, `maxDuration = 120`. The REST envelope is unchanged; the client cannot observe the kick except by the run reaching a terminal status sooner |
+| POST | `/api/client/ai-coach/runs/[runId]/retry` | Same shape (T-2009): the kick targets the **new** retry run's id from the result, never the terminal original named in the path |
 | GET/POST | `/api/ops/ai-coach/governance` | Governance-grant-gated kill-switch and reviewed-artifact publish/revoke operations, via `lib/ai-coach/operations.ts` and `lib/ai-coach/artifacts/repository.ts` — no route can activate a live release (see the data-model section above) |
 
 **Intake v2 (T-2002/T-2024).** `POST /api/client/ai-coach/commands` is unchanged in
@@ -905,7 +907,18 @@ route shape; three of its operations gained a v2 branch, all validated in
   value fields stay conditionally required by `superRefine` against their
   status). The server sets `capturedAt` and derives `allergies`/
   `dietaryRestrictions` — a client-supplied value for any of those three is
-  rejected. A v1-shaped confirm (no `intakeVersion`) against a client whose
+  rejected. **S-16:** the seven bookkeeping *status* fields (`ageStatus`,
+  `energyMethodPopulationCategoryStatus`, `physicalActivityCategoryStatus`,
+  `bodyMeasurementStatus`, `goalStatus`, `trainingContextStatus`,
+  `cookingAccessStatus`) are defaulted server-side to `UNKNOWN` when absent
+  (`applyIntakeV2ConfirmDefaults`, `lib/ai-coach/intake-contract.ts`) so a
+  client that was never shown a governed question is not 422'd about it.
+  `UNKNOWN` is the restrictive value: the governed values must then be absent
+  and personalized nutrition stays pending. The default only ever *fills* —
+  an answered status is never overwritten, `CONFIRMED` is never inferred from
+  the presence of a value, and no clinical or safety field
+  (`allergenDeclarations`, `dietaryPattern`, `dislikes`,
+  `cuisinePreferences`) is defaulted at all. A v1-shaped confirm (no `intakeVersion`) against a client whose
   profile already holds `intakeVersion: 2` is rejected `422` (`"Update
   Steadfast to change your intake."`) so an old app build can never silently
   downgrade a v2 profile.
@@ -1089,7 +1102,7 @@ error tracker would have caught none of them.
 | Schedule | Endpoint | Purpose |
 |---|---|---|
 | Daily 19:00 UTC | `/api/cron/checkin-reminders` | Sends check-in reminders (email, SMS, push) based on cadence config; also runs the account-purge and storage-cleanup sweeps piggybacked in the same invocation (F08) |
-| Hourly :05 UTC | `/api/cron/ai-coach-executor` | AI Coach durable job executor (A05) — reconciles expired leases/due retries and claims up to 3 QUEUED runs per sweep; inert (zero database access) while `FEATURE_AI_COACH_GENERATION` is unset (T-503) |
+| Daily 04:05 UTC | `/api/cron/ai-coach-executor` | AI Coach durable job executor (A05) — reconciles expired leases/due retries and claims up to 3 QUEUED runs per sweep; inert (zero database access) while `FEATURE_AI_COACH_GENERATION` is unset (T-503). `vercel.json`: `5 4 * * *` |
 | Daily 04:00 UTC | `/api/cron/purge-deleted-accounts` | Purges accounts past 30-day grace period (FK-safe deletion order) — a second, independent daily drain pass alongside the 19:00 piggyback above (T-503) |
 
 A fourth entry, `/api/cron/ai-coach-alerts` at `:35` hourly, is reserved for T-998 (alert evaluator);
@@ -1100,11 +1113,21 @@ The executor route always returns 200. A healthy inert sweep body has no `paused
 blocked (kill switch or no ready live release) and needs investigating despite the 200 status.
 
 `/api/cron/ai-coach-executor` is scheduled by T-503 (owns `vercel.json`'s entry and the exact
-cadence); on this branch it has no `vercel.json` entry yet, so the drain below runs on no schedule
-at all until that ticket lands. Once scheduled, `runExecutorSweep` advances QUEUED `AiCoachRun`s one
+cadence, currently `5 4 * * *`). `runExecutorSweep` advances QUEUED `AiCoachRun`s one
 stage at a time, and (T-502) runs the acceptance-notification drain
 (`lib/ai-coach/acceptance-notifications.ts`) as its first phase, gated independently on
 `FEATURE_AI_COACH_PUBLICATION`.
+
+**The sweep is the only guaranteed drain (T-2009).** The two run-creating routes above also schedule
+an enqueue-time kick, which is what makes a freshly requested plan start within seconds instead of at
+the next sweep — but it is *best-effort*: a kick that never scheduled (no `waitUntil` in the runtime),
+or whose invocation was torn down mid-drain, leaves the run for the next sweep to reconcile and
+finish. Nothing in the system may depend on the kick having run, and nothing but the sweep may
+reconcile. `drainRunNow` claims through the same `claimQueuedRun` conditional update the sweep uses,
+so a run can never be executed twice; it never reconciles, never selects rows and never touches an id
+but its own; and it never writes FAILED itself — every terminal transition goes through the same
+`lib/ai-coach/runs.ts` accounting. One `sf.aicoach.run_kick` beacon is emitted per scheduling attempt
+(`outcome` only; no client, plan or failure detail).
 
 ---
 

@@ -365,3 +365,83 @@ export const intakeV2ConfirmSchema = intakeV2ConfirmObjectSchema.superRefine((va
   ]);
 });
 export type IntakeV2ConfirmAnswers = z.infer<typeof intakeV2ConfirmSchema>;
+
+/**
+ * S-16 — the seven bookkeeping status fields, and the value a confirm that
+ * omits one is defaulted to at the server boundary.
+ *
+ * Every one of these is `UNKNOWN`, which is the **most restrictive** choice
+ * available and never the most permissive. A status is not a preference: it
+ * decides whether the value it governs may be used at all. `CONFIRMED` is the
+ * permissive value — it asserts the client answered, and it is the only value
+ * that lets the governed number (age, weight, activity category, training
+ * context...) reach the prescription. `DECLINED` asserts the client was asked
+ * and refused. `UNKNOWN` asserts nothing: the governed values must be absent,
+ * so personalized nutrition stays *pending* rather than being computed from a
+ * value nobody supplied (docs/ai-coach/06 §4). A client who was never asked a
+ * question has, by definition, an unknown answer, and the fail-closed
+ * direction is to say so.
+ *
+ * The `satisfies` below is a completeness guard, not decoration: it is keyed
+ * by *every* required `FieldStatus` field of the frozen confirm contract, so
+ * adding an eighth status field to `intakeV2ConfirmObjectSchema` without
+ * deciding its default here is a `pnpm run type-check` failure.
+ */
+type ConfirmStatusKey = {
+  // Mutual assignability, so this picks out the fields whose type is *exactly*
+  // `FieldStatus` — a one-directional test would also catch every `string`
+  // field (e.g. `weightMeasuredOn`).
+  [K in keyof IntakeV2ConfirmAnswers]-?: IntakeV2ConfirmAnswers[K] extends FieldStatus
+    ? FieldStatus extends IntakeV2ConfirmAnswers[K]
+      ? K
+      : never
+    : never;
+}[keyof IntakeV2ConfirmAnswers];
+
+export const INTAKE_V2_STATUS_DEFAULTS = {
+  ageStatus: "UNKNOWN",
+  energyMethodPopulationCategoryStatus: "UNKNOWN",
+  physicalActivityCategoryStatus: "UNKNOWN",
+  bodyMeasurementStatus: "UNKNOWN",
+  goalStatus: "UNKNOWN",
+  trainingContextStatus: "UNKNOWN",
+  cookingAccessStatus: "UNKNOWN",
+} as const satisfies Record<ConfirmStatusKey, FieldStatus>;
+
+/**
+ * S-16 — fills the seven bookkeeping statuses a caller left out, and nothing
+ * else.
+ *
+ * Applied at the confirm boundary (`confirmIntake`) so a client that was
+ * never asked a governed question cannot be 422'd about a field it was never
+ * shown. Deliberately narrow:
+ *
+ *  - **It only ever fills, never overwrites.** A key whose value is anything
+ *    other than absent (missing / `undefined` / `null` — JSON has no
+ *    `undefined`, so an unset optional often arrives as `null`) is left
+ *    exactly as the client sent it, including an invalid one, which then
+ *    fails validation with the client's own value in the message.
+ *  - **It never infers `CONFIRMED`.** A payload carrying a governed *value*
+ *    (say `ageYears`) with no status gets `UNKNOWN` and is then correctly
+ *    rejected by the contract's own `superRefine` ("Must be absent unless its
+ *    status is CONFIRMED"). Guessing `CONFIRMED` from the presence of a value
+ *    would manufacture a confirmation the client never gave; that is the
+ *    permissive direction and is not available here.
+ *  - **It touches no clinical or safety field.** `allergenDeclarations`,
+ *    `dietaryPattern`, `dislikes` and `cuisinePreferences` are NOT defaulted.
+ *    An absent allergen declaration is already a hard 422 in
+ *    `client-commands.ts` (and is compared by hash against the saved draft);
+ *    an absent `dietaryPattern`/`dislikes` has no restrictive default at all,
+ *    because "no pattern declared" and "no dislikes" are the *least*
+ *    restrictive states — a default there would silently widen what the plan
+ *    may contain, so those stay required and are listed here on purpose.
+ */
+export function applyIntakeV2ConfirmDefaults(rawAnswers: unknown): unknown {
+  if (typeof rawAnswers !== "object" || rawAnswers === null || Array.isArray(rawAnswers))
+    return rawAnswers;
+  const filled: Record<string, unknown> = { ...(rawAnswers as Record<string, unknown>) };
+  for (const [key, value] of Object.entries(INTAKE_V2_STATUS_DEFAULTS)) {
+    if (filled[key] === undefined || filled[key] === null) filled[key] = value;
+  }
+  return filled;
+}
