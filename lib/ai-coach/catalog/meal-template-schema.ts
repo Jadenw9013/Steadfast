@@ -65,18 +65,27 @@ export const mealTemplateSchema = z
     name: z.string().min(1).max(120),
     isComponent: z.boolean(), // component templates are not scheduled directly
     slot: z.enum(["BREAKFAST", "LUNCH", "DINNER", "SNACK", "COMPONENT"]),
-    patternTags: z.array(z.enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"])).min(1),
+    patternTags: z
+      .array(z.enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"]))
+      .min(1),
     budgetBand: z.enum(["LOW", "MODERATE", "FLEXIBLE"]), // = intake foodBudgetLevel
     prepTimeBand: z.enum(["UNDER_15", "MIN_15_30", "MIN_30_60", "OVER_60"]), // = T-2002 typicalPrepMinutesBand
-    requiredEquipment: z.array(z.enum(["NONE", "MICROWAVE", "STOVETOP", "OVEN", "FULL_KITCHEN"])).min(1),
+    requiredEquipment: z
+      .array(z.enum(["NONE", "MICROWAVE", "STOVETOP", "OVEN", "FULL_KITCHEN"]))
+      .min(1),
     requiredRefrigeration: z.enum(["NONE", "FRIDGE", "FRIDGE_AND_FREEZER"]),
     servings: z.number().positive().max(12),
     yieldGrams: z.number().positive().nullable(), // null = UNKNOWN; no yield factor is ever invented
     yieldMethod: z.enum(["SOURCE_REPORTED", "UNKNOWN"]),
-    ingredients: z.array(z.union([templateIngredientSchema, nestedComponentSchema])).min(1).max(20),
+    ingredients: z
+      .array(z.union([templateIngredientSchema, nestedComponentSchema]))
+      .min(1)
+      .max(20),
     preparation: z.string().max(500), // plain steps; no food-safety or health claim
     reviewState: z.enum(["PROPOSED", "ACCEPTED", "STRUCK"]),
-    requiresReviewerPortion: z.boolean(), // true when any range is DEFAULT_100G_BAND or requires human portion calibration
+    // True iff a direct food ingredient uses the uncalibrated 100 g fallback
+    // or declares a scaling range above 300 g. Both require RD triage.
+    requiresReviewerPortion: z.boolean(),
     notes: z.string().max(500).nullable(),
   })
   .strict();
@@ -89,7 +98,9 @@ export const substitutionGroupSchema = z
     name: z.string().min(1).max(120),
     basis: z.enum(["ROLE_IN_MEAL"]), // grouping is culinary role, never "nutritionally equivalent"
     memberFoodIds: z.array(z.string().min(1).max(120)).min(2).max(30),
-    patternTags: z.array(z.enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"])).min(1),
+    patternTags: z
+      .array(z.enum(["OMNIVORE", "LACTO_OVO_VEGETARIAN", "VEGAN", "PESCATARIAN"]))
+      .min(1),
     reviewState: z.enum(["PROPOSED", "ACCEPTED", "STRUCK"]),
     note: z.string().max(300).nullable(),
   })
@@ -101,7 +112,9 @@ export const mealTemplateSetSchema = z
   .object({
     artifactKey: z.string().min(1).max(160),
     version: z.number().int().positive(),
-    foodCatalogRef: z.object({ artifactKey: z.string(), version: z.number().int().positive() }).strict(),
+    foodCatalogRef: z
+      .object({ artifactKey: z.string(), version: z.number().int().positive() })
+      .strict(),
     substitutionGroups: z.array(substitutionGroupSchema).max(100),
     templates: z.array(mealTemplateSchema).min(1).max(200),
   })
@@ -157,12 +170,12 @@ export const mealTemplateSetSchema = z
         });
       }
 
-      let hasDefault100gBand = false;
+      let needsReviewerPortion = false;
       for (let j = 0; j < t.ingredients.length; j++) {
         const ing = t.ingredients[j];
         if (ing.kind === "FOOD") {
-          if (ing.portion.rangeBasis === "DEFAULT_100G_BAND") {
-            hasDefault100gBand = true;
+          if (ing.portion.rangeBasis === "DEFAULT_100G_BAND" || ing.portion.maxGrams > 300) {
+            needsReviewerPortion = true;
           }
           if (ing.substitutionGroupId !== null && !subGroupIds.has(ing.substitutionGroupId)) {
             ctx.addIssue({
@@ -209,12 +222,14 @@ export const mealTemplateSetSchema = z
         }
       }
 
-      // requiresReviewerPortion must be true if some range is DEFAULT_100G_BAND
-      if (hasDefault100gBand && !t.requiresReviewerPortion) {
+      // Strict iff: fallback or bulk (>300 g) ranges require RD triage, and
+      // templates without either condition must not carry a stale review flag.
+      if (t.requiresReviewerPortion !== needsReviewerPortion) {
         ctx.addIssue({
           code: "custom",
           path: ["templates", i, "requiresReviewerPortion"],
-          message: `requiresReviewerPortion must be true because some ingredient has rangeBasis DEFAULT_100G_BAND`,
+          message:
+            "requiresReviewerPortion must be true iff a food ingredient uses DEFAULT_100G_BAND or has maxGrams > 300",
         });
       }
     }

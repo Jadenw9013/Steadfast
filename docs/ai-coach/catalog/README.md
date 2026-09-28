@@ -417,7 +417,7 @@ Meal templates govern how individual food items from the catalog are assembled i
 
 ### 6.1 Initial state and engineering boundaries
 - Every template and substitution group ships in `reviewState: "PROPOSED"`. Engineering never authors `ACCEPTED`.
-- Engineering mechanically populates nominal portions from source household measures rounded to whole grams (`rangeBasis: "SOURCE_PORTION_SCALED"`), setting a 0.5–2.0× scaling band (`minGrams = round5(0.5 × nominal)`, `maxGrams = round5(2.0 × nominal)`). When a food has no reported household measure, it receives a 100g nominal portion with `rangeBasis: "DEFAULT_100G_BAND"`, which automatically marks the template `requiresReviewerPortion: true`.
+- Engineering mechanically populates nominal portions from source household measures rounded to whole grams (`rangeBasis: "SOURCE_PORTION_SCALED"`), setting a 0.5–2.0× scaling band (`minGrams = round5(0.5 × nominal)`, `maxGrams = round5(2.0 × nominal)`). When a food has no reported household measure, it receives a 100g nominal portion with `rangeBasis: "DEFAULT_100G_BAND"`. `requiresReviewerPortion` is true if and only if a direct food ingredient uses that fallback or its declared range extends above 300g. Both cases require RD triage; the bulk threshold applies to the range the solver may emit, not only its nominal point.
 - Preparation instructions contain only plain mechanical steps ("combine, simmer until tender"). They contain no cooking temperatures, holding times, health claims, or food-safety instructions.
 
 ### 6.2 Reviewer accept / strike workflow
@@ -426,7 +426,8 @@ During clinical review, the Registered Dietitian reviews each template and subst
    - **`reviewState: "ACCEPTED"`**: The template is clinically approved for meal composition and live coaching plans once the draft bundle is signed.
    - **`reviewState: "STRUCK"`**: The template is rejected (e.g. poor culinary match, unsuitable ingredient combination, or inappropriate preparation). The RD records the clinical rationale in `notes`.
 2. **Portion calibration:**
-   - For templates flagged `requiresReviewerPortion: true`, the RD establishes the clinically appropriate nominal portion and minimum/maximum bounds, switching `requiresReviewerPortion` to `false` and recording the calibrated basis.
+   - For templates flagged `requiresReviewerPortion: true`, the RD establishes the clinically appropriate nominal portion and minimum/maximum bounds and records the calibrated basis. The flag becomes `false` only when no direct ingredient uses `DEFAULT_100G_BAND` and every direct ingredient range is capped at 300g or below; the schema enforces that exact iff rule.
+   - Where a template uses a raw USDA record and then cooks the food, its portion note says `weigh raw`. The ingredient remains `state: "RAW"` because the catalog macros describe the raw weight; a cooked label is prohibited without a matching cooked record or a reported yield conversion.
 3. **Substitution groups:**
    - Substitution groups group foods solely by culinary role in a meal (e.g. `Lean Poultry`, `Staple Grains`, `Green Vegetables`), never claiming nutritional equivalence.
    - The RD accepts or strikes substitution groups and verifies that member foods are suitable culinary swaps for one another.

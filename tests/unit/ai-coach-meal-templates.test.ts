@@ -45,7 +45,9 @@ describe("A07 — meal template dataset contract and invariants", () => {
 
   it("ensures every substitution group has >= 2 members and all members resolve in catalog", () => {
     for (const group of draftTemplatesFile.content.substitutionGroups) {
-      expect(group.memberFoodIds.length, `group ${group.id} member count`).toBeGreaterThanOrEqual(2);
+      expect(group.memberFoodIds.length, `group ${group.id} member count`).toBeGreaterThanOrEqual(
+        2
+      );
       for (const foodId of group.memberFoodIds) {
         const lookup = catalogSource.get(foodId, catalogSource.catalogVersion);
         expect(lookup.success, `group ${group.id} member foodId ${foodId}`).toBe(true);
@@ -161,22 +163,40 @@ describe("A07 — meal template dataset contract and invariants", () => {
     }
   });
 
-  it("ensures requiresReviewerPortion === true if some ingredient has DEFAULT_100G_BAND", () => {
+  it("enforces requiresReviewerPortion iff a direct food range is a fallback or exceeds 300g", () => {
     for (const template of draftTemplatesFile.content.templates) {
-      let hasDefaultBand = false;
-      for (const ing of template.ingredients) {
-        if (ing.kind === "FOOD" && ing.portion.rangeBasis === "DEFAULT_100G_BAND") {
-          hasDefaultBand = true;
-          break;
-        }
-      }
-      if (hasDefaultBand) {
-        expect(
-          template.requiresReviewerPortion,
-          `Template ${template.id} must have requiresReviewerPortion=true for DEFAULT_100G_BAND`
-        ).toBe(true);
-      }
+      const needsReviewerPortion = template.ingredients.some(
+        (ing) =>
+          ing.kind === "FOOD" &&
+          (ing.portion.rangeBasis === "DEFAULT_100G_BAND" || ing.portion.maxGrams > 300)
+      );
+      expect(
+        template.requiresReviewerPortion,
+        `Template ${template.id} requiresReviewerPortion iff it has a fallback or >300g range`
+      ).toBe(needsReviewerPortion);
     }
+  });
+
+  it("rejects either direction of the requiresReviewerPortion iff invariant", () => {
+    const missingRequiredFlag = JSON.parse(JSON.stringify(draftTemplatesFile.content));
+    const bulkTemplate = missingRequiredFlag.templates.find(
+      (template: MealTemplate) =>
+        template.requiresReviewerPortion &&
+        template.ingredients.some(
+          (ingredient) => ingredient.kind === "FOOD" && ingredient.portion.maxGrams > 300
+        )
+    );
+    expect(bulkTemplate).toBeDefined();
+    bulkTemplate.requiresReviewerPortion = false;
+    expect(() => mealTemplateSetSchema.parse(missingRequiredFlag)).toThrow();
+
+    const staleFlag = JSON.parse(JSON.stringify(draftTemplatesFile.content));
+    const ordinaryTemplate = staleFlag.templates.find(
+      (template: MealTemplate) => !template.requiresReviewerPortion
+    );
+    expect(ordinaryTemplate).toBeDefined();
+    ordinaryTemplate.requiresReviewerPortion = true;
+    expect(() => mealTemplateSetSchema.parse(staleFlag)).toThrow();
   });
 
   it("ensures minGrams <= nominalGrams <= maxGrams and sourcePortionText non-null for SOURCE_PORTION_SCALED", () => {
@@ -197,11 +217,72 @@ describe("A07 — meal template dataset contract and invariants", () => {
     }
   });
 
+  it("keeps the 20 raw-catalog cooking ingredients RAW and marks their 19 templates weigh raw", () => {
+    const expectedTemplateIds = new Set([
+      "comp-steamed-broccoli",
+      "comp-sauteed-spinach",
+      "comp-roasted-carrots",
+      "comp-grilled-chicken-prep",
+      "comp-seared-salmon-prep",
+      "bf-lacto-low-scrambled-eggs",
+      "bf-omni-low-egg-and-turkey",
+      "bf-omni-mod-chicken-omelet",
+      "lu-vegan-low-black-bean-bowl",
+      "lu-omni-low-chicken-rice-bowl",
+      "lu-omni-mod-turkey-quinoa-salad",
+      "lu-omni-flex-steak-pita",
+      "din-vegan-low-chickpea-curry",
+      "din-vegan-flex-mediterranean-platter",
+      "din-lacto-low-egg-rice-bowl",
+      "din-lacto-mod-quinoa-frittata",
+      "din-omni-mod-salmon-quinoa",
+      "din-omni-flex-sirloin-steak",
+      "sn-omni-flex-turkey-avocado-roll",
+    ]);
+    const actualTemplateIds = new Set(
+      draftTemplatesFile.content.templates
+        .filter((template) => template.notes?.toLowerCase().includes("weigh raw"))
+        .map((template) => template.id)
+    );
+    expect(actualTemplateIds).toEqual(expectedTemplateIds);
+    const correctedFoodIds = new Set([
+      "fdc-747447",
+      "fdc-168462",
+      "fdc-170393",
+      "fdc-2646170",
+      "fdc-175138",
+      "fdc-174515",
+      "fdc-2727574",
+      "fdc-169291",
+    ]);
+
+    let rawCookingIngredientCount = 0;
+    for (const template of draftTemplatesFile.content.templates) {
+      if (!expectedTemplateIds.has(template.id)) continue;
+      for (const ingredient of template.ingredients) {
+        if (ingredient.kind !== "FOOD") continue;
+        const lookup = catalogSource.get(ingredient.foodId, ingredient.catalogVersion);
+        expect(lookup.success).toBe(true);
+        if (
+          lookup.success &&
+          lookup.item.foodState === "RAW" &&
+          correctedFoodIds.has(ingredient.foodId)
+        ) {
+          rawCookingIngredientCount++;
+          expect(ingredient.state, `${template.id}/${ingredient.foodId}`).toBe("RAW");
+        }
+      }
+    }
+    expect(rawCookingIngredientCount).toBe(20);
+  });
+
   it("catches pattern tag contradictions in validateTemplateSetAgainstCatalog", () => {
     // Clone first template and add an unsupported pattern tag (e.g. VEGAN to an omnivore-only item)
-    const cloned = JSON.parse(JSON.stringify(draftTemplatesFile.content));
-    const omniTemplate = cloned.templates.find((t: any) => t.id === "bf-omni-low-egg-and-turkey");
-    expect(omniTemplate).toBeDefined();
+    const cloned = JSON.parse(JSON.stringify(draftTemplatesFile.content)) as {
+      templates: MealTemplate[];
+    } & typeof draftTemplatesFile.content;
+    const omniTemplate = cloned.templates.find((t) => t.id === "bf-omni-low-egg-and-turkey");
+    if (!omniTemplate) throw new Error("expected omnivore template fixture");
     // Claim VEGAN when egg and turkey are not vegan
     omniTemplate.patternTags = ["VEGAN", "OMNIVORE"];
 
@@ -210,4 +291,3 @@ describe("A07 — meal template dataset contract and invariants", () => {
     expect(result.templateErrors.some((e) => e.error === "PATTERN_TAG_UNSATISFIED")).toBe(true);
   });
 });
-

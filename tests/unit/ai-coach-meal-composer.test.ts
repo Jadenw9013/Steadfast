@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  composeWeekFromTemplates,
-  type ComposeTemplatesInput,
-} from "@/lib/ai-coach/meal-composer";
+import { composeWeekFromTemplates, type ComposeTemplatesInput } from "@/lib/ai-coach/meal-composer";
 import {
   loadDraftUnsignedMealTemplates,
   loadDraftUnsignedFoodCatalog,
@@ -10,18 +7,15 @@ import {
 import {
   sourcedFoodCatalogSource,
   type FoodCatalogSource,
-  type ResolvedFoodItem,
 } from "@/lib/ai-coach/catalog/food-source";
 import { ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { mealTargetsMatch } from "@/lib/ai-coach/representation";
 import type { PlanPayload } from "@/lib/ai-coach/plan-contract";
 import type { IntakeAnswers } from "@/lib/ai-coach/intake";
-import type { MealTemplateSet } from "@/lib/ai-coach/catalog/meal-template-schema";
-import {
-  composeMealsToPrescription,
-  composeMealsToPrescriptionWithReasons,
-} from "@/lib/ai-coach/initial-plan";
+import type { MealTemplateSet, PortionRange } from "@/lib/ai-coach/catalog/meal-template-schema";
+import { composeMealsToPrescriptionWithReasons } from "@/lib/ai-coach/initial-plan";
 import type { Prescription } from "@/lib/ai-coach/prescription";
+import { computeNutrientTotals } from "@/lib/ai-coach/nutrition-totals";
 
 const draftCatalog = loadDraftUnsignedFoodCatalog();
 const catalogSource = sourcedFoodCatalogSource(draftCatalog.content);
@@ -73,6 +67,73 @@ function makeBaseInput(): ComposeTemplatesInput {
 }
 
 describe("A07 — meal template composer and solver", () => {
+  it("composes a realistic 2200 kcal / 150P / 250C / 70F prescription at 10% tolerance", () => {
+    const input = makeBaseInput();
+    input.targets = { energyKcal: 2200, proteinG: 150, carbsG: 250, fatG: 70 };
+    input.tolerancePercent = 10;
+    input.maxRepeatsPerWeek = 3;
+    input.constraints = {
+      ...input.constraints,
+      patternTags: ["OMNIVORE"],
+      dietaryRestrictions: [],
+      budgetBand: "FLEXIBLE",
+      prepTimeBand: "OVER_60",
+    };
+
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(true);
+    if (!result.feasible) throw new Error(JSON.stringify(result.reasons));
+
+    expect(result.days).toHaveLength(7);
+    for (const totals of result.perDayTotals) {
+      for (const key of ["energyKcal", "proteinG", "carbsG", "fatG"] as const) {
+        expect(
+          Math.abs(totals[key] - input.targets[key]),
+          `${key}: achieved ${totals[key]}, target ${input.targets[key]}`
+        ).toBeLessThanOrEqual((input.targets[key] * input.tolerancePercent) / 100);
+      }
+    }
+
+    const repeats = new Map<string, number>();
+    for (const day of result.days) {
+      for (const meal of day.meals) {
+        const templateId = meal.id.replace(/^template-meal-\d+-/, "");
+        repeats.set(templateId, (repeats.get(templateId) ?? 0) + 1);
+      }
+    }
+    for (const [templateId, count] of repeats) {
+      expect(count, `${templateId} repeat count`).toBeLessThanOrEqual(input.maxRepeatsPerWeek);
+    }
+  });
+
+  it("selects different macro-fit templates for materially different prescriptions", () => {
+    const lowInput = makeBaseInput();
+    lowInput.targets = { energyKcal: 1600, proteinG: 100, carbsG: 180, fatG: 50 };
+    lowInput.tolerancePercent = 10;
+    lowInput.maxRepeatsPerWeek = 7;
+    lowInput.constraints = {
+      ...lowInput.constraints,
+      patternTags: ["OMNIVORE"],
+      dietaryRestrictions: [],
+      budgetBand: "FLEXIBLE",
+      prepTimeBand: "OVER_60",
+    };
+    const highInput: ComposeTemplatesInput = {
+      ...lowInput,
+      targets: { energyKcal: 3000, proteinG: 190, carbsG: 350, fatG: 100 },
+    };
+
+    const low = composeWeekFromTemplates(lowInput);
+    const high = composeWeekFromTemplates(highInput);
+    expect(low.feasible).toBe(true);
+    expect(high.feasible).toBe(true);
+    if (!low.feasible || !high.feasible) throw new Error("expected both prescriptions to compose");
+
+    const selectedIds = (result: typeof low) =>
+      result.days[0].meals.map((meal) => meal.id.replace(/^template-meal-\d+-/, ""));
+    expect(selectedIds(low)).not.toEqual(selectedIds(high));
+  });
+
   it("composes a feasible 7-day plan where every day satisfies mealTargetsMatch within tolerance", () => {
     const input = makeBaseInput();
     const result = composeWeekFromTemplates(input);
@@ -143,8 +204,8 @@ describe("A07 — meal template composer and solver", () => {
 
     const noFeasible = result.reasons.find((r) => r.code === "NO_FEASIBLE_MEALS");
     expect(noFeasible).toBeDefined();
-    expect((noFeasible as any).detail?.worstMacro).toBeDefined();
-    expect((result as any).days).toBeUndefined();
+    expect(noFeasible?.detail?.worstMacro).toBeDefined();
+    expect("days" in result).toBe(false);
   });
 
   it("fails at rounding boundary when exact solution rounds to 5g outside tolerance", () => {
@@ -224,7 +285,7 @@ describe("A07 — meal template composer and solver", () => {
       for (const meal of day.meals) {
         for (const ing of meal.ingredients) {
           // Find the ingredient's portion definition in the template
-          let portionDef: any = null;
+          let portionDef: PortionRange | null = null;
           for (const t of templateSet.templates) {
             for (const tIng of t.ingredients) {
               if (tIng.kind === "FOOD" && tIng.foodId === ing.foodId) {
@@ -245,14 +306,12 @@ describe("A07 — meal template composer and solver", () => {
           }
 
           if (portionDef) {
-            expect(
-              ing.grams,
-              `Ingredient ${ing.foodId} min bound`
-            ).toBeGreaterThanOrEqual(portionDef.minGrams);
-            expect(
-              ing.grams,
-              `Ingredient ${ing.foodId} max bound`
-            ).toBeLessThanOrEqual(portionDef.maxGrams);
+            expect(ing.grams, `Ingredient ${ing.foodId} min bound`).toBeGreaterThanOrEqual(
+              portionDef.minGrams
+            );
+            expect(ing.grams, `Ingredient ${ing.foodId} max bound`).toBeLessThanOrEqual(
+              portionDef.maxGrams
+            );
           }
         }
       }
@@ -292,7 +351,6 @@ describe("A07 — meal template composer and solver", () => {
           success: true,
           item: {
             ...res.item,
-            allergens: id === "fdc-330137" ? (["MILK"] as any) : [],
             allergenFactsV2: res.item.allergenFactsV2
               ? {
                   ...res.item.allergenFactsV2,
@@ -380,7 +438,7 @@ describe("A07 — meal template composer and solver", () => {
 
     // Assert the failure reasons explicitly name the parent template ID
     const parentReason = result.reasons.find(
-      (r) => (r.detail as any)?.templateId === "din-omni-low-chicken-broccoli"
+      (r) => r.detail?.templateId === "din-omni-low-chicken-broccoli"
     );
     expect(parentReason).toBeDefined();
     expect(parentReason?.code).toBe("ALLERGEN_CONFLICT");
@@ -435,25 +493,35 @@ describe("A07 — meal template composer and solver", () => {
     expect(noFeasible).toBeDefined();
   });
 
-  it("fails via re-verify authority guard when source answers change between filter and verify", () => {
-    let callCount = 0;
+  it("fails via the step-5 re-verify authority guard when source answers change after filtering", () => {
+    let oatLookupCount = 0;
     const stubSource: FoodCatalogSource = {
       catalogVersion: catalogSource.catalogVersion,
       get(id: string, version: string) {
         const res = catalogSource.get(id, version);
         if (!res.success) return res;
-        callCount++;
-        // On later calls (during step 5 re-verify), inject a failure
-        if (callCount > 50 && id === "fdc-168873") {
-          return {
-            success: true,
-            item: {
-              ...res.item,
-              allergens: ["PEANUT" as any],
-            },
-          };
-        }
-        return res;
+        if (id === "fdc-168873") oatLookupCount++;
+        const categories = (res.item.allergenFactsV2?.categories ?? []).map((category) =>
+          category.category === "PEANUT"
+            ? {
+                ...category,
+                presence:
+                  id === "fdc-168873" && oatLookupCount >= 5
+                    ? ("PRESENT" as const)
+                    : ("VERIFIED_ABSENT" as const),
+                crossContact: "VERIFIED_ABSENT" as const,
+              }
+            : category
+        );
+        return {
+          success: true,
+          item: {
+            ...res.item,
+            allergenFactsV2: res.item.allergenFactsV2
+              ? { ...res.item.allergenFactsV2, categories }
+              : undefined,
+          },
+        };
       },
     };
 
@@ -463,6 +531,13 @@ describe("A07 — meal template composer and solver", () => {
 
     const result = composeWeekFromTemplates(input);
     expect(result.feasible).toBe(false);
+    if (result.feasible) throw new Error("unreachable");
+    expect(oatLookupCount).toBeGreaterThanOrEqual(5);
+    expect(
+      result.reasons.some(
+        (reason) => reason.code === "ALLERGEN_CONFLICT" && reason.detail?.phase === "FINAL_REVERIFY"
+      )
+    ).toBe(true);
   });
 
   it("enforces mandatory VEGAN pattern to select only VEGAN-tagged templates", () => {
@@ -484,6 +559,36 @@ describe("A07 — meal template composer and solver", () => {
       }
     }
   });
+
+  it.each(["VEGAN", "PESCATARIAN", "OMNIVORE"] as const)(
+    "enforces mandatory %s dietary-pattern filtering",
+    (pattern) => {
+      const input = makeBaseInput();
+      input.maxRepeatsPerWeek = 7;
+      input.constraints = {
+        ...input.constraints,
+        patternTags: [pattern],
+        patternMandatory: true,
+        dietaryRestrictions: [],
+        budgetBand: "FLEXIBLE",
+        prepTimeBand: "OVER_60",
+      };
+
+      const result = composeWeekFromTemplates(input);
+      expect(result.feasible).toBe(true);
+      if (!result.feasible) throw new Error(JSON.stringify(result.reasons));
+
+      const templatesById = new Map(
+        templateSet.templates.map((template) => [template.id, template])
+      );
+      for (const day of result.days) {
+        for (const meal of day.meals) {
+          const templateId = meal.id.replace(/^template-meal-\d+-/, "");
+          expect(templatesById.get(templateId)?.patternTags).toContain(pattern);
+        }
+      }
+    }
+  );
 
   it("enforces budget and prep time bands so LOW/MIN_15_30 client never receives FLEXIBLE or MIN_30_60", () => {
     const input = makeBaseInput();
@@ -566,7 +671,13 @@ describe("A07 — meal template composer and solver", () => {
         patternMandatory: true,
         budgetBand: "LOW" as const,
         prepTimeBand: "MIN_15_30" as const,
-        equipment: ["NONE", "MICROWAVE", "STOVETOP", "OVEN", "FULL_KITCHEN"] as ("NONE" | "MICROWAVE" | "STOVETOP" | "OVEN" | "FULL_KITCHEN")[],
+        equipment: ["NONE", "MICROWAVE", "STOVETOP", "OVEN", "FULL_KITCHEN"] as (
+          | "NONE"
+          | "MICROWAVE"
+          | "STOVETOP"
+          | "OVEN"
+          | "FULL_KITCHEN"
+        )[],
         refrigeration: "FRIDGE_AND_FREEZER" as const,
         allergies: [],
         dietaryRestrictions: ["VEGAN"],
@@ -582,16 +693,11 @@ describe("A07 — meal template composer and solver", () => {
       options
     );
 
-    // If peanut allergy was merged, peanut butter (DEFAULT_100G_BAND snack) should not be selected
-    if (res.meals) {
-      for (const day of res.meals.days) {
-        for (const meal of day.meals) {
-          for (const ing of meal.ingredients) {
-            expect(ing.foodId).not.toBe("fdc-2262072");
-          }
-        }
-      }
-    }
+    // The answer-owned allergy is merged even though the options bag is
+    // empty. Draft items cannot verify PEANUT absence, so composition must
+    // fail closed; this assertion cannot be skipped behind `if (res.meals)`.
+    expect(res.meals).toBeNull();
+    expect(res.reasons.some((reason) => reason.code === "UNVERIFIABLE_ALLERGY")).toBe(true);
 
     // When nutritionPermission is PAUSED, it must return meals: null with structured reasons
     const pausedRes = composeMealsToPrescriptionWithReasons(
@@ -607,5 +713,81 @@ describe("A07 — meal template composer and solver", () => {
     expect(pausedRes.reasons.length).toBeGreaterThan(0);
     expect(pausedRes.reasons.some((r) => r.code === "NUTRITION_DOMAIN_NOT_ALLOWED")).toBe(true);
   });
-});
 
+  it("reports the macros from the retained best rounded iterate when no solution is in tolerance", () => {
+    const selectedIds = new Set([
+      "bf-vegan-low-oatmeal",
+      "lu-lacto-low-egg-pita-salad",
+      "din-lacto-low-egg-rice-bowl",
+    ]);
+    const fixedTemplates = templateSet.templates
+      .filter((template) => template.isComponent || selectedIds.has(template.id))
+      .map((template) => ({
+        ...template,
+        ingredients: template.ingredients.map((ingredient) =>
+          ingredient.kind === "FOOD"
+            ? {
+                ...ingredient,
+                scaling: "FIXED" as const,
+                portion: {
+                  ...ingredient.portion,
+                  minGrams: ingredient.portion.nominalGrams,
+                  maxGrams: ingredient.portion.nominalGrams,
+                },
+              }
+            : ingredient
+        ),
+      }));
+    const fixedSet: MealTemplateSet = { ...templateSet, templates: fixedTemplates };
+    const input = makeBaseInput();
+    input.templateSet = fixedSet;
+    input.targets = { energyKcal: 5000, proteinG: 400, carbsG: 600, fatG: 200 };
+    input.tolerancePercent = 1;
+    input.maxRepeatsPerWeek = 7;
+    input.constraints = {
+      ...input.constraints,
+      patternTags: ["PESCATARIAN"],
+      dietaryRestrictions: [],
+      budgetBand: "FLEXIBLE",
+      prepTimeBand: "OVER_60",
+    };
+
+    const fixedById = new Map(fixedTemplates.map((template) => [template.id, template]));
+    const expectedComponents = fixedTemplates
+      .filter((template) => selectedIds.has(template.id))
+      .flatMap((template) =>
+        template.ingredients.flatMap((ingredient) => {
+          const foods =
+            ingredient.kind === "FOOD"
+              ? [ingredient]
+              : (fixedById.get(ingredient.templateId)?.ingredients ?? []).filter(
+                  (nested) => nested.kind === "FOOD"
+                );
+          return foods.flatMap((food) =>
+            food.kind === "FOOD"
+              ? [
+                  {
+                    foodId: food.foodId,
+                    catalogVersion: food.catalogVersion,
+                    grams:
+                      food.portion.nominalGrams *
+                      (ingredient.kind === "COMPONENT_TEMPLATE" ? ingredient.servings : 1),
+                  },
+                ]
+              : []
+          );
+        })
+      );
+    const expected = computeNutrientTotals(expectedComponents, catalogSource);
+    expect(expected.success).toBe(true);
+    if (!expected.success) throw new Error("fixture foods must resolve");
+
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(false);
+    if (result.feasible) throw new Error("unreachable");
+    const reason = result.reasons.find((candidate) => candidate.code === "NO_FEASIBLE_MEALS");
+    expect(reason).toBeDefined();
+    const worstMacro = reason?.detail?.worstMacro as "energyKcal" | "proteinG" | "carbsG" | "fatG";
+    expect(Number(reason?.detail?.achieved)).toBe(expected.totals[worstMacro]);
+  });
+});
