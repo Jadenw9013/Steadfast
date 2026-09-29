@@ -122,9 +122,11 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     const parameterIdsInContent = draftFile.content.numericParameters.map((p) => p.id);
     const provenanceParameterIds = provenance.map((p) => p.parameterId);
 
-    // 62 nutrition parameters + 11 training parameters = 73 parameters in the bundle
-    expect(parameterIdsInContent).toHaveLength(73);
-    expect(provenanceParameterIds).toHaveLength(73);
+    // 62 nutrition + 11 training session-structure parameters = 73, plus the
+    // 35 training, workload and progression values the accountable owner
+    // adopted on 2026-09-29 and S-23 wrote in = 108.
+    expect(parameterIdsInContent).toHaveLength(108);
+    expect(provenanceParameterIds).toHaveLength(108);
     expect([...provenanceParameterIds].sort()).toEqual([...parameterIdsInContent].sort());
 
     for (const prov of provenance) {

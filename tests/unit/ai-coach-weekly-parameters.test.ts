@@ -191,18 +191,24 @@ describe("weekly policy parameter resolver", () => {
     });
   });
 
-  it("leaves the unsigned draft unavailable for exactly the 28 unsigned weekly inputs", () => {
+  it("leaves the signed bundle unavailable for exactly the 19 still-unsigned weekly inputs", () => {
+    // S-23 signed the ten consumed `PROGRESSION.*` values, so they drop out of
+    // this list. The weekly controller still fails closed, now on the 18
+    // `WEEKLY.*` values and `ROUNDING.MACRO_GRAMS.DECIMALS` alone — which is
+    // why the progression set stays inert until those are supplied too.
     const draft = loadDraftUnsignedPolicyBundle();
     const result = resolveWeeklyParameters(draft.content, { synthetic: false });
     expect(result).toMatchObject({ ok: false, reasonCodes: ["WEEKLY_PARAMETER_MISSING"] });
     if (result.ok) throw new Error("unsigned draft unexpectedly resolved");
-    expect(result.missingParameterIds).toEqual(
-      [
-        ...WEEKLY_PARAMETER_IDS,
-        ...WEEKLY_CONSUMED_PROGRESSION_PARAMETER_IDS,
-        "ROUNDING.MACRO_GRAMS.DECIMALS",
-      ].sort()
-    );
+    const stillMissing = [...WEEKLY_PARAMETER_IDS, "ROUNDING.MACRO_GRAMS.DECIMALS"].sort();
+    expect(stillMissing).toHaveLength(19);
+    expect(result.missingParameterIds).toEqual(stillMissing);
+    for (const id of WEEKLY_CONSUMED_PROGRESSION_PARAMETER_IDS) {
+      expect({ id, missing: result.missingParameterIds.includes(id) }).toEqual({
+        id,
+        missing: false,
+      });
+    }
   });
 
   it("produces a stable digest that changes when any resolved value changes", () => {

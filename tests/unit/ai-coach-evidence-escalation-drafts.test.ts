@@ -25,6 +25,8 @@ import {
 import {
   EFFORT_CARDIO_TEMPLATE_ID,
   EFFORT_STRENGTH_TEMPLATE_ID,
+  TRAINING_COMPOSER_PARAMETER_IDS,
+  TRAINING_PROGRESSION_PARAMETER_IDS,
   resolveTrainingParameters,
 } from "@/lib/ai-coach/training/parameters";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
@@ -449,21 +451,27 @@ describe("S-V1-artifacts — the draft policy bundle binds the draft templates, 
 });
 
 describe("S-17 — the three values the reviewer supplied now compose", () => {
-  it("lifts the effort-copy refusal, and records that training still will not compose", () => {
+  it("lifts the effort-copy refusal, and resolves the reviewer's adopted training doses", () => {
     /**
      * Read this one carefully, because it says less than it looks like it says.
      *
      * Worksheet section 3a/3b supplied the two effort sentences, so
-     * `TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE` is gone. Training still does
-     * not compose: `resolveTrainingParameters` now refuses with
+     * `TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE` is gone. Until S-23 training
+     * still did not compose: `resolveTrainingParameters` refused with
      * `TRAINING_PARAMETER_MISSING` over 23 strength and cardio dose parameters
-     * the bundle does not carry, and the worksheet supplied none of them — they
-     * are doses, and S-17 invented nothing.
+     * the bundle did not carry, because they are doses and S-17 invented none.
      *
-     * So supplying the copy was necessary and not sufficient. This assertion
-     * pins the new refusal so that "no session composes" cannot later be
-     * attributed to the effort copy again, and so that the count changing is
-     * visible rather than silent.
+     * S-23 wrote them in. The accountable owner adopted all 35 values on
+     * 2026-09-29 (`steadfast-hq/board/DOSE-WORKSHEET.md` and
+     * `DOSE-WORKSHEET-2.md`) in his own words, recorded verbatim on every one
+     * of their `proposalProvenance` rows: "proposed by engineering, adopted by
+     * me, not verified against a primary literature source."
+     *
+     * So this assertion changes sides: it now pins the values the composer
+     * actually reads, so a later edit to the bundle cannot move a dose without
+     * a test saying so. Resolving is NOT composing — the prescription engine
+     * still fails closed on its own 13 absent parameters, which the run
+     * recorded in `steadfast-hq/board/evidence/v1-dose-harness.md` measures.
      */
     const explanationTexts = (bundleFile.content.trainingEffortTemplateIds ?? [])
       .map((id) => templates.find((template) => template.id === id))
@@ -475,11 +483,63 @@ describe("S-17 — the three values the reviewer supplied now compose", () => {
     ]);
 
     const resolution = resolveTrainingParameters(bundleFile.content, explanationTexts);
-    expect(resolution.ok).toBe(false);
-    if (resolution.ok) return;
-    expect(resolution.reasonCodes).toEqual(["TRAINING_PARAMETER_MISSING"]);
-    expect(resolution.reasonCodes).not.toContain("TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE");
-    expect(resolution.missingParameterIds).toHaveLength(23);
+    expect(resolution.ok).toBe(true);
+    if (!resolution.ok) return;
+    const { parameters } = resolution;
+    expect({
+      sets: parameters.setsPerExerciseByExperience,
+      reps: parameters.repsPerSetByExperience,
+      rest: parameters.restSecondsByExperience,
+      strengthSessions: parameters.maxStrengthSessionsByExperience,
+      cardioMinutes: parameters.cardioSessionMinutesByExperience,
+      cardioSessions: parameters.cardioSessionsPerWeekByExperience,
+    }).toEqual({
+      sets: { NEW: 3, RETURNING: 3, EXPERIENCED: 4 },
+      reps: { NEW: 10, RETURNING: 10, EXPERIENCED: 8 },
+      rest: { NEW: 90, RETURNING: 90, EXPERIENCED: 120 },
+      strengthSessions: { NEW: 3, RETURNING: 4, EXPERIENCED: 4 },
+      cardioMinutes: { NEW: 20, RETURNING: 25, EXPERIENCED: 30 },
+      cardioSessions: { NEW: 2, RETURNING: 2, EXPERIENCED: 3 },
+    });
+    expect({
+      cardioMaxSessionMinutes: parameters.cardioMaxSessionMinutes,
+      workloadTotalSessionsMax: parameters.workloadTotalSessionsMax,
+      workloadTrainingMinutesMax: parameters.workloadTrainingMinutesMax,
+      workloadTrainingMinutesMaxWhenEnergyReduced:
+        parameters.workloadTrainingMinutesMaxWhenEnergyReduced,
+      workloadConsecutiveTrainingDaysMax: parameters.workloadConsecutiveTrainingDaysMax,
+    }).toEqual({
+      cardioMaxSessionMinutes: 45,
+      workloadTotalSessionsMax: 6,
+      workloadTrainingMinutesMax: 360,
+      workloadTrainingMinutesMaxWhenEnergyReduced: 240,
+      workloadConsecutiveTrainingDaysMax: 3,
+    });
+  });
+
+  it("records the owner's provenance, unchanged, on every value S-23 added", () => {
+    // The sentence is the record. A later edit that "improves" it, or a row
+    // that quietly acquires a literature citation it never had, fails here.
+    const PROVENANCE =
+      "proposed by engineering, adopted by me, not verified against a primary literature source.";
+    const adopted = [
+      ...TRAINING_COMPOSER_PARAMETER_IDS.filter(
+        (id) => !id.startsWith("TRAINING.SESSION.")
+      ),
+      ...TRAINING_PROGRESSION_PARAMETER_IDS,
+    ];
+    expect(adopted).toHaveLength(35);
+    if (bundleFile.reviewMetadata.decision !== "APPROVED")
+      throw new Error("policy bundle is not signed");
+    const byParameter = new Map(
+      (bundleFile.reviewMetadata.proposalProvenance ?? []).map((row) => [row.parameterId, row])
+    );
+    for (const id of adopted) {
+      expect({ id, locator: byParameter.get(id)?.sourceLocator }).toEqual({
+        id,
+        locator: PROVENANCE,
+      });
+    }
   });
 
   it("still fails closed on the effort copy itself the moment it is removed", () => {

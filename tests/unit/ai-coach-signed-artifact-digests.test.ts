@@ -33,8 +33,12 @@ import { signedArtifactReviewMetadataSchema } from "@/lib/ai-coach/artifacts/sch
  */
 const EXPECTED = {
   policyBundle: {
-    content: "c4ea70df84d1e890b6d4db7bf247eb8919f4d0aa641d0f24fcfc4ee512e7e7d6",
-    reviewMetadata: "a464ef35897f0217c882c397522aed64c7ecf5f14fa29cd07081be200f7b27f7",
+    // S-23 — re-signed after the accountable owner's 35 adopted training,
+    // workload and progression values were written in. Both values were
+    // recomputed on 2026-09-29 by running `contentHash` over the loaded file
+    // and pasting stdout; neither was copied from a failing assertion.
+    content: "56f047ea7a766e1141da907baa946341786b1ee3f1f65322848619bf467f2dea",
+    reviewMetadata: "c3f8a87cc467a5b962bb3d5c3b965865153cabcbf7bbdc1104a0ac57c142fd1c",
   },
   foodCatalog: {
     content: "ade4d55bd56221cffa959e5b23c74646ec3cb69911b00cc7889db06a6e66b5bd",

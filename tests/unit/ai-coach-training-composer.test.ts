@@ -353,7 +353,11 @@ describe("T-2039 — deterministic training and cardio composer", () => {
   });
 
   describe("5. Missing parameters fail closed and are reported in full", () => {
-    it("fails parameter resolution against draft bundle with exact 23 missing IDs matching catalogue doc Section 4.2", () => {
+    it("resolves the 23 dose and workload IDs of catalogue doc Section 4.2, and still reports any one removed", () => {
+      // Until S-23 these 23 were absent and this test pinned the refusal. The
+      // accountable owner adopted them on 2026-09-29, so the assertion inverts:
+      // the doc's Section 4.2 list and the bundle must now agree that every one
+      // is present, and removing any single one must still fail closed by ID.
       const draftBundle = loadDraftUnsignedPolicyBundle();
       const explanationTexts = [
         { id: EFFORT_STRENGTH_TEMPLATE_ID, text: "Strength effort guidance." },
@@ -361,11 +365,7 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       ];
 
       const resolution = resolveTrainingParameters(draftBundle.content, explanationTexts);
-      expect(resolution.ok).toBe(false);
-      if (resolution.ok) return;
-
-      expect(resolution.reasonCodes).toContain("TRAINING_PARAMETER_MISSING");
-      expect(resolution.missingParameterIds.length).toBe(23);
+      expect(resolution.ok).toBe(true);
 
       // Read 17-Policy-Parameter-Catalogue.md and verify exact match
       const catalogueDocPath = path.resolve(
@@ -375,12 +375,10 @@ describe("T-2039 — deterministic training and cardio composer", () => {
       const docContent = fs.readFileSync(catalogueDocPath, "utf-8");
 
       const section42Start = docContent.indexOf(
-        "### 4.2 Training Parameters Awaiting Professional Review (23)"
+        "### 4.2 Training Dose and Workload Parameters (23)"
       );
       expect(section42Start).toBeGreaterThan(0);
-      const section43Start = docContent.indexOf(
-        "### 4.3 Progression Parameters Awaiting Professional Review (12)"
-      );
+      const section43Start = docContent.indexOf("### 4.3 Progression Parameters (12)");
       expect(section43Start).toBeGreaterThan(section42Start);
 
       const section42Text = docContent.slice(section42Start, section43Start);
@@ -393,7 +391,21 @@ describe("T-2039 — deterministic training and cardio composer", () => {
 
       expectedIdsFromDoc.sort();
       expect(expectedIdsFromDoc.length).toBe(23);
-      expect(resolution.missingParameterIds).toEqual(expectedIdsFromDoc);
+      const bundleIds = new Set(draftBundle.content.numericParameters.map((item) => item.id));
+      for (const id of expectedIdsFromDoc) {
+        expect({ id, present: bundleIds.has(id) }).toEqual({ id, present: true });
+      }
+
+      for (const id of expectedIdsFromDoc) {
+        const stripped = structuredClone(draftBundle.content);
+        stripped.numericParameters = stripped.numericParameters.filter(
+          (item) => item.id !== id
+        );
+        const refused = resolveTrainingParameters(stripped, explanationTexts);
+        expect({ id, ok: refused.ok }).toEqual({ id, ok: false });
+        if (refused.ok) continue;
+        expect({ id, missing: refused.missingParameterIds }).toEqual({ id, missing: [id] });
+      }
     });
 
     it("composeTraining returns TRAINING_PARAMETER_MISSING when parameters are missing", () => {
