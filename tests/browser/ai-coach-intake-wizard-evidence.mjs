@@ -163,7 +163,7 @@ const bundle = await build({
 
       window.__mountScenario = (key) => {
         const scenario = SCENARIOS[key];
-        mount({ confirmedIntake: scenario.confirmedIntake, draft: null, profileRevision: 1 }, scenario.initialStage);
+        mount({ confirmedIntake: scenario.confirmedIntake, draft: null, profileRevision: 1, safetyDisclosureCompleted: scenario.confirmedIntake !== null }, scenario.initialStage);
       };
       window.__mountLiveView = (view, initialStage = 0) => mount(view, initialStage);
     `,
@@ -186,6 +186,8 @@ function makeState(confirmedIntake = null) {
     confirmedIntake,
     draft: null,
     profileRevision: 1,
+    // S-19: the wizard asks the safety questions from the disclosure row.
+    safetyDisclosureCompleted: confirmedIntake !== null,
     operations: [],
     failConfirm: false,
   };
@@ -365,7 +367,7 @@ try {
     await page.getByLabel("Weight (lb)").fill("150");
     await page.getByLabel("Age").fill("34");
     await selectButton(page, /None of these apply/);
-    const confirm = page.getByRole("button", { name: "Confirm & Build Plan" });
+    const confirm = page.getByRole("button", { name: "Confirm my answers" });
     assert.equal(await confirm.isEnabled(), true);
     await auditVisibleUi(page, "step4-complete", "390", failures);
     await page.screenshot({ path: `${OUT_DIR}/step4-complete-390.png`, fullPage: true });
@@ -397,11 +399,11 @@ try {
     await page.getByLabel("Weight (lb)").fill("150");
     await page.getByLabel("Age").fill("34");
     await selectButton(page, /None of these apply/);
-    await selectButton(page, "Confirm & Build Plan");
+    await selectButton(page, "Confirm my answers");
     await page.getByRole("alert").filter({ hasText: "Please review your answers" }).waitFor();
     assert.equal(new URL(page.url()).pathname, "/");
     assert.equal(
-      await page.getByRole("button", { name: "Confirm & Build Plan" }).isEnabled(),
+      await page.getByRole("button", { name: "Confirm my answers" }).isEnabled(),
       true
     );
     await page.screenshot({ path: `${OUT_DIR}/confirm-error-retryable-390.png`, fullPage: true });

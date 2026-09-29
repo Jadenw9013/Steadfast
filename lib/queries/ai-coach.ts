@@ -17,6 +17,8 @@ import { contentHash } from "@/lib/ai-coach/canonical-json";
 import { reportAnomaly } from "@/lib/observability/report";
 import { AICOACH_RUNTIME_BINDING_DEGRADED } from "@/lib/observability/events";
 import { resolveAiCoachRuntimeBinding } from "@/lib/ai-coach/runtime-binding";
+import { hasRecordedSafetyDisclosure } from "@/lib/ai-coach/safety";
+import { deriveSafetyRestriction } from "@/lib/ai-coach/safety-restriction";
 
 /**
  * T-2006 — a narrow read of `AiAutomaticPlanApproval.providerSelection`'s
@@ -129,6 +131,10 @@ export async function getAiWorkspace(clientId: string) {
       take: 30,
     });
     const draft = await tx.aiIntakeDraft.findUnique({ where: { clientId } });
+    // S-19: the wizard decides whether to ask the safety questions from this
+    // row — the same row CONFIRM_INTAKE's guard reads — never from
+    // `confirmedIntake`, which is a proxy that disagrees with it.
+    const safetyDisclosureCompleted = await hasRecordedSafetyDisclosure(tx, clientId);
     const confirmed = intakeAnswersSchema.safeParse(profile.confirmedIntake);
     const substitutions =
       activePayload &&
@@ -175,6 +181,7 @@ export async function getAiWorkspace(clientId: string) {
       observationRevision: profile.observationRevision,
       safetyRevision: profile.safetyRevision,
       confirmedIntake: profile.confirmedIntake,
+      safetyDisclosureCompleted,
       draft: draft?.answers ?? null,
       reviewTimezone: profile.reviewTimezone,
       consentedAt: profile.consentedAt ? profile.consentedAt.toISOString() : null,
@@ -184,6 +191,17 @@ export async function getAiWorkspace(clientId: string) {
         cardio: profile.cardioPermission,
       },
       safetyDisposition: profile.safetyDisposition,
+      // S-19: the restriction that `requestAiRun` enforces, projected so a
+      // client is told about it (and by whom it is lifted) instead of
+      // meeting it as an unexplained SAFETY_RESTRICTED 409.
+      safetyRestriction: deriveSafetyRestriction({
+        disposition: profile.safetyDisposition,
+        permissions: {
+          nutrition: profile.nutritionPermission,
+          strength: profile.strengthPermission,
+          cardio: profile.cardioPermission,
+        },
+      }),
       activePlan:
         activePayload && active
           ? {

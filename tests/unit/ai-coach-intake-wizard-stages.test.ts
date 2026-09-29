@@ -76,10 +76,19 @@ const STAGE_HEADINGS = [
   "Last step: your starting stats",
 ];
 
-function renderStage(confirmedIntake: unknown, stage: number, draft: unknown = null) {
+function renderStage(
+  confirmedIntake: unknown,
+  stage: number,
+  draft: unknown = null,
+  // S-19: whether an AiSafetyDisclosureEvent row exists. Defaults to the state
+  // a client reaches by finishing the wizard (a confirmed intake always has
+  // one), so every case below keeps its original meaning; the disagreement
+  // between the two is exercised explicitly further down.
+  safetyDisclosureCompleted: boolean = confirmedIntake !== null
+) {
   return renderToStaticMarkup(
     createElement(IntakeWizard, {
-      view: { confirmedIntake, draft },
+      view: { confirmedIntake, draft, safetyDisclosureCompleted },
       busy: false,
       act: noopAct,
       command: noopCommand,
@@ -132,7 +141,9 @@ describe("T-2028 four-step intake wizard rendering", () => {
       "Peanuts",
       "Gluten",
       "Shellfish",
-      "Confirm &amp; Build Plan",
+      // S-19 dead end 2: the button confirms the intake; it does not enrol
+      // and does not build a plan, so it no longer claims to.
+      "Confirm my answers",
     ]) {
       expect(allStages).toContain(label);
     }
@@ -152,6 +163,33 @@ describe("T-2028 four-step intake wizard rendering", () => {
     expect(renderStage(null, 3)).toContain("None of these apply");
     expect(renderStage(null, 3)).toContain("Something applies or I’m unsure");
     expect(renderStage(fullV2ConfirmedIntake, 3)).not.toContain("Quick safety check");
+  });
+
+  it("S-19: asks the safety questions whenever no disclosure row exists, confirmed intake or not", () => {
+    // The 422 CONFIRM_INTAKE raises ("Complete the safety questions first.")
+    // is keyed on the disclosure row, so the wizard has to be too. A profile
+    // with a confirmed intake and no disclosure row used to skip the step and
+    // then take that 422 with no way to satisfy it.
+    expect(renderStage(fullV2ConfirmedIntake, 3, null, false)).toContain("Quick safety check");
+    expect(renderStage(fullV2ConfirmedIntake, 3, null, false)).toContain("None of these apply");
+    // And the mirror: no confirmed intake but a disclosure already recorded
+    // (e.g. a reviewer resolution) does not ask again.
+    expect(renderStage(null, 3, null, true)).not.toContain("Quick safety check");
+  });
+
+  it("S-19: warns before a second pass changes allergy answers, and not on a first pass", () => {
+    const secondPass = renderStage(fullV2ConfirmedIntake, 2);
+    expect(secondPass).toContain("Your intake is already confirmed.");
+    expect(secondPass).toContain("nutrition recommendations are paused");
+    expect(renderStage(null, 2)).not.toContain("Your intake is already confirmed.");
+  });
+
+  it("S-19: the confirm step says what the button does and what is left", () => {
+    const confirmStep = renderStage(null, 3);
+    expect(confirmStep).not.toContain("Confirm &amp; Build Plan");
+    expect(confirmStep).not.toContain("Building your plan");
+    expect(confirmStep).toContain("Confirm my answers");
+    expect(confirmStep).toContain("review the AI coaching disclosure and give consent");
   });
 });
 

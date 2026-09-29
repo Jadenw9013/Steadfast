@@ -48,6 +48,7 @@ import { reportAnomaly } from "@/lib/observability/report";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
 import { assertAiCoachOperationEnabled } from "./operations";
+import { planRequestIsSafetyBlocked, SAFETY_RESTRICTED_PLAN_MESSAGE } from "./safety-restriction";
 
 export const runCommandSchema = z
   .object({
@@ -537,15 +538,17 @@ export async function requestAiRun(clientId: string, raw: unknown) {
     const intake = intakeAnswersSchema.safeParse(profile.confirmedIntake);
     if (!intake.success)
       throw new AiCoachError("VALIDATION_ERROR", "Complete and confirm your intake first.", 422);
+    // S-19: same predicate and same wording the workspace DTO projects, so
+    // the client is told about the restriction before pressing the button
+    // instead of discovering it as an unexplained 409.
     if (
-      [profile.nutritionPermission, profile.strengthPermission, profile.cardioPermission].some(
-        (p) => p !== "ALLOW"
-      )
+      planRequestIsSafetyBlocked({
+        nutrition: profile.nutritionPermission,
+        strength: profile.strengthPermission,
+        cardio: profile.cardioPermission,
+      })
     )
-      throw new AiCoachError(
-        "SAFETY_RESTRICTED",
-        "Resolve the current safety restriction before preparing a new plan."
-      );
+      throw new AiCoachError("SAFETY_RESTRICTED", SAFETY_RESTRICTED_PLAN_MESSAGE);
     const base = profile.activePlanVersionId
       ? await tx.aiPlanVersion.findFirst({
           where: { id: profile.activePlanVersionId, clientId, acceptedAt: { not: null } },
