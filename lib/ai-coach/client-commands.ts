@@ -11,7 +11,12 @@ import {
   saveIntakeDraft,
 } from "./intake";
 import { canonicalDeclarations, deriveLegacyAllergyTokens, EMPTY_ALLERGEN_DECLARATIONS } from "./intake-allergens";
-import { safetyDisclosureSchema, submitSafetyDisclosure } from "./safety";
+import {
+  hasRecordedSafetyDisclosure,
+  safetyDisclosureSchema,
+  SAFETY_DISCLOSURE_REQUIRED_MESSAGE,
+  submitSafetyDisclosure,
+} from "./safety";
 import { isAiCoachEnrollmentEnabled } from "@/lib/flags/ai-coach";
 import type { Prisma } from "@/app/generated/prisma/client";
 const common = {
@@ -295,10 +300,8 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
             422
           );
       }
-      if (
-        !(await tx.aiSafetyDisclosureEvent.findFirst({ where: { clientId }, select: { id: true } }))
-      )
-        throw new AiCoachError("VALIDATION_ERROR", "Complete the safety questions first.", 422);
+      if (!(await hasRecordedSafetyDisclosure(tx, clientId)))
+        throw new AiCoachError("VALIDATION_ERROR", SAFETY_DISCLOSURE_REQUIRED_MESSAGE, 422);
       const saved = await confirmIntake(clientId, input.answers, tx);
       if (!saved.success)
         throw new AiCoachError("VALIDATION_ERROR", "Complete the intake before confirming.", 422);

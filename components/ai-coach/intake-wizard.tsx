@@ -567,6 +567,22 @@ export function intakeStepIssues(
   return issues;
 }
 
+/**
+ * S-19 dead end 3 — whether the wizard must ask the eight safety questions.
+ *
+ * `CONFIRM_INTAKE` refuses unless an `AiSafetyDisclosureEvent` row exists, so
+ * this must read that row's existence and nothing else. The previous
+ * `view.confirmedIntake === null` was a proxy: a profile confirmed or seeded
+ * without a disclosure row skipped the SAFETY command and then took a hard
+ * 422 ("Complete the safety questions first.") with no way to satisfy it from
+ * the UI.
+ */
+export function deriveNeedsSafetyDisclosure(view: {
+  safetyDisclosureCompleted: boolean;
+}): boolean {
+  return !view.safetyDisclosureCompleted;
+}
+
 export async function confirmAndRedirect({
   selections,
   safetyAnswers,
@@ -717,7 +733,7 @@ export function IntakeWizard({
   command,
   initialStage = 0,
 }: {
-  view: { confirmedIntake: unknown; draft: unknown };
+  view: { confirmedIntake: unknown; draft: unknown; safetyDisclosureCompleted: boolean };
   busy: boolean;
   act: (work: () => Promise<unknown>, success: string) => Promise<void>;
   command: (input: Record<string, unknown>) => Promise<unknown>;
@@ -732,7 +748,13 @@ export function IntakeWizard({
   const [safetyAnswers, setSafetyAnswers] = useState<SafetyAnswers>({});
   const [showSafetyDetails, setShowSafetyDetails] = useState(false);
   const [issueStage, setIssueStage] = useState<number | null>(null);
-  const needsSafetyDisclosure = view.confirmedIntake === null;
+  const needsSafetyDisclosure = deriveNeedsSafetyDisclosure(view);
+  // A second pass over an already-confirmed intake is the case that silently
+  // restricted the account (S-19 dead end 1): a changed allergen declaration
+  // records a new safety concern, pauses nutrition and cancels the queued
+  // run, and only an authorized reviewer can lift it. Say so before the
+  // client changes anything rather than after.
+  const intakeAlreadyConfirmed = view.confirmedIntake !== null;
 
   const update = (patch: Partial<IntakeSelections>) =>
     setSelections((current) => ({ ...current, ...patch }));
@@ -1073,6 +1095,17 @@ export function IntakeWizard({
                   Choose every item to exclude from your meals, or choose None if you have no restrictions.
                 </p>
               </div>
+              {intakeAlreadyConfirmed && (
+                <p
+                  role="note"
+                  className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-relaxed text-amber-100/90"
+                >
+                  Your intake is already confirmed. If you change these answers, that counts as new
+                  safety information: nutrition recommendations are paused and any plan being
+                  prepared is cancelled, until an authorized Steadfast reviewer reviews the change.
+                  You cannot lift that pause yourself.
+                </p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {ALLERGEN_OPTIONS.map((option) => {
                   const selected = selections.allergens.includes(option.value);
@@ -1406,12 +1439,21 @@ export function IntakeWizard({
                           window.location.assign("/client/ai-coach");
                         },
                       }),
-                    "Intake confirmed. Returning to your coaching plan..."
+                    "Intake confirmed. Review the coaching disclosure and consent to continue."
                   );
                 }}
               >
-                {busy ? "Building your plan..." : "Confirm & Build Plan"}
+                {busy ? "Saving your answers..." : "Confirm my answers"}
               </button>
+              {/* S-19 dead end 2: this button confirms the intake. It does not
+                  enrol and it does not build a plan — enrolment records a
+                  consent decision against disclosure text the client has to
+                  have been shown, and that text lives on the next screen. The
+                  label now says what happens; the caption says what is left. */}
+              <p className="text-sm leading-relaxed text-zinc-400">
+                Next you will review the AI coaching disclosure and give consent. Your plan is
+                prepared after that — this step does not start it.
+              </p>
               <button
                 className={`${button} inline-flex w-full cursor-pointer items-center justify-center`}
                 disabled={busy}

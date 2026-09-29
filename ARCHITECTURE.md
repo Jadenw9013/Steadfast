@@ -929,6 +929,24 @@ capability list so a client newer than the backend can detect it and
 degrade instead of eating an opaque 422. `schemaVersion` stays `1`; the
 shipped iOS build hard-fails on anything else.
 
+S-19 added two more top-level fields, both additive:
+
+- `safetyDisclosureCompleted: boolean` — whether an `AiSafetyDisclosureEvent`
+  row exists for the client. This is the *same* row `CONFIRM_INTAKE`'s guard
+  reads (`hasRecordedSafetyDisclosure`, `lib/ai-coach/safety.ts`), so a client
+  deciding whether to ask the safety questions can no longer disagree with the
+  server and take a `422 "Complete the safety questions first."` it has no way
+  to satisfy. Never derive this from `confirmedIntake`.
+- `safetyRestriction: { disposition, restrictedDomains[], planRequestBlocked,
+  clientCanResolve: false, resolvedBy: "AUTHORIZED_REVIEWER" } | null` — the client-readable projection of the gate
+  `requestAiRun` enforces. `planRequestBlocked` and the run guard are the same
+  function (`planRequestIsSafetyBlocked`, `lib/ai-coach/safety-restriction.ts`),
+  so the UI can state the refusal instead of the client discovering it as a
+  `SAFETY_RESTRICTED` 409. Nothing in this projection lifts a restriction:
+  `resolveAiSafety` remains the only path, and `clientCanResolve` is a `false`
+  literal on purpose — a client asserting they are safe would turn the gate
+  into a checkbox.
+
 `/ai-coach` (`app/ai-coach/page.tsx`, added to `proxy.ts`'s public routes) is
 the public, unauthenticated discovery page — `notFound()` unless both the
 enrollment flag and the governed activation row are satisfied. The

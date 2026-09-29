@@ -7,6 +7,13 @@ import { PlanDisplay } from "./plan-display";
 import { IntakeWizard } from "./intake-wizard";
 import { button, primary, fieldClass } from "./controls";
 
+/** S-19: display names for the three governed domains in `safetyRestriction`. */
+const DOMAIN_LABELS: Record<"NUTRITION" | "STRENGTH" | "CARDIO", string> = {
+  NUTRITION: "Nutrition",
+  STRENGTH: "Strength training",
+  CARDIO: "Cardio",
+};
+
 function AiRunProgressTracker({
   run,
 }: {
@@ -230,6 +237,11 @@ export function AiCoachExperience({
   const proposal = view.proposals.find((p) => p.id === path[1]);
   const review = view.runs.find((r) => r.id === path[1]);
   const activeRun = view.runs.find((run) => ["QUEUED", "RUNNING", "RETRY_WAIT"].includes(run.status));
+  const restriction = view.safetyRestriction;
+  // Intake is confirmed but the client has not yet made the enrolment consent
+  // decision (S-19 dead end 2). Unchanged condition, named so the heading and
+  // the body agree about which state is on screen.
+  const awaitingConsent = Boolean(view.confirmedIntake) && (view.origin !== "AI" || !view.consentedAt);
   const readyProposal = view.proposals.find((p) => p.status === "READY");
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -292,14 +304,38 @@ export function AiCoachExperience({
           {message}
         </p>
       )}
-      {view.safetyDisposition !== "CLEAR" && (
+      {restriction && (
         <section className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5">
           <h2 className="font-semibold text-amber-200">A concern needs attention</h2>
           <p className="mt-2 text-zinc-300">
             {liveDisclosure
               ? "Current recommendations are unavailable. Follow the reviewed next step shown for this status."
-              : `Current status: ${view.safetyDisposition.toLowerCase()}. Affected recommendations remain restricted until an authorized reviewer resolves the concern. This preview cannot provide emergency support.`}
+              : `Current status: ${restriction.disposition.toLowerCase()}. Affected recommendations remain restricted until an authorized reviewer resolves the concern. This preview cannot provide emergency support.`}
           </p>
+          {/* S-19 dead end 1: before this, nothing client-facing named the
+              restricted domains, said the client cannot clear it, or said who
+              can. The first sign of it was a SAFETY_RESTRICTED 409 on the next
+              plan request. */}
+          {restriction.restrictedDomains.length > 0 && (
+            <p className="mt-3 text-zinc-300">
+              Restricted right now:{" "}
+              <span className="font-medium text-amber-100">
+                {restriction.restrictedDomains.map((d) => DOMAIN_LABELS[d]).join(", ")}
+              </span>
+              .
+            </p>
+          )}
+          <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+            This is recorded whenever new safety information arrives — including a change to your
+            allergy answers after your intake was confirmed. It is not something you can clear
+            yourself, and re-running your intake will not remove it. Only an authorized Steadfast
+            reviewer can lift it, for each affected area.
+          </p>
+          {restriction.planRequestBlocked && (
+            <p className="mt-2 text-sm leading-relaxed text-zinc-400">
+              While it is in place, a new plan cannot be prepared.
+            </p>
+          )}
         </section>
       )}
       {(screen === "start" || screen === "home") && (
@@ -325,14 +361,25 @@ export function AiCoachExperience({
           )}
           <section className="sf-glass-card space-y-4 rounded-2xl border border-white/10 p-5">
             <h2 className="text-xl font-semibold text-zinc-100">
-              {view.confirmedIntake ? "Your next step" : "Begin with your preferences"}
+              {!view.confirmedIntake
+                ? "Begin with your preferences"
+                : awaitingConsent
+                  ? "One step left: review and consent"
+                  : "Your next step"}
             </h2>
             {!view.confirmedIntake ? (
               <Link className={`${primary} inline-flex items-center`} href="/client/ai-coach/intake">
                 Complete your intake
               </Link>
-            ) : view.origin !== "AI" || !view.consentedAt ? (
+            ) : awaitingConsent ? (
               <>
+                {/* S-19 dead end 2: the intake wizard's final button confirms
+                    answers and lands here. Say that plainly, so the arrival is
+                    a stated next step rather than "nothing happened". */}
+                <p className="text-zinc-300">
+                  Your answers are saved. Review the information below and consent — your plan is
+                  prepared after that.
+                </p>
                 {liveDisclosure && (
                   <div className="space-y-3 rounded-xl border border-white/10 p-4 text-zinc-300">
                     <h3 className="font-semibold text-zinc-100">
@@ -411,6 +458,17 @@ export function AiCoachExperience({
                     <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent shrink-0" />
                     <span>Plan preparation in progress. Follow the live tracker above — your proposal will be ready shortly.</span>
                   </div>
+                ) : restriction?.planRequestBlocked ? (
+                  // S-19 dead end 1: the server would refuse this request with
+                  // SAFETY_RESTRICTED (409). Say so here instead of offering a
+                  // button whose only outcome is that error.
+                  <p
+                    role="note"
+                    className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm leading-relaxed text-amber-100"
+                  >
+                    A new plan cannot be prepared while the safety concern above is open. An
+                    authorized Steadfast reviewer has to lift it first.
+                  </p>
                 ) : (
                   <button
                     className={primary}
@@ -431,7 +489,7 @@ export function AiCoachExperience({
                     {view.activePlan ? "Request this week’s review" : "Prepare initial proposal"}
                   </button>
                 )}
-                {view.activePlan && !activeRun && (
+                {view.activePlan && !activeRun && !restriction?.planRequestBlocked && (
                   <button
                     className={button}
                     disabled={busy}

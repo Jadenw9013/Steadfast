@@ -135,6 +135,29 @@ function evaluateSyntheticSafetyRules(answers: SafetyDisclosureInput): ComputedR
   return { disposition, nutrition, strength, cardio };
 }
 
+/**
+ * S-19 dead end 3 — the single predicate for "this client has already
+ * answered the safety questions".
+ *
+ * `CONFIRM_INTAKE` refuses when no `AiSafetyDisclosureEvent` row exists
+ * (`SAFETY_DISCLOSURE_REQUIRED_MESSAGE`). The intake wizard used to decide
+ * whether to ask the questions from a *proxy* — `confirmedIntake === null` —
+ * so a profile that was seeded or confirmed without a disclosure row skipped
+ * the SAFETY command and then hit that 422 with no way forward. Both sides
+ * now read the same row, so they cannot disagree again.
+ */
+export const SAFETY_DISCLOSURE_REQUIRED_MESSAGE = "Complete the safety questions first.";
+
+export async function hasRecordedSafetyDisclosure(
+  tx: Prisma.TransactionClient,
+  clientId: string
+): Promise<boolean> {
+  return (
+    (await tx.aiSafetyDisclosureEvent.findFirst({ where: { clientId }, select: { id: true } })) !==
+    null
+  );
+}
+
 export type SubmitSafetyDisclosureResult =
   | { success: true; disposition: AiSafetyDisposition; safetyRevision: number }
   | { success: false; error: string };
@@ -146,8 +169,11 @@ export type SubmitSafetyDisclosureResult =
  * waits on a model/queue: this is a plain, synchronous DB transaction. A
  * new disclosure can only make the disposition/domain permissions equal
  * or MORE restrictive than they already were — it can never clear an
- * existing restriction (that's clearSafetyRestriction's job, a distinct,
- * deliberate action never reachable from this function).
+ * existing restriction. Clearing is `resolveAiSafety`'s job
+ * (`./safety-resolution.ts`): a distinct, reviewer-scoped, revisioned action
+ * never reachable from this function, and the only writer in the codebase
+ * that can return a domain to `ALLOW` (S-19; `clearSafetyRestriction` below
+ * is a retired placeholder that always refuses).
  */
 export async function submitSafetyDisclosure(
   clientId: string,
