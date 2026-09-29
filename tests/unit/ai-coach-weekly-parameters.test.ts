@@ -191,18 +191,26 @@ describe("weekly policy parameter resolver", () => {
     });
   });
 
-  it("leaves the signed bundle unavailable for exactly the 19 still-unsigned weekly inputs", () => {
+  it("leaves the signed bundle unavailable for exactly the 18 still-unsigned weekly inputs", () => {
     // S-23 signed the ten consumed `PROGRESSION.*` values, so they drop out of
-    // this list. The weekly controller still fails closed, now on the 18
-    // `WEEKLY.*` values and `ROUNDING.MACRO_GRAMS.DECIMALS` alone — which is
-    // why the progression set stays inert until those are supplied too.
+    // this list. S-25 signed `ROUNDING.MACRO_GRAMS.DECIMALS`, which the weekly
+    // controller shares with the prescription engine, so it drops out too. The
+    // controller still fails closed on the 18 `WEEKLY.*` values alone — which
+    // is why the progression set stays inert until those are supplied.
     const draft = loadDraftUnsignedPolicyBundle();
     const result = resolveWeeklyParameters(draft.content, { synthetic: false });
     expect(result).toMatchObject({ ok: false, reasonCodes: ["WEEKLY_PARAMETER_MISSING"] });
     if (result.ok) throw new Error("unsigned draft unexpectedly resolved");
-    const stillMissing = [...WEEKLY_PARAMETER_IDS, "ROUNDING.MACRO_GRAMS.DECIMALS"].sort();
-    expect(stillMissing).toHaveLength(19);
+    const stillMissing = [...WEEKLY_PARAMETER_IDS].sort();
+    expect(stillMissing).toHaveLength(18);
     expect(result.missingParameterIds).toEqual(stillMissing);
+    // The shared rounding value is present now, and present is not the same as
+    // consumed: asserting it by id keeps the count above honest.
+    expect(
+      draft.content.numericParameters.some(
+        (parameter) => parameter.id === "ROUNDING.MACRO_GRAMS.DECIMALS"
+      )
+    ).toBe(true);
     for (const id of WEEKLY_CONSUMED_PROGRESSION_PARAMETER_IDS) {
       expect({ id, missing: result.missingParameterIds.includes(id) }).toEqual({
         id,

@@ -380,7 +380,8 @@
         "limitations": [
           "SCOPE ATTESTATION: confirmed by the accountable owner within the general fitness and wellness scope; no clinical qualification, licence, registration number or certifying body is claimed.",
           "NOT EVIDENCE: no external source supports these values, and none is cited. The basis recorded by the accountable owner, in his own words: \"proposed by engineering, adopted by me, not verified against a primary literature source.\"",
-          "The source host recorded for this claim is a placeholder because there is no external record to name. The guard that forbids a placeholder host is relaxed for this claim alone, by decision of the accountable owner."
+          "The source host recorded for this claim is a placeholder because there is no external record to name. The guard that forbids a placeholder host is relaxed for this claim alone, by decision of the accountable owner.",
+          "NOT EVIDENCE: no external source supports these values, and none is cited. The basis recorded by the accountable owner for the nutrition prescription parameters and the two nutrition safety floors, in his own words: \"proposed by engineering, adopted by me, without claiming external literature sources.\""
         ],
         "reviewer": {
           "name": "Jaden Wong",
@@ -390,6 +391,11 @@
         },
         "ruleIds": [
           "CARDIO.RULE.DOSE.BEGINNER.V1",
+          "GOAL.ADJUSTMENT.BOUNDED.V1",
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
+          "NUTRITION_MINIMUM_DAILY_ENERGY_RULE",
+          "PRESCRIPTION.ROUNDING.ORDER.V1",
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1",
           "TRAINING.DOSE.BEGINNER.V1",
           "TRAINING.TEMPLATE.SELECTION.V1",

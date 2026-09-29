@@ -616,6 +616,66 @@ describe("S-17 — the three values the reviewer supplied now compose", () => {
     );
   });
 
+  it("records the owner's other provenance sentence on every value S-25 added", () => {
+    // S-25 — the 13 prescription parameters and the two nutrition safety
+    // floors were adopted on the same day as the training doses but as a
+    // separate answer, in a different sentence. The two sets are pinned
+    // separately so neither can be rewritten into the other's wording.
+    const PROVENANCE =
+      "proposed by engineering, adopted by me, without claiming external literature sources.";
+    if (bundleFile.reviewMetadata.decision !== "APPROVED")
+      throw new Error("policy bundle is not signed");
+    const limits = bundleFile.content.safetyControls.nutritionLimits;
+    const adopted = [
+      "GOAL.ADJUSTMENT.LOSE.GRADUAL.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.LOSE.MODERATE.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.GAIN.GRADUAL.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.GAIN.MODERATE.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION",
+      "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+      "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION",
+      "ENERGY.BODY_MASS.ENERGY_PER_KG",
+      "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS",
+      "ROUNDING.ENERGY_KCAL.STEP",
+      "ROUNDING.MACRO_GRAMS.DECIMALS",
+      "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS",
+      "COMPOSITION.TOLERANCE_PERCENT",
+      limits.minimumDailyEnergyParameterId,
+      limits.maximumWeeklyLossRateParameterId,
+    ];
+    expect(adopted).toHaveLength(15);
+    const byParameter = new Map(
+      (bundleFile.reviewMetadata.proposalProvenance ?? []).map((row) => [row.parameterId, row])
+    );
+    for (const id of adopted) {
+      // Exact equality, not startsWith: none of these carries an annotation,
+      // and a row that acquires one should be seen rather than absorbed.
+      expect({ id, locator: byParameter.get(id)?.sourceLocator }).toEqual({
+        id,
+        locator: PROVENANCE,
+      });
+      expect({ id, claim: byParameter.get(id)?.sourceClaimId }).toEqual({
+        id,
+        claim: "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+      });
+      expect({ id, url: byParameter.get(id)?.sourceUrl }).toEqual({
+        id,
+        url: "https://example.invalid/steadfast/board/dose-worksheets",
+      });
+    }
+
+    // Both sentences are on the one claim, and neither has displaced the other.
+    const owner = evidenceFile.content.claims.find(
+      (claim) => claim.id === "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+    );
+    expect(owner).toBeDefined();
+    const limitations = (owner?.limitations ?? []).join(" ");
+    expect(limitations).toContain(PROVENANCE);
+    expect(limitations).toContain(
+      "proposed by engineering, adopted by me, not verified against a primary literature source."
+    );
+  });
+
   it("still fails closed on the effort copy itself the moment it is removed", () => {
     // The fail-closed behaviour is what protected clients before the copy
     // existed, and it has to survive the copy arriving.
