@@ -793,6 +793,35 @@ suite("account deletion with real PostgreSQL constraints", () => {
       }
     }
   });
+  it("S-23: purges every AiNutritionLog row, including declared SKIPPED/NONE days, scoped to the departing client", async () => {
+    const { user, other } = await fixture();
+    const day = (offset: number) => new Date(Date.UTC(2026, 0, 1 + offset));
+    await db.aiNutritionLog.createMany({
+      data: [
+        {
+          clientId: user.id,
+          loggedOn: day(0),
+          energyKcal: 2400,
+          proteinG: 180,
+          carbsG: 250,
+          fatG: 80,
+          source: "PLAN_AS_WRITTEN",
+          completeness: "FULL",
+        },
+        // A day the client declared they did not log is still their health
+        // record and must be purged, not skipped for having no numbers.
+        { clientId: user.id, loggedOn: day(1), source: "SKIPPED", completeness: "NONE" },
+        { clientId: other.id, loggedOn: day(0), energyKcal: 2100, source: "MANUAL", completeness: "FULL" },
+      ],
+    });
+    expect(await db.aiNutritionLog.count({ where: { clientId: user.id } })).toBe(2);
+
+    await purgeUserAccount(user.id);
+
+    expect(await db.aiNutritionLog.count({ where: { clientId: user.id } })).toBe(0);
+    expect(await db.aiNutritionLog.count({ where: { clientId: other.id } })).toBe(1);
+  });
+
   it("T-2024: purges a v2-confirmed intake (AiCoachProfile + AiIntakeDraft) same as v1", async () => {
     const { user } = await fixture();
     await db.aiIntakeDraft.create({

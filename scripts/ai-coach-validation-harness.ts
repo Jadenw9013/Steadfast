@@ -126,6 +126,15 @@ import { getFoodItem } from "../lib/ai-coach/catalog/loader";
 import { FOOD_CATALOG_VERSION } from "../lib/ai-coach/catalog/food-catalog";
 import { ACTIVE_POLICY_VERSION } from "../lib/ai-coach/policy/policy-version";
 import { intakeAnswersSchema, type FieldStatus } from "../lib/ai-coach/intake-contract";
+import {
+  ADAPTIVE_OBSERVED_EXPENDITURE_RULE_ID,
+  resolveAdaptiveParameters,
+  type ResolvedAdaptiveParameters,
+} from "../lib/ai-coach/adaptive/parameters";
+import type { WeightReading } from "../lib/ai-coach/adaptive/weight-trend";
+import type { NutritionLogDay } from "../lib/ai-coach/adaptive/intake-window";
+import { estimateObservedExpenditure } from "../lib/ai-coach/adaptive/expenditure";
+import { evaluateAdaptiveGate } from "../lib/ai-coach/adaptive/gate";
 
 /* ------------------------------------------------------------------ guards */
 
@@ -2688,6 +2697,512 @@ function describeProfile(result: ProfileResult): string {
   );
 }
 
+/* ------------------------------------------------- adaptive synthetic history */
+
+/**
+ * S-23 — synthetic-history mode.
+ *
+ * Generates intake and body-mass series whose TRUE expenditure is known by
+ * construction, runs the real `lib/ai-coach/adaptive` estimator over them, and
+ * reports the distribution of the estimator's error against that ground truth.
+ * This is the evidence phase 3 needs, and it is worth more than any single unit
+ * test because it measures where the design breaks rather than that one case
+ * works.
+ *
+ * EVERY NUMBER IN THIS SECTION IS A SIMULATION INPUT, NOT A RECOMMENDATION.
+ * The nine `ADAPTIVE.*` parameters are the accountable owner's to sign and this
+ * repository supplies no value for any of them; §A below proves that by running
+ * the real resolver against the checked-in artifacts and printing the refusal.
+ * The sweep that follows uses declared synthetic values so the ESTIMATOR can be
+ * measured at all. In particular `ADAPTIVE.ENERGY_DENSITY_KCAL_PER_KG` is swept
+ * as a RATIO against the value the simulator used, which measures sensitivity to
+ * getting ρ wrong without asserting what ρ is. Nothing here is a clinical claim.
+ */
+
+type AdaptiveAxes = {
+  windowDays: number;
+  /** Scale measurement noise standard deviation, kg. */
+  scaleNoiseSdKg: number;
+  /** Fraction of window days the client declares FULLY logged. */
+  loggingCompleteness: number;
+  /** Fraction of true intake the client actually records. 1 = perfect logging. */
+  reportedIntakeFraction: number;
+  /** 1 = weighs daily, 2 = every other day, 7 = weekly. */
+  weighInEveryDays: number;
+  /** True daily energy balance, kcal/day. Negative = deficit. */
+  trueBalanceKcal: number;
+  /** Estimator's ρ divided by the simulator's ρ. 1 = correctly specified. */
+  densityRatio: number;
+};
+
+const ADAPTIVE_WINDOW_DAYS = [14, 21, 28, 42];
+const ADAPTIVE_SCALE_NOISE_SD_KG = [0, 0.2, 0.5, 1];
+const ADAPTIVE_LOGGING_COMPLETENESS = [1, 0.9, 0.7, 0.5];
+const ADAPTIVE_REPORTED_INTAKE_FRACTION = [1, 0.9, 0.8];
+const ADAPTIVE_WEIGH_IN_EVERY_DAYS = [1, 2, 7];
+const ADAPTIVE_TRUE_BALANCE_KCAL = [-500, -250, 0, 250];
+const ADAPTIVE_DENSITY_RATIO = [1, 0.85, 1.15];
+
+/** Simulator ground truth. Synthetic; see the section header. */
+const SIMULATED_TRUE_EXPENDITURE_KCAL = 2500;
+const SIMULATED_START_MASS_KG = 80;
+const SIMULATED_DENSITY_KCAL_PER_KG = 7000;
+
+/** Gate thresholds for the sweep. Synthetic; see the section header. */
+const SWEEP_PROCESS_NOISE = 0.0004;
+const SWEEP_MEASUREMENT_NOISE = 0.25;
+const SWEEP_MIN_COMPLETENESS = 0.6;
+const SWEEP_MIN_COMPLETENESS_FOR_REDUCTION = 0.85;
+/** Swept, not chosen: the slope-uncertainty ceiling decides almost every HOLD. */
+const ADAPTIVE_MAX_SLOPE_UNCERTAINTY_KCAL = [250, 500, 1000, 2000];
+const SWEEP_MIN_MATERIAL_DIFFERENCE_KCAL = 50;
+
+function sweepParameters(
+  axes: AdaptiveAxes,
+  maxSlopeUncertaintyKcal: number
+): ResolvedAdaptiveParameters {
+  const values = {
+    "ADAPTIVE.KALMAN.PROCESS_NOISE": SWEEP_PROCESS_NOISE,
+    "ADAPTIVE.KALMAN.MEASUREMENT_NOISE": SWEEP_MEASUREMENT_NOISE,
+    "ADAPTIVE.ENERGY_DENSITY_KCAL_PER_KG": SIMULATED_DENSITY_KCAL_PER_KG * axes.densityRatio,
+    "ADAPTIVE.WINDOW_DAYS": axes.windowDays,
+    "ADAPTIVE.MIN_COMPLETENESS": SWEEP_MIN_COMPLETENESS,
+    "ADAPTIVE.MIN_COMPLETENESS_FOR_REDUCTION": SWEEP_MIN_COMPLETENESS_FOR_REDUCTION,
+    "ADAPTIVE.MAX_SLOPE_UNCERTAINTY_KCAL": maxSlopeUncertaintyKcal,
+    "ADAPTIVE.MIN_MATERIAL_DIFFERENCE_KCAL": SWEEP_MIN_MATERIAL_DIFFERENCE_KCAL,
+  };
+  if (SWEEP_MIN_COMPLETENESS_FOR_REDUCTION <= SWEEP_MIN_COMPLETENESS) {
+    throw new Error("The sweep's reduction threshold must be strictly stricter.");
+  }
+  return {
+    kalmanProcessNoise: values["ADAPTIVE.KALMAN.PROCESS_NOISE"],
+    kalmanMeasurementNoise: values["ADAPTIVE.KALMAN.MEASUREMENT_NOISE"],
+    energyDensityKcalPerKg: values["ADAPTIVE.ENERGY_DENSITY_KCAL_PER_KG"],
+    windowDays: values["ADAPTIVE.WINDOW_DAYS"],
+    minCompleteness: values["ADAPTIVE.MIN_COMPLETENESS"],
+    minCompletenessForReduction: values["ADAPTIVE.MIN_COMPLETENESS_FOR_REDUCTION"],
+    maxSlopeUncertaintyKcal: values["ADAPTIVE.MAX_SLOPE_UNCERTAINTY_KCAL"],
+    minMaterialDifferenceKcal: values["ADAPTIVE.MIN_MATERIAL_DIFFERENCE_KCAL"],
+    ruleId: ADAPTIVE_OBSERVED_EXPENDITURE_RULE_ID,
+    parameterSetDigest: contentHash(values),
+  };
+}
+
+/** Box-Muller over the harness's seeded LCG. Deterministic for a given seed. */
+function makeGaussian(random: () => number): () => number {
+  let spare: number | null = null;
+  return () => {
+    if (spare !== null) {
+      const value = spare;
+      spare = null;
+      return value;
+    }
+    let u = random();
+    let v = random();
+    if (u <= 0) u = Number.EPSILON;
+    if (v <= 0) v = Number.EPSILON;
+    const magnitude = Math.sqrt(-2 * Math.log(u));
+    spare = magnitude * Math.sin(2 * Math.PI * v);
+    return magnitude * Math.cos(2 * Math.PI * v);
+  };
+}
+
+type AdaptiveGateOutcome = {
+  maxSlopeUncertaintyKcal: number;
+  decision: "PROPOSE_INCREASE" | "PROPOSE_DECREASE" | "HOLD";
+  failedCondition: string | null;
+  /** The gate proposed a move opposite to the truth. */
+  wrongDirection: boolean;
+  /** Condition 5 alone refused a reduction the truth did not justify. */
+  savedByAsymmetry: boolean;
+};
+
+type AdaptiveTrial = {
+  axes: AdaptiveAxes;
+  /** Estimator output minus the true expenditure, kcal/day. Null if unavailable. */
+  errorKcal: number | null;
+  slopeUncertaintyKcal: number | null;
+  outcomes: AdaptiveGateOutcome[];
+};
+
+function runAdaptiveTrial(
+  axes: AdaptiveAxes,
+  gaussian: () => number,
+  startDay: number
+): AdaptiveTrial {
+  const trueRateKgPerDay = axes.trueBalanceKcal / SIMULATED_DENSITY_KCAL_PER_KG;
+  const trueIntakeKcal = SIMULATED_TRUE_EXPENDITURE_KCAL + axes.trueBalanceKcal;
+
+  const weightReadings: WeightReading[] = [];
+  const nutritionLogs: NutritionLogDay[] = [];
+  let loggedSoFar = 0;
+  for (let day = 0; day < axes.windowDays; day += 1) {
+    const isoDate = shiftDate("2026-01-01", startDay + day);
+    if (day % axes.weighInEveryDays === 0 || day === axes.windowDays - 1) {
+      weightReadings.push({
+        measuredOn: isoDate,
+        weightKg:
+          SIMULATED_START_MASS_KG + trueRateKgPerDay * day + gaussian() * axes.scaleNoiseSdKg,
+      });
+    }
+    // Deterministic rather than random coverage: the first
+    // round(completeness * windowDays) days are FULL, and of the rest every
+    // other day is a declared SKIPPED day and the others have no row at all,
+    // so both "the client said they did not log" and "no statement" occur.
+    const fullTarget = Math.round(axes.loggingCompleteness * axes.windowDays);
+    if (loggedSoFar < fullTarget) {
+      loggedSoFar += 1;
+      nutritionLogs.push({
+        loggedOn: isoDate,
+        energyKcal: trueIntakeKcal * axes.reportedIntakeFraction,
+        source: "PLAN_AS_WRITTEN",
+        completeness: "FULL",
+      });
+    } else if (day % 2 === 0) {
+      nutritionLogs.push({
+        loggedOn: isoDate,
+        energyKcal: null,
+        source: "SKIPPED",
+        completeness: "NONE",
+      });
+    }
+  }
+
+  const input = {
+    weightReadings,
+    nutritionLogs,
+    windowEndOn: shiftDate("2026-01-01", startDay + axes.windowDays - 1),
+  };
+  // The client is currently eating to their true intake, so the correct
+  // direction of any change is the sign of (true expenditure - that intake).
+  const currentEnergyKcal = trueIntakeKcal;
+  const correctDirection =
+    SIMULATED_TRUE_EXPENDITURE_KCAL > currentEnergyKcal
+      ? "INCREASE"
+      : SIMULATED_TRUE_EXPENDITURE_KCAL < currentEnergyKcal
+        ? "DECREASE"
+        : "NONE";
+
+  let errorKcal: number | null = null;
+  let slopeUncertaintyKcal: number | null = null;
+  const outcomes: AdaptiveGateOutcome[] = [];
+  for (const maxSlopeUncertaintyKcal of ADAPTIVE_MAX_SLOPE_UNCERTAINTY_KCAL) {
+    const parameters = sweepParameters(axes, maxSlopeUncertaintyKcal);
+    // The estimate itself does not depend on the ceiling, only the gate does.
+    const estimate = estimateObservedExpenditure(input, parameters);
+    if (estimate.status === "AVAILABLE") {
+      errorKcal = estimate.observedExpenditureKcal - SIMULATED_TRUE_EXPENDITURE_KCAL;
+      slopeUncertaintyKcal = estimate.slopeUncertaintyKcal;
+    }
+    const decision = evaluateAdaptiveGate(estimate, currentEnergyKcal, parameters);
+    if (decision.decision === "PROPOSE") {
+      outcomes.push({
+        maxSlopeUncertaintyKcal,
+        decision: decision.direction === "INCREASE" ? "PROPOSE_INCREASE" : "PROPOSE_DECREASE",
+        failedCondition: null,
+        wrongDirection: correctDirection !== "NONE" && decision.direction !== correctDirection,
+        savedByAsymmetry: false,
+      });
+    } else {
+      outcomes.push({
+        maxSlopeUncertaintyKcal,
+        decision: "HOLD",
+        failedCondition: decision.failedCondition,
+        wrongDirection: false,
+        savedByAsymmetry:
+          decision.failedCondition === "COMPLETENESS_BELOW_REDUCTION_MINIMUM" &&
+          correctDirection !== "DECREASE",
+      });
+    }
+  }
+  return { axes, errorKcal, slopeUncertaintyKcal, outcomes };
+}
+
+function percentile(sorted: readonly number[], fraction: number): number {
+  if (sorted.length === 0) return Number.NaN;
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.round(fraction * (sorted.length - 1))));
+  return sorted[index];
+}
+
+function errorDistributionRow(label: string, errors: readonly number[]): string {
+  if (errors.length === 0) return `| ${label} | 0 | — | — | — | — | — | — |`;
+  const sorted = [...errors].sort((a, b) => a - b);
+  const mean = sorted.reduce((total, value) => total + value, 0) / sorted.length;
+  const mae = sorted.reduce((total, value) => total + Math.abs(value), 0) / sorted.length;
+  const rmse = Math.sqrt(
+    sorted.reduce((total, value) => total + value * value, 0) / sorted.length
+  );
+  return (
+    `| ${label} | ${sorted.length} | ${fmt(mean)} | ${fmt(mae)} | ${fmt(rmse)} | ` +
+    `${fmt(percentile(sorted, 0.1))} | ${fmt(percentile(sorted, 0.5))} | ${fmt(percentile(sorted, 0.9))} |`
+  );
+}
+
+function adaptiveHistorySection(
+  sources: readonly ParameterSource[],
+  seed: number,
+  replicates: number
+): { lines: string[]; trials: number } {
+  const out: string[] = [];
+  out.push(
+    "**Synthetic history. Every series below is machine-generated from a declared grid and a " +
+      "seeded generator; the true expenditure is known because the generator chose it. No real " +
+      "client's weight or food record was read. Every parameter value in this section is a " +
+      "SIMULATION INPUT, not a recommendation, and none of them is signed.**"
+  );
+  out.push("");
+
+  out.push("### A. Fail-closed proof — the nine parameters are absent");
+  out.push("");
+  out.push(
+    "The real resolver, run against each artifact source in this report. A refusal here is the " +
+      "correct and expected result: `lib/ai-coach/adaptive/parameters.ts` contains no value for any " +
+      "of the nine ids, and no bundle in this repository declares them."
+  );
+  out.push("");
+  out.push("| source | resolves? | reason codes | missing ids |");
+  out.push("|---|---|---|---|");
+  for (const source of sources) {
+    const resolved = resolveAdaptiveParameters(source.policy);
+    out.push(
+      resolved.ok
+        ? `| ${source.key} | YES | — | — |`
+        : `| ${source.key} | NO | ${resolved.reasonCodes.join(", ")} | ${resolved.missingParameterIds.length}: ${resolved.missingParameterIds.join(", ")} |`
+    );
+  }
+  out.push("");
+
+  out.push("### B. The grid");
+  out.push("");
+  out.push(
+    `Simulator ground truth: true expenditure ${SIMULATED_TRUE_EXPENDITURE_KCAL} kcal/day, start mass ` +
+      `${SIMULATED_START_MASS_KG} kg, simulator ρ ${SIMULATED_DENSITY_KCAL_PER_KG} kcal/kg. The client's ` +
+      "true intake is expenditure plus the row's energy balance, and their true mass moves at " +
+      "balance/ρ kg/day. Synthetic values, chosen to exercise arithmetic."
+  );
+  out.push("");
+  out.push("| axis | values |");
+  out.push("|---|---|");
+  out.push(`| window days | ${ADAPTIVE_WINDOW_DAYS.join(", ")} |`);
+  out.push(`| scale noise SD (kg) | ${ADAPTIVE_SCALE_NOISE_SD_KG.join(", ")} |`);
+  out.push(`| declared logging completeness | ${ADAPTIVE_LOGGING_COMPLETENESS.join(", ")} |`);
+  out.push(`| fraction of intake actually recorded | ${ADAPTIVE_REPORTED_INTAKE_FRACTION.join(", ")} |`);
+  out.push(`| weigh-in interval (days) | ${ADAPTIVE_WEIGH_IN_EVERY_DAYS.join(", ")} |`);
+  out.push(`| true daily balance (kcal) | ${ADAPTIVE_TRUE_BALANCE_KCAL.join(", ")} |`);
+  out.push(`| estimator ρ ÷ simulator ρ | ${ADAPTIVE_DENSITY_RATIO.join(", ")} |`);
+  out.push(
+    `| slope-uncertainty ceiling (kcal/day) | ${ADAPTIVE_MAX_SLOPE_UNCERTAINTY_KCAL.join(", ")} |`
+  );
+  out.push(`| replicates per cell (different noise draws) | ${replicates} |`);
+  out.push("");
+  out.push(
+    "Gate thresholds held fixed for the sweep (synthetic): MIN_COMPLETENESS " +
+      `${SWEEP_MIN_COMPLETENESS}, MIN_COMPLETENESS_FOR_REDUCTION ${SWEEP_MIN_COMPLETENESS_FOR_REDUCTION}, ` +
+      `MIN_MATERIAL_DIFFERENCE_KCAL ${SWEEP_MIN_MATERIAL_DIFFERENCE_KCAL}, Kalman q ` +
+      `${SWEEP_PROCESS_NOISE}, R ${SWEEP_MEASUREMENT_NOISE}. The slope-uncertainty ceiling is swept ` +
+      "rather than chosen because it decides almost every HOLD, and this tool has no business " +
+      "picking it."
+  );
+  out.push("");
+
+  const random = makeRandom(seed);
+  const gaussian = makeGaussian(random);
+  const trials: AdaptiveTrial[] = [];
+  let startDay = 0;
+  for (const windowDays of ADAPTIVE_WINDOW_DAYS)
+    for (const scaleNoiseSdKg of ADAPTIVE_SCALE_NOISE_SD_KG)
+      for (const loggingCompleteness of ADAPTIVE_LOGGING_COMPLETENESS)
+        for (const reportedIntakeFraction of ADAPTIVE_REPORTED_INTAKE_FRACTION)
+          for (const weighInEveryDays of ADAPTIVE_WEIGH_IN_EVERY_DAYS)
+            for (const trueBalanceKcal of ADAPTIVE_TRUE_BALANCE_KCAL)
+              for (const densityRatio of ADAPTIVE_DENSITY_RATIO)
+                for (let replicate = 0; replicate < replicates; replicate += 1) {
+                  startDay += 1;
+                  trials.push(
+                    runAdaptiveTrial(
+                      {
+                        windowDays,
+                        scaleNoiseSdKg,
+                        loggingCompleteness,
+                        reportedIntakeFraction,
+                        weighInEveryDays,
+                        trueBalanceKcal,
+                        densityRatio,
+                      },
+                      gaussian,
+                      startDay
+                    )
+                  );
+                }
+
+  const available = trials.filter((trial) => trial.errorKcal !== null);
+  const errors = available.map((trial) => trial.errorKcal as number);
+
+  out.push("### C. Estimator error against ground truth (kcal/day)");
+  out.push("");
+  out.push(
+    `${trials.length} trials; ${available.length} produced an estimate, ` +
+      `${trials.length - available.length} refused before one existed. Error = estimated expenditure ` +
+      "minus the simulator's true expenditure, so a negative error means the estimator thinks the " +
+      "client burns less than they do — the direction that cuts food."
+  );
+  out.push("");
+  out.push("| slice | n | mean | MAE | RMSE | p10 | p50 | p90 |");
+  out.push("|---|---|---|---|---|---|---|---|");
+  out.push(errorDistributionRow("all trials", errors));
+
+  const sliceBy = <K extends keyof AdaptiveAxes>(key: K, values: readonly number[]) => {
+    for (const value of values) {
+      out.push(
+        errorDistributionRow(
+          `${String(key)} = ${value}`,
+          available.filter((trial) => trial.axes[key] === value).map((trial) => trial.errorKcal as number)
+        )
+      );
+    }
+  };
+  sliceBy("reportedIntakeFraction", ADAPTIVE_REPORTED_INTAKE_FRACTION);
+  sliceBy("scaleNoiseSdKg", ADAPTIVE_SCALE_NOISE_SD_KG);
+  sliceBy("windowDays", ADAPTIVE_WINDOW_DAYS);
+  sliceBy("weighInEveryDays", ADAPTIVE_WEIGH_IN_EVERY_DAYS);
+  sliceBy("densityRatio", ADAPTIVE_DENSITY_RATIO);
+  sliceBy("loggingCompleteness", ADAPTIVE_LOGGING_COMPLETENESS);
+  out.push("");
+
+  const perfectLogging = available.filter(
+    (trial) => trial.axes.reportedIntakeFraction === 1 && trial.axes.densityRatio === 1
+  );
+  out.push(
+    "The `reportedIntakeFraction` rows are the finding the research document predicted and the " +
+      "reason phase 1 is the largest part of this work: when a client records only 80% of what they " +
+      "eat, the estimator does not learn their metabolism, it learns their logging, and the error is " +
+      "a bias of roughly −0.2 × intake with the spread almost unchanged. It is not noise and no " +
+      "amount of window length removes it."
+  );
+  out.push("");
+  out.push(
+    `Restricted to correctly-specified runs (intake fully recorded and ρ correct), n=${perfectLogging.length}: ` +
+      `${errorDistributionRow("correctly specified", perfectLogging.map((trial) => trial.errorKcal as number)).trim()}`
+  );
+  out.push("");
+
+  out.push("### D. Gate outcomes, by slope-uncertainty ceiling");
+  out.push("");
+  out.push(
+    "One estimate per trial; the gate is then evaluated at each ceiling, so the rows differ only " +
+      "in that threshold. `wrong direction` counts proposals that moved the target the opposite way " +
+      "to the truth. `held by asymmetry alone` counts reductions that condition 5 — and nothing " +
+      "else — refused, on evidence where the client's true expenditure did not justify a cut."
+  );
+  out.push("");
+  out.push(
+    "| ceiling | propose ↑ | propose ↓ | HOLD | wrong direction | held by asymmetry alone | top HOLD reason |"
+  );
+  out.push("|---|---|---|---|---|---|---|");
+  for (const ceiling of ADAPTIVE_MAX_SLOPE_UNCERTAINTY_KCAL) {
+    const outcomes = trials
+      .map((trial) => trial.outcomes.find((outcome) => outcome.maxSlopeUncertaintyKcal === ceiling))
+      .filter((outcome): outcome is AdaptiveGateOutcome => outcome !== undefined);
+    const reasons = new Counter();
+    for (const outcome of outcomes) {
+      if (outcome.decision === "HOLD") reasons.add(outcome.failedCondition ?? "UNKNOWN");
+    }
+    const share = (count: number) => `${count} (${fmt((count / outcomes.length) * 100)}%)`;
+    const top = reasons.entries()[0];
+    out.push(
+      `| ${ceiling} | ` +
+        `${share(outcomes.filter((outcome) => outcome.decision === "PROPOSE_INCREASE").length)} | ` +
+        `${share(outcomes.filter((outcome) => outcome.decision === "PROPOSE_DECREASE").length)} | ` +
+        `${share(outcomes.filter((outcome) => outcome.decision === "HOLD").length)} | ` +
+        `${share(outcomes.filter((outcome) => outcome.wrongDirection).length)} | ` +
+        `${share(outcomes.filter((outcome) => outcome.savedByAsymmetry).length)} | ` +
+        `${top ? `${top[0]} (${top[1]})` : "—"} |`
+    );
+  }
+  out.push("");
+  // Isolate the wrong-direction rate that noise alone produces from the rate
+  // that under-reporting and a misspecified rho produce.
+  const cleanTrials = trials.filter(
+    (trial) => trial.axes.reportedIntakeFraction === 1 && trial.axes.densityRatio === 1
+  );
+  for (const ceiling of ADAPTIVE_MAX_SLOPE_UNCERTAINTY_KCAL) {
+    const clean = cleanTrials
+      .map((trial) => trial.outcomes.find((outcome) => outcome.maxSlopeUncertaintyKcal === ceiling))
+      .filter((outcome): outcome is AdaptiveGateOutcome => outcome !== undefined);
+    const wrongClean = clean.filter((outcome) => outcome.wrongDirection).length;
+    out.push(
+      `- ceiling ${ceiling}: wrong-direction rate among correctly-specified trials (intake fully ` +
+        `recorded, ρ correct) is ${wrongClean}/${clean.length} ` +
+        `(${fmt((wrongClean / Math.max(clean.length, 1)) * 100)}%). The difference from the row ` +
+        "above is attributable to under-reporting and ρ misspecification, not to measurement noise."
+    );
+  }
+  out.push("");
+  const allOutcomes = trials.flatMap((trial) => trial.outcomes);
+  const holdReasons = new Counter();
+  for (const outcome of allOutcomes) {
+    holdReasons.add(
+      outcome.decision === "HOLD" ? `HOLD: ${outcome.failedCondition}` : outcome.decision
+    );
+  }
+  out.push("| outcome (all ceilings pooled) | count | share |");
+  out.push("|---|---|---|");
+  for (const [key, count] of holdReasons.entries()) {
+    out.push(`| ${key} | ${count} | ${fmt((count / allOutcomes.length) * 100)}% |`);
+  }
+  out.push("");
+  out.push(
+    "Caveat on all of §D: the shares are a property of the synthetic thresholds in §B as much as of " +
+      "the estimator. They say how the gate behaves at those thresholds, not what thresholds to sign."
+  );
+  out.push("");
+  const slopeValues = trials
+    .map((trial) => trial.slopeUncertaintyKcal)
+    .filter((value): value is number => value !== null);
+  out.push("### E. The slope-uncertainty signal itself (kcal/day)");
+  out.push("");
+  out.push("| slice | unit | n | min | median | max | mean |");
+  out.push("|---|---|---|---|---|---|---|");
+  out.push(statsRow("all trials", "kcal/day", stats(slopeValues)));
+  for (const interval of ADAPTIVE_WEIGH_IN_EVERY_DAYS) {
+    out.push(
+      statsRow(
+        `weigh-in every ${interval} day(s)`,
+        "kcal/day",
+        stats(
+          trials
+            .filter((trial) => trial.axes.weighInEveryDays === interval)
+            .map((trial) => trial.slopeUncertaintyKcal)
+            .filter((value): value is number => value !== null)
+        )
+      )
+    );
+  }
+  for (const windowDays of ADAPTIVE_WINDOW_DAYS) {
+    out.push(
+      statsRow(
+        `window ${windowDays} days`,
+        "kcal/day",
+        stats(
+          trials
+            .filter((trial) => trial.axes.windowDays === windowDays)
+            .map((trial) => trial.slopeUncertaintyKcal)
+            .filter((value): value is number => value !== null)
+        )
+      )
+    );
+  }
+  out.push("");
+  out.push(
+    "This is the distribution the accountable owner needs in order to set " +
+      "`ADAPTIVE.MAX_SLOPE_UNCERTAINTY_KCAL` at all: a ceiling below the median here refuses almost " +
+      "everything, and one above the maximum refuses nothing. It scales linearly with ρ, so the " +
+      "numbers move with whatever ρ is signed."
+  );
+
+  return { lines: out, trials: trials.length };
+}
+
 /* ------------------------------------------------------------------- main */
 
 function parseArgs(argv: readonly string[]) {
@@ -2719,6 +3234,8 @@ function main(): void {
   const evaluatedOn = args.get("evaluated-on") ?? "2026-09-27";
   const bundlePath = args.get("bundle") ?? null;
   const outPath = args.get("out") ?? null;
+  const adaptiveHistory = args.get("adaptive-history") === "true";
+  const adaptiveReplicates = Number(args.get("adaptive-replicates") ?? 3);
 
   const sources: ParameterSource[] = [];
   for (const run of runs) {
@@ -2941,13 +3458,24 @@ function main(): void {
     }
   }
 
-  out.push(`## ${4 + reports.length}. Reproducing this report`);
+  let nextSection = 4 + reports.length;
+  if (adaptiveHistory) {
+    const adaptive = adaptiveHistorySection(sources, seed, adaptiveReplicates);
+    out.push(`## ${nextSection}. S-23 adaptive energy estimator — synthetic history vs ground truth`);
+    out.push("");
+    for (const line of adaptive.lines) out.push(line);
+    out.push("");
+    nextSection += 1;
+  }
+
+  out.push(`## ${nextSection}. Reproducing this report`);
   out.push("");
   out.push("```");
   out.push(
     `pnpm exec tsx scripts/ai-coach-validation-harness.ts --runs ${runs.join(",")} ` +
       `--seed ${seed} --random ${randomCount} --evaluated-on ${evaluatedOn}` +
       (bundlePath ? ` --bundle ${bundlePath}` : "") +
+      (adaptiveHistory ? ` --adaptive-history --adaptive-replicates ${adaptiveReplicates}` : "") +
       ` --out <path>`
   );
   out.push("```");
