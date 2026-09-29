@@ -106,6 +106,13 @@
         "sourceId": "STEADFAST-PENDING-NO-SOURCE",
         "sourceUrl": "https://example.invalid/steadfast/pending-evidence/nutrition-evidence-rule",
         "sourceLocator": "No source. No evidence has been supplied for this rule; the record is a structural placeholder the reviewer must replace or strike."
+      },
+      {
+        "parameterId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       }
     ]
   },
@@ -153,6 +160,11 @@
     {
       "itemKind": "CLAIM",
       "itemId": "CLAIM.AHA.ACC.TOS.OBESITY.NUTRITION_EVIDENCE",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "CLAIM",
+      "itemId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
       "reviewState": "ACCEPTED"
     }
   ],
@@ -356,6 +368,33 @@
         "ruleIds": [
           "NUTRITION_EVIDENCE_RULE",
           "WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1"
+        ],
+        "reviewDate": "2026-09-27T00:00:00.000Z"
+      },
+      {
+        "id": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "version": 1,
+        "claim": "ADOPTED WITHIN SCOPE, NOT EVIDENCE. The policy bundle values bound to this claim were proposed by engineering and adopted by the accountable owner within the general fitness and wellness scope. No external source was consulted for them and none is named. This record exists so the values can be traced to the person who adopted them. It is not evidence that they are correct, and it asserts no external support of any kind.",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "population": "Adult general-fitness population, as stated by the policy bundle. Adopted within the general fitness and wellness scope; not verified against any external source.",
+        "limitations": [
+          "SCOPE ATTESTATION: confirmed by the accountable owner within the general fitness and wellness scope; no clinical qualification, licence, registration number or certifying body is claimed.",
+          "NOT EVIDENCE: no external source supports these values, and none is cited. The basis recorded by the accountable owner, in his own words: \"proposed by engineering, adopted by me, not verified against a primary literature source.\"",
+          "The source host recorded for this claim is a placeholder because there is no external record to name. The guard that forbids a placeholder host is relaxed for this claim alone, by decision of the accountable owner."
+        ],
+        "reviewer": {
+          "name": "Jaden Wong",
+          "qualifications": [
+            "Accountable owner and founder. Reviewed within the general fitness and wellness scope only; no clinical qualification is claimed."
+          ]
+        },
+        "ruleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1",
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1",
+          "TRAINING.DOSE.BEGINNER.V1",
+          "TRAINING.TEMPLATE.SELECTION.V1",
+          "WEEKLY.RULE.COOLDOWN.V1",
+          "WORKLOAD.RULE.COMBINED.V1"
         ],
         "reviewDate": "2026-09-27T00:00:00.000Z"
       }

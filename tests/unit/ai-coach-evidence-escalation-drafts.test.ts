@@ -25,6 +25,8 @@ import {
 import {
   EFFORT_CARDIO_TEMPLATE_ID,
   EFFORT_STRENGTH_TEMPLATE_ID,
+  TRAINING_COMPOSER_PARAMETER_IDS,
+  TRAINING_PROGRESSION_PARAMETER_IDS,
   resolveTrainingParameters,
 } from "@/lib/ai-coach/training/parameters";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
@@ -62,6 +64,56 @@ const SIGNER_QUALIFICATION =
 const SIGNER_SCOPE_NOTE =
   "Reviewed within general fitness and wellness scope; medical advice disclaimed.";
 const REVIEW_DATE = "2026-09-27T00:00:00.000Z";
+
+/**
+ * S-23 — the sanctioned owner-adoption claims, decided by the accountable
+ * owner and recorded on the board (`board/evidence/v1-dose-harness.md` §7).
+ *
+ * Every other claim in the registry cites an external source and says that the
+ * source supports the rule it is bound to. This one exists to say the opposite:
+ * that a set of values was adopted by the owner and has no external source at
+ * all. The artifact schema had no other way to express that — every numeric
+ * parameter must name a claim, and every other claim must name a real,
+ * non-placeholder source — and the alternative was attaching a literature
+ * citation to values whose own record says they were never checked against one.
+ *
+ * Two guards below are keyed to this exact list: the placeholder-host
+ * exception, and the second permitted claim shape. Both use set equality in
+ * both directions, so the list cannot grow silently and cannot be left behind
+ * once the claim it covers is gone. Adding an id here is the same decision
+ * being made again, and should be recorded on the board the same way.
+ */
+const OWNER_ADOPTION_CLAIM_IDS = ["CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"];
+
+/** The wording shape A is *required* to have, which shape B is forbidden to have. */
+const SOURCE_BACKED_CLAIM_PHRASES = [
+  "CONFIRMED WITHIN SCOPE.",
+  "the accountable owner confirms that this source supports that rule within the " +
+    "general fitness and wellness scope",
+  "Steadfast has not independently verified the source's full text",
+  "Steadfast has not independently verified the cited source's",
+];
+
+/**
+ * The only places an owner-adoption claim may use "supports", "verified" or
+ * "confirmed", each one a negation or a scope attestation rather than a claim
+ * that something backs the values. They are stripped before the affirmative
+ * scan, exactly as {@link CREDENTIAL_DENIALS} are stripped before the
+ * credential scan, so a denial can never be mistaken for the assertion.
+ */
+const OWNER_ADOPTION_PERMITTED_NEGATIONS = [
+  "SCOPE ATTESTATION: confirmed by the accountable owner within the general fitness and " +
+    "wellness scope; no clinical qualification, licence, registration number or certifying " +
+    "body is claimed.",
+  "No external source was consulted for them and none is named.",
+  "no external source supports these values, and none is cited",
+  "not verified against a primary literature source",
+  "not verified against any external source",
+  "It is not evidence that they are correct, and it asserts no external support of any kind.",
+];
+
+/** Affirmative backing wording. Anything surviving the strip above is a claim. */
+const AFFIRMATIVE_BACKING = /\b(supports|verified|confirmed|evidence for)\b/i;
 
 /**
  * Any wording that would turn the signature into a credential claim.
@@ -449,21 +501,27 @@ describe("S-V1-artifacts — the draft policy bundle binds the draft templates, 
 });
 
 describe("S-17 — the three values the reviewer supplied now compose", () => {
-  it("lifts the effort-copy refusal, and records that training still will not compose", () => {
+  it("lifts the effort-copy refusal, and resolves the reviewer's adopted training doses", () => {
     /**
      * Read this one carefully, because it says less than it looks like it says.
      *
      * Worksheet section 3a/3b supplied the two effort sentences, so
-     * `TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE` is gone. Training still does
-     * not compose: `resolveTrainingParameters` now refuses with
+     * `TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE` is gone. Until S-23 training
+     * still did not compose: `resolveTrainingParameters` refused with
      * `TRAINING_PARAMETER_MISSING` over 23 strength and cardio dose parameters
-     * the bundle does not carry, and the worksheet supplied none of them — they
-     * are doses, and S-17 invented nothing.
+     * the bundle did not carry, because they are doses and S-17 invented none.
      *
-     * So supplying the copy was necessary and not sufficient. This assertion
-     * pins the new refusal so that "no session composes" cannot later be
-     * attributed to the effort copy again, and so that the count changing is
-     * visible rather than silent.
+     * S-23 wrote them in. The accountable owner adopted all 35 values on
+     * 2026-09-29 (`steadfast-hq/board/DOSE-WORKSHEET.md` and
+     * `DOSE-WORKSHEET-2.md`) in his own words, recorded verbatim on every one
+     * of their `proposalProvenance` rows: "proposed by engineering, adopted by
+     * me, not verified against a primary literature source."
+     *
+     * So this assertion changes sides: it now pins the values the composer
+     * actually reads, so a later edit to the bundle cannot move a dose without
+     * a test saying so. Resolving is NOT composing — the prescription engine
+     * still fails closed on its own 13 absent parameters, which the run
+     * recorded in `steadfast-hq/board/evidence/v1-dose-harness.md` measures.
      */
     const explanationTexts = (bundleFile.content.trainingEffortTemplateIds ?? [])
       .map((id) => templates.find((template) => template.id === id))
@@ -475,11 +533,87 @@ describe("S-17 — the three values the reviewer supplied now compose", () => {
     ]);
 
     const resolution = resolveTrainingParameters(bundleFile.content, explanationTexts);
-    expect(resolution.ok).toBe(false);
-    if (resolution.ok) return;
-    expect(resolution.reasonCodes).toEqual(["TRAINING_PARAMETER_MISSING"]);
-    expect(resolution.reasonCodes).not.toContain("TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE");
-    expect(resolution.missingParameterIds).toHaveLength(23);
+    expect(resolution.ok).toBe(true);
+    if (!resolution.ok) return;
+    const { parameters } = resolution;
+    expect({
+      sets: parameters.setsPerExerciseByExperience,
+      reps: parameters.repsPerSetByExperience,
+      rest: parameters.restSecondsByExperience,
+      strengthSessions: parameters.maxStrengthSessionsByExperience,
+      cardioMinutes: parameters.cardioSessionMinutesByExperience,
+      cardioSessions: parameters.cardioSessionsPerWeekByExperience,
+    }).toEqual({
+      sets: { NEW: 3, RETURNING: 3, EXPERIENCED: 4 },
+      reps: { NEW: 10, RETURNING: 10, EXPERIENCED: 8 },
+      rest: { NEW: 90, RETURNING: 90, EXPERIENCED: 120 },
+      strengthSessions: { NEW: 3, RETURNING: 4, EXPERIENCED: 4 },
+      cardioMinutes: { NEW: 20, RETURNING: 25, EXPERIENCED: 30 },
+      cardioSessions: { NEW: 2, RETURNING: 2, EXPERIENCED: 3 },
+    });
+    expect({
+      cardioMaxSessionMinutes: parameters.cardioMaxSessionMinutes,
+      workloadTotalSessionsMax: parameters.workloadTotalSessionsMax,
+      workloadTrainingMinutesMax: parameters.workloadTrainingMinutesMax,
+      workloadTrainingMinutesMaxWhenEnergyReduced:
+        parameters.workloadTrainingMinutesMaxWhenEnergyReduced,
+      workloadConsecutiveTrainingDaysMax: parameters.workloadConsecutiveTrainingDaysMax,
+    }).toEqual({
+      cardioMaxSessionMinutes: 45,
+      workloadTotalSessionsMax: 6,
+      workloadTrainingMinutesMax: 360,
+      workloadTrainingMinutesMaxWhenEnergyReduced: 240,
+      // Raised from 3 by the accountable owner on 2026-09-29, after the first
+      // harness run showed the ceiling of 3 trimming cardio out of a four-day
+      // strength split. His reason is recorded on the parameter's provenance
+      // row and pinned by the test below.
+      workloadConsecutiveTrainingDaysMax: 4,
+    });
+  });
+
+  it("records the owner's provenance, unchanged, on every value S-23 added", () => {
+    // The sentence is the record. A later edit that "improves" it, or a row
+    // that quietly acquires a literature citation it never had, fails here.
+    const PROVENANCE =
+      "proposed by engineering, adopted by me, not verified against a primary literature source.";
+    const adopted = [
+      ...TRAINING_COMPOSER_PARAMETER_IDS.filter(
+        (id) => !id.startsWith("TRAINING.SESSION.")
+      ),
+      ...TRAINING_PROGRESSION_PARAMETER_IDS,
+    ];
+    expect(adopted).toHaveLength(35);
+    if (bundleFile.reviewMetadata.decision !== "APPROVED")
+      throw new Error("policy bundle is not signed");
+    const byParameter = new Map(
+      (bundleFile.reviewMetadata.proposalProvenance ?? []).map((row) => [row.parameterId, row])
+    );
+    for (const id of adopted) {
+      const locator = byParameter.get(id)?.sourceLocator ?? "";
+      expect({ id, startsWithProvenance: locator.startsWith(PROVENANCE) }).toEqual({
+        id,
+        startsWithProvenance: true,
+      });
+      // And every one of them names the owner-adoption claim, not a citation.
+      expect({ id, claim: byParameter.get(id)?.sourceClaimId }).toEqual({
+        id,
+        claim: "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+      });
+    }
+
+    // Exactly one row carries more than the sentence: the consecutive-days
+    // ceiling, which the owner changed after seeing the first harness run. Its
+    // reason is part of the record, so it is pinned rather than allowed to
+    // drift, and no other row may acquire extra text unnoticed.
+    const annotated = adopted.filter(
+      (id) => byParameter.get(id)?.sourceLocator !== PROVENANCE
+    );
+    expect(annotated).toEqual(["WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX"]);
+    expect(byParameter.get(annotated[0])?.sourceLocator).toBe(
+      PROVENANCE +
+        " Raised from three to four on 2026-09-29 so a four-day strength split can schedule" +
+        " its cardio without this ceiling trimming it first."
+    );
   });
 
   it("still fails closed on the effort copy itself the moment it is removed", () => {
@@ -587,21 +721,58 @@ describe("S-17 — signed evidence registry", () => {
     }
   });
 
-  it("cites no placeholder source and carries no pending claim id", () => {
+  it("cites no placeholder source except the one sanctioned owner-adoption claim", () => {
     // Worksheet section 2 replaced both. A signed artifact must not carry an
     // `example.invalid` URL or a `CLAIM.PENDING.*` id: each one was a record
     // saying "nothing supports this yet", which a signature cannot be put on.
+    //
+    // S-23 carve-out, decided by the accountable owner and recorded on the
+    // board. Exactly one claim is permitted a placeholder host, because the
+    // artifact schema has no other way to say "adopted by the owner, no
+    // external source": every numeric parameter must name a claim and every
+    // other claim must name a real source. Relaxing it for that one claim is
+    // narrower than the alternative, which was attaching a literature citation
+    // to values whose own record says they were never checked against one.
+    //
+    // Keyed to the same sanctioned list as the claim-shape guard below.
+    const PLACEHOLDER_HOST_PERMITTED = OWNER_ADOPTION_CLAIM_IDS;
+    expect(PLACEHOLDER_HOST_PERMITTED).toHaveLength(1);
+
+    const placeholderHosted = claims
+      .filter((claim) => new URL(claim.sourceUrl).hostname.endsWith("example.invalid"))
+      .map((claim) => claim.id);
+    // Set equality in both directions: an unsanctioned placeholder fails, and
+    // so does leaving the carve-out in place after the claim it covers is gone.
+    expect([...placeholderHosted].sort()).toEqual([...PLACEHOLDER_HOST_PERMITTED].sort());
+
     for (const claim of claims) {
-      expect({
-        id: claim.id,
-        host: new URL(claim.sourceUrl).hostname,
-        placeholder: new URL(claim.sourceUrl).hostname.endsWith("example.invalid"),
-      }).toMatchObject({ id: claim.id, placeholder: false });
       expect({
         id: claim.id,
         pending: claim.id.startsWith(PENDING_EVIDENCE_CLAIM_ID_PREFIX),
       }).toMatchObject({ id: claim.id, pending: false });
     }
+  });
+
+  it("keeps the carve-out honest: the sanctioned claim denies being evidence", () => {
+    // A placeholder host is only defensible if the claim says outright that
+    // nothing supports the values. If that wording is ever softened into an
+    // ordinary citation, the carve-out stops being narrow and this fails.
+    const owner = claims.find((claim) => claim.id === "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION");
+    expect(owner).toBeDefined();
+    if (!owner) return;
+    expect(owner.claim.startsWith("ADOPTED WITHIN SCOPE, NOT EVIDENCE.")).toBe(true);
+    expect(
+      owner.limitations.some(
+        (limitation) =>
+          limitation.startsWith("NOT EVIDENCE:") &&
+          limitation.includes(
+            "proposed by engineering, adopted by me, not verified against a primary " +
+              "literature source."
+          )
+      )
+    ).toBe(true);
+    // And it must not quietly acquire a second, real-looking source.
+    expect(new URL(owner.sourceUrl).hostname.endsWith("example.invalid")).toBe(true);
   });
 
   it("binds every claim to the exact policy rules its parameters declare", () => {
@@ -698,14 +869,24 @@ describe("S-17 — signed evidence registry", () => {
     }
   });
 
-  it("claims a scope attestation and denies an independent verification, in every claim", () => {
+  it("claims a scope attestation and denies an independent verification, in every sourced claim", () => {
     // This is the line S-17 was told to hold and the reason this test exists.
     // What happened: the accountable owner confirmed each source supports the
     // rule it is bound to, within the general fitness and wellness scope.
     // What did not happen: anyone reading a source's full text and checking it.
     // A claim that asserts the first must keep denying the second, or the
     // signature starts meaning something nobody did.
-    for (const claim of claims) {
+    //
+    // S-23 changed this guard's premise rather than its strength. It used to
+    // read "every claim", because every claim cited a source. One now does not,
+    // by the accountable owner's decision, so the shape it must take instead is
+    // asserted below with equal force. The two shapes are keyed to
+    // {@link OWNER_ADOPTION_CLAIM_IDS} and cannot overlap.
+    const sourced = claims.filter((claim) => !OWNER_ADOPTION_CLAIM_IDS.includes(claim.id));
+    expect(sourced.length).toBe(claims.length - OWNER_ADOPTION_CLAIM_IDS.length);
+    expect(sourced.length).toBeGreaterThan(0);
+
+    for (const claim of sourced) {
       expect({ id: claim.id, opens: claim.claim.startsWith("CONFIRMED WITHIN SCOPE.") }).toEqual({
         id: claim.id,
         opens: true,
@@ -728,6 +909,75 @@ describe("S-17 — signed evidence registry", () => {
         limitation.startsWith("Steadfast has not independently verified the cited source's")
       );
       expect({ id: claim.id, attested, denied }).toEqual({ id: claim.id, attested: true, denied: true });
+    }
+  });
+
+  it("holds the sanctioned owner-adoption claim to the opposite shape, with equal force", () => {
+    // The second permitted shape, authorized with the carve-out. A claim that
+    // cites nothing cannot say "this source supports that rule" — so where the
+    // sourced shape *requires* those phrases, this one *forbids* them, and the
+    // denial it carries instead is mandatory rather than optional. The point is
+    // that the two shapes cannot converge: neither can be edited into the other
+    // without failing here.
+
+    // Keyed both ways. A claim taking this shape without being on the list
+    // fails, and a listed claim that stops taking it fails.
+    const takesOwnerShape = claims
+      .filter((claim) => claim.claim.startsWith("ADOPTED WITHIN SCOPE, NOT EVIDENCE."))
+      .map((claim) => claim.id);
+    expect([...takesOwnerShape].sort()).toEqual([...OWNER_ADOPTION_CLAIM_IDS].sort());
+
+    // And the same keying from the sourced side, so a claim cannot simply drop
+    // both openers and belong to neither shape.
+    const takesSourcedShape = claims
+      .filter((claim) => claim.claim.startsWith("CONFIRMED WITHIN SCOPE."))
+      .map((claim) => claim.id);
+    expect([...takesSourcedShape, ...takesOwnerShape].sort()).toEqual(
+      claims.map((claim) => claim.id).sort()
+    );
+
+    for (const id of OWNER_ADOPTION_CLAIM_IDS) {
+      const claim = claims.find((item) => item.id === id);
+      expect({ id, found: Boolean(claim) }).toEqual({ id, found: true });
+      if (!claim) continue;
+
+      // Mandatory: the opener and the NOT EVIDENCE limitation.
+      expect({ id, opens: claim.claim.startsWith("ADOPTED WITHIN SCOPE, NOT EVIDENCE.") }).toEqual({
+        id,
+        opens: true,
+      });
+      const denies = claim.limitations.some((limitation) =>
+        limitation.startsWith("NOT EVIDENCE:")
+      );
+      expect({ id, denies }).toEqual({ id, denies: true });
+
+      // Forbidden: every phrase the sourced shape is required to carry.
+      for (const phrase of SOURCE_BACKED_CLAIM_PHRASES) {
+        const haystack = [claim.claim, claim.population, ...claim.limitations].join(" ");
+        expect({ id, phrase, present: haystack.includes(phrase) }).toEqual({
+          id,
+          phrase,
+          present: false,
+        });
+      }
+
+      // Forbidden: any affirmative "supports / verified / confirmed / evidence
+      // for" at all. The handful of negations and the scope attestation are
+      // pinned strings and are stripped first, so softening one into an
+      // assertion leaves the bare word behind and fails here.
+      let scanned = [claim.claim, claim.population, ...claim.limitations].join(" ");
+      for (const negation of OWNER_ADOPTION_PERMITTED_NEGATIONS) {
+        expect({ id, negation, present: scanned.includes(negation) }).toEqual({
+          id,
+          negation,
+          present: true,
+        });
+        scanned = scanned.split(negation).join(" ");
+      }
+      expect({ id, affirmative: AFFIRMATIVE_BACKING.exec(scanned)?.[0] ?? null }).toEqual({
+        id,
+        affirmative: null,
+      });
     }
   });
 

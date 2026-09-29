@@ -33,8 +33,15 @@ import { signedArtifactReviewMetadataSchema } from "@/lib/ai-coach/artifacts/sch
  */
 const EXPECTED = {
   policyBundle: {
-    content: "c4ea70df84d1e890b6d4db7bf247eb8919f4d0aa641d0f24fcfc4ee512e7e7d6",
-    reviewMetadata: "a464ef35897f0217c882c397522aed64c7ecf5f14fa29cd07081be200f7b27f7",
+    // S-23 — re-signed after the accountable owner's 35 adopted training,
+    // workload and progression values were written in, then re-signed again
+    // when he rebound them from the ACSM claim to the sanctioned
+    // owner-adoption claim and raised CONSECUTIVE_TRAINING_DAYS.MAX. All four
+    // values below were recomputed on 2026-09-29 by running `contentHash` over
+    // the loaded files and pasting stdout; none was copied from a failing
+    // assertion.
+    content: "a87fe2abaf797368d16a6420536f0211a33ac55e63ad4df8c9c9f2c15dd81ac5",
+    reviewMetadata: "eb25bc3b65a9226c7d94585460c22a91ec57a3e1390b8bbf0e17c90abf23a894",
   },
   foodCatalog: {
     content: "ade4d55bd56221cffa959e5b23c74646ec3cb69911b00cc7889db06a6e66b5bd",
@@ -45,8 +52,9 @@ const EXPECTED = {
     reviewMetadata: "f9052e1ae5d585c0b65bea061b87593fe7f753e8dd9c28b0ba2e43284df6f139",
   },
   evidenceRegistry: {
-    content: "72dd7a8c05f6dec1d442d42598fc1d125423bc676d757213d3adbe323466d35b",
-    reviewMetadata: "3177919c227db5d603e8b24631baeb9cfd599dbe419591b3515a19b84fcd2140",
+    // S-23 — one claim added, CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION.
+    content: "0799ab737d74b9c3eba1a41c7197a1d50333b61bc7a8cb0e3671a0b86655c4ca",
+    reviewMetadata: "0d5a93185ae7385a5add60cd7cf65d11c9e59b2064363e25d014a8f2d9b47d17",
   },
   escalationTemplates: {
     content: "69c9610d2cb0cf8f85e3900939c287f0a36d041259459824cca670d57e111174",
