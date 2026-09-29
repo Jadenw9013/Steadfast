@@ -33,15 +33,16 @@ import { signedArtifactReviewMetadataSchema } from "@/lib/ai-coach/artifacts/sch
  */
 const EXPECTED = {
   policyBundle: {
-    // S-23 — re-signed after the accountable owner's 35 adopted training,
-    // workload and progression values were written in, then re-signed again
-    // when he rebound them from the ACSM claim to the sanctioned
-    // owner-adoption claim and raised CONSECUTIVE_TRAINING_DAYS.MAX. All four
-    // values below were recomputed on 2026-09-29 by running `contentHash` over
-    // the loaded files and pasting stdout; none was copied from a failing
-    // assertion.
-    content: "a87fe2abaf797368d16a6420536f0211a33ac55e63ad4df8c9c9f2c15dd81ac5",
-    reviewMetadata: "eb25bc3b65a9226c7d94585460c22a91ec57a3e1390b8bbf0e17c90abf23a894",
+    // S-25 — re-signed again after the accountable owner's 13 adopted
+    // prescription parameters and the two nutrition safety floors were written
+    // in and the two `nutritionLimits` hooks were repointed off their
+    // `PENDING_RD_DECISION` placeholders, in one edit. Content moved because
+    // the parameters and the hooks are content; review metadata moved because
+    // their 15 `proposalProvenance` rows are metadata. Both values were
+    // recomputed on 2026-09-29 by running `contentHash` over the loaded files
+    // and pasting stdout; neither was copied from a failing assertion.
+    content: "70412bfaf4fc50b90a14e2d6075a9015899f9e6a8bcd69426725b4998ec6f2e3",
+    reviewMetadata: "d7ece4c3e916d24c148bdbe86509999bf0b73383e048eb90cc71169a82f97da4",
   },
   foodCatalog: {
     content: "ade4d55bd56221cffa959e5b23c74646ec3cb69911b00cc7889db06a6e66b5bd",
@@ -53,7 +54,11 @@ const EXPECTED = {
   },
   evidenceRegistry: {
     // S-23 — one claim added, CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION.
-    content: "0799ab737d74b9c3eba1a41c7197a1d50333b61bc7a8cb0e3671a0b86655c4ca",
+    // S-25 — that claim's rule set grew to cover the nutrition parameters now
+    // bound to it, and it records the owner's second adoption sentence.
+    // Content moved; review metadata did not, because nothing about who signed
+    // the registry or when changed. Recomputed the same way, on 2026-09-29.
+    content: "b3457ca708a5be762405451b2e38e6b63a489ca914c3f17c060a784eb0dc70ab",
     reviewMetadata: "0d5a93185ae7385a5add60cd7cf65d11c9e59b2064363e25d014a8f2d9b47d17",
   },
   escalationTemplates: {

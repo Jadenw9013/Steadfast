@@ -13,10 +13,7 @@ import {
   type PolicyBundleContent,
 } from "@/lib/ai-coach/artifacts/schema";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
-import {
-  NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE,
-  resolveNutritionSafetyPolicy,
-} from "@/lib/ai-coach/nutrition-safety";
+import { resolveNutritionSafetyPolicy } from "@/lib/ai-coach/nutrition-safety";
 import {
   PRESCRIPTION_PARAMETER_SPECS,
   resolvePrescriptionParameters,
@@ -124,9 +121,11 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
 
     // 62 nutrition + 11 training session-structure parameters = 73, plus the
     // 35 training, workload and progression values the accountable owner
-    // adopted on 2026-09-29 and S-23 wrote in = 108.
-    expect(parameterIdsInContent).toHaveLength(108);
-    expect(provenanceParameterIds).toHaveLength(108);
+    // adopted on 2026-09-29 and S-23 wrote in = 108, plus the 13 prescription
+    // values and the 2 nutrition safety floors he adopted the same day and
+    // S-25 wrote in = 123.
+    expect(parameterIdsInContent).toHaveLength(123);
+    expect(provenanceParameterIds).toHaveLength(123);
     expect([...provenanceParameterIds].sort()).toEqual([...parameterIdsInContent].sort());
 
     for (const prov of provenance) {
@@ -148,7 +147,7 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     }
   });
 
-  it("draft bundle parameters agree with catalogue doc and do not drift (62 proposed / 13 open)", () => {
+  it("draft bundle parameters agree with catalogue doc and do not drift (62 sourced / 13 adopted)", () => {
     const draftFile = loadDraftUnsignedPolicyBundle();
     const floors = buildSyntheticSafetyFloors();
     const resolution = resolvePrescriptionParameters(
@@ -157,12 +156,13 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
       floors
     );
 
-    // Fails closed because 13 parameters are intentionally omitted awaiting RD review
-    expect(resolution.ok).toBe(false);
-    if (resolution.ok) return;
-
-    expect(resolution.reasonCodes).toEqual(["PRESCRIPTION_PARAMETER_MISSING"]);
-    expect(resolution.missingParameterIds).toHaveLength(13);
+    // S-25 — the 13 were the whole of what this refused on. The accountable
+    // owner adopted them on 2026-09-29 (`steadfast-hq/board/DOSE-WORKSHEET-3.md`),
+    // so the bundle now carries all 75 and the resolver resolves. The
+    // fail-closed behaviour itself is not weakened: the per-id removal proof
+    // below still fails the resolver on each one individually.
+    expect(resolution.ok).toBe(true);
+    if (!resolution.ok) return;
 
     // Parse the catalogue doc to ensure no drift between doc and code
     const cataloguePath = path.resolve(
@@ -171,24 +171,10 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     );
     const catalogueContent = fs.readFileSync(cataloguePath, "utf-8");
 
-    // Extract awaiting review table IDs (Section 3)
-    const awaitingReviewSection = catalogueContent
-      .split("## 3. Awaiting Qualified Professional Review (13)")[1]
-      ?.split("## 4. Training and Progression Parameters (46)")[0];
-    expect(awaitingReviewSection).toBeDefined();
-
-    const awaitingIdsFromDoc = [...awaitingReviewSection.matchAll(/\|\s*`([A-Z0-9._:-]+)`\s*\|/g)]
-      .map((m) => m[1])
-      // Filter out table headers or non-parameter matches
-      .filter((id) => PRESCRIPTION_PARAMETER_SPECS.some((spec) => spec.id === id));
-
-    expect(awaitingIdsFromDoc).toHaveLength(13);
-    expect([...resolution.missingParameterIds].sort()).toEqual([...awaitingIdsFromDoc].sort());
-
     // Extract proposed parameters table IDs (Section 2)
     const proposedSection = catalogueContent
       .split("## 2. Source-Backed Proposed Parameters (62)")[1]
-      ?.split("## 3. Awaiting Qualified Professional Review (13)")[0];
+      ?.split("## 3. Owner-Adopted Prescription Parameters (13)")[0];
     expect(proposedSection).toBeDefined();
 
     const proposedIdsFromDoc = [...proposedSection.matchAll(/\|\s*`([A-Z0-9._:-]+)`\s*\|/g)]
@@ -199,14 +185,131 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     const uniqueProposedIdsFromDoc = [...new Set(proposedIdsFromDoc)];
     expect(uniqueProposedIdsFromDoc).toHaveLength(62);
 
+    // Extract the owner-adopted table IDs (Section 3)
+    const adoptedSection = catalogueContent
+      .split("## 3. Owner-Adopted Prescription Parameters (13)")[1]
+      ?.split("## 4. Training and Progression Parameters (46)")[0];
+    expect(adoptedSection).toBeDefined();
+
+    const adoptedIdsFromDoc = [...adoptedSection.matchAll(/\|\s*`([A-Z0-9._:-]+)`\s*\|/g)]
+      .map((m) => m[1])
+      // Filter out table headers, rule IDs and the two safety floors, which are
+      // not members of PRESCRIPTION_PARAMETER_SPECS.
+      .filter((id) => PRESCRIPTION_PARAMETER_SPECS.some((spec) => spec.id === id));
+
+    expect(adoptedIdsFromDoc).toHaveLength(13);
+    // The two sections partition the resolver's catalogue exactly: nothing is
+    // in both, nothing is in neither.
+    expect([...uniqueProposedIdsFromDoc, ...adoptedIdsFromDoc].sort()).toEqual(
+      PRESCRIPTION_PARAMETER_SPECS.map((spec) => spec.id).sort()
+    );
+
     const draftPrescriptionParameterIds = draftFile.content.numericParameters
       .map((p) => p.id)
       .filter((id) => PRESCRIPTION_PARAMETER_SPECS.some((spec) => spec.id === id));
-    expect([...draftPrescriptionParameterIds].sort()).toEqual([...uniqueProposedIdsFromDoc].sort());
+    expect([...draftPrescriptionParameterIds].sort()).toEqual(
+      PRESCRIPTION_PARAMETER_SPECS.map((spec) => spec.id).sort()
+    );
 
     // Total must equal 75
     expect(PRESCRIPTION_PARAMETER_SPECS).toHaveLength(75);
-    expect(draftPrescriptionParameterIds.length + resolution.missingParameterIds.length).toBe(75);
+    expect(draftPrescriptionParameterIds).toHaveLength(75);
+  });
+
+  it("resolves the accountable owner's thirteen adopted values, exactly as he wrote them", () => {
+    // S-25 — the values, not the count. `DOSE-WORKSHEET-3.md`'s ADOPTED
+    // section is the record; this is the assertion that moving any one of
+    // them is a test change rather than a quiet edit to a signed artifact.
+    const draftFile = loadDraftUnsignedPolicyBundle();
+    const byId = new Map(draftFile.content.numericParameters.map((p) => [p.id, p]));
+    const adopted: Record<string, { value: number; unit: string }> = {
+      "GOAL.ADJUSTMENT.LOSE.GRADUAL.ENERGY_DELTA_FRACTION": {
+        value: -0.1,
+        unit: "FRACTION_OF_MAINTENANCE_ENERGY",
+      },
+      "GOAL.ADJUSTMENT.LOSE.MODERATE.ENERGY_DELTA_FRACTION": {
+        value: -0.2,
+        unit: "FRACTION_OF_MAINTENANCE_ENERGY",
+      },
+      "GOAL.ADJUSTMENT.GAIN.GRADUAL.ENERGY_DELTA_FRACTION": {
+        value: 0.05,
+        unit: "FRACTION_OF_MAINTENANCE_ENERGY",
+      },
+      "GOAL.ADJUSTMENT.GAIN.MODERATE.ENERGY_DELTA_FRACTION": {
+        value: 0.1,
+        unit: "FRACTION_OF_MAINTENANCE_ENERGY",
+      },
+      "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION": {
+        value: 0,
+        unit: "FRACTION_OF_MAINTENANCE_ENERGY",
+      },
+      "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION": {
+        value: 0.25,
+        unit: "FRACTION_OF_MAINTENANCE_ENERGY",
+      },
+      "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION": {
+        value: 0.25,
+        unit: "FRACTION_OF_MAINTENANCE_ENERGY",
+      },
+      "ENERGY.BODY_MASS.ENERGY_PER_KG": { value: 7700, unit: "KCAL_PER_KG_BODY_MASS" },
+      "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS": { value: 14, unit: "DAYS" },
+      "ROUNDING.ENERGY_KCAL.STEP": { value: 10, unit: "KCAL_PER_DAY" },
+      "ROUNDING.MACRO_GRAMS.DECIMALS": { value: 0, unit: "DECIMAL_PLACES" },
+      "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS": { value: 2, unit: "DECIMAL_PLACES" },
+      "COMPOSITION.TOLERANCE_PERCENT": { value: 5, unit: "PERCENT" },
+    };
+    expect(Object.keys(adopted)).toHaveLength(13);
+    for (const [id, expected] of Object.entries(adopted)) {
+      expect({ id, value: byId.get(id)?.value, unit: byId.get(id)?.unit }).toEqual({
+        id,
+        ...expected,
+      });
+    }
+
+    // And every one of them names the owner-adoption claim rather than a citation.
+    if (draftFile.reviewMetadata.decision !== "APPROVED") throw new Error("bundle is not signed");
+    const provenance = new Map(
+      (draftFile.reviewMetadata.proposalProvenance ?? []).map((row) => [row.parameterId, row])
+    );
+    for (const id of Object.keys(adopted)) {
+      expect({ id, claim: provenance.get(id)?.sourceClaimId }).toEqual({
+        id,
+        claim: "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+      });
+    }
+  });
+
+  it("still fails closed on each of the thirteen individually, one id at a time", () => {
+    // Resolving is not the same as no longer being able to refuse. Removing
+    // any one of the adopted values must still refuse by id, which is the
+    // property that protected clients before they existed.
+    const draftFile = loadDraftUnsignedPolicyBundle();
+    const floors = buildSyntheticSafetyFloors();
+    const adoptedIds = [
+      "GOAL.ADJUSTMENT.LOSE.GRADUAL.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.LOSE.MODERATE.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.GAIN.GRADUAL.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.GAIN.MODERATE.ENERGY_DELTA_FRACTION",
+      "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION",
+      "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+      "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION",
+      "ENERGY.BODY_MASS.ENERGY_PER_KG",
+      "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS",
+      "ROUNDING.ENERGY_KCAL.STEP",
+      "ROUNDING.MACRO_GRAMS.DECIMALS",
+      "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS",
+      "COMPOSITION.TOLERANCE_PERCENT",
+    ];
+    for (const id of adoptedIds) {
+      const content = {
+        ...draftFile.content,
+        numericParameters: draftFile.content.numericParameters.filter((p) => p.id !== id),
+      };
+      const resolution = resolvePrescriptionParameters(content, ["text"], floors);
+      expect({ id, ok: resolution.ok }).toEqual({ id, ok: false });
+      if (resolution.ok) continue;
+      expect({ id, missing: resolution.missingParameterIds }).toEqual({ id, missing: [id] });
+    }
   });
 
   it("synthetic policy bundle resolves to ok:true with all 75 parameters and nutrition-safety passes", () => {
@@ -236,16 +339,29 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     expect(safetyPolicy.nutritionLimits.maximumWeeklyLossRatePercent).toBe(9.99);
   });
 
-  it("returns a renderable HOLD when the draft safety floors await RD review", () => {
+  it("resolves the two nutrition safety floors the accountable owner adopted", () => {
+    // S-25 — this asserted a renderable HOLD while both hooks were still
+    // `PENDING_RD_DECISION` placeholders. They are not: the owner adopted
+    // 1200 kcal/day and 1.0 %BW/week on 2026-09-29 and the hooks were
+    // repointed in the same edit that added the parameters. The PENDING branch
+    // itself is still exercised, on a mutated copy, in
+    // `ai-coach-nutrition-safety-floors.test.ts`.
     const resolution = resolveNutritionSafetyPolicy(loadDraftUnsignedPolicyBundle().content);
-    expect(resolution.resolutionStatus).toBe("PENDING");
-    expect(resolution.pendingParameterIds).toEqual([
-      "PENDING_RD_DECISION_MIN_DAILY_ENERGY",
-      "PENDING_RD_DECISION_MAX_WEEKLY_LOSS_RATE",
-    ]);
-    expect(resolution.pendingDecision).toMatchObject({
-      outcome: "HOLD",
-      reasonCodes: [NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE],
+    expect(resolution.resolutionStatus).toBe("RESOLVED");
+    if (resolution.resolutionStatus !== "RESOLVED") return;
+    expect(resolution.pendingParameterIds).toEqual([]);
+    expect(resolution.pendingDecision).toBeNull();
+    expect({
+      minimumDailyEnergyParameterId: resolution.nutritionLimits.minimumDailyEnergyParameterId,
+      minimumDailyEnergyKcal: resolution.nutritionLimits.minimumDailyEnergyKcal,
+      maximumWeeklyLossRateParameterId:
+        resolution.nutritionLimits.maximumWeeklyLossRateParameterId,
+      maximumWeeklyLossRatePercent: resolution.nutritionLimits.maximumWeeklyLossRatePercent,
+    }).toEqual({
+      minimumDailyEnergyParameterId: "SAFETY.NUTRITION.MIN_DAILY_ENERGY.FLOOR.V1",
+      minimumDailyEnergyKcal: 1200,
+      maximumWeeklyLossRateParameterId: "SAFETY.NUTRITION.MAX_WEEKLY_LOSS_RATE.CEILING.V1",
+      maximumWeeklyLossRatePercent: 1,
     });
   });
 

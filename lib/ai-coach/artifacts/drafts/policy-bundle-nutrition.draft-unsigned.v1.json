@@ -799,6 +799,111 @@
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
         "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.LOSE.GRADUAL.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.LOSE.MODERATE.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.GAIN.GRADUAL.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.GAIN.MODERATE.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ENERGY.BODY_MASS.ENERGY_PER_KG",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ROUNDING.ENERGY_KCAL.STEP",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ROUNDING.MACRO_GRAMS.DECIMALS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "COMPOSITION.TOLERANCE_PERCENT",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "SAFETY.NUTRITION.MIN_DAILY_ENERGY.FLOOR.V1",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "SAFETY.NUTRITION.MAX_WEEKLY_LOSS_RATE.CEILING.V1",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
       }
     ]
   },
@@ -954,8 +1059,8 @@
         }
       ],
       "nutritionLimits": {
-        "minimumDailyEnergyParameterId": "PENDING_RD_DECISION_MIN_DAILY_ENERGY",
-        "maximumWeeklyLossRateParameterId": "PENDING_RD_DECISION_MAX_WEEKLY_LOSS_RATE",
+        "minimumDailyEnergyParameterId": "SAFETY.NUTRITION.MIN_DAILY_ENERGY.FLOOR.V1",
+        "maximumWeeklyLossRateParameterId": "SAFETY.NUTRITION.MAX_WEEKLY_LOSS_RATE.CEILING.V1",
         "minimumDailyEnergyRuleId": "NUTRITION_MINIMUM_DAILY_ENERGY_RULE",
         "maximumWeeklyLossRateRuleId": "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
         "noConsecutiveDeficitRuleId": "NUTRITION_NO_CONSECUTIVE_DEFICIT_RULE",
@@ -2151,6 +2256,171 @@
         "applicabilityRuleIds": [
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1",
           "WEEKLY.RULE.COOLDOWN.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.LOSE.GRADUAL.ENERGY_DELTA_FRACTION",
+        "value": -0.1,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.LOSE.MODERATE.ENERGY_DELTA_FRACTION",
+        "value": -0.2,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.GAIN.GRADUAL.ENERGY_DELTA_FRACTION",
+        "value": 0.05,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.GAIN.MODERATE.ENERGY_DELTA_FRACTION",
+        "value": 0.1,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION",
+        "value": 0.0,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+        "value": 0.25,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION",
+        "value": 0.25,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ENERGY.BODY_MASS.ENERGY_PER_KG",
+        "value": 7700,
+        "unit": "KCAL_PER_KG_BODY_MASS",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS",
+        "value": 14,
+        "unit": "DAYS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ROUNDING.ENERGY_KCAL.STEP",
+        "value": 10,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ROUNDING.MACRO_GRAMS.DECIMALS",
+        "value": 0,
+        "unit": "DECIMAL_PLACES",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS",
+        "value": 2,
+        "unit": "DECIMAL_PLACES",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "COMPOSITION.TOLERANCE_PERCENT",
+        "value": 5,
+        "unit": "PERCENT",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "SAFETY.NUTRITION.MIN_DAILY_ENERGY.FLOOR.V1",
+        "value": 1200,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NUTRITION_MINIMUM_DAILY_ENERGY_RULE"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "SAFETY.NUTRITION.MAX_WEEKLY_LOSS_RATE.CEILING.V1",
+        "value": 1.0,
+        "unit": "PERCENT_BODY_WEIGHT_PER_WEEK",
+        "applicabilityRuleIds": [
+          "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE"
         ],
         "evidenceClaimIds": [
           "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"

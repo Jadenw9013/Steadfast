@@ -102,6 +102,7 @@ import {
   EFFORT_STRENGTH_TEMPLATE_ID,
 } from "../lib/ai-coach/training/parameters";
 import {
+  ENERGY_PER_KG_BODY_MASS_ID,
   PRESCRIPTION_PARAMETER_SPECS,
   resolvePrescriptionParameters,
   type ResolvedPrescriptionParameters,
@@ -110,6 +111,7 @@ import {
   buildPrescriptionInput,
   computePrescription,
   nutritionRequiredForGoal,
+  type PrescriptionInput,
 } from "../lib/ai-coach/prescription";
 import { classifyPrescriptionReasonCodes } from "../lib/ai-coach/prescription-reason-classes";
 import {
@@ -1001,6 +1003,13 @@ type ProfileResult = {
   fatRange: { min: number; max: number } | null;
   projectedWeeklyChangeKg: number | null;
   appliedBoundIds: string[];
+  /**
+   * Which of the five goal-adjustment fractions `computePrescription` step 7
+   * routed this profile to, recomputed here from the same `(bodyWeightIntent,
+   * goalPaceClass)` branch rather than from the raw intake axes, so the
+   * per-class tables cannot disagree with the engine about routing.
+   */
+  goalAdjustmentClass: string | null;
   assumptions: string[];
   composerStatus: "COMPOSED_WITH_MEALS" | "MACROS_ONLY" | "UNAVAILABLE" | "THREW";
   composerThrew: string | null;
@@ -1112,6 +1121,34 @@ function envelopeChecks(
   return flags;
 }
 
+/**
+ * The five goal-adjustment fractions the bundle carries, in the order
+ * `DOSE-WORKSHEET-3.md` section A lists them. Declared so a class that never
+ * reaches a prescription is reported as zero rather than silently absent.
+ */
+const GOAL_ADJUSTMENT_CLASSES = [
+  "LOSE.GRADUAL",
+  "LOSE.MODERATE",
+  "GAIN.GRADUAL",
+  "GAIN.MODERATE",
+  "MAINTAIN.ANY",
+] as const;
+
+/**
+ * Mirrors `computePrescription` step 7's routing exactly: MAINTAIN and
+ * NO_PREFERENCE both take `MAINTAIN_ANY` whatever pace was chosen; LOSE/GAIN
+ * take the (intent, pace) fraction; anything else (UNDECIDED, or LOSE +
+ * MAINTAIN) has no parameter and is not a class.
+ */
+function goalAdjustmentClassOf(input: PrescriptionInput): string | null {
+  const intent = input.bodyWeightIntent;
+  if (intent === null) return null;
+  if (intent === "MAINTAIN" || intent === "NO_PREFERENCE") return "MAINTAIN.ANY";
+  const pace = input.goalPaceClass;
+  if (pace === "GRADUAL" || pace === "MODERATE") return `${intent}.${pace}`;
+  return null;
+}
+
 function evaluateProfile(
   profile: Profile,
   source: ParameterSource,
@@ -1132,6 +1169,7 @@ function evaluateProfile(
     fatRange: null,
     projectedWeeklyChangeKg: null,
     appliedBoundIds: [],
+    goalAdjustmentClass: null,
     assumptions: [],
     composerStatus: "UNAVAILABLE",
     composerThrew: null,
@@ -1165,6 +1203,8 @@ function evaluateProfile(
   result.nutritionRequired = built.ok
     ? nutritionRequiredForGoal(built.input)
     : nutritionRequiredForGoal({ bodyWeightIntent: axes.intent });
+
+  if (built.ok) result.goalAdjustmentClass = goalAdjustmentClassOf(built.input);
 
   if (binding.prescriptionParameters && built.ok) {
     const prescription = computePrescription(binding.prescriptionParameters, built.input);
@@ -2117,6 +2157,144 @@ function runOne(source: ParameterSource, profiles: Profile[], evaluatedOn: strin
     sections.push(
       ["### Which safety floors and bounds actually bind", "", ...boundLines].join("\n")
     );
+
+    /* ---- the same clamps, split by which goal-adjustment fraction routed ---- */
+    if (binding.prescriptionParameters) {
+      const parameters = binding.prescriptionParameters;
+      const clampIds: { id: string; label: string }[] = [
+        { id: "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION", label: "relative reduction" },
+        { id: "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION", label: "relative increase" },
+        { id: parameters.safetyFloors.minimumDailyEnergyParameterId, label: "energy floor" },
+        { id: parameters.safetyFloors.maximumWeeklyLossRateParameterId, label: "loss-rate ceiling" },
+      ];
+      const classLines = [
+        `| Goal-adjustment class | Fraction | Prescribed | ${clampIds
+          .map((clamp) => clamp.label)
+          .join(" | ")} |`,
+        `|---|---|---|${clampIds.map(() => "---").join("|")}|`,
+      ];
+      const fractionOf = (className: string): number => {
+        if (className === "MAINTAIN.ANY") return parameters.goalAdjustment.MAINTAIN_ANY;
+        const [intent, pace] = className.split(".") as ["LOSE" | "GAIN", "GRADUAL" | "MODERATE"];
+        return parameters.goalAdjustment[intent][pace];
+      };
+      for (const className of GOAL_ADJUSTMENT_CLASSES) {
+        const inClass = prescribed.filter((result) => result.goalAdjustmentClass === className);
+        const cells = clampIds.map(
+          (clamp) => inClass.filter((result) => result.appliedBoundIds.includes(clamp.id)).length
+        );
+        classLines.push(
+          `| \`${className}\` | ${fractionOf(className)} | ${inClass.length} | ${cells.join(
+            " | "
+          )} |`
+        );
+      }
+      classLines.push("");
+      const unclassified = prescribed.filter((result) => result.goalAdjustmentClass === null);
+      classLines.push(
+        `Prescribed profiles routed to no class (there is no such parameter, so the engine refuses ` +
+          `before this point): **${unclassified.length}**.`
+      );
+      sections.push(
+        ["### Which bound binds, by goal-adjustment class", "", ...classLines].join("\n")
+      );
+
+      /* ---- what the loss-rate ceiling permits as a daily deficit ---- */
+      // The clamp in `evaluateBoundsOnce` (prescription/index.ts step 8c) is
+      //   maxDeficitKcal = rate% x ENERGY.BODY_MASS.ENERGY_PER_KG x weightKg / (7 x 100)
+      // so the energy-per-kg value decides how large a deficit a given stated
+      // weekly rate permits. Recomputed here from the resolved parameters, and
+      // cross-checked against the largest deficit any clamped profile actually
+      // received, so the table is the engine's arithmetic rather than a
+      // restatement of the formula.
+      const rho = parameters.energyPerKgBodyMass;
+      const ratePercent = parameters.safetyFloors.maximumWeeklyLossRatePercent;
+      const grid = bodyGridFromBundle(source.policy);
+      const weightMin = grid.weights[1];
+      const weightMax = grid.weights[5];
+      const densityLines = [
+        `\`${ENERGY_PER_KG_BODY_MASS_ID}\` = **${rho}** kcal/kg; ` +
+          `\`${parameters.safetyFloors.maximumWeeklyLossRateParameterId}\` = **${ratePercent}** %BW/week.`,
+        "",
+        "| Body mass (kg) | Weekly loss the ceiling permits (kg) | Daily deficit the ceiling permits (kcal) |",
+        "|---|---|---|",
+      ];
+      for (const weightKg of grid.weights) {
+        if (weightKg < weightMin || weightKg > weightMax) continue;
+        const weeklyKg = (ratePercent / 100) * weightKg;
+        const maxDeficit = (ratePercent * rho * weightKg) / (7 * 100);
+        densityLines.push(`| ${weightKg} | ${round(weeklyKg, 2)} | ${round(maxDeficit, 1)} |`);
+      }
+      const rateClamped = prescribed.filter((result) =>
+        result.appliedBoundIds.includes(parameters.safetyFloors.maximumWeeklyLossRateParameterId)
+      );
+      const clampedDeficits = rateClamped.map(
+        (result) =>
+          (result.maintenanceEnergyKcal as number) - (result.targetEnergyKcal as number)
+      );
+      const clampedDeficitStats = stats(clampedDeficits);
+      const allDeficits = prescribed
+        .map(
+          (result) =>
+            (result.maintenanceEnergyKcal as number) - (result.targetEnergyKcal as number)
+        )
+        .filter((deficit) => deficit > 0);
+      densityLines.push("");
+      densityLines.push(
+        `- Profiles the loss-rate ceiling clamped: **${rateClamped.length}** of ${prescribed.length} prescribed.`
+      );
+      densityLines.push(
+        "| Quantity | Unit | n | Min | Median | Max | Mean |",
+        "|---|---|---|---|---|---|---|",
+        statsRow("deficit on clamped profiles", "kcal/day", clampedDeficitStats),
+        statsRow("deficit on every deficit profile", "kcal/day", stats(allDeficits))
+      );
+      // Per-kg deficit, because the ceiling is per-kg: a profile's realised
+      // weekly rate under an energy density `d` is `700 x (deficit/weightKg) / d`
+      // percent, so `700 x (deficit/weightKg) / ratePercent` is the energy
+      // density at which that profile would sit exactly on the intended
+      // ceiling. Measured, not assumed.
+      const perKg = prescribed
+        .filter((result) => result.profile.axes.weightKg !== null)
+        .map((result) => ({
+          weightKg: result.profile.axes.weightKg as number,
+          deficit:
+            (result.maintenanceEnergyKcal as number) - (result.targetEnergyKcal as number),
+        }))
+        .filter((entry) => entry.deficit > 0)
+        .map((entry) => entry.deficit / entry.weightKg);
+      densityLines.push(
+        statsRow("deficit per kg of body mass", "kcal/day/kg", stats(perKg)),
+        statsRow(
+          "energy density at which that deficit is exactly the ceiling",
+          "kcal/kg",
+          stats(perKg.map((value) => (value * 7 * 100) / ratePercent))
+        )
+      );
+      densityLines.push("");
+      densityLines.push(
+        "Both deficits above are differences of the **published** maintenance and target, each " +
+          "rounded to `ROUNDING.ENERGY_KCAL.STEP`, so one profile's figure can sit a few kcal " +
+          "either side of the exact clamp (which the engine applies to unrounded maintenance, " +
+          "then re-asserts against the rounded projected change). Whether any published result " +
+          "actually exceeds the ceiling is the `PROJECTED_LOSS_RATE_ABOVE_BUNDLE_CAP` line in the " +
+          "envelope section, not this table."
+      );
+      densityLines.push("");
+      densityLines.push(
+        "The permitted deficit is linear in the energy-per-kg value: at an energy density of " +
+          "`d` kcal/kg rather than the adopted one, the same deficit produces a weekly rate of " +
+          `\`${ratePercent} x ${rho} / d\` %BW/week. The harness states that identity and measures ` +
+          "the adopted value only; it proposes no other value for `d`."
+      );
+      sections.push(
+        [
+          "### What the weekly loss-rate ceiling permits as a daily deficit",
+          "",
+          ...densityLines,
+        ].join("\n")
+      );
+    }
 
     /* ---- envelope flags ---- */
     const envelope = new Counter();
