@@ -217,6 +217,19 @@ These 23 composer dose and workload cap parameters have no authoritative univers
 | `WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED` | `MINUTES_PER_WEEK` | D05 | `WORKLOAD.RULE.COMBINED.V1` | `CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE` | Adopted 2026-09-29 |
 | `WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX` | `DAYS` | D05 | `WORKLOAD.RULE.COMBINED.V1` | `CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE` | Adopted 2026-09-29 |
 
+**`WORKLOAD.WEEKLY.TOTAL_SESSIONS.MAX` has never bound, and cannot at the current values.** Measured
+across 4064 synthetic profiles both before and after the 2026-09-29 ceiling change: the largest weekly
+total any profile reaches is 5, one short of the adopted ceiling of 6, because
+`WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX` and the per-experience strength caps bind first. This
+is not a defect — a ceiling that never binds harms nobody — but **a ceiling that cannot bind is a
+ceiling nobody will notice is wrong**, so it carries no evidence that its value is right and should
+not be treated as validated by any harness run. The same is true of
+`CARDIO.DOSE.MAX_SESSION_MINUTES` at 45 while the largest adopted cardio session is 30 minutes, and
+of `WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX` at 360, which has never been *exercised* at all: with the
+prescription engine failing closed, `energyReducedRelativeToMaintenance` is `null` for every profile
+and `composeTraining` always takes the `MAX_WHEN_ENERGY_REDUCED` branch
+(`lib/ai-coach/training/index.ts`). See `steadfast-hq/board/evidence/v1-dose-harness.md` section 3.
+
 ### 4.3 Progression Parameters (12)
 
 These 12 progression parameters govern weekly controller progression (T-2007) and are declared in `TRAINING_PROGRESSION_PARAMETER_IDS`. They were adopted by the accountable owner on 2026-09-29 under the provenance stated above and written into the signed bundle by S-23. They stay **inert** until the 18 `WEEKLY.*` values and `ROUNDING.MACRO_GRAMS.DECIMALS` in Section 5 also exist, because `resolveWeeklyParameters` fails closed on those:

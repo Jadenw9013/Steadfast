@@ -66,6 +66,56 @@ const SIGNER_SCOPE_NOTE =
 const REVIEW_DATE = "2026-09-27T00:00:00.000Z";
 
 /**
+ * S-23 — the sanctioned owner-adoption claims, decided by the accountable
+ * owner and recorded on the board (`board/evidence/v1-dose-harness.md` §7).
+ *
+ * Every other claim in the registry cites an external source and says that the
+ * source supports the rule it is bound to. This one exists to say the opposite:
+ * that a set of values was adopted by the owner and has no external source at
+ * all. The artifact schema had no other way to express that — every numeric
+ * parameter must name a claim, and every other claim must name a real,
+ * non-placeholder source — and the alternative was attaching a literature
+ * citation to values whose own record says they were never checked against one.
+ *
+ * Two guards below are keyed to this exact list: the placeholder-host
+ * exception, and the second permitted claim shape. Both use set equality in
+ * both directions, so the list cannot grow silently and cannot be left behind
+ * once the claim it covers is gone. Adding an id here is the same decision
+ * being made again, and should be recorded on the board the same way.
+ */
+const OWNER_ADOPTION_CLAIM_IDS = ["CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"];
+
+/** The wording shape A is *required* to have, which shape B is forbidden to have. */
+const SOURCE_BACKED_CLAIM_PHRASES = [
+  "CONFIRMED WITHIN SCOPE.",
+  "the accountable owner confirms that this source supports that rule within the " +
+    "general fitness and wellness scope",
+  "Steadfast has not independently verified the source's full text",
+  "Steadfast has not independently verified the cited source's",
+];
+
+/**
+ * The only places an owner-adoption claim may use "supports", "verified" or
+ * "confirmed", each one a negation or a scope attestation rather than a claim
+ * that something backs the values. They are stripped before the affirmative
+ * scan, exactly as {@link CREDENTIAL_DENIALS} are stripped before the
+ * credential scan, so a denial can never be mistaken for the assertion.
+ */
+const OWNER_ADOPTION_PERMITTED_NEGATIONS = [
+  "SCOPE ATTESTATION: confirmed by the accountable owner within the general fitness and " +
+    "wellness scope; no clinical qualification, licence, registration number or certifying " +
+    "body is claimed.",
+  "No external source was consulted for them and none is named.",
+  "no external source supports these values, and none is cited",
+  "not verified against a primary literature source",
+  "not verified against any external source",
+  "It is not evidence that they are correct, and it asserts no external support of any kind.",
+];
+
+/** Affirmative backing wording. Anything surviving the strip above is a claim. */
+const AFFIRMATIVE_BACKING = /\b(supports|verified|confirmed|evidence for)\b/i;
+
+/**
  * Any wording that would turn the signature into a credential claim.
  *
  * Two fixed strings *deny* credentials and so contain these words on purpose —
@@ -684,8 +734,8 @@ describe("S-17 — signed evidence registry", () => {
     // narrower than the alternative, which was attaching a literature citation
     // to values whose own record says they were never checked against one.
     //
-    // This list may not grow without the same decision being made again.
-    const PLACEHOLDER_HOST_PERMITTED = ["CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"];
+    // Keyed to the same sanctioned list as the claim-shape guard below.
+    const PLACEHOLDER_HOST_PERMITTED = OWNER_ADOPTION_CLAIM_IDS;
     expect(PLACEHOLDER_HOST_PERMITTED).toHaveLength(1);
 
     const placeholderHosted = claims
@@ -819,14 +869,24 @@ describe("S-17 — signed evidence registry", () => {
     }
   });
 
-  it("claims a scope attestation and denies an independent verification, in every claim", () => {
+  it("claims a scope attestation and denies an independent verification, in every sourced claim", () => {
     // This is the line S-17 was told to hold and the reason this test exists.
     // What happened: the accountable owner confirmed each source supports the
     // rule it is bound to, within the general fitness and wellness scope.
     // What did not happen: anyone reading a source's full text and checking it.
     // A claim that asserts the first must keep denying the second, or the
     // signature starts meaning something nobody did.
-    for (const claim of claims) {
+    //
+    // S-23 changed this guard's premise rather than its strength. It used to
+    // read "every claim", because every claim cited a source. One now does not,
+    // by the accountable owner's decision, so the shape it must take instead is
+    // asserted below with equal force. The two shapes are keyed to
+    // {@link OWNER_ADOPTION_CLAIM_IDS} and cannot overlap.
+    const sourced = claims.filter((claim) => !OWNER_ADOPTION_CLAIM_IDS.includes(claim.id));
+    expect(sourced.length).toBe(claims.length - OWNER_ADOPTION_CLAIM_IDS.length);
+    expect(sourced.length).toBeGreaterThan(0);
+
+    for (const claim of sourced) {
       expect({ id: claim.id, opens: claim.claim.startsWith("CONFIRMED WITHIN SCOPE.") }).toEqual({
         id: claim.id,
         opens: true,
@@ -849,6 +909,75 @@ describe("S-17 — signed evidence registry", () => {
         limitation.startsWith("Steadfast has not independently verified the cited source's")
       );
       expect({ id: claim.id, attested, denied }).toEqual({ id: claim.id, attested: true, denied: true });
+    }
+  });
+
+  it("holds the sanctioned owner-adoption claim to the opposite shape, with equal force", () => {
+    // The second permitted shape, authorized with the carve-out. A claim that
+    // cites nothing cannot say "this source supports that rule" — so where the
+    // sourced shape *requires* those phrases, this one *forbids* them, and the
+    // denial it carries instead is mandatory rather than optional. The point is
+    // that the two shapes cannot converge: neither can be edited into the other
+    // without failing here.
+
+    // Keyed both ways. A claim taking this shape without being on the list
+    // fails, and a listed claim that stops taking it fails.
+    const takesOwnerShape = claims
+      .filter((claim) => claim.claim.startsWith("ADOPTED WITHIN SCOPE, NOT EVIDENCE."))
+      .map((claim) => claim.id);
+    expect([...takesOwnerShape].sort()).toEqual([...OWNER_ADOPTION_CLAIM_IDS].sort());
+
+    // And the same keying from the sourced side, so a claim cannot simply drop
+    // both openers and belong to neither shape.
+    const takesSourcedShape = claims
+      .filter((claim) => claim.claim.startsWith("CONFIRMED WITHIN SCOPE."))
+      .map((claim) => claim.id);
+    expect([...takesSourcedShape, ...takesOwnerShape].sort()).toEqual(
+      claims.map((claim) => claim.id).sort()
+    );
+
+    for (const id of OWNER_ADOPTION_CLAIM_IDS) {
+      const claim = claims.find((item) => item.id === id);
+      expect({ id, found: Boolean(claim) }).toEqual({ id, found: true });
+      if (!claim) continue;
+
+      // Mandatory: the opener and the NOT EVIDENCE limitation.
+      expect({ id, opens: claim.claim.startsWith("ADOPTED WITHIN SCOPE, NOT EVIDENCE.") }).toEqual({
+        id,
+        opens: true,
+      });
+      const denies = claim.limitations.some((limitation) =>
+        limitation.startsWith("NOT EVIDENCE:")
+      );
+      expect({ id, denies }).toEqual({ id, denies: true });
+
+      // Forbidden: every phrase the sourced shape is required to carry.
+      for (const phrase of SOURCE_BACKED_CLAIM_PHRASES) {
+        const haystack = [claim.claim, claim.population, ...claim.limitations].join(" ");
+        expect({ id, phrase, present: haystack.includes(phrase) }).toEqual({
+          id,
+          phrase,
+          present: false,
+        });
+      }
+
+      // Forbidden: any affirmative "supports / verified / confirmed / evidence
+      // for" at all. The handful of negations and the scope attestation are
+      // pinned strings and are stripped first, so softening one into an
+      // assertion leaves the bare word behind and fails here.
+      let scanned = [claim.claim, claim.population, ...claim.limitations].join(" ");
+      for (const negation of OWNER_ADOPTION_PERMITTED_NEGATIONS) {
+        expect({ id, negation, present: scanned.includes(negation) }).toEqual({
+          id,
+          negation,
+          present: true,
+        });
+        scanned = scanned.split(negation).join(" ");
+      }
+      expect({ id, affirmative: AFFIRMATIVE_BACKING.exec(scanned)?.[0] ?? null }).toEqual({
+        id,
+        affirmative: null,
+      });
     }
   });
 
