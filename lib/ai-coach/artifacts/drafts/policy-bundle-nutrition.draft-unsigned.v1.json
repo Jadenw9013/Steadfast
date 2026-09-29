@@ -557,247 +557,247 @@
       },
       {
         "parameterId": "TRAINING.DOSE.NEW.SETS_PER_EXERCISE",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.RETURNING.SETS_PER_EXERCISE",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.EXPERIENCED.SETS_PER_EXERCISE",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.NEW.REPS_PER_SET",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.RETURNING.REPS_PER_SET",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.EXPERIENCED.REPS_PER_SET",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.NEW.REST_SECONDS",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.RETURNING.REST_SECONDS",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.DOSE.EXPERIENCED.REST_SECONDS",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.NEW",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.RETURNING",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.EXPERIENCED",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "CARDIO.DOSE.NEW.SESSION_MINUTES",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "CARDIO.DOSE.RETURNING.SESSION_MINUTES",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "CARDIO.DOSE.EXPERIENCED.SESSION_MINUTES",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "CARDIO.DOSE.NEW.SESSIONS_PER_WEEK",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "CARDIO.DOSE.RETURNING.SESSIONS_PER_WEEK",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "CARDIO.DOSE.EXPERIENCED.SESSIONS_PER_WEEK",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "CARDIO.DOSE.MAX_SESSION_MINUTES",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "WORKLOAD.WEEKLY.TOTAL_SESSIONS.MAX",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
-        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source. Raised from three to four on 2026-09-29 so a four-day strength split can schedule its cardio without this ceiling trimming it first."
       },
       {
         "parameterId": "PROGRESSION.STRENGTH.REPS.INCREMENT",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.STRENGTH.REPS.MAX_ABOVE_INITIAL",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.STRENGTH.SETS.INCREMENT",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.STRENGTH.LOAD.INCREMENT_FRACTION",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.CARDIO.MINUTES.INCREMENT",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.EVIDENCE.MIN_COMPLETE_SESSION_WEEKS",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.EVIDENCE.MIN_COMPLETE_SETS_FRACTION",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.EVIDENCE.MAX_EFFORT_RATING",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       },
       {
         "parameterId": "PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES",
-        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
         "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
-        "sourceUrl": "https://example.invalid/steadfast/board/DOSE-WORKSHEET-2",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
         "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
       }
     ]
@@ -1778,7 +1778,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1789,7 +1789,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1800,7 +1800,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1811,7 +1811,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1822,7 +1822,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1833,7 +1833,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1844,7 +1844,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1855,7 +1855,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1866,7 +1866,7 @@
           "TRAINING.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1877,7 +1877,7 @@
           "TRAINING.TEMPLATE.SELECTION.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1888,7 +1888,7 @@
           "TRAINING.TEMPLATE.SELECTION.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1899,7 +1899,7 @@
           "TRAINING.TEMPLATE.SELECTION.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1910,7 +1910,7 @@
           "CARDIO.RULE.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1921,7 +1921,7 @@
           "CARDIO.RULE.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1932,7 +1932,7 @@
           "CARDIO.RULE.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1943,7 +1943,7 @@
           "CARDIO.RULE.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1954,7 +1954,7 @@
           "CARDIO.RULE.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1965,7 +1965,7 @@
           "CARDIO.RULE.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1976,7 +1976,7 @@
           "CARDIO.RULE.DOSE.BEGINNER.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1987,7 +1987,7 @@
           "WORKLOAD.RULE.COMBINED.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -1998,7 +1998,7 @@
           "WORKLOAD.RULE.COMBINED.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2009,18 +2009,18 @@
           "WORKLOAD.RULE.COMBINED.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
         "id": "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX",
-        "value": 3,
+        "value": 4,
         "unit": "DAYS",
         "applicabilityRuleIds": [
           "WORKLOAD.RULE.COMBINED.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2031,7 +2031,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2042,7 +2042,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2053,7 +2053,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2064,7 +2064,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2075,7 +2075,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2086,7 +2086,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2097,7 +2097,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2108,7 +2108,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2119,7 +2119,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2130,7 +2130,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2141,7 +2141,7 @@
           "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       },
       {
@@ -2153,7 +2153,7 @@
           "WEEKLY.RULE.COOLDOWN.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
         ]
       }
     ],

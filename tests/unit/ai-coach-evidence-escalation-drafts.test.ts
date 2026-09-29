@@ -513,7 +513,11 @@ describe("S-17 — the three values the reviewer supplied now compose", () => {
       workloadTotalSessionsMax: 6,
       workloadTrainingMinutesMax: 360,
       workloadTrainingMinutesMaxWhenEnergyReduced: 240,
-      workloadConsecutiveTrainingDaysMax: 3,
+      // Raised from 3 by the accountable owner on 2026-09-29, after the first
+      // harness run showed the ceiling of 3 trimming cardio out of a four-day
+      // strength split. His reason is recorded on the parameter's provenance
+      // row and pinned by the test below.
+      workloadConsecutiveTrainingDaysMax: 4,
     });
   });
 
@@ -535,11 +539,31 @@ describe("S-17 — the three values the reviewer supplied now compose", () => {
       (bundleFile.reviewMetadata.proposalProvenance ?? []).map((row) => [row.parameterId, row])
     );
     for (const id of adopted) {
-      expect({ id, locator: byParameter.get(id)?.sourceLocator }).toEqual({
+      const locator = byParameter.get(id)?.sourceLocator ?? "";
+      expect({ id, startsWithProvenance: locator.startsWith(PROVENANCE) }).toEqual({
         id,
-        locator: PROVENANCE,
+        startsWithProvenance: true,
+      });
+      // And every one of them names the owner-adoption claim, not a citation.
+      expect({ id, claim: byParameter.get(id)?.sourceClaimId }).toEqual({
+        id,
+        claim: "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
       });
     }
+
+    // Exactly one row carries more than the sentence: the consecutive-days
+    // ceiling, which the owner changed after seeing the first harness run. Its
+    // reason is part of the record, so it is pinned rather than allowed to
+    // drift, and no other row may acquire extra text unnoticed.
+    const annotated = adopted.filter(
+      (id) => byParameter.get(id)?.sourceLocator !== PROVENANCE
+    );
+    expect(annotated).toEqual(["WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX"]);
+    expect(byParameter.get(annotated[0])?.sourceLocator).toBe(
+      PROVENANCE +
+        " Raised from three to four on 2026-09-29 so a four-day strength split can schedule" +
+        " its cardio without this ceiling trimming it first."
+    );
   });
 
   it("still fails closed on the effort copy itself the moment it is removed", () => {
@@ -647,21 +671,58 @@ describe("S-17 — signed evidence registry", () => {
     }
   });
 
-  it("cites no placeholder source and carries no pending claim id", () => {
+  it("cites no placeholder source except the one sanctioned owner-adoption claim", () => {
     // Worksheet section 2 replaced both. A signed artifact must not carry an
     // `example.invalid` URL or a `CLAIM.PENDING.*` id: each one was a record
     // saying "nothing supports this yet", which a signature cannot be put on.
+    //
+    // S-23 carve-out, decided by the accountable owner and recorded on the
+    // board. Exactly one claim is permitted a placeholder host, because the
+    // artifact schema has no other way to say "adopted by the owner, no
+    // external source": every numeric parameter must name a claim and every
+    // other claim must name a real source. Relaxing it for that one claim is
+    // narrower than the alternative, which was attaching a literature citation
+    // to values whose own record says they were never checked against one.
+    //
+    // This list may not grow without the same decision being made again.
+    const PLACEHOLDER_HOST_PERMITTED = ["CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"];
+    expect(PLACEHOLDER_HOST_PERMITTED).toHaveLength(1);
+
+    const placeholderHosted = claims
+      .filter((claim) => new URL(claim.sourceUrl).hostname.endsWith("example.invalid"))
+      .map((claim) => claim.id);
+    // Set equality in both directions: an unsanctioned placeholder fails, and
+    // so does leaving the carve-out in place after the claim it covers is gone.
+    expect([...placeholderHosted].sort()).toEqual([...PLACEHOLDER_HOST_PERMITTED].sort());
+
     for (const claim of claims) {
-      expect({
-        id: claim.id,
-        host: new URL(claim.sourceUrl).hostname,
-        placeholder: new URL(claim.sourceUrl).hostname.endsWith("example.invalid"),
-      }).toMatchObject({ id: claim.id, placeholder: false });
       expect({
         id: claim.id,
         pending: claim.id.startsWith(PENDING_EVIDENCE_CLAIM_ID_PREFIX),
       }).toMatchObject({ id: claim.id, pending: false });
     }
+  });
+
+  it("keeps the carve-out honest: the sanctioned claim denies being evidence", () => {
+    // A placeholder host is only defensible if the claim says outright that
+    // nothing supports the values. If that wording is ever softened into an
+    // ordinary citation, the carve-out stops being narrow and this fails.
+    const owner = claims.find((claim) => claim.id === "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION");
+    expect(owner).toBeDefined();
+    if (!owner) return;
+    expect(owner.claim.startsWith("ADOPTED WITHIN SCOPE, NOT EVIDENCE.")).toBe(true);
+    expect(
+      owner.limitations.some(
+        (limitation) =>
+          limitation.startsWith("NOT EVIDENCE:") &&
+          limitation.includes(
+            "proposed by engineering, adopted by me, not verified against a primary " +
+              "literature source."
+          )
+      )
+    ).toBe(true);
+    // And it must not quietly acquire a second, real-looking source.
+    expect(new URL(owner.sourceUrl).hostname.endsWith("example.invalid")).toBe(true);
   });
 
   it("binds every claim to the exact policy rules its parameters declare", () => {
