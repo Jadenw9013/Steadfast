@@ -43,6 +43,13 @@ suite("CB07 — unified check-in service with real PostgreSQL constraints", () =
     return { coach, client };
   }
 
+  /** A client with no `CoachClient` row at all, which is the state
+   * `submitCheckIn` refuses with the connect-to-a-coach message. */
+  async function makeClientWithoutCoach() {
+    const clientClerkId = randomUUID();
+    return db.user.create({ data: { clerkId: clientClerkId, email: `solo-${clientClerkId}@example.test`, isCoach: false, isClient: true, timezone: "America/Los_Angeles" } });
+  }
+
   it("rejects a templateId belonging to a different coach", async () => {
     const { client } = await makeCoachClient();
     const otherCoachClerkId = randomUUID();
@@ -148,6 +155,26 @@ suite("CB07 — unified check-in service with real PostgreSQL constraints", () =
     });
     const res = await checkinApiPost(req);
     expect(res.status).toBe(422);
+  });
+
+  it("surfaces the actionable refusal sentence in the top-level `error`, not just in `details`", async () => {
+    // The iOS client reads only `error`. `details` stays populated for the web
+    // form. Regression guard for the parity gap found in the 2026-09-29
+    // pre-deploy audit: routing this case through the shared service had
+    // replaced the sentence with a bare "Validation failed" on the phone.
+    const unattached = await makeClientWithoutCoach();
+    mocks.authUserId = unattached.clerkId;
+    const req = new NextRequest("https://example.test/api/client/checkin", {
+      method: "POST",
+      body: JSON.stringify({ weight: 150 }),
+    });
+    const res = await checkinApiPost(req);
+    expect(res.status).toBe(422);
+    const body = (await res.json()) as { error: string; details: Record<string, string[]> };
+    expect(body.error).toBe("You need to connect to a coach before submitting check-ins.");
+    expect(body.details.weekOf).toEqual([
+      "You need to connect to a coach before submitting check-ins.",
+    ]);
   });
 
   it("preserves multiple independent check-ins per day when overwriteToday is false", async () => {

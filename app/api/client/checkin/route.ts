@@ -24,8 +24,18 @@ export async function POST(req: NextRequest) {
     const result = await submitCheckIn(user, body);
 
     if ("error" in result) {
+      // The top-level `error` string is the only field the iOS client reads
+      // (`APIService.userFacingErrorMessage`). Before this route moved onto the
+      // shared `submitCheckIn` service it returned the actionable sentence
+      // there directly, so hoisting the first field message back out of
+      // `details` keeps the phone showing "You need to connect to a coach
+      // before submitting check-ins." instead of a bare "Validation failed".
+      // `details` is unchanged, which is what the web form reads.
+      const firstMessage = Object.values(result.error)
+        .flat()
+        .find((message) => typeof message === "string" && message.length > 0);
       return NextResponse.json(
-        { error: "Validation failed", details: result.error },
+        { error: firstMessage ?? "Validation failed", details: result.error },
         { status: 422 }
       );
     }
