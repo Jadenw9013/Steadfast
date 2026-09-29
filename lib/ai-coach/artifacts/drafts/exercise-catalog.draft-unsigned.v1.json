@@ -1,15 +1,48 @@
 {
   "fileSchemaVersion": 1,
   "reviewMetadata": {
-    "decision": "DRAFT_UNSIGNED",
-    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
-    "preparedAt": "2026-09-26T00:00:00.000Z",
-    "draftRecordId": "exercise-beginner-catalog-draft-v1",
-    "worksheetSectionIds": [
-      "D05",
-      "D09",
-      "D12"
+    "accountableOwner": {
+      "name": "Jaden Wong",
+      "role": "Accountable Owner / Founder"
+    },
+    "reviewer": {
+      "name": "Jaden Wong",
+      "reviewerType": "QUALIFIED_CONTENT_REVIEWER",
+      "qualifications": [
+        "Accountable owner and founder. Reviewed within the general fitness and wellness scope only; no clinical qualification is claimed."
+      ]
+    },
+    "reviewedAt": "2026-09-27T00:00:00.000Z",
+    "reviewRecordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+    "decision": "APPROVED",
+    "signoffScope": [
+      "Signed by the accountable owner as the sole reviewer. There is no external legal review, no independent clinical review and no second signer for this artifact set.",
+      "Reviewed within the general fitness and wellness scope only. No clinical qualification, licence, registration number or certifying body is claimed or recorded.",
+      "Sources cited by this artifact set were confirmed as supporting the rules they are bound to, within that scope. Their full texts were not independently verified by Steadfast.",
+      "Scope of this signature: the exercise catalog movements and session templates, for general fitness programming."
     ],
+    "allowedScope": [
+      "GENERAL_FITNESS_PROGRAMMING",
+      "GENERAL_BEHAVIOR_NUTRITION_EDUCATION"
+    ],
+    "explicitExclusions": [
+      "DIAGNOSIS",
+      "TREATMENT_OR_REHABILITATION",
+      "CLINICAL_NUTRITION_OR_MEDICAL_NUTRITION_THERAPY",
+      "MEDICATION_OR_SUPPLEMENT_PRESCRIBING",
+      "CLINICIAN_INSTRUCTION_OVERRIDE"
+    ],
+    "jurisdictionReview": {
+      "jurisdictions": [
+        "US"
+      ],
+      "legalReviewStatus": "APPROVED",
+      "legalReviewBasis": "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION",
+      "scopeNote": "Reviewed within general fitness and wellness scope; medical advice disclaimed.",
+      "recordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+      "reviewedAt": "2026-09-27T00:00:00.000Z"
+    },
+    "publicFrameworkReferences": [],
     "proposalProvenance": [
       {
         "parameterId": "chair-squat",
@@ -354,254 +387,253 @@
         "sourceUrl": "https://acsm.org/resistance-training-guidelines-update-2026/",
         "sourceLocator": "ACSM news summary of the 2026 resistance-training Position Stand, page dated 2026-03-17, consulted 2026-09-26 as a general reference for beginner training across the major muscle groups. It names no Steadfast exercise."
       }
-    ],
-    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+    ]
   },
   "reviewStates": [
     {
       "itemKind": "EXERCISE",
       "itemId": "chair-squat",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-goblet-squat",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "barbell-back-squat",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "leg-press-machine",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "hip-hinge-to-wall",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "glute-bridge",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-romanian-deadlift",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "barbell-hip-thrust",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "bodyweight-split-squat",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "bodyweight-step-up",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-split-squat",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-reverse-lunge",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "wall-push-up",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "incline-push-up",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-floor-press",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "barbell-bench-press",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "chest-press-machine",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "wall-slide",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-overhead-press",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "barbell-overhead-press",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "prone-reverse-fly",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "resistance-band-seated-row",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-single-arm-row",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "seated-cable-row-machine",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "resistance-band-lat-pulldown",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "lat-pulldown-machine",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "assisted-pull-up-machine",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "forearm-plank",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dead-bug",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "incline-forearm-plank",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "bird-dog",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "side-plank",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "resistance-band-pallof-press",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-farmer-carry",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "dumbbell-suitcase-carry",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "outdoor-walk",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "marching-in-place",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "treadmill-walk",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "stationary-bike",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "rowing-machine",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "EXERCISE",
       "itemId": "elliptical-machine",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "full-body-session-one",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "full-body-session-two",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "full-body-session-three",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "upper-session-one",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "upper-session-two",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "lower-session-one",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "lower-session-two",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     },
     {
       "itemKind": "TEMPLATE",
       "itemId": "cardio-session-one",
-      "reviewState": "PROPOSED"
+      "reviewState": "ACCEPTED"
     }
   ],
   "content": {

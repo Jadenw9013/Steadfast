@@ -3,15 +3,16 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
   loadDraftUnsignedEvidenceRegistry,
-  draftEvidenceRegistryToArtifactDraftInput,
+  draftEvidenceRegistryFileSchema,
+  evidenceRegistryToArtifactDraftInput,
   PENDING_EVIDENCE_CLAIM_ID_PREFIX,
   UNREVIEWED_DRAFT_QUALIFICATION,
   UNREVIEWED_DRAFT_REVIEWER_NAME,
 } from "@/lib/ai-coach/artifacts/drafts/evidence-registry";
 import {
   loadDraftUnsignedEscalationTemplates,
-  draftEscalationTemplatesToArtifactDraftInput,
-  NO_GEOGRAPHY_CLEARED,
+  escalationTemplatesToArtifactDraftInput,
+  NON_ESCALATION_REASON_CODE_PREFIX,
 } from "@/lib/ai-coach/artifacts/drafts/escalation-templates";
 import { loadDraftUnsignedPolicyBundle } from "@/lib/ai-coach/artifacts/drafts/loader";
 import { autonomyGateReasonCodeSchema } from "@/lib/ai-coach/autonomy/gate";
@@ -28,23 +29,69 @@ import {
 } from "@/lib/ai-coach/training/parameters";
 import { buildSyntheticArtifactSet } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
 import { NUTRITION_SAFETY_PARAMETERS_PENDING_REASON_CODE } from "@/lib/ai-coach/nutrition-safety";
+import { DRAFT_UNSIGNED_METADATA } from "../helpers/ai-draft-review-metadata";
 
 /**
- * S-V1-artifacts — the two artifact kinds a v1 launch requires and that existed
- * only as synthetic fixtures. These assertions are the mechanical half of
- * "engineering authors structure, the reviewer authors content": a number, a
- * promise of human review, an invented citation or a record that is not
- * `PROPOSED` fails here rather than relying on the next editor remembering.
+ * S-V1-artifacts / S-17 — the two artifact kinds a v1 launch requires, now
+ * signed by the accountable owner.
+ *
+ * These assertions are the mechanical half of "engineering authors structure,
+ * the reviewer authors content". Signing did not relax any of them: a number in
+ * client copy, a promise that a human is reviewing, an invented citation, a
+ * credential nobody holds, a record whose review state disagrees with the file's
+ * decision, or a claim that upgrades a scope attestation into a verification —
+ * each fails here rather than relying on the next editor remembering.
  */
-
-const FROZEN_UNSIGNED_NOTICE =
-  "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE.";
 
 const evidenceFile = loadDraftUnsignedEvidenceRegistry();
 const escalationFile = loadDraftUnsignedEscalationTemplates();
 const bundleFile = loadDraftUnsignedPolicyBundle();
 const claims = evidenceFile.content.claims;
 const templates = escalationFile.content.templates;
+
+/**
+ * S-17 — the reviewer, exactly as `steadfast-hq/board/REVIEW-WORKSHEET.md`
+ * section 0 records them. The qualification line is the whole of what is
+ * claimed: no registration number, no licence, no certifying body, because
+ * there are none. {@link CREDENTIAL_CLAIM} fails if one ever appears.
+ */
+const SIGNER_NAME = "Jaden Wong";
+const SIGNER_QUALIFICATION =
+  "Accountable owner and founder. Reviewed within the general fitness and wellness scope " +
+  "only; no clinical qualification is claimed.";
+const SIGNER_SCOPE_NOTE =
+  "Reviewed within general fitness and wellness scope; medical advice disclaimed.";
+const REVIEW_DATE = "2026-09-27T00:00:00.000Z";
+
+/**
+ * Any wording that would turn the signature into a credential claim.
+ *
+ * Two fixed strings *deny* credentials and so contain these words on purpose —
+ * the qualification line and the per-claim scope attestation. Both are asserted
+ * by exact equality elsewhere in this file, and both are removed before the scan
+ * so the denial cannot be mistaken for the claim.
+ */
+const CREDENTIAL_CLAIM =
+  /\b(registered dietitian|dietitian|RDN?|CPT|licen[cs]\w*|registration number|certif\w*|accredit\w*|board[- ]certified|nutritionist|physician|clinician)\b/i;
+const CREDENTIAL_DENIALS = [
+  // reviewer.qualifications — worksheet section 0
+  "Accountable owner and founder. Reviewed within the general fitness and wellness scope " +
+    "only; no clinical qualification is claimed.",
+  // reviewMetadata.signoffScope
+  "Reviewed within the general fitness and wellness scope only. No clinical qualification, " +
+    "licence, registration number or certifying body is claimed or recorded.",
+  // every claim's first limitation
+  "SCOPE ATTESTATION: confirmed by the accountable owner within the general fitness and " +
+    "wellness scope; no clinical qualification, licence, registration number or certifying " +
+    "body is claimed.",
+];
+
+const signedMetadata = (() => {
+  const metadata = escalationFile.reviewMetadata;
+  if (metadata.decision !== "APPROVED") throw new Error("escalation templates are not signed");
+  return metadata;
+})();
+const SIGNED_JURISDICTIONS = signedMetadata.jurisdictionReview.jurisdictions;
 
 /** Every digit, and the spelled-out numbers a digit match would miss (T-2038). */
 const ANY_DIGIT = /\d/;
@@ -65,22 +112,38 @@ const clientFacingStrings = templates.flatMap((template) => [
   { id: `${template.id}.nonMonitoringStatement`, text: template.nonMonitoringStatement },
 ]);
 
-describe("S-V1-artifacts — DRAFT_UNSIGNED escalation templates (client-facing copy)", () => {
-  it("is DRAFT_UNSIGNED, non-synthetic, and carries the frozen unsigned notice", () => {
+describe("S-17 — signed escalation templates (client-facing copy)", () => {
+  it("is signed by the named accountable owner, and claims no credential", () => {
     expect(escalationFile.fileSchemaVersion).toBe(1);
-    expect(escalationFile.reviewMetadata.decision).toBe("DRAFT_UNSIGNED");
-    expect(escalationFile.reviewMetadata.unsignedNotice).toBe(FROZEN_UNSIGNED_NOTICE);
+    expect(signedMetadata.decision).toBe("APPROVED");
+    expect(signedMetadata.reviewer).toEqual({
+      name: SIGNER_NAME,
+      reviewerType: "QUALIFIED_CONTENT_REVIEWER",
+      qualifications: [SIGNER_QUALIFICATION],
+    });
+    expect(signedMetadata.reviewedAt).toBe(REVIEW_DATE);
     expect(escalationTemplatesContentSchema.parse(escalationFile.content).artifactKey).toBe(
       "escalation-templates-v1"
     );
   });
 
-  it("marks every template PROPOSED and nothing else", () => {
+  it("records the legal status as the owner's own scope attestation, not an external review", () => {
+    // There is no legal signer (see REQUIRED_APPROVAL_REQUIREMENTS). `APPROVED`
+    // on its own would read as counsel having cleared this copy; these two fields
+    // are what stop it reading that way.
+    expect(signedMetadata.jurisdictionReview.legalReviewBasis).toBe(
+      "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION"
+    );
+    expect(signedMetadata.jurisdictionReview.scopeNote).toBe(SIGNER_SCOPE_NOTE);
+    expect(signedMetadata.jurisdictionReview.recordId).toContain("REVIEW-WORKSHEET");
+  });
+
+  it("marks every template ACCEPTED, consistent with the file being signed", () => {
     expect(escalationFile.reviewStates).toHaveLength(templates.length);
     for (const state of escalationFile.reviewStates) {
       expect({ itemId: state.itemId, reviewState: state.reviewState }).toMatchObject({
         itemId: state.itemId,
-        reviewState: "PROPOSED",
+        reviewState: "ACCEPTED",
       });
     }
   });
@@ -114,11 +177,17 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED escalation templates (client-facing 
     expect([...statements][0]).toContain("Steadfast is not monitoring you");
   });
 
-  it("clears no geography and declares one locale, pending legal review", () => {
+  it("clears exactly the geographies the signed metadata clears, and declares one locale", () => {
+    // S-17 replaced "nobody has cleared anything", which stopped being true, with
+    // the invariant it should always have been: the copy's geographies and the
+    // signature's jurisdictions are the same list. Copy cleared for a market the
+    // signature does not name, or a signature naming a market the copy does not
+    // carry, both fail here.
+    expect(SIGNED_JURISDICTIONS.length).toBeGreaterThan(0);
     for (const template of templates) {
-      expect({ id: template.id, geographies: template.geographies }).toMatchObject({
+      expect({ id: template.id, geographies: template.geographies }).toEqual({
         id: template.id,
-        geographies: [NO_GEOGRAPHY_CLEARED],
+        geographies: SIGNED_JURISDICTIONS,
       });
       expect(template.locale).toBe("en-US");
     }
@@ -126,8 +195,11 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED escalation templates (client-facing 
 });
 
 describe("S-V1-artifacts — escalation reason-code coverage", () => {
-  const declared = new Set(templates.flatMap((template) => template.reasonCodes));
   const allowed = new Set(bundleFile.content.escalationTemplateIds);
+  const escalationTemplates = templates.filter((template) =>
+    template.reasonCodes.every((code) => !code.startsWith(NON_ESCALATION_REASON_CODE_PREFIX))
+  );
+  const declared = new Set(escalationTemplates.flatMap((template) => template.reasonCodes));
 
   /** The resolver in autonomy/gate.ts, reimplemented so coverage is proven, not assumed. */
   function templateCovering(codes: readonly string[]) {
@@ -225,6 +297,7 @@ describe("S-V1-artifacts — escalation reason-code coverage", () => {
   });
 
   it("declares no reason code that no production code path can emit", () => {
+    expect(escalationTemplates).toHaveLength(allowed.size);
     const emittable = new Set<string>([
       ...autonomyGateReasonCodeSchema.options,
       ...PRESCRIPTION_REASON_CODES,
@@ -241,6 +314,80 @@ describe("S-V1-artifacts — escalation reason-code coverage", () => {
     ]);
     for (const code of declared) {
       expect({ code, emittable: emittable.has(code) }).toMatchObject({ code, emittable: true });
+    }
+  });
+});
+
+describe("S-17 — the three copy templates stay out of the escalation path", () => {
+  /**
+   * S-15: `escalationTemplateIds`, `prescriptionExplanationTemplateIds` and
+   * `trainingEffortTemplateIds` were one list, so the two effort sentences
+   * published themselves as the explanation underneath clients' calorie targets
+   * on 257 of 257 prescriptions. These are the assertions that keep them apart.
+   */
+  const lists = {
+    escalationTemplateIds: bundleFile.content.escalationTemplateIds,
+    prescriptionExplanationTemplateIds:
+      bundleFile.content.prescriptionExplanationTemplateIds ?? [],
+    trainingEffortTemplateIds: bundleFile.content.trainingEffortTemplateIds ?? [],
+  };
+
+  it("declares three non-empty, disjoint id lists", () => {
+    for (const [name, ids] of Object.entries(lists)) {
+      expect({ name, length: ids.length }).toMatchObject({ name });
+      expect(ids.length).toBeGreaterThan(0);
+    }
+    const entries = Object.entries(lists);
+    for (const [nameA, idsA] of entries) {
+      for (const [nameB, idsB] of entries) {
+        if (nameA >= nameB) continue;
+        const shared = idsA.filter((id) => idsB.includes(id));
+        expect({ nameA, nameB, shared }).toEqual({ nameA, nameB, shared: [] });
+      }
+    }
+  });
+
+  it("names every declared id, and no id appears in more than one list", () => {
+    const templateIds = new Set(templates.map((template) => template.id));
+    const all = Object.values(lists).flat();
+    for (const id of all) {
+      expect({ id, present: templateIds.has(id) }).toMatchObject({ id, present: true });
+    }
+    expect(new Set(all).size).toBe(all.length);
+  });
+
+  it("marks the copy templates as non-escalations, so the gate can never select one", () => {
+    const copyIds = [
+      ...lists.prescriptionExplanationTemplateIds,
+      ...lists.trainingEffortTemplateIds,
+    ];
+    expect(copyIds).toEqual([
+      "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1",
+      "TRAINING.EFFORT.STRENGTH.V1",
+      "TRAINING.EFFORT.CARDIO.V1",
+    ]);
+    for (const id of copyIds) {
+      const template = templates.find((candidate) => candidate.id === id)!;
+      expect({ id, marked: template.reasonCodes }).toMatchObject({
+        id,
+        marked: template.reasonCodes.filter((code) =>
+          code.startsWith(NON_ESCALATION_REASON_CODE_PREFIX)
+        ),
+      });
+      // `resolveNextActionTemplateId` only ever selects from escalationTemplateIds.
+      expect(lists.escalationTemplateIds).not.toContain(id);
+    }
+  });
+
+  it("resolves the nutrition explanation without any training effort wording in it", () => {
+    const byId = new Map(templates.map((template) => [template.id, template]));
+    const nutritionTexts = lists.prescriptionExplanationTemplateIds.map(
+      (id) => byId.get(id)!.nextStepText
+    );
+    const effortTexts = lists.trainingEffortTemplateIds.map((id) => byId.get(id)!.nextStepText);
+    expect(nutritionTexts).toHaveLength(1);
+    for (const effort of effortTexts) {
+      expect(nutritionTexts.join(" ")).not.toContain(effort);
     }
   });
 });
@@ -301,33 +448,88 @@ describe("S-V1-artifacts — the draft policy bundle binds the draft templates, 
   });
 });
 
-describe("S-V1-artifacts — omitted clinical values fail closed", () => {
-  it("supplies no training effort copy, so the training composer refuses instead of inventing a dose", () => {
-    const effortIds = [EFFORT_STRENGTH_TEMPLATE_ID, EFFORT_CARDIO_TEMPLATE_ID];
-    for (const id of effortIds) {
-      expect({ id, declared: templates.some((template) => template.id === id) }).toMatchObject({
-        id,
-        declared: false,
-      });
-    }
-
-    // The bundle still declares the ids, so the resolver's own lookup is what
-    // fails — exactly the T-2039 shape (absent value, named refusal).
+describe("S-17 — the three values the reviewer supplied now compose", () => {
+  it("lifts the effort-copy refusal, and records that training still will not compose", () => {
+    /**
+     * Read this one carefully, because it says less than it looks like it says.
+     *
+     * Worksheet section 3a/3b supplied the two effort sentences, so
+     * `TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE` is gone. Training still does
+     * not compose: `resolveTrainingParameters` now refuses with
+     * `TRAINING_PARAMETER_MISSING` over 23 strength and cardio dose parameters
+     * the bundle does not carry, and the worksheet supplied none of them — they
+     * are doses, and S-17 invented nothing.
+     *
+     * So supplying the copy was necessary and not sufficient. This assertion
+     * pins the new refusal so that "no session composes" cannot later be
+     * attributed to the effort copy again, and so that the count changing is
+     * visible rather than silent.
+     */
     const explanationTexts = (bundleFile.content.trainingEffortTemplateIds ?? [])
       .map((id) => templates.find((template) => template.id === id))
       .filter((template): template is (typeof templates)[number] => Boolean(template))
       .map((template) => ({ id: template.id, text: template.nextStepText }));
-    expect(explanationTexts).toEqual([]);
+    expect(explanationTexts.map((item) => item.id)).toEqual([
+      EFFORT_STRENGTH_TEMPLATE_ID,
+      EFFORT_CARDIO_TEMPLATE_ID,
+    ]);
 
     const resolution = resolveTrainingParameters(bundleFile.content, explanationTexts);
     expect(resolution.ok).toBe(false);
     if (resolution.ok) return;
+    expect(resolution.reasonCodes).toEqual(["TRAINING_PARAMETER_MISSING"]);
+    expect(resolution.reasonCodes).not.toContain("TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE");
+    expect(resolution.missingParameterIds).toHaveLength(23);
+  });
+
+  it("still fails closed on the effort copy itself the moment it is removed", () => {
+    // The fail-closed behaviour is what protected clients before the copy
+    // existed, and it has to survive the copy arriving.
+    const resolution = resolveTrainingParameters(bundleFile.content, []);
+    expect(resolution.ok).toBe(false);
+    if (resolution.ok) return;
     expect(resolution.reasonCodes).toContain("TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE");
+  });
+
+  it("carries the reviewer's three sentences with no number in any of them", () => {
+    const supplied = [
+      EFFORT_STRENGTH_TEMPLATE_ID,
+      EFFORT_CARDIO_TEMPLATE_ID,
+      "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1",
+    ].map((id) => templates.find((template) => template.id === id)!);
+    expect(supplied.every(Boolean)).toBe(true);
+    for (const template of supplied) {
+      const text = template.nextStepText;
+      expect({ id: template.id, digit: ANY_DIGIT.test(text) }).toMatchObject({
+        id: template.id,
+        digit: false,
+      });
+      expect({ id: template.id, word: NUMBER_WORD.exec(text)?.[0] ?? null }).toMatchObject({
+        id: template.id,
+        word: null,
+      });
+    }
   });
 });
 
-describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
+describe("S-17 — signed evidence registry", () => {
   const bundleContent = bundleFile.content;
+  const bundleMetadata = (() => {
+    if (bundleFile.reviewMetadata.decision !== "APPROVED")
+      throw new Error("policy bundle is not signed");
+    return bundleFile.reviewMetadata;
+  })();
+
+  /**
+   * The only claim whose source is not derivable from the bundle: it backs a
+   * rule rather than a numeric parameter, so it has no `proposalProvenance` row.
+   * Worksheet section 2 item 9 supplied it, and pinning it here keeps the
+   * "no invented citation" guard total — every other claim is derived, and this
+   * one is checked against the worksheet value.
+   */
+  const OWNER_SUPPLIED_CLAIM_SOURCES: Record<string, string> = {
+    "CLAIM.AHA.ACC.TOS.OBESITY.NUTRITION_EVIDENCE": "https://pubmed.ncbi.nlm.nih.gov/24222017/",
+  };
 
   /** Re-derived from the bundle here, independently of whatever wrote the file. */
   const expectedByClaim = new Map<string, { ruleIds: Set<string>; sourceUrls: Set<string> }>();
@@ -338,42 +540,43 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
       expectedByClaim.set(claimId, entry);
     }
   }
-  for (const row of bundleFile.reviewMetadata.proposalProvenance) {
+  for (const row of bundleMetadata.proposalProvenance ?? []) {
     expectedByClaim.get(row.sourceClaimId)?.sourceUrls.add(row.sourceUrl);
   }
 
-  it("is DRAFT_UNSIGNED, non-synthetic, and carries the frozen unsigned notice", () => {
+  it("is signed, non-synthetic, and keeps its parameter provenance across the signature", () => {
     expect(evidenceFile.fileSchemaVersion).toBe(1);
-    expect(evidenceFile.reviewMetadata.decision).toBe("DRAFT_UNSIGNED");
-    expect(evidenceFile.reviewMetadata.unsignedNotice).toBe(FROZEN_UNSIGNED_NOTICE);
+    expect(evidenceFile.reviewMetadata.decision).toBe("APPROVED");
     expect(evidenceRegistryContentSchema.parse(evidenceFile.content).artifactKey).toBe(
       "evidence-registry-v1"
     );
+    // S-17 decision 2: signing used to drop `proposalProvenance`, which is the
+    // field the citation guard below reads. This asserts it survived.
+    expect(bundleMetadata.proposalProvenance?.length).toBe(
+      bundleContent.numericParameters.length
+    );
   });
 
-  it("marks every claim PROPOSED and nothing else", () => {
+  it("marks every claim ACCEPTED, consistent with the file being signed", () => {
     expect(evidenceFile.reviewStates).toHaveLength(claims.length);
     for (const state of evidenceFile.reviewStates) {
       expect({ itemId: state.itemId, reviewState: state.reviewState }).toMatchObject({
         itemId: state.itemId,
-        reviewState: "PROPOSED",
+        reviewState: "ACCEPTED",
       });
     }
   });
 
-  it("names no source the draft policy bundle does not already record", () => {
+  it("names no source the policy bundle does not record, or the worksheet did not supply", () => {
     // The guard that makes inventing a citation structurally impossible here.
     expect(expectedByClaim.size).toBeGreaterThan(0);
     for (const claim of claims) {
       const expected = expectedByClaim.get(claim.id);
       if (!expected) {
-        // The only claims without a bundle parameter are the explicit
-        // no-evidence placeholders, which must point at no real source.
-        expect({
+        expect({ id: claim.id, sourceUrl: claim.sourceUrl }).toEqual({
           id: claim.id,
-          pending: claim.id.startsWith(PENDING_EVIDENCE_CLAIM_ID_PREFIX),
-        }).toMatchObject({ id: claim.id, pending: true });
-        expect(new URL(claim.sourceUrl).hostname.endsWith("example.invalid")).toBe(true);
+          sourceUrl: OWNER_SUPPLIED_CLAIM_SOURCES[claim.id],
+        });
         continue;
       }
       expect({ id: claim.id, sourceUrl: claim.sourceUrl }).toMatchObject({
@@ -381,6 +584,23 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
         sourceUrl: [...expected.sourceUrls][0],
       });
       expect(expected.sourceUrls.size).toBe(1);
+    }
+  });
+
+  it("cites no placeholder source and carries no pending claim id", () => {
+    // Worksheet section 2 replaced both. A signed artifact must not carry an
+    // `example.invalid` URL or a `CLAIM.PENDING.*` id: each one was a record
+    // saying "nothing supports this yet", which a signature cannot be put on.
+    for (const claim of claims) {
+      expect({
+        id: claim.id,
+        host: new URL(claim.sourceUrl).hostname,
+        placeholder: new URL(claim.sourceUrl).hostname.endsWith("example.invalid"),
+      }).toMatchObject({ id: claim.id, placeholder: false });
+      expect({
+        id: claim.id,
+        pending: claim.id.startsWith(PENDING_EVIDENCE_CLAIM_ID_PREFIX),
+      }).toMatchObject({ id: claim.id, pending: false });
     }
   });
 
@@ -408,11 +628,10 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
     expect(bundleContent.evidenceRuleIds.length).toBeGreaterThan(0);
     for (const ruleId of bundleContent.evidenceRuleIds) {
       const covering = claims.filter((claim) => claim.ruleIds.includes(ruleId));
-      expect({ ruleId, covering: covering.length }).toMatchObject({
+      expect({ ruleId, covering: covering.map((claim) => claim.id) }).not.toEqual({
         ruleId,
-        covering: covering.length,
+        covering: [],
       });
-      expect(covering.length).toBeGreaterThan(0);
     }
   });
 
@@ -423,23 +642,38 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
     }
   });
 
-  it("asserts no reviewer and no qualification, because nobody has reviewed it", () => {
+  it("names the accountable owner on every claim, and claims no credential anywhere", () => {
+    // The predecessor of this test pinned the UNREVIEWED_* sentinels, because
+    // nobody had reviewed anything. What it was really protecting is unchanged:
+    // the registry must never assert a credential. Worksheet section 0 records
+    // that no registration number, licence or certifying body is claimed, so a
+    // scan of the whole file is the stronger form of the same guard.
     for (const claim of claims) {
-      expect({ id: claim.id, reviewer: claim.reviewer }).toMatchObject({
+      expect({ id: claim.id, reviewer: claim.reviewer }).toEqual({
         id: claim.id,
-        reviewer: {
-          name: UNREVIEWED_DRAFT_REVIEWER_NAME,
-          qualifications: [UNREVIEWED_DRAFT_QUALIFICATION],
-        },
+        reviewer: { name: SIGNER_NAME, qualifications: [SIGNER_QUALIFICATION] },
       });
-      // `reviewDate` is the draft preparation date, not a review date: nothing
-      // has been reviewed. Pinning it stops per-claim dates looking like reviews.
-      expect(claim.reviewDate).toBe(evidenceFile.reviewMetadata.preparedAt);
+      expect(claim.reviewDate).toBe(REVIEW_DATE);
     }
+
+    let scanned = JSON.stringify(evidenceFile);
+    for (const denial of CREDENTIAL_DENIALS) {
+      expect(scanned).toContain(denial);
+      scanned = scanned.split(denial).join(" ");
+    }
+    expect({ term: CREDENTIAL_CLAIM.exec(scanned)?.[0] ?? null }).toEqual({ term: null });
+
+    // And the unreviewed-draft sentinels are gone: a signed registry that still
+    // named one would have been signed without being looked at.
+    expect(JSON.stringify(evidenceFile)).not.toContain(UNREVIEWED_DRAFT_REVIEWER_NAME);
+    expect(JSON.stringify(evidenceFile)).not.toContain(UNREVIEWED_DRAFT_QUALIFICATION);
   });
 
-  it("states no number in any claim, and allows digits only inside a recorded source locator", () => {
-    const LOCATOR_PREFIX = "Locator recorded by the draft policy bundle: ";
+  it("states no number in any claim, and allows digits only inside a recorded locator or citation", () => {
+    const DIGIT_BEARING_PREFIXES = [
+      "Locator recorded by the policy bundle: ",
+      "Citation supplied by the accountable owner: ",
+    ];
     for (const claim of claims) {
       expect({ id: claim.id, digit: ANY_DIGIT.test(claim.claim) }).toMatchObject({
         id: claim.id,
@@ -458,22 +692,61 @@ describe("S-V1-artifacts — DRAFT_UNSIGNED evidence registry", () => {
         expect({
           id: claim.id,
           limitation,
-          prefixed: limitation.startsWith(LOCATOR_PREFIX),
+          prefixed: DIGIT_BEARING_PREFIXES.some((prefix) => limitation.startsWith(prefix)),
         }).toMatchObject({ id: claim.id, limitation, prefixed: true });
       }
     }
   });
 
-  it("says in every claim that Steadfast has not verified it", () => {
+  it("claims a scope attestation and denies an independent verification, in every claim", () => {
+    // This is the line S-17 was told to hold and the reason this test exists.
+    // What happened: the accountable owner confirmed each source supports the
+    // rule it is bound to, within the general fitness and wellness scope.
+    // What did not happen: anyone reading a source's full text and checking it.
+    // A claim that asserts the first must keep denying the second, or the
+    // signature starts meaning something nobody did.
     for (const claim of claims) {
-      const unsigned = claim.limitations.some((limitation) =>
-        limitation.startsWith("PROPOSED AND UNSIGNED:")
+      expect({ id: claim.id, opens: claim.claim.startsWith("CONFIRMED WITHIN SCOPE.") }).toEqual({
+        id: claim.id,
+        opens: true,
+      });
+      expect({ id: claim.id, claim: claim.claim }).toMatchObject({
+        id: claim.id,
+        claim: expect.stringContaining(
+          "the accountable owner confirms that this source supports that rule within the " +
+            "general fitness and wellness scope"
+        ) as unknown as string,
+      });
+      expect(claim.claim).toContain(
+        "Steadfast has not independently verified the source's full text"
       );
-      expect({ id: claim.id, unsigned }).toMatchObject({ id: claim.id, unsigned: true });
-      expect(
-        claim.claim.startsWith("PROPOSED AND UNVERIFIED.") ||
-          claim.claim.startsWith("NO EVIDENCE HAS BEEN SUPPLIED")
-      ).toBe(true);
+
+      const attested = claim.limitations.some((limitation) =>
+        limitation.startsWith("SCOPE ATTESTATION:")
+      );
+      const denied = claim.limitations.some((limitation) =>
+        limitation.startsWith("Steadfast has not independently verified the cited source's")
+      );
+      expect({ id: claim.id, attested, denied }).toEqual({ id: claim.id, attested: true, denied: true });
+    }
+  });
+
+  it("asserts no verification wording anywhere that the reviewer did not perform", () => {
+    // The failure this guards is a later edit quietly upgrading "confirmed the
+    // binding" into "verified the source", which is the claim nobody can make.
+    const FALSE_VERIFICATION =
+      /\b(has verified|have verified|independently verified the source's full text against|peer[- ]reviewed by|validated against the full text)\b/i;
+    for (const claim of claims) {
+      const haystack = [claim.claim, claim.population, ...claim.limitations].join(" ");
+      const scrubbed = haystack
+        .split("Steadfast has not independently verified the source's full text")
+        .join(" ")
+        .split("Steadfast has not independently verified the cited source's full text")
+        .join(" ");
+      expect({ id: claim.id, term: FALSE_VERIFICATION.exec(scrubbed)?.[0] ?? null }).toEqual({
+        id: claim.id,
+        term: null,
+      });
     }
   });
 });
@@ -501,60 +774,43 @@ describe("S-V1-artifacts — loaders refuse production and refuse unsigned regis
     }
   });
 
-  it("refuses to convert either draft to a registrable artifact without signed review metadata", () => {
-    const set = buildSyntheticArtifactSet();
-    // A non-synthetic artifact additionally needs APPROVED jurisdiction review;
-    // the synthetic fixture's metadata is SYNTHETIC_TEST_ONLY.
-    const signed = {
-      ...set.policyBundle.reviewMetadata,
-      jurisdictionReview: {
-        ...set.policyBundle.reviewMetadata.jurisdictionReview,
-        legalReviewStatus: "APPROVED" as const,
-      },
-    };
-    expect(() =>
-      draftEvidenceRegistryToArtifactDraftInput(
-        evidenceFile,
-        evidenceFile.reviewMetadata as never,
-        []
-      )
-    ).toThrow("qualified professional reviewer");
-    expect(() =>
-      draftEscalationTemplatesToArtifactDraftInput(
-        escalationFile,
-        escalationFile.reviewMetadata as never,
-        []
-      )
-    ).toThrow("qualified professional reviewer");
-
-    // With signed metadata both produce a valid, non-synthetic leaf artifact.
-    const evidenceInput = draftEvidenceRegistryToArtifactDraftInput(evidenceFile, signed, []);
-    const escalationInput = draftEscalationTemplatesToArtifactDraftInput(
-      escalationFile,
-      signed,
-      []
-    );
+  it("converts both signed artifacts, and refuses the same call on an unsigned file", () => {
+    const evidenceInput = evidenceRegistryToArtifactDraftInput(evidenceFile, []);
+    const escalationInput = escalationTemplatesToArtifactDraftInput(escalationFile, []);
     expect(parseArtifactDraftInput(evidenceInput).kind).toBe("EVIDENCE_REGISTRY");
     expect(parseArtifactDraftInput(escalationInput).kind).toBe("ESCALATION_TEMPLATES");
     expect(evidenceInput.synthetic).toBe(false);
     expect(escalationInput.synthetic).toBe(false);
+    expect(evidenceInput.reviewMetadata).toEqual(evidenceFile.reviewMetadata);
+    expect(escalationInput.reviewMetadata).toEqual(escalationFile.reviewMetadata);
+
+    // The refusal is unchanged for a file that has not been signed.
+    const unsigned = { ...evidenceFile, reviewMetadata: DRAFT_UNSIGNED_METADATA };
+    expect(() => evidenceRegistryToArtifactDraftInput(unsigned, [])).toThrow(
+      "signed review metadata"
+    );
   });
 
-  it("registering either draft with its own DRAFT_UNSIGNED metadata is refused downstream too", () => {
-    const draftInput = {
-      id: "evidence-registry-v1:v1",
-      artifactKey: "evidence-registry-v1",
-      version: 1,
-      kind: "EVIDENCE_REGISTRY" as const,
-      schemaVersion: 1 as const,
-      engineVersions: ["ai-coach-artifact-engine-v1"],
-      dependencies: [],
-      synthetic: true,
-      reviewMetadata: evidenceFile.reviewMetadata,
-      content: evidenceFile.content,
+  it("a signed file whose records are still PROPOSED does not parse", () => {
+    // "Approved at the top, unreviewed underneath" was representable before S-17.
+    const mixed = {
+      ...structuredClone(evidenceFile),
+      reviewStates: evidenceFile.reviewStates.map((state, index) =>
+        index === 0 ? { ...state, reviewState: "PROPOSED" } : state
+      ),
     };
-    expect(() => parseArtifactDraftInput(draftInput)).toThrow(
-      "Draft unsigned artifacts cannot be synthetic"
+    expect(() => draftEvidenceRegistryFileSchema.parse(mixed)).toThrow(
+      /APPROVED artifacts carry ACCEPTED records/
+    );
+  });
+
+  it("registering either artifact as synthetic is refused downstream too", () => {
+    const syntheticInput = {
+      ...evidenceRegistryToArtifactDraftInput(evidenceFile, []),
+      synthetic: true,
+    };
+    expect(() => parseArtifactDraftInput(syntheticInput)).toThrow(
+      "Synthetic artifacts must carry synthetic-only jurisdiction review status"
     );
   });
 });

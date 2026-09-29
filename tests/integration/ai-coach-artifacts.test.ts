@@ -20,6 +20,10 @@ import {
   SYNTHETIC_ARTIFACT_ENGINE_VERSION,
 } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
 import { loadDraftUnsignedPolicyBundle } from "@/lib/ai-coach/artifacts/drafts/loader";
+// S-17 signed the checked-in bundle, so these three refusal tests — a draft must
+// never publish, load, or satisfy a launch packet — use an explicit unsigned
+// fixture rather than the file, which no longer supplies one.
+import { DRAFT_UNSIGNED_METADATA } from "../helpers/ai-draft-review-metadata";
 import { mapFdcRecordToCatalogItem } from "@/lib/ai-coach/catalog/fdc/mapping";
 import type { AllowlistEntry } from "@/lib/ai-coach/catalog/fdc/allowlist-schema";
 import { PRESCRIPTION_PARAMETER_SPECS } from "@/lib/ai-coach/prescription/parameters";
@@ -606,7 +610,7 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
         digest: artifactContentDigest(leaf),
       })),
       synthetic: false,
-      reviewMetadata: draftFile.reviewMetadata,
+      reviewMetadata: DRAFT_UNSIGNED_METADATA,
       content,
     };
 
@@ -668,7 +672,7 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
         digest: artifactContentDigest(leaf),
       })),
       synthetic: false,
-      reviewMetadata: draftFile.reviewMetadata,
+      reviewMetadata: DRAFT_UNSIGNED_METADATA,
       content,
     };
 
@@ -729,7 +733,7 @@ suite("T-1005 — reviewed artifact registry with real PostgreSQL constraints", 
         digest: artifactContentDigest(leaf),
       })),
       synthetic: false,
-      reviewMetadata: draftFile.reviewMetadata,
+      reviewMetadata: DRAFT_UNSIGNED_METADATA,
       content,
     };
 

@@ -1,15 +1,48 @@
 {
   "fileSchemaVersion": 1,
   "reviewMetadata": {
-    "decision": "DRAFT_UNSIGNED",
-    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
-    "preparedAt": "2026-09-26T16:21:51.097Z",
-    "draftRecordId": "fdc-food-catalog-draft-v1",
-    "worksheetSectionIds": [
-      "D07",
-      "D08",
-      "D12"
+    "accountableOwner": {
+      "name": "Jaden Wong",
+      "role": "Accountable Owner / Founder"
+    },
+    "reviewer": {
+      "name": "Jaden Wong",
+      "reviewerType": "QUALIFIED_CONTENT_REVIEWER",
+      "qualifications": [
+        "Accountable owner and founder. Reviewed within the general fitness and wellness scope only; no clinical qualification is claimed."
+      ]
+    },
+    "reviewedAt": "2026-09-27T00:00:00.000Z",
+    "reviewRecordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+    "decision": "APPROVED",
+    "signoffScope": [
+      "Signed by the accountable owner as the sole reviewer. There is no external legal review, no independent clinical review and no second signer for this artifact set.",
+      "Reviewed within the general fitness and wellness scope only. No clinical qualification, licence, registration number or certifying body is claimed or recorded.",
+      "Sources cited by this artifact set were confirmed as supporting the rules they are bound to, within that scope. Their full texts were not independently verified by Steadfast.",
+      "Scope of this signature: the food catalog produced by the recorded USDA FoodData Central ingestion run, for general-population meal composition."
     ],
+    "allowedScope": [
+      "GENERAL_FITNESS_PROGRAMMING",
+      "GENERAL_BEHAVIOR_NUTRITION_EDUCATION"
+    ],
+    "explicitExclusions": [
+      "DIAGNOSIS",
+      "TREATMENT_OR_REHABILITATION",
+      "CLINICAL_NUTRITION_OR_MEDICAL_NUTRITION_THERAPY",
+      "MEDICATION_OR_SUPPLEMENT_PRESCRIBING",
+      "CLINICIAN_INSTRUCTION_OVERRIDE"
+    ],
+    "jurisdictionReview": {
+      "jurisdictions": [
+        "US"
+      ],
+      "legalReviewStatus": "APPROVED",
+      "legalReviewBasis": "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION",
+      "scopeNote": "Reviewed within general fitness and wellness scope; medical advice disclaimed.",
+      "recordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+      "reviewedAt": "2026-09-27T00:00:00.000Z"
+    },
+    "publicFrameworkReferences": [],
     "proposalProvenance": [
       {
         "parameterId": "fdc-747447",
@@ -1635,8 +1668,7 @@
         "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171706/nutrients",
         "sourceLocator": "fdcId 171706; dataType SR Legacy; publication 4/1/2019"
       }
-    ],
-    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+    ]
   },
   "content": {
     "artifactKey": "food-catalog",

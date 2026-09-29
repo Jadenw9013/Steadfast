@@ -1,15 +1,48 @@
 {
   "fileSchemaVersion": 1,
   "reviewMetadata": {
-    "decision": "DRAFT_UNSIGNED",
-    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
-    "preparedAt": "2026-09-25T00:00:00.000Z",
-    "draftRecordId": "draft-nutrition-bundle-v1",
-    "worksheetSectionIds": [
-      "D03",
-      "D04",
-      "D05"
+    "accountableOwner": {
+      "name": "Jaden Wong",
+      "role": "Accountable Owner / Founder"
+    },
+    "reviewer": {
+      "name": "Jaden Wong",
+      "reviewerType": "QUALIFIED_CONTENT_REVIEWER",
+      "qualifications": [
+        "Accountable owner and founder. Reviewed within the general fitness and wellness scope only; no clinical qualification is claimed."
+      ]
+    },
+    "reviewedAt": "2026-09-27T00:00:00.000Z",
+    "reviewRecordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+    "decision": "APPROVED",
+    "signoffScope": [
+      "Signed by the accountable owner as the sole reviewer. There is no external legal review, no independent clinical review and no second signer for this artifact set.",
+      "Reviewed within the general fitness and wellness scope only. No clinical qualification, licence, registration number or certifying body is claimed or recorded.",
+      "Sources cited by this artifact set were confirmed as supporting the rules they are bound to, within that scope. Their full texts were not independently verified by Steadfast.",
+      "Scope of this signature: the nutrition and training policy bundle, its parameter values, rules, safety controls and the sources recorded in its provenance."
     ],
+    "allowedScope": [
+      "GENERAL_FITNESS_PROGRAMMING",
+      "GENERAL_BEHAVIOR_NUTRITION_EDUCATION"
+    ],
+    "explicitExclusions": [
+      "DIAGNOSIS",
+      "TREATMENT_OR_REHABILITATION",
+      "CLINICAL_NUTRITION_OR_MEDICAL_NUTRITION_THERAPY",
+      "MEDICATION_OR_SUPPLEMENT_PRESCRIBING",
+      "CLINICIAN_INSTRUCTION_OVERRIDE"
+    ],
+    "jurisdictionReview": {
+      "jurisdictions": [
+        "US"
+      ],
+      "legalReviewStatus": "APPROVED",
+      "legalReviewBasis": "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION",
+      "scopeNote": "Reviewed within general fitness and wellness scope; medical advice disclaimed.",
+      "recordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+      "reviewedAt": "2026-09-27T00:00:00.000Z"
+    },
+    "publicFrameworkReferences": [],
     "proposalProvenance": [
       {
         "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.INTERCEPT",
@@ -447,83 +480,82 @@
       },
       {
         "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.UNDER_30.MAX",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_30_45.MAX",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_45_60.MAX",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_60_90.MAX",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.OVER_90.MAX",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 product/engineering proposal, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.UNDER_30",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_30_45",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_45_60",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_60_90",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       },
       {
         "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.OVER_90",
-        "sourceClaimId": "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL",
-        "sourceId": "STEADFAST-T2039-SPEC",
-        "sourceUrl": "https://example.invalid/steadfast/board/tickets/T-2039",
-        "sourceLocator": "Board ticket T-2039 band upper boundary arithmetic from T-2002, not evidence."
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
       }
-    ],
-    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+    ]
   },
   "content": {
     "artifactKey": "policy-bundle-nutrition",
@@ -627,7 +659,9 @@
       "ESCALATION.EVIDENCE.HOLD.V1",
       "ESCALATION.PLAN.NOT_USABLE.V1"
     ],
-    "prescriptionExplanationTemplateIds": [],
+    "prescriptionExplanationTemplateIds": [
+      "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1"
+    ],
     "trainingEffortTemplateIds": [
       "TRAINING.EFFORT.STRENGTH.V1",
       "TRAINING.EFFORT.CARDIO.V1"
@@ -1378,7 +1412,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1389,7 +1423,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1400,7 +1434,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1411,7 +1445,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1422,7 +1456,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1433,7 +1467,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1444,7 +1478,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1455,7 +1489,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1466,7 +1500,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1477,7 +1511,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       },
       {
@@ -1488,7 +1522,7 @@
           "TRAINING.RULE.SESSION_STRUCTURE.V1"
         ],
         "evidenceClaimIds": [
-          "CLAIM.STEADFAST.T2039.TRAINING.PROPOSAL"
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
         ]
       }
     ],

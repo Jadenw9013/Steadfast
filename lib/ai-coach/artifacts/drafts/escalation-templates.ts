@@ -4,22 +4,25 @@ import type {
   ArtifactReference,
   SignedArtifactReviewMetadata,
 } from "../schema";
+import { escalationTemplatesContentSchema } from "../schema";
 import {
-  draftUnsignedReviewMetadataSchema,
-  escalationTemplatesContentSchema,
-  isDraftUnsignedReviewMetadata,
-  signedArtifactReviewMetadataSchema,
-} from "../schema";
+  artifactFileReviewMetadataSchema,
+  reportReviewStateMismatch,
+  requireSignedReviewMetadata,
+} from "./file-review";
 import rawDraftEscalationTemplates from "./escalation-templates.draft-unsigned.v1.json";
 
 /**
- * S-V1-artifacts — the DRAFT_UNSIGNED escalation templates.
+ * S-V1-artifacts / S-17 — the escalation templates, signed.
  *
  * `nextStepText` and `nonMonitoringStatement` are the sentences a real person
  * reads when the deterministic gate decides it cannot proceed. They are clinical
- * and legal copy, not engineering copy, so every string here is a **candidate**
- * for a qualified professional and legal counsel to correct or replace, and
- * every template is `PROPOSED`.
+ * and legal copy, not engineering copy. Every string was written or confirmed by
+ * the accountable owner in `steadfast-hq/board/REVIEW-WORKSHEET.md` and applied
+ * here verbatim; S-17 changed none of the wording it was handed. **Nobody may
+ * edit a string in this file without a new signed worksheet entry** — an edit
+ * made here is content nobody reviewed, wearing a signature that says someone
+ * did.
  *
  * The content rules are structural, enforced by
  * `tests/unit/ai-coach-evidence-escalation-drafts.test.ts` rather than by
@@ -44,20 +47,23 @@ import rawDraftEscalationTemplates from "./escalation-templates.draft-unsigned.v
  * load-bearing:** the degraded lookup is a `find`, so the most protective
  * prescription template precedes the others. A test pins the order.
  *
- * Two deliberate omissions, both fail-closed (the T-2039 pattern):
+ * **Three of these templates are not escalations.** Worksheet section 3 supplied
+ * the two training-effort sentences and the nutrition-target explanation, which
+ * were the values deliberately left absent so the system failed closed rather
+ * than guessing a dose. They live here because that is where copy lives, but
+ * they are bound through `policy.trainingEffortTemplateIds` and
+ * `policy.prescriptionExplanationTemplateIds` — never through
+ * `escalationTemplateIds` — and their `reasonCodes` carry
+ * {@link NON_ESCALATION_REASON_CODE_PREFIX} so the separation is checkable
+ * rather than remembered. S-15 is why: when all three shared one list, effort
+ * copy published itself underneath clients' calorie targets on 257 of 257
+ * prescriptions. A test fails if any id appears in more than one list.
  *
- * - No template carries `TRAINING.EFFORT.STRENGTH.V1` or `TRAINING.EFFORT.CARDIO.V1`.
- *   Effort guidance is a dose. Without them `resolveTrainingParameters` returns
- *   `TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE` and composes nothing.
- * - No template is bound as a prescription explanation, so
- *   `resolveReviewedPrescriptionExplanationTexts` returns an empty list and
- *   `computePrescription` fails closed to
- *   `PRESCRIPTION_EXPLANATION_TEMPLATE_UNAVAILABLE`.
- *
- * `geographies` is the sentinel {@link NO_GEOGRAPHY_CLEARED} on every template:
- * no jurisdiction has cleared this copy. `pausedDomains` has no runtime reader
- * (a test asserts that) and no empty representation in the schema; see the
- * README for the one template where that matters.
+ * `geographies` is the market the signed metadata clears
+ * (`reviewMetadata.jurisdictionReview.jurisdictions`), and a test asserts the
+ * two stay equal so copy and metadata cannot drift. `pausedDomains` has no
+ * runtime reader (a test asserts that) and no empty representation in the
+ * schema; see the README for the templates where that matters.
  *
  * **This module is server-side and test-side only.** It statically imports the
  * JSON, so any module importing it carries the draft copy into its bundle, the
@@ -65,7 +71,16 @@ import rawDraftEscalationTemplates from "./escalation-templates.draft-unsigned.v
  * `components/` may import it, and a unit test asserts it.
  */
 
-export const NO_GEOGRAPHY_CLEARED = "PENDING_LEGAL_AND_CLINICAL_REVIEW.NO_GEOGRAPHY_CLEARED";
+/**
+ * Marks a template that is copy rather than an escalation.
+ *
+ * `resolveNextActionTemplateId` only ever selects from
+ * `policy.escalationTemplateIds`, so a template carrying this prefix can never
+ * be chosen as a gate outcome. The prefix exists so a test can prove that,
+ * instead of the separation resting on nobody adding the wrong id to the wrong
+ * list — which is exactly what went wrong in S-15.
+ */
+export const NON_ESCALATION_REASON_CODE_PREFIX = "NOT_AN_ESCALATION.";
 
 /**
  * Per-template review marks, in the file envelope rather than in `content` so
@@ -84,12 +99,13 @@ export type DraftEscalationReviewState = z.infer<typeof draftEscalationReviewSta
 export const draftEscalationTemplatesFileSchema = z
   .object({
     fileSchemaVersion: z.literal(1),
-    reviewMetadata: draftUnsignedReviewMetadataSchema,
+    reviewMetadata: artifactFileReviewMetadataSchema,
     reviewStates: z.array(draftEscalationReviewStateSchema).min(1).max(20_000),
     content: escalationTemplatesContentSchema,
   })
   .strict()
   .superRefine((file, ctx) => {
+    reportReviewStateMismatch(file.reviewMetadata, file.reviewStates, ctx);
     const templateIds = new Set(file.content.templates.map((template) => template.id));
     const seen = new Set<string>();
     file.reviewStates.forEach((state, index) => {
@@ -136,26 +152,20 @@ export function loadDraftUnsignedEscalationTemplates(): DraftEscalationTemplates
 }
 
 /**
- * Converts a validated draft file into an `ArtifactDraftInput` ready for
- * registration once signed by a qualified professional reviewer and cleared by
- * legal counsel. The required `signed` argument makes registering an unsigned
- * draft unrepresentable at the type level, and the runtime check makes it
- * unrepresentable from JavaScript too. No caller exists yet; that is intentional
- * — G01/G03 have not happened.
+ * Converts the validated file into an `ArtifactDraftInput` ready for
+ * registration. The signature is read from the file rather than passed in, so
+ * the file and the registered artifact cannot disagree about who signed what,
+ * and {@link requireSignedReviewMetadata} refuses an unsigned one from
+ * JavaScript as well as from TypeScript.
+ *
+ * No caller exists, and that is still intentional: registering is activation,
+ * and activation is Jaden's step alone.
  */
-export function draftEscalationTemplatesToArtifactDraftInput(
+export function escalationTemplatesToArtifactDraftInput(
   file: DraftEscalationTemplatesFile,
-  signed: SignedArtifactReviewMetadata,
   dependencies: ArtifactReference[]
 ): ArtifactDraftInput<SignedArtifactReviewMetadata> {
-  if (
-    isDraftUnsignedReviewMetadata(signed) ||
-    !signedArtifactReviewMetadataSchema.safeParse(signed).success
-  ) {
-    throw new Error(
-      "The escalation templates can only be registered with signed review metadata from a qualified professional reviewer."
-    );
-  }
+  const signed = requireSignedReviewMetadata(file.reviewMetadata, "escalation templates");
   return {
     id: `${file.content.artifactKey}:v${file.content.version}`,
     artifactKey: file.content.artifactKey,

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { artifactContentDigest } from "@/lib/ai-coach/artifacts/digest";
 import {
   loadDraftUnsignedPolicyBundle,
-  draftPolicyBundleToArtifactDraftInput,
+  policyBundleToArtifactDraftInput,
 } from "@/lib/ai-coach/artifacts/drafts/loader";
 import {
   isDraftUnsignedReviewMetadata,
@@ -22,10 +22,9 @@ import {
   resolvePrescriptionParameters,
 } from "@/lib/ai-coach/prescription/parameters";
 import { buildSyntheticSafetyFloors } from "../helpers/ai-prescription-bundle";
+import { DRAFT_UNSIGNED_METADATA } from "../helpers/ai-draft-review-metadata";
 
 describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter catalogue", () => {
-  const FROZEN_UNSIGNED_NOTICE =
-    "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE.";
 
   it("preserves exact byte-identical digests for all existing synthetic leaf fixtures", () => {
     const set = buildSyntheticArtifactSet();
@@ -41,7 +40,7 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     // T-2039 added effort templates; S-15 added a distinct nutrition-copy
     // template so those effort strings cannot leak into nutrition assumptions.
     expect(artifactContentDigest(set.evidenceRegistry)).toBe(
-      "8797be80c8c2cbe21af3d61eb7c54ea711ee96c344ca41124a7dc1b9169e0233"
+      "24eba06c36b95985b2b17401daef78d7b06edcf428d0fc4b8f4da39adefb2c37"
     );
     expect(artifactContentDigest(set.escalationTemplates)).toBe(
       "a39e7c45cdbc04ff6a74826320bde13fc3c13fd7fca26ef7c6a526631170ce14"
@@ -52,7 +51,9 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     const draftFile = loadDraftUnsignedPolicyBundle();
     const set = buildSyntheticArtifactSet();
 
-    expect(isDraftUnsignedReviewMetadata(draftFile.reviewMetadata)).toBe(true);
+    // S-17: the checked-in bundle is signed, so it is the *negative* case now.
+    expect(isDraftUnsignedReviewMetadata(draftFile.reviewMetadata)).toBe(false);
+    expect(isDraftUnsignedReviewMetadata(DRAFT_UNSIGNED_METADATA)).toBe(true);
     expect(isDraftUnsignedReviewMetadata(set.policyBundle.reviewMetadata)).toBe(false);
     expect(isDraftUnsignedReviewMetadata(null)).toBe(false);
     expect(isDraftUnsignedReviewMetadata(undefined)).toBe(false);
@@ -74,7 +75,7 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
       engineVersions: ["ai-coach-artifact-engine-v1"],
       dependencies: set.policyBundle.dependencies,
       synthetic: true, // Forbidden for DRAFT_UNSIGNED
-      reviewMetadata: draftFile.reviewMetadata,
+      reviewMetadata: DRAFT_UNSIGNED_METADATA,
       content: draftFile.content,
     };
 
@@ -95,7 +96,7 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
       engineVersions: ["ai-coach-artifact-engine-v1"],
       dependencies: set.policyBundle.dependencies,
       synthetic: false,
-      reviewMetadata: draftFile.reviewMetadata,
+      reviewMetadata: DRAFT_UNSIGNED_METADATA,
       content: draftFile.content,
     };
 
@@ -104,7 +105,7 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     expect(isDraftUnsignedReviewMetadata(parsed.reviewMetadata)).toBe(true);
   });
 
-  it("loadDraftUnsignedPolicyBundle returns valid content with exact provenance coverage and unsigned notice", () => {
+  it("loadDraftUnsignedPolicyBundle returns valid content with exact provenance coverage, signed", () => {
     const draftFile = loadDraftUnsignedPolicyBundle();
     expect(draftFile.fileSchemaVersion).toBe(1);
 
@@ -112,21 +113,21 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     const parsedContent = policyBundleContentSchema.parse(draftFile.content);
     expect(parsedContent.artifactKey).toBe("policy-bundle-nutrition");
 
-    // Exact notice text
-    expect(draftFile.reviewMetadata.unsignedNotice).toBe(FROZEN_UNSIGNED_NOTICE);
+    // S-17: the bundle is signed, and `proposalProvenance` survived the signature.
+    expect(draftFile.reviewMetadata.decision).toBe("APPROVED");
+    if (draftFile.reviewMetadata.decision !== "APPROVED") return;
+    const provenance = draftFile.reviewMetadata.proposalProvenance ?? [];
 
     // Provenance covers EVERY numeric parameter present in content
     const parameterIdsInContent = draftFile.content.numericParameters.map((p) => p.id);
-    const provenanceParameterIds = draftFile.reviewMetadata.proposalProvenance.map(
-      (p) => p.parameterId
-    );
+    const provenanceParameterIds = provenance.map((p) => p.parameterId);
 
-    // 62 nutrition parameters + 11 proposed training parameters = 73 parameters in draft bundle
+    // 62 nutrition parameters + 11 training parameters = 73 parameters in the bundle
     expect(parameterIdsInContent).toHaveLength(73);
     expect(provenanceParameterIds).toHaveLength(73);
     expect([...provenanceParameterIds].sort()).toEqual([...parameterIdsInContent].sort());
 
-    for (const prov of draftFile.reviewMetadata.proposalProvenance) {
+    for (const prov of provenance) {
       expect(prov.sourceClaimId).toBeTruthy();
       expect(prov.sourceId).toBeTruthy();
       expect(prov.sourceUrl.startsWith("https://")).toBe(true);
@@ -246,19 +247,25 @@ describe("T-2034 — DRAFT_UNSIGNED review metadata, draft bundle, and parameter
     });
   });
 
-  it("draftPolicyBundleToArtifactDraftInput produces an ArtifactDraftInput requiring a signed review metadata argument", () => {
+  it("policyBundleToArtifactDraftInput carries the file's own signature, and refuses an unsigned file", () => {
     const draftFile = loadDraftUnsignedPolicyBundle();
     const set = buildSyntheticArtifactSet();
 
-    const converted = draftPolicyBundleToArtifactDraftInput(
-      draftFile,
-      set.policyBundle.reviewMetadata,
-      set.policyBundle.dependencies
-    );
+    const converted = policyBundleToArtifactDraftInput(draftFile, set.policyBundle.dependencies);
 
     expect(converted.synthetic).toBe(false);
     expect(converted.reviewMetadata.decision).toBe("APPROVED");
+    // S-17: the signature is read from the file, so the registered artifact and
+    // the file cannot disagree about who signed what.
+    expect(converted.reviewMetadata).toEqual(draftFile.reviewMetadata);
     expect(converted.kind).toBe("POLICY_BUNDLE");
     expect(converted.dependencies).toHaveLength(4);
+
+    expect(() =>
+      policyBundleToArtifactDraftInput(
+        { ...draftFile, reviewMetadata: DRAFT_UNSIGNED_METADATA },
+        set.policyBundle.dependencies
+      )
+    ).toThrow(/signed review metadata/i);
   });
 });

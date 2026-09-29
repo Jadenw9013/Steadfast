@@ -1,4 +1,4 @@
-# 18. Evidence registry and escalation templates — DRAFT_UNSIGNED handover
+# 18. Evidence registry and escalation templates — signed (S-17)
 
 Two of the five artifacts `loadLiveArtifactSetForLaunchValidation` requires existed only as synthetic
 fixtures, and a synthetic artifact is refused at launch by design, so no v1 launch was representable. This
@@ -9,14 +9,21 @@ document is the reviewer's handover for the drafts that close that gap:
 | `EVIDENCE_REGISTRY` | `lib/ai-coach/artifacts/drafts/evidence-registry.draft-unsigned.v1.json` | `lib/ai-coach/artifacts/drafts/evidence-registry.ts` |
 | `ESCALATION_TEMPLATES` | `lib/ai-coach/artifacts/drafts/escalation-templates.draft-unsigned.v1.json` | `lib/ai-coach/artifacts/drafts/escalation-templates.ts` |
 
-Both ship `DRAFT_UNSIGNED` with every record `PROPOSED`. Both loaders refuse to run when
-`NODE_ENV === "production"`. Neither is imported by anything under `app/` or `components/`, and neither is
-registered anywhere: no caller exists, deliberately, because G01 and G03 have not happened.
+**Superseded by S-17.** Both files are now signed: `reviewMetadata.decision` is `APPROVED`, every record is
+`ACCEPTED`, and the content is what Jaden Wong wrote or confirmed in `steadfast-hq/board/REVIEW-WORKSHEET.md`
+on 2026-09-27. The sections below are kept as the record of what was handed to the reviewer and what the
+reviewer was being asked; read them as history, not as current state.
+
+Both loaders still refuse to run when `NODE_ENV === "production"`, neither file is imported by anything under
+`app/` or `components/`, and neither is registered anywhere. **A signature is not an activation.** Activation
+is Jaden's own step and no agent may perform it.
 
 > **Engineering wrote the structure. It did not write the content, and it is not qualified to.**
 > Escalation copy is the sentence a real person reads when the system stops. Evidence rules decide when
-> evidence is sufficient to act on. Both are clinical and legal judgment. Every string below is a
-> **candidate** for Jaden (RD, CPT) and legal counsel to correct or replace.
+> evidence is sufficient to act on. Both are clinical and legal judgment. Every string below was reviewed and
+> signed by Jaden Wong as the accountable owner, within the general fitness and wellness scope only.
+> **No clinical qualification, licence, registration number or certifying body is claimed**, and no external
+> legal review was obtained — see §6.
 
 ---
 
@@ -164,3 +171,39 @@ A correction that breaks one of these turns
   paused — lists all three domains because the schema requires at least one. That is a schema artifact, not
   a claim; giving the schema a way to say "nothing" is an architect change, since the field sits inside
   `artifactContentDigest`.
+
+
+---
+
+## 6. What S-17 changed, and what it did not (2026-09-28)
+
+Applied from `steadfast-hq/board/REVIEW-WORKSHEET.md`, verbatim, with nothing added:
+
+- **Section 1 (fifteen client sentences) and the non-monitoring statement:** all marked `[OK]` and already
+  matched the artifact byte for byte. **Not one character changed.**
+- **Section 2 (nine evidence claims):** claims 1–7 kept their sources; items 8 and 9 took the PubMed sources
+  the reviewer supplied (`19204579` ACSM progression models, `24222017` 2013 AHA/ACC/TOS obesity guideline).
+  Their claim ids moved with their sources, because the old ids named a Steadfast proposal and a pending
+  placeholder that neither record is any more.
+- **Section 3 (three supplied texts):** `TRAINING.EFFORT.STRENGTH.V1`, `TRAINING.EFFORT.CARDIO.V1` and the new
+  `PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1` carry the reviewer's sentences verbatim.
+- **Section 4:** one safety-pause sentence still covers all six situations. Unchanged, as decided.
+
+**What each evidence claim now asserts.** That the accountable owner confirmed the source supports the rule it
+is bound to, within the general fitness and wellness scope — and explicitly *not* that anyone independently
+verified the source's full text. Those are different claims and only the first one happened.
+
+**`legalReviewStatus: "APPROVED"` is not an external legal review.** There is no legal signer. Each artifact
+records `jurisdictionReview.legalReviewBasis: "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION"` and the owner's own
+scope note, so the field cannot be read as counsel having cleared the copy. `jurisdictions` and every
+template's `geographies` are `["US"]`, and a test asserts the two lists stay equal.
+
+**The launch packet still requires all seven signers.** Reducing it to one was in scope for S-17 and was not
+landed: the same policy is enforced a second time by the `validate_ai_coach_live_launch_approval` database
+trigger, which carries two latent defects that surface as soon as its approval clauses are touched. Until that
+is resolved, the artifacts are signed but the launch packet cannot be completed by one person.
+
+**Training still does not compose.** Supplying the effort copy removed
+`TRAINING_EXPLANATION_TEMPLATE_UNAVAILABLE`, and `resolveTrainingParameters` now refuses with
+`TRAINING_PARAMETER_MISSING` over **23** strength and cardio dose parameters the bundle does not carry. The
+worksheet supplied none of them; they are doses, and S-17 invented nothing. That refusal is pinned by a test.
