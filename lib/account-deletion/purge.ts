@@ -267,6 +267,12 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       // lib/ai-coach/delete-evidence.ts:21 still hold a clientId, a
       // clientEventId and an inputDigest and must be purged, not skipped.
       await tx.$executeRaw`DELETE FROM "AiCheckInObservation" WHERE "clientId" = ${userId}`;
+      // S-23 — AiNutritionLog is onDelete: Cascade like the two rows above, and
+      // is purged explicitly for the same reason: a client's daily food record
+      // is health information, and a later relation change must not be able to
+      // leave it behind. No completeness/source filter: a SKIPPED/NONE day is a
+      // stored declaration by the client and is purged like any other row.
+      await tx.$executeRaw`DELETE FROM "AiNutritionLog" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiOperationReceipt" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiAdjustmentSlot" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "AiCoachRun" WHERE "clientId" = ${userId}`;

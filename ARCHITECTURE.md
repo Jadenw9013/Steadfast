@@ -599,12 +599,13 @@ column existed (under `7ce26a4`) read `acceptedWithMismatch = false`; that means
 
 ### AI Coach — live-launch and governance (T-989)
 
-30 models (`rg -c '^model Ai' prisma/schema.prisma`). The 7 migrations of the
-T-989 fold (`20260921000000`…`20260922010000`) create 15 of those 30 tables;
-T-995 (`20260925000000`) added one more, `AiCoachAccessGrantEvent`; the
-remaining 14 — including `AiCheckInObservation` and `AiOperationReceipt`,
-both `ON DELETE CASCADE` to `User` and grouped in "Not listed above" below —
-predate both (15 + 1 + 14 = 30). `docs/ai-coach/04-Architecture-and-Data.md`
+31 models (`rg -c '^model Ai' prisma/schema.prisma`). The 7 migrations of the
+T-989 fold (`20260921000000`…`20260922010000`) create 15 of those 31 tables;
+T-995 (`20260925000000`) added one more, `AiCoachAccessGrantEvent`; S-23
+(`20260929000000`) added `AiNutritionLog`; the remaining 14 — including
+`AiCheckInObservation` and `AiOperationReceipt`, both `ON DELETE CASCADE` to
+`User` and grouped in "Not listed above" below — predate all three
+(15 + 1 + 1 + 14 = 31). `docs/ai-coach/04-Architecture-and-Data.md`
 and `docs/ai-coach/14-Handoff-Status.md` are the authoritative, kept-current
 source for the full model list; the groups are:
 
@@ -617,6 +618,7 @@ source for the full model list; the groups are:
 | Reviewed artifacts | `AiCoachArtifactVersion`, `AiCoachArtifactLifecycleEvent` | Versioned, append-only policy/catalog artifacts and their publish/revoke history |
 | Live-launch governance | `AiCoachLiveLaunchPacket`, `AiCoachLiveLaunchLifecycleEvent`, `AiCoachGovernanceGrant`, `AiCoachOperationalControl`, `AiCoachOperationalEvent`, `AiCoachAccessGrantEvent` | The approval packet for a release and the kill-switch/grant infrastructure that gates it, plus the append-only provisioning history for all three grant tables (T-995) |
 | Live activation | `AiCoachLiveActivation`, `AiCoachLiveActivationEvent` | The single server-selected active release (partial-unique "only one ACTIVE row") and its append-only activate/deactivate history |
+| Client-reported nutrition (S-23) | `AiNutritionLog` | One row per client per calendar day (`@@unique([clientId, loggedOn])`, which is also the index the rolling-window read uses). `source`/`completeness` are the client's own declaration, and four CHECK constraints in `20260929000000_ai_nutrition_log` keep `SKIPPED`/`NONE` (a declared "I did not log") distinguishable from a day with no row: a NONE day carries no numbers, a covered day carries an energy value, `source = SKIPPED` and `completeness = NONE` may not disagree, and no value is negative. `ON DELETE CASCADE` to `User` plus an explicit purge statement. Nothing reads it yet — the adaptive estimator in `lib/ai-coach/adaptive/` is phases 1-2 only and is wired to no request path |
 | Not listed above (pre-existing) | `AiCheckInObservation`, `AiOperationReceipt` | `ON DELETE CASCADE` to `User`, and also deleted explicitly in lib/account-deletion/purge.ts (T-509) so a later relation change cannot leave them behind |
 
 Catalog item references inside an `AiPlanVersion.payload` are resolved **by

@@ -152,6 +152,7 @@ model User {
   aiPlanAcceptanceOutbox         AiPlanAcceptanceOutbox[]
   aiOperationReceipts            AiOperationReceipt[]
   aiObservations                 AiCheckInObservation[]
+  aiNutritionLogs                AiNutritionLog[]
   aiNutritionSafetyDecisions     AiNutritionSafetyDecision[]
   aiAutonomyGateDecisions        AiAutonomyGateDecision[]
   aiProviderBoundaryAudits       AiProviderBoundaryAudit[]
@@ -1101,6 +1102,54 @@ model AiCheckInObservation {
 
   @@unique([clientId, clientEventId])
   @@index([clientId, occurredAt])
+}
+
+enum AiNutritionLogSource {
+  PLAN_AS_WRITTEN
+  PLAN_WITH_EDITS
+  MANUAL
+  SKIPPED
+}
+
+enum AiNutritionLogCompleteness {
+  FULL
+  PARTIAL
+  NONE
+}
+
+// S-23 (adaptive energy, phase 1) — the client's own daily nutrition record.
+//
+// `SKIPPED` / `NONE` are FIRST-CLASS states, not an absence. "The client said
+// they did not log that day" is information the estimator must be able to see;
+// "there is no row for that day" is not. The two are kept distinguishable by
+// construction: a stored row always carries a declared `source` and a declared
+// `completeness`, and the migration's CHECK constraints
+// (`AiNutritionLog_none_has_no_macros`, `AiNutritionLog_logged_has_energy`,
+// `AiNutritionLog_skipped_is_none`, `AiNutritionLog_nonnegative`) make a row
+// that says "nothing was logged" while still carrying numbers, or a row that
+// claims coverage with no energy value, impossible to write. `completeness` is
+// the client's own declaration, never inferred.
+//
+// No separate @@index: the `@@unique([clientId, loggedOn])` btree is itself the
+// index the rolling-window read uses (equality on clientId, range on loggedOn).
+// A second index on the same leading columns would cost every write and serve
+// no read.
+model AiNutritionLog {
+  id           String                     @id @default(cuid())
+  clientId     String
+  loggedOn     DateTime                   @db.Date
+  energyKcal   Float?
+  proteinG     Float?
+  carbsG       Float?
+  fatG         Float?
+  source       AiNutritionLogSource
+  completeness AiNutritionLogCompleteness
+  revision     Int                        @default(1)
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  client       User                       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, loggedOn])
 }
 
 model AiOperationReceipt {
