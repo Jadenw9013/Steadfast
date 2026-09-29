@@ -26,7 +26,7 @@ import {
 } from "@/lib/ai-coach/live-launch/repository";
 import type { GovernanceScope } from "@/lib/ai-coach/operations";
 import {
-  REQUIRED_APPROVAL_REQUIREMENTS,
+  ALL_APPROVAL_REQUIREMENTS,
   REQUIRED_DECISION_IDS,
   REQUIRED_EVIDENCE_REQUIREMENTS,
   liveLaunchPacketSchema,
@@ -141,17 +141,29 @@ export function buildNonSyntheticLaunchTestArtifacts(namespace: string) {
   return { leaves, policy, references: [artifactReferenceOf(policy), ...policy.dependencies] };
 }
 
+/**
+ * S-20: which signatures the fixture packet carries. Defaults to all seven,
+ * deliberately — every existing suite that activates a live release keeps
+ * exercising the full seven-signer shape, so the single-signer reduction is
+ * proved to *widen* what the gate accepts rather than to move it. Pass
+ * `REQUIRED_APPROVAL_REQUIREMENTS` for the SINGLE_SIGNER_ACCOUNTABLE_OWNER
+ * shape v1 actually ships.
+ */
+export type LaunchApprovalRequirement = LiveLaunchPacket["approvals"][number]["requirement"];
+
 export function completeNonTestLaunchPacket(input: {
   suffix: string;
   artifactBindings: ArtifactReference[];
   now?: Date;
+  approvalRequirements?: readonly LaunchApprovalRequirement[];
 }): LiveLaunchPacket {
   const now = input.now ?? new Date();
+  const approvalRequirements = input.approvalRequirements ?? ALL_APPROVAL_REQUIREMENTS;
   const signedAt = new Date(now.getTime() - 60_000).toISOString();
   const expiresAt = new Date(now.getTime() + 3_600_000).toISOString();
   const releaseId = `synthetic-isolated-release-${input.suffix}`;
   const approvalIds = new Map(
-    REQUIRED_APPROVAL_REQUIREMENTS.map((requirement) => [
+    approvalRequirements.map((requirement) => [
       requirement,
       `synthetic-approval-${requirement.toLowerCase().replaceAll("_", "-")}-${input.suffix}`,
     ])
@@ -179,7 +191,7 @@ export function completeNonTestLaunchPacket(input: {
       recordDigest: DIGEST,
       approvalId: approvalIds.get("NUTRITION_PROFESSIONAL"),
     })),
-    approvals: REQUIRED_APPROVAL_REQUIREMENTS.map((requirement) => ({
+    approvals: approvalRequirements.map((requirement) => ({
       approvalId: approvalIds.get(requirement),
       requirement,
       status: "APPROVED",

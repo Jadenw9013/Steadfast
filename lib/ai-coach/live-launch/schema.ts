@@ -35,7 +35,14 @@ export const REQUIRED_DECISION_IDS = [
   "D12",
 ] as const;
 
-export const REQUIRED_APPROVAL_REQUIREMENTS = [
+/**
+ * Every approval requirement a launch packet may carry. Unchanged from the
+ * original seven-signer design: a packet that *does* carry a legal, privacy,
+ * spend or governance signature is still expressible, still parsed, and still
+ * validated in full (see `evaluateLiveLaunchPacketReadiness`, which checks
+ * every approval present, not only the required ones).
+ */
+export const ALL_APPROVAL_REQUIREMENTS = [
   "NUTRITION_PROFESSIONAL",
   "LEGAL_SCOPE",
   "PROVIDER_PRIVACY_SECURITY",
@@ -44,6 +51,44 @@ export const REQUIRED_APPROVAL_REQUIREMENTS = [
   "INCIDENT_AND_REFERRAL_WORDING",
   "PRODUCT_GOVERNANCE",
 ] as const;
+
+/**
+ * S-20 / `board/V1-SCOPE.md` (Jaden, 2026-09-27): v1 ships in
+ * **SINGLE_SIGNER_ACCOUNTABLE_OWNER** mode. One accountable owner, holding
+ * dietitian and CPT credentials, signs the packet as NUTRITION_PROFESSIONAL —
+ * the requirement all twelve decision records already bind to.
+ *
+ * This is a deliberate, recorded scope reduction, not a loosened check. What
+ * the other six signatures bought and v1 therefore does without:
+ *
+ *   - LEGAL_SCOPE — nobody reviews the client-facing clinical copy for legal
+ *     exposure, and nobody independently attests that the packet's
+ *     jurisdictions are the ones the service may operate in. The jurisdiction
+ *     equality check below and its SQL twin still run, but only when a
+ *     LEGAL_SCOPE approval is actually present; with none, there is nothing
+ *     to check them against.
+ *   - PROVIDER_PRIVACY_SECURITY — no independent sign-off that the provider
+ *     configuration (no request storage, no training use, no direct
+ *     identifiers, no raw prompt logging) is acceptable. The DB trigger
+ *     `guard_ai_coach_live_launch_runtime_configuration` still enforces those
+ *     four flags mechanically; what is gone is a human attesting to them.
+ *   - SLO_AND_SPEND_LIMITS — no independent sign-off on the latency, failure
+ *     rate, token and spend ceilings. The ceilings are still enforced at
+ *     runtime; nobody but the accountable owner has agreed they are right.
+ *   - OPERATIONAL_OWNER, INCIDENT_AND_REFERRAL_WORDING, PRODUCT_GOVERNANCE —
+ *     folded into the single accountable owner, who is the same person.
+ *
+ * Both enforcement points move together: the SQL validator
+ * `validate_ai_coach_live_launch_approval`
+ * (`prisma/migrations/20260928000000_ai_coach_single_signer_accountable_owner`)
+ * accepts 1..7 approvals with exactly one NUTRITION_PROFESSIONAL and no
+ * duplicate requirement, which is the same set this file accepts. A packet
+ * accepted by one and refused by the other is the failure mode S-20 exists to
+ * avoid; `tests/integration/ai-coach-live-launch-sql-gate.test.ts` pins it.
+ */
+export const LIVE_LAUNCH_APPROVAL_MODE = "SINGLE_SIGNER_ACCOUNTABLE_OWNER" as const;
+
+export const REQUIRED_APPROVAL_REQUIREMENTS = ["NUTRITION_PROFESSIONAL"] as const;
 
 export const REQUIRED_EVIDENCE_REQUIREMENTS = [
   "T1005_ARTIFACT_INTEGRITY",
@@ -58,7 +103,7 @@ export const REQUIRED_EVIDENCE_REQUIREMENTS = [
 ] as const;
 
 const decisionIdSchema = z.enum(REQUIRED_DECISION_IDS);
-const approvalRequirementSchema = z.enum(REQUIRED_APPROVAL_REQUIREMENTS);
+const approvalRequirementSchema = z.enum(ALL_APPROVAL_REQUIREMENTS);
 const evidenceRequirementSchema = z.enum(REQUIRED_EVIDENCE_REQUIREMENTS);
 
 const signedRecordSchema = z
@@ -319,7 +364,7 @@ export const liveLaunchPacketSchema = z
     sourceRecords: z.array(sourceRecordSchema).min(1).max(100),
     artifactBindings: z.array(artifactReferenceSchema).max(5),
     decisionRecords: z.array(decisionRecordSchema).max(REQUIRED_DECISION_IDS.length),
-    approvals: z.array(approvalSchema).max(REQUIRED_APPROVAL_REQUIREMENTS.length),
+    approvals: z.array(approvalSchema).min(1).max(ALL_APPROVAL_REQUIREMENTS.length),
     evidence: z.array(evidenceSchema).max(REQUIRED_EVIDENCE_REQUIREMENTS.length),
   })
   .strict()
@@ -488,11 +533,18 @@ export function evaluateLiveLaunchPacketReadiness(
     packet.approvals.map((approval) => [approval.requirement, approval] as const)
   );
   for (const requirement of REQUIRED_APPROVAL_REQUIREMENTS) {
-    const approval = approvals.get(requirement);
-    if (!approval) {
-      add("APPROVAL_MISSING", requirement);
-      continue;
-    }
+    if (!approvals.has(requirement)) add("APPROVAL_MISSING", requirement);
+  }
+  // S-20: validate every approval the packet carries, not only the required
+  // one. Under SINGLE_SIGNER_ACCOUNTABLE_OWNER the other six requirements are
+  // optional, but the SQL half of this gate
+  // (`validate_ai_coach_live_launch_approval`) loops over *all* of
+  // `candidate->'approvals'`. Checking only the required subset here would
+  // let a packet carrying, say, an expired LEGAL_SCOPE approval be reported
+  // ready by this evaluator and then refused by the trigger — the exact
+  // two-enforcement-points disagreement S-20 exists to prevent.
+  for (const approval of packet.approvals) {
+    const requirement = approval.requirement;
     const signedAt = approval.signedAt ? new Date(approval.signedAt) : null;
     const expiresAt = approval.expiresAt ? new Date(approval.expiresAt) : null;
     if (
