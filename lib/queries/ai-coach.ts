@@ -19,6 +19,7 @@ import { AICOACH_RUNTIME_BINDING_DEGRADED } from "@/lib/observability/events";
 import { resolveAiCoachRuntimeBinding } from "@/lib/ai-coach/runtime-binding";
 import { hasRecordedSafetyDisclosure } from "@/lib/ai-coach/safety";
 import { deriveSafetyRestriction } from "@/lib/ai-coach/safety-restriction";
+import { MAX_ATTEMPTS_PER_RUN } from "@/lib/ai-coach/runs";
 
 /**
  * T-2006 — a narrow read of `AiAutomaticPlanApproval.providerSelection`'s
@@ -380,6 +381,11 @@ export async function getAiWorkspace(clientId: string) {
           };
         })
       ),
+      // S-26: the maximum attempts a run gets before RETRY_WAIT becomes
+      // FAILED (`runs.ts`'s MAX_ATTEMPTS_PER_RUN) — projected once at the
+      // workspace level, not duplicated as a literal in the client component,
+      // so the progress tracker can show "attempt 1 of 3" honestly.
+      maxAttemptsPerRun: MAX_ATTEMPTS_PER_RUN,
       runs: runs.map((run) => {
         const decision = decisionSchema.safeParse(run.resultDecision);
         return {
@@ -389,6 +395,16 @@ export async function getAiWorkspace(clientId: string) {
           createdAt: run.createdAt.toISOString(),
           resultPlanVersionId: run.resultPlanVersionId,
           decision: decision.success ? decision.data : null,
+          // S-26: `attempts` and `lastError` are server-owned — `attempts`
+          // is a plain counter, and for every run this query returns
+          // (`inputSnapshot` not null, i.e. a managed run) `lastError` is
+          // always either an `AiCoachError.code` (managed-executor.ts's
+          // catch stamps `error.code`, never a raw message or provider
+          // trace) or one of `runs.ts`'s two fixed reconciliation strings.
+          // Never a prompt, model trace or other client's data. The client
+          // maps this to copy; it never renders the raw value.
+          attempts: run.attempts,
+          lastError: run.lastError,
           failureMessage:
             run.status === "FAILED"
               ? "Preparation could not finish. Your current plan has not been replaced."

@@ -94,6 +94,8 @@ pnpm exec prisma studio  # Visual DB browser
 pnpm exec prisma db seed # Seed coach-client relationships
 pnpm test                # Vitest unit + smoke tests (tests/unit/, tests/smoke/)
 pnpm exec playwright test # Playwright end-to-end tests (tests/e2e/)
+pnpm ai-coach:sweep         # S-27: dev-only, one-shot AI Coach executor sweep (runs do not self-advance in `next dev` otherwise; never runs in production)
+pnpm ai-coach:seed-fixtures # S-27: dev-only, publishes the synthetic AI Coach runtime artifact set with a long expiry (requires --yes; never runs in production)
 ```
 
 pnpm is the only supported package manager (`package.json` pins it via `packageManager`). Never run `npm install`, `npm run *`, or `yarn *` in this repo — a stray `npm install` previously committed a `package-lock.json` alongside `pnpm-lock.yaml`; that file is now gitignored and must not return.

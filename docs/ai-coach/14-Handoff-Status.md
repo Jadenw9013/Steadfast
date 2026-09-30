@@ -15,7 +15,55 @@ policy version introduced so far is explicitly marked SYNTHETIC/FIXTURE in
 its source file and is not fit to show a real user.
 
 ## Current takeover status — read before the historical log
- 
+
+**S-26/S-27 (2026-09-29): a run that fails its first attempt spun forever locally, and the progress UI was inventing
+stages.** Found when a local synthetic account's plan request sat on "Safety & Verification" for 3300 seconds. Two
+independent local-dev traps plus one UI defect, all reproduced against Postgres (a v2-intake synthetic account,
+zero rows in `AiCoachArtifactVersion`, `requestAiRun` → `drainRunNow` → `getAiWorkspace` at each state):
+- **The four progress "stages" in `AiRunProgressTracker` (`components/ai-coach/experience.tsx`) were a
+  `setInterval`-driven animation, not state** — `processManagedRun` is a single opaque pass; nothing in the
+  executor reports "Metabolic Profiling" or "Verifying clinical macronutrient floors". Replaced with an honest
+  indeterminate indicator (elapsed seconds, no percentage, no named stage), a **120s elapsed ceiling** past which
+  the card stops implying progress and tells the person they can leave, and a `RETRY_WAIT` branch that is
+  visually (amber, no spinner) and textually distinct from QUEUED/RUNNING: it says an attempt already failed,
+  shows `attempts`/`maxAttemptsPerRun` (both newly projected onto `getAiWorkspace`'s run objects — the run's
+  `lastError`, a server-owned `AiCoachError.code` for every run this query returns, is also projected and mapped
+  to copy client-side, never rendered raw).
+- **A new stable code, `RUNTIME_ARTIFACTS_UNPUBLISHED`** (`lib/ai-coach/error.ts`), added — not a repurposing of
+  `TEMPORARILY_UNAVAILABLE` — for the one case that means "this environment has never published a usable
+  reviewed/fixture artifact set at all" (`ArtifactLoadError` code `ARTIFACT_MISSING`/`ARTIFACT_NOT_EFFECTIVE` from
+  `composeManagedInitialPlan`'s `loadReviewedArtifactSet` call, `managed-executor.ts`). The other four call sites
+  that shared `TEMPORARILY_UNAVAILABLE` before this (`requireFixtureRuntime`, the binding-mismatch checks in
+  `managed-executor.ts` and `runtime-binding.ts`) are unchanged.
+  **Known limitation, found but not fixed this ticket:** `composeManagedInitialPlan`'s fallback branch (used
+  whenever a run's snapshot has no frozen `runtimeBinding` — i.e. exactly the T-2041 unbound-snapshot degrade)
+  calls `loadReviewedArtifactSet`, which resolves artifacts for **`getCurrentDbUser()`'s current session**, not
+  for `claim.run.clientId`. Reproduced: the same run's **first** attempt (drained inside the enqueuing client's
+  own request) got `RUNTIME_ARTIFACTS_UNPUBLISHED`; a **second** attempt with no Clerk session (what the cron
+  sweep's and `pnpm ai-coach:sweep`'s request context actually is) hit `getCurrentDbUser`'s plain
+  `Error("Not authenticated")` instead — not an `AiCoachError`, so it falls through to `processManagedRun`'s
+  generic `MANAGED_RUN_FAILED`, masking the real cause again on every retry after the first. Not fixed here
+  because the identity-resolution change is bigger than this ticket's scope and touches a documented T-2022
+  contract; flagged for a follow-up ticket.
+- **`pnpm ai-coach:sweep`** (`scripts/ai-coach-sweep.ts`) calls the real `runExecutorSweep()` once and prints the
+  summary — the smallest non-production driver for the fact that **runs do not self-advance in local dev**.
+  `runExecutorSweep` has exactly one other caller, the Vercel Cron route, which does not exist in `next dev`;
+  the only other driver, `scheduleRunDrain`/`drainRunNow`, advances a run by exactly one stage and never
+  reconciles an expired lease or re-arms a due `RETRY_WAIT`. Refuses when `NODE_ENV === "production"` or
+  `VERCEL_ENV` is set. Does not change the production drain path — the cron stays the durable driver everywhere
+  it exists.
+- **`pnpm ai-coach:seed-fixtures`** (`scripts/ai-coach-seed-fixtures.ts`) publishes the synthetic runtime artifact
+  set with a long (10-year) explicit expiry and prints every artifact key/version/effectiveAt/expiresAt it wrote.
+  Shares its builder (`lib/ai-coach/artifacts/fixture-seed.ts`'s `publishRuntimeFixtureArtifactSet`) with
+  `tests/helpers/ai-artifacts.ts`'s `publishFreshRuntimeFixtureArtifacts`, which keeps its original 1-hour expiry
+  unchanged (a developer who reused *that* test helper to seed a local environment got a working setup that
+  silently reverted to the unbound-snapshot degrade an hour later — the exact trap this bug report started
+  from). Refuses outside development (same `NODE_ENV`/`VERCEL_ENV` check) and requires `--yes`; prints the
+  target host/port/database name, never a credential or the full connection string.
+- **Open question for the lead, not resolved here:** should `resolveRunRuntimeBinding` (`run-command.ts`) still
+  write a run it already knows cannot succeed (the T-2041 silent-degrade decision)? Refusing at enqueue would
+  turn this into an instant, clear error instead of a run that fails on its first drain.
+
 **S-19 three self-serve dead ends in the intake (2026-09-28):** all three reproduced against Postgres by
 replaying the wizard's real command sequence (`tests/integration/ai-coach-intake-wizard-confirm.test.ts`), not
 by reading code. (1) A second intake pass with a changed allergen still sets `nutritionPermission: PAUSED` /

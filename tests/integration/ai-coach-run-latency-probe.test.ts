@@ -12,6 +12,8 @@ import {
 import { submitSafetyDisclosure } from "@/lib/ai-coach/safety";
 import { requestAiRun } from "@/lib/ai-coach/run-command";
 import { drainRunNow } from "@/lib/ai-coach/executor";
+import { buildV2Answers } from "../helpers/ai-intake-v2";
+import { getCurrentDbUser } from "@/lib/auth/roles";
 
 vi.mock("@/lib/auth/roles", () => ({ getCurrentDbUser: vi.fn() }));
 
@@ -20,7 +22,7 @@ import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
-lockGlobalAiCoachState("exclusive");
+lockGlobalAiCoachState("shared");
 
 const intake = {
   goal: "GENERAL_FITNESS" as const,
@@ -97,12 +99,16 @@ suite("lead probe — how long a plan actually takes", () => {
       data: {
         clientId: user.id,
         isSynthetic,
-        confirmedIntake: intake,
+        confirmedIntake: buildV2Answers() as object,
         consentedAt: new Date(),
         reviewTimezone: "America/Los_Angeles",
       },
     });
     await submitSafetyDisclosure(user.id, clearSafety);
+    // The composer's fallback artifact load resolves through `getCurrentDbUser()`
+    // rather than the run's own clientId, so a session-less probe measures a
+    // different (and wrongly-attributed) path. See the follow-up in S-26.
+    vi.mocked(getCurrentDbUser).mockResolvedValue(user as never);
     return user;
   }
 
@@ -141,6 +147,10 @@ suite("lead probe — how long a plan actually takes", () => {
   }
 
   it("a synthetic account gets a completed plan in one kick, in milliseconds", async () => {
+    // v2 intake, so this exercises the real path: artifact load, prescription
+    // resolution and composition. A v1 intake returns early from
+    // `composeManagedInitialPlan` with `parameters: null` and never touches
+    // an artifact, which measures almost nothing.
     const r = await timeOneRun(true);
     console.log("SYNTHETIC  ", JSON.stringify(r));
     expect(r.outcome).toBe("completed");
