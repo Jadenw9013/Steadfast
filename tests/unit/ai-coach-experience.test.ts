@@ -27,6 +27,7 @@ const initial: AiWorkspace = {
   safetyRestriction: null,
   activePlan: null,
   proposals: [],
+  maxAttemptsPerRun: 3,
   runs: [],
 };
 describe("T-2030 review r1 MINOR 5 — plan-display uses the same number formatter as the bounded-prose validator", () => {
@@ -263,6 +264,8 @@ describe("T-2030 bounded explanation prose — proposal screen render states", (
             nextAction: "Review the proposal.",
             changeClass: "INITIAL",
           },
+          attempts: 1,
+          lastError: null,
           failureMessage: null,
         },
       ],
@@ -366,5 +369,98 @@ describe("T-2030 bounded explanation prose — proposal screen render states", (
     expect(html).toContain(longText);
     expect(html).not.toContain("truncate");
     expect(html).not.toContain("line-clamp");
+  });
+});
+
+describe("S-26 — a run that has failed an attempt renders as failed, not as progress", () => {
+  const inProgressCopy = "Plan preparation in progress";
+
+  it("a RETRY_WAIT run shows the failed-attempt copy, the attempt count, and never the in-progress copy", () => {
+    const view: AiWorkspace = {
+      ...initial,
+      confirmedIntake: {
+        goal: "GENERAL_FITNESS",
+        experienceLevel: "NEW",
+        trainingDaysPerWeek: 2,
+        equipmentAccess: ["NONE"],
+        dietaryRestrictions: [],
+        allergies: [],
+        foodBudgetLevel: "LOW",
+        trackingPreference: "NUMBERS_VISIBLE",
+        unitsPreference: "METRIC",
+        heightCm: 170,
+        weightKg: 70,
+      },
+      safetyDisclosureCompleted: true,
+      consentedAt: new Date().toISOString(),
+      maxAttemptsPerRun: 3,
+      runs: [
+        {
+          id: "run-retry",
+          kind: "INITIAL",
+          status: "RETRY_WAIT",
+          createdAt: new Date().toISOString(),
+          resultPlanVersionId: null,
+          decision: null,
+          attempts: 2,
+          lastError: "RUNTIME_ARTIFACTS_UNPUBLISHED",
+          failureMessage: null,
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(createElement(AiCoachExperience, { initial: view, path: [] }));
+    // The RETRY_WAIT-specific copy is present...
+    expect(html).toContain("An attempt did not finish");
+    expect(html).toContain("attempt 2 of 3");
+    expect(html).toContain("environment isn&#x27;t fully set up for AI coaching yet.");
+    // ...and none of the in-progress language, the fictional named stages, or
+    // the raw server-owned error code, ever renders.
+    expect(html).not.toContain(inProgressCopy);
+    expect(html).not.toContain("Metabolic Profiling");
+    expect(html).not.toContain("Nutrition Optimization");
+    expect(html).not.toContain("Training Periodization");
+    expect(html).not.toContain("Safety & Verification");
+    expect(html).not.toContain("RUNTIME_ARTIFACTS_UNPUBLISHED");
+  });
+
+  it("a QUEUED run shows an honest indeterminate indicator, never a fabricated percentage or named stage", () => {
+    const view: AiWorkspace = {
+      ...initial,
+      confirmedIntake: {
+        goal: "GENERAL_FITNESS",
+        experienceLevel: "NEW",
+        trainingDaysPerWeek: 2,
+        equipmentAccess: ["NONE"],
+        dietaryRestrictions: [],
+        allergies: [],
+        foodBudgetLevel: "LOW",
+        trackingPreference: "NUMBERS_VISIBLE",
+        unitsPreference: "METRIC",
+        heightCm: 170,
+        weightKg: 70,
+      },
+      safetyDisclosureCompleted: true,
+      consentedAt: new Date().toISOString(),
+      runs: [
+        {
+          id: "run-queued",
+          kind: "INITIAL",
+          status: "QUEUED",
+          createdAt: new Date().toISOString(),
+          resultPlanVersionId: null,
+          decision: null,
+          attempts: 0,
+          lastError: null,
+          failureMessage: null,
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(createElement(AiCoachExperience, { initial: view, path: [] }));
+    expect(html).toContain("Waiting to start");
+    expect(html).not.toContain("Metabolic Profiling");
+    expect(html).not.toContain("Nutrition Optimization");
+    expect(html).not.toContain("Training Periodization");
+    expect(html).not.toContain("Safety & Verification");
+    expect(html).not.toMatch(/\d+%/);
   });
 });

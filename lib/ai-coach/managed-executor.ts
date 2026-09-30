@@ -17,6 +17,7 @@ import { resolvePrescriptionParametersForArtifacts } from "./prescription-bindin
 import { generationBindingFromSnapshot, resolveAiCoachRuntimeBinding } from "./runtime-binding";
 import { contentHash } from "./canonical-json";
 import { AiCoachError, jsonValue, lockAiClient } from "./access";
+import { RUNTIME_ARTIFACTS_UNPUBLISHED } from "./error";
 import { isAiCoachGenerationEnabled } from "@/lib/flags/ai-coach";
 import {
   callProviderWithTimeout,
@@ -45,9 +46,12 @@ import { assertAiCoachOperationEnabled } from "./operations";
  * real reason codes so the run still completes with an honest
  * `prescriptionOutcome.status: "UNAVAILABLE"` — the client sees a HOLD with a
  * reason rather than a spinner (T-2003 file item 4). An `ArtifactLoadError`
- * while loading the artifact set itself (e.g. a revoked/incompatible bundle)
- * is not swallowed here either: it maps to the same `TEMPORARILY_UNAVAILABLE`
- * 503 `finalization.ts` already uses for the identical failure class, and is
+ * while loading the artifact set itself is not swallowed here either: an
+ * `ARTIFACT_MISSING`/`ARTIFACT_NOT_EFFECTIVE` load (this environment has
+ * never published a usable set — S-26/S-27) maps to its own
+ * `RUNTIME_ARTIFACTS_UNPUBLISHED` 503; every other `ArtifactLoadError`
+ * (e.g. a revoked/incompatible bundle) maps to the same `TEMPORARILY_UNAVAILABLE`
+ * 503 `finalization.ts` already uses for the identical failure class. Both are
  * distinct from a `resolvePrescriptionParametersForArtifacts` `ok:false`
  * result, which is a normal, expected outcome, not an artifact-loading fault.
  */
@@ -91,6 +95,19 @@ async function composeManagedInitialPlan(
       ));
   } catch (err) {
     if (err instanceof ArtifactLoadError) {
+      // S-26/S-27: "never published" is a distinct, operator/UI-visible
+      // condition from every other artifact-load fault this run can hit
+      // (revoked, incompatible, or a binding that no longer matches — see
+      // error.ts's RUNTIME_ARTIFACTS_UNPUBLISHED doc comment). Only these
+      // two ArtifactLoadError codes mean "this environment has never
+      // published/effected a usable reviewed artifact set at all".
+      if (err.code === "ARTIFACT_MISSING" || err.code === "ARTIFACT_NOT_EFFECTIVE") {
+        throw new AiCoachError(
+          RUNTIME_ARTIFACTS_UNPUBLISHED,
+          "AI coaching is not available for live use yet: this environment has not published a usable artifact set.",
+          503
+        );
+      }
       throw new AiCoachError(
         "TEMPORARILY_UNAVAILABLE",
         "AI coaching is not available for live use yet.",

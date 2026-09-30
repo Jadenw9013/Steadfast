@@ -14,10 +14,51 @@ const DOMAIN_LABELS: Record<"NUTRITION" | "STRENGTH" | "CARDIO", string> = {
   CARDIO: "Cardio",
 };
 
+/** S-26: past this many elapsed seconds the card stops implying active
+ * progress (the typical run completes in 5–15s) and tells the person they
+ * can leave instead of watching a screen that looks the same whether it is
+ * about to finish or already stuck. */
+const RUN_PROGRESS_ELAPSED_CEILING_SECONDS = 120;
+
+/**
+ * S-26 — maps a run's server-owned `lastError` (an `AiCoachError.code`, or
+ * one of `runs.ts`'s two fixed reconciliation strings — see
+ * `lib/queries/ai-coach.ts`'s projection comment) to safe, non-leaky client
+ * copy. The raw code is never rendered; an unrecognized value (a future
+ * code, or one of the reconciliation strings) falls through to a generic
+ * sentence rather than a blank.
+ */
+function describeRunFailureReason(lastError: string | null | undefined): string {
+  switch (lastError) {
+    case "RUNTIME_ARTIFACTS_UNPUBLISHED":
+      return "This environment isn't fully set up for AI coaching yet.";
+    case "RATE_LIMITED":
+      return "Too many preparation requests were made in a short time.";
+    case "VALIDATION_ERROR":
+      return "The generated plan did not pass an automated safety check.";
+    case "LIVE_COMPOSITION_UNAVAILABLE":
+      return "Live plan preparation is not available yet.";
+    case "REVISION_CONFLICT":
+      return "Your coaching details changed while this was being prepared.";
+    case "TEMPORARILY_UNAVAILABLE":
+      return "Plan preparation is temporarily paused.";
+    default:
+      return "The last attempt could not finish.";
+  }
+}
+
 function AiRunProgressTracker({
   run,
+  maxAttemptsPerRun,
 }: {
-  run: { id: string; kind: string; status: string };
+  run: {
+    id: string;
+    kind: string;
+    status: string;
+    attempts?: number;
+    lastError?: string | null;
+  };
+  maxAttemptsPerRun: number;
 }) {
   const [elapsed, setElapsed] = useState(0);
 
@@ -29,45 +70,37 @@ function AiRunProgressTracker({
     return () => clearInterval(interval);
   }, [run.id]);
 
-  const progressPercent =
-    run.status === "QUEUED"
-      ? Math.min(25, 10 + elapsed * 5)
-      : Math.min(95, 30 + elapsed * 6);
+  // S-26: RETRY_WAIT means an attempt already failed — it must never look
+  // like a healthy in-progress run. This branch is visually and textually
+  // distinct from QUEUED/RUNNING below: amber not blue, no spinner claiming
+  // active work, the attempt count against the maximum, and the failure
+  // reason mapped from the server-owned `lastError` code.
+  if (run.status === "RETRY_WAIT") {
+    return (
+      <section
+        role="status"
+        className="sf-glass-card rounded-2xl border border-amber-500/30 bg-amber-950/20 p-5 space-y-3 shadow-lg shadow-amber-500/5"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="inline-flex h-3 w-3 rounded-full bg-amber-400" />
+          <h2 className="font-semibold text-zinc-100">An attempt did not finish</h2>
+        </div>
+        <p className="text-zinc-300">
+          {describeRunFailureReason(run.lastError)} Steadfast will retry automatically — attempt{" "}
+          {Math.min(run.attempts ?? 1, maxAttemptsPerRun)} of {maxAttemptsPerRun}.
+        </p>
+        <p className="text-xs text-zinc-400">
+          You do not need to do anything right now. If every attempt is used without success, this
+          becomes a failed preparation with a retry option.
+        </p>
+      </section>
+    );
+  }
 
-  const currentStage =
-    progressPercent < 35
-      ? 1
-      : progressPercent < 65
-        ? 2
-        : progressPercent < 88
-          ? 3
-          : 4;
-
-  const stages = [
-    {
-      id: 1,
-      title: "Metabolic Profiling",
-      detail: "Analyzing intake metrics & calculating DRI energy expenditure",
-    },
-    {
-      id: 2,
-      title: "Nutrition Optimization",
-      detail: "Matching USDA whole-food templates & solving exact portion weights",
-    },
-    {
-      id: 3,
-      title: "Training Periodization",
-      detail: "Structuring exercise splits, volume targets, and rest intervals",
-    },
-    {
-      id: 4,
-      title: "Safety & Verification",
-      detail: "Verifying clinical macronutrient floors and allergen rules",
-    },
-  ];
+  const pastCeiling = elapsed >= RUN_PROGRESS_ELAPSED_CEILING_SECONDS;
 
   return (
-    <section className="sf-glass-card rounded-2xl border border-blue-500/30 bg-blue-950/20 p-5 space-y-4 shadow-lg shadow-blue-500/5">
+    <section className="sf-glass-card rounded-2xl border border-blue-500/30 bg-blue-950/20 p-5 space-y-3 shadow-lg shadow-blue-500/5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <span className="relative flex h-3 w-3">
@@ -80,62 +113,37 @@ function AiRunProgressTracker({
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-medium text-blue-300 border border-blue-500/30">
           <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-          {run.status === "QUEUED" ? "Claiming task..." : "Synthesizing plan..."} ({elapsed}s)
+          {run.status === "QUEUED" ? "Waiting to start" : "In progress"} ({elapsed}s)
         </span>
       </div>
 
-      <div>
-        <div className="flex justify-between text-xs text-zinc-400 mb-1.5 font-mono">
-          <span>Active proposal synthesis</span>
-          <span>{progressPercent}%</span>
+      {pastCeiling ? (
+        // S-26: the elapsed-time ceiling. No more claim of specific,
+        // ongoing work — the honest statement is "this is unusual", plus a
+        // next step that does not require staring at the screen.
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 space-y-2">
+          <p className="text-sm text-amber-100">
+            This is taking longer than the usual 5–15 seconds. It may still finish, but you do not
+            need to keep watching this screen.
+          </p>
+          <p className="text-xs text-zinc-400">
+            Leave and come back later — your request is saved, and this page will show the result
+            when you return.
+          </p>
         </div>
-        <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-900 border border-white/10">
-          <div
-            className="h-full rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-400 transition-all duration-700 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-2 sm:grid-cols-2 pt-1">
-        {stages.map((stage) => {
-          const isDone = currentStage > stage.id;
-          const isCurrent = currentStage === stage.id;
-          return (
-            <div
-              key={stage.id}
-              className={`rounded-xl border p-3 transition-colors ${
-                isCurrent
-                  ? "border-blue-500/40 bg-blue-500/10 text-zinc-100"
-                  : isDone
-                    ? "border-emerald-500/30 bg-emerald-500/5 text-zinc-300"
-                    : "border-white/5 bg-zinc-950/40 text-zinc-500"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                {isDone ? (
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold">
-                    ✓
-                  </span>
-                ) : isCurrent ? (
-                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
-                ) : (
-                  <span className="h-3.5 w-3.5 rounded-full border border-zinc-700 inline-block" />
-                )}
-                <span className="text-xs font-semibold">{stage.title}</span>
-              </div>
-              <p className="mt-1 text-[11px] leading-relaxed opacity-80 pl-6">
-                {stage.detail}
-              </p>
-            </div>
-          );
-        })}
-      </div>
-
-      <p className="text-xs text-zinc-400 flex items-center gap-2 pt-1">
-        <span>⏱️</span>
-        <span>The engine runs in the background. Typical preparation completes in 5–15 seconds.</span>
-      </p>
+      ) : (
+        // S-26: an honest indeterminate indicator — no percentage, no named
+        // stages the backend cannot substantiate (`processManagedRun` is a
+        // single opaque pass; there is no four-step pipeline to report on).
+        <>
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-900 border border-white/10">
+            <div className="h-full w-full animate-pulse rounded-full bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-400" />
+          </div>
+          <p className="text-xs text-zinc-400">
+            The engine runs in the background. Typical preparation completes in 5–15 seconds.
+          </p>
+        </>
+      )}
     </section>
   );
 }
@@ -340,7 +348,9 @@ export function AiCoachExperience({
       )}
       {(screen === "start" || screen === "home") && (
         <>
-          {activeRun && <AiRunProgressTracker run={activeRun} />}
+          {activeRun && (
+            <AiRunProgressTracker run={activeRun} maxAttemptsPerRun={view.maxAttemptsPerRun} />
+          )}
           {readyProposal && !view.activePlan && (
             <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-5 shadow-lg shadow-emerald-500/5">
               <div>
@@ -454,10 +464,22 @@ export function AiCoachExperience({
                   </span>
                 </label>
                 {activeRun ? (
-                  <div className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
-                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent shrink-0" />
-                    <span>Plan preparation in progress. Follow the live tracker above — your proposal will be ready shortly.</span>
-                  </div>
+                  // S-26: RETRY_WAIT is not "in progress" — an attempt already
+                  // failed. Distinct color, no spinner, distinct copy.
+                  activeRun.status === "RETRY_WAIT" ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+                      <span className="inline-block h-4 w-4 shrink-0 rounded-full bg-amber-400" />
+                      <span>
+                        An attempt did not finish and will retry automatically. See the tracker
+                        above for details.
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent shrink-0" />
+                      <span>Plan preparation in progress. Follow the live tracker above — your proposal will be ready shortly.</span>
+                    </div>
+                  )
                 ) : restriction?.planRequestBlocked ? (
                   // S-19 dead end 1: the server would refuse this request with
                   // SAFETY_RESTRICTED (409). Say so here instead of offering a
