@@ -47,10 +47,22 @@ const OWNER_PROVENANCE_SENTENCE =
 
 const WORKSHEET_RELATIVE_PATH = "board/DOSE-WORKSHEET-3.md";
 
+/** `STEADFAST_HQ` wins. Otherwise try the known sibling layouts, newest first:
+ * `~/Dev/steadfast/{web,hq}` since the 2026-09-29 consolidation, and the older
+ * `~/Dev/{Steadfast,steadfast-hq}` so a checkout that predates it still runs.
+ * A worktree under `~/Dev/steadfast/wt/<ticket>` is one level deeper, hence the
+ * `../..` candidate. */
 function worksheetPath(): string {
-  const hq =
-    process.env.STEADFAST_HQ ?? path.resolve(process.cwd(), "..", "steadfast-hq");
-  return path.join(hq, WORKSHEET_RELATIVE_PATH);
+  if (process.env.STEADFAST_HQ) {
+    return path.join(process.env.STEADFAST_HQ, WORKSHEET_RELATIVE_PATH);
+  }
+  const candidates = [
+    path.resolve(process.cwd(), "..", "hq"),
+    path.resolve(process.cwd(), "..", "..", "hq"),
+    path.resolve(process.cwd(), "..", "steadfast-hq"),
+  ];
+  const found = candidates.find((hq) => fs.existsSync(path.join(hq, WORKSHEET_RELATIVE_PATH)));
+  return path.join(found ?? candidates[0], WORKSHEET_RELATIVE_PATH);
 }
 
 function readWorksheet(): string {
