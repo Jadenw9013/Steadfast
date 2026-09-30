@@ -25,6 +25,9 @@
  * `RETRY_WAIT`/`QUEUED` run advance the same way the cron would in
  * production.
  */
+import dotenv from "dotenv";
+dotenv.config({ path: [".env.local", ".env"] });
+
 import { runExecutorSweep } from "../lib/ai-coach/executor";
 
 function refuseOutsideDevelopment() {

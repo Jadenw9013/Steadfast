@@ -37,6 +37,9 @@
  * extends how long a currently-effective fixture set exists locally — it
  * never fails because a prior run already seeded the environment.
  */
+import dotenv from "dotenv";
+dotenv.config({ path: [".env.local", ".env"] });
+
 import { publishRuntimeFixtureArtifactSet } from "../lib/ai-coach/artifacts/fixture-seed";
 
 // A decade out — long enough that no ordinary local dev session, however
@@ -83,8 +86,8 @@ function printTarget() {
 
 async function main() {
   refuseOutsideDevelopment();
-  requireConfirmation();
   printTarget();
+  requireConfirmation();
 
   const expiresAt = new Date(Date.now() + DEV_SEED_LIFETIME_MS);
   const published = await publishRuntimeFixtureArtifactSet({ expiresAt });
