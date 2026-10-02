@@ -9,8 +9,8 @@ import { composeInitialPlan, composeUnavailablePrescriptionPlan } from "./initia
 import { isV2Intake } from "./intake";
 import {
   ArtifactLoadError,
-  loadReviewedArtifactSet,
   loadRunBoundArtifactSet,
+  resolveArtifactSetForClient,
   type ReviewedArtifactSet,
 } from "./artifacts/repository";
 import { resolvePrescriptionParametersForArtifacts } from "./prescription-binding";
@@ -67,7 +67,13 @@ async function composeManagedInitialPlan(
    * is two sources of truth for "which content produced these numbers"
    * (CLAUDE.md rule 10). `null` only for a run whose snapshot predates this
    * ticket, which keeps its previous behaviour exactly. */
-  frozenArtifacts: ReviewedArtifactSet | null
+  frozenArtifacts: ReviewedArtifactSet | null,
+  /** S-28 — the run's own server-derived `claim.run.clientId`. Never resolved
+   * a second time from the ambient Clerk session: the executor has no
+   * request, and even when one happens to be active it is not necessarily
+   * for this run's client. See the fallback below and
+   * `resolveArtifactSetForClient`'s doc comment. */
+  clientId: string
 ) {
   const prescriptionId = `rx-${runId}`;
   const generation = generationBindingFromSnapshot(snapshot);
@@ -88,11 +94,22 @@ async function composeManagedInitialPlan(
   }
   let artifacts;
   try {
-    artifacts =
-      frozenArtifacts ??
-      (await loadReviewedArtifactSet(
-        (await resolveAiCoachRuntimeBinding(null, executingProfile)).artifactRequest
-      ));
+    // S-28: this is the T-2041 unbound-snapshot degrade (no frozen artifact
+    // set to re-load). `resolveAiCoachRuntimeBinding(null, executingProfile)`
+    // was already identity-safe — it takes the run's own profile explicitly,
+    // never a session. The bug was the next step: `loadReviewedArtifactSet`
+    // resolves *whose* account to check eligibility/classification against
+    // from `getCurrentDbUser()`, which has nothing to do with this run and is
+    // frequently absent entirely (the executor has no request). Use
+    // `resolveArtifactSetForClient`, which takes `clientId` explicitly and
+    // opens its own transaction (there is none open here; see this
+    // function's caller).
+    if (frozenArtifacts) {
+      artifacts = frozenArtifacts;
+    } else {
+      const request = (await resolveAiCoachRuntimeBinding(null, executingProfile)).artifactRequest;
+      artifacts = await db.$transaction((tx) => resolveArtifactSetForClient(tx, clientId, request));
+    }
   } catch (err) {
     if (err instanceof ArtifactLoadError) {
       // S-26/S-27: "never published" is a distinct, operator/UI-visible
@@ -222,7 +239,8 @@ export async function processManagedRun(
             claim.run.id,
             snapshot,
             executingProfile,
-            frozenArtifacts
+            frozenArtifacts,
+            claim.run.clientId
           )
         : claim.run.kind === "REPRESENTATION" && snapshot.basePayload
           ? representFixturePlan(
