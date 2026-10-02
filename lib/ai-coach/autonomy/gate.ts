@@ -10,8 +10,10 @@ import { sourceRefSchema, type SourceRef } from "../plan-contract";
 import { validatedManagedPayload } from "../validated-plan";
 import { buildPrescriptionInput, nutritionRequiredForGoal } from "../prescription";
 import { classifyPrescriptionReasonCodes } from "../prescription-reason-classes";
+import { unsubstantiatedEvidenceRuleIds } from "./evidence-status";
 import {
   ArtifactLoadError,
+  getReviewedEvidenceRegistryContent,
   getReviewedExerciseItem,
   getReviewedFoodItem,
   getReviewedPolicyBundleContent,
@@ -20,11 +22,7 @@ import {
   type ReviewedArtifactSet,
   withReviewedArtifactSetForCurrentClient,
 } from "../artifacts/repository";
-import {
-  escalationTemplatesContentSchema,
-  evidenceRegistryContentSchema,
-  type PolicyBundleContent,
-} from "../artifacts/schema";
+import { escalationTemplatesContentSchema, type PolicyBundleContent } from "../artifacts/schema";
 
 const identifierSchema = z
   .string()
@@ -383,18 +381,24 @@ function resolveNextActionTemplateId(
   return degraded.id;
 }
 
+/**
+ * S-29 — refactored onto the shared predicate in `autonomy/evidence-status.ts`
+ * so this precondition and finalization's `evidence[].status` derivation can
+ * never again disagree about what "substantiated" means. Signature, message
+ * and `ARTIFACT_INCOMPATIBLE` code are byte-identical to the S-17 version:
+ * `tests/unit/ai-coach-evidence-rule-coverage.test.ts` and the S-17 fixture
+ * comment both reference the message string.
+ */
 function assertEvidenceRulesHaveClaims(
   artifacts: ReviewedArtifactSet,
   policy: PolicyBundleContent
 ) {
-  const evidence = evidenceRegistryContentSchema.parse(artifacts.evidenceRegistry.content);
-  for (const ruleId of policy.evidenceRuleIds) {
-    if (!evidence.claims.some((claim) => claim.ruleIds.includes(ruleId))) {
-      throw new ArtifactLoadError(
-        "ARTIFACT_INCOMPATIBLE",
-        `No reviewed evidence claim supports policy evidence rule: ${ruleId}`
-      );
-    }
+  const evidence = getReviewedEvidenceRegistryContent(artifacts.evidenceRegistry);
+  for (const ruleId of unsubstantiatedEvidenceRuleIds(policy.evidenceRuleIds, evidence.claims)) {
+    throw new ArtifactLoadError(
+      "ARTIFACT_INCOMPATIBLE",
+      `No reviewed evidence claim supports policy evidence rule: ${ruleId}`
+    );
   }
 }
 
@@ -402,7 +406,7 @@ function json(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
-function sortedUniqueSourceRefs(groups: readonly (readonly SourceRef[])[]) {
+export function sortedUniqueSourceRefs(groups: readonly (readonly SourceRef[])[]) {
   const refs = new Map<string, SourceRef>();
   for (const ref of groups.flat())
     refs.set(`${ref.kind}:${ref.id}:${ref.revision}:${ref.digest}`, ref);
@@ -646,7 +650,24 @@ export async function evaluateCurrentClientAutonomyGate(
         nutritionSafety
       );
       const evidenceRefs = input.evidence.flatMap((item) => item.sourceRefs);
-      const evidenceCurrent = await evidenceIsCurrent(tx, clientId, evidenceRefs);
+      // S-29 — dedupe before the currency check. Finalization attaches the
+      // *same* `sourceRefs` array to every evidence entry
+      // (`finalization.ts`), so since T-2007 made `evidenceRuleIds` length 2,
+      // `evidenceRefs` is the candidate's refs duplicated once per rule.
+      // `evidenceIsCurrent` guards its input at `z.array(sourceRefSchema)
+      // .max(2180)` and returns `false` on a parse failure
+      // (`evidence-snapshot.ts`), and a candidate's refs can legitimately
+      // reach 2180 (`collectEvidence` caps 180 observations + 2000
+      // sessions), so an un-deduped candidate with more than 1090 refs would
+      // silently fail this check (`GATE_EVIDENCE_STALE`) even though every
+      // ref is current. Deduping is not a widening of the check: "are all of
+      // these refs current" has the same answer for a multiset and its set;
+      // the 2180 cap is an input-size guard, not part of the predicate.
+      const evidenceCurrent = await evidenceIsCurrent(
+        tx,
+        clientId,
+        sortedUniqueSourceRefs([evidenceRefs])
+      );
       // T-2033: `null` when the candidate payload carries no
       // `prescriptionOutcome` (a legacy row, or one that failed to load at
       // all) — read as {required:false, available:true} so no historical

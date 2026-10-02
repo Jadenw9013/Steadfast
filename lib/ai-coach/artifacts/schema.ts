@@ -908,6 +908,8 @@ export const evidenceRegistryContentSchema = z
     );
   });
 
+export type EvidenceRegistryContent = z.infer<typeof evidenceRegistryContentSchema>;
+
 export const escalationTemplatesContentSchema = z
   .object({
     ...contentIdentity,

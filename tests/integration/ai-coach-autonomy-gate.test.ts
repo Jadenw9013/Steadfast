@@ -28,6 +28,7 @@ import {
   SYNTHETIC_ARTIFACT_ENGINE_VERSION,
 } from "@/lib/ai-coach/artifacts/synthetic-fixtures";
 import { artifactReferenceOf } from "../helpers/ai-live-launch";
+import { WEEKLY_EVIDENCE_RULE_ID } from "@/lib/ai-coach/weekly-parameters";
 
 vi.mock("@/lib/auth/roles", () => ({ getCurrentDbUser: vi.fn() }));
 
@@ -554,6 +555,46 @@ suite("T-1006 deterministic autonomy gate with real PostgreSQL constraints", () 
     expect(result.outcome).not.toBe("APPROVE_AUTOMATICALLY");
     expect(result.orderedReasonCodes).toContain("GATE_CANDIDATE_INVALID");
     expect(result.approvedCandidatePlanVersionId).toBeNull();
+  });
+
+  /**
+   * S-29 — the regression that proves existing behaviour is unchanged:
+   * `assertEvidenceRulesHaveClaims` is refactored onto the shared
+   * `unsubstantiatedEvidenceRuleIds` predicate (`autonomy/evidence-status.ts`),
+   * and this pins that the precondition still throws `ARTIFACT_INCOMPATIBLE`
+   * with the unchanged message when a policy evidence rule has no covering
+   * claim — exactly the S-17 defect T-2007 introduced for real.
+   */
+  it("S-29: a bundle whose evidence rule has no covering claim still fails closed with ARTIFACT_INCOMPATIBLE", async () => {
+    const user = await account();
+    const set = await publishedArtifacts("missing-weekly-claim", (built) => {
+      const evidenceRegistry = structuredClone(built.evidenceRegistry);
+      const content = evidenceRegistry.content as unknown as {
+        claims: { ruleIds: string[] }[];
+      };
+      for (const claim of content.claims) {
+        claim.ruleIds = claim.ruleIds.filter((ruleId) => ruleId !== WEEKLY_EVIDENCE_RULE_ID);
+      }
+      const policyBundle = structuredClone(built.policyBundle);
+      policyBundle.dependencies = [
+        built.foodCatalog,
+        built.exerciseCatalog,
+        evidenceRegistry,
+        built.escalationTemplates,
+      ].map(artifactReferenceOf);
+      return { ...built, evidenceRegistry, policyBundle };
+    });
+    const safetyInput = clearSafetyInput(set);
+    await evaluateCurrentClientNutritionSafety(artifactRequest(set.policyKey), safetyInput);
+    const plan = await candidate(user.id, set, safetyInput.proposal!.proposedDailyEnergyKcal);
+    const input = gateInput(set, plan.id);
+    await expect(
+      evaluateCurrentClientAutonomyGate(artifactRequest(set.policyKey), input)
+    ).rejects.toMatchObject({
+      code: "ARTIFACT_INCOMPATIBLE",
+      message: `No reviewed evidence claim supports policy evidence rule: ${WEEKLY_EVIDENCE_RULE_ID}`,
+    });
+    expect(await db.aiAutonomyGateDecision.count({ where: { clientId: user.id } })).toBe(0);
   });
 
   it("fails closed when the selected policy is revoked", async () => {
