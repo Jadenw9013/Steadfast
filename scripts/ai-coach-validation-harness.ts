@@ -76,6 +76,7 @@ import path from "node:path";
 import { contentHash } from "../lib/ai-coach/canonical-json";
 import {
   escalationTemplatesContentSchema,
+  evidenceRegistryContentSchema,
   policyBundleContentSchema,
   type PolicyBundleContent,
 } from "../lib/ai-coach/artifacts/schema";
@@ -122,6 +123,11 @@ import {
 } from "../lib/ai-coach/nutrition-safety";
 import { evaluateAutonomyGate } from "../lib/ai-coach/autonomy/gate";
 import type { AutonomyGateFacts, ServerAutonomyGateInput } from "../lib/ai-coach/autonomy/gate";
+import {
+  deriveEvidenceGateEntries,
+  unsubstantiatedEvidenceRuleIds,
+  type EvidenceClaimCoverage,
+} from "../lib/ai-coach/autonomy/evidence-status";
 import { composeInitialPlan } from "../lib/ai-coach/initial-plan";
 import { checkMealComposition } from "../lib/ai-coach/composition-feasibility";
 import { getFoodItem } from "../lib/ai-coach/catalog/loader";
@@ -761,6 +767,14 @@ type ParameterSource = {
   label: string;
   provenance: string;
   policy: PolicyBundleContent;
+  // S-29 — the claims the gate-input builders below derive `evidence[]`
+  // status from (`deriveEvidenceGateEntries`), and where they came from.
+  // `evidenceClaimsProvenance` is always stated in the report (risk 5): a
+  // caller-supplied bundle file carries no registry of its own, so
+  // `loadBundleFileSource` borrows the checked-in draft registry's claims
+  // and says so explicitly rather than silently.
+  evidenceClaims: EvidenceClaimCoverage;
+  evidenceClaimsProvenance: string;
   escalationTemplates: { id: string; nextStepText: string }[];
   trainingCatalog: TrainingCatalogSource;
   foodCatalogVersionForComposition: string;
@@ -769,6 +783,26 @@ type ParameterSource = {
   artifactDigests: Record<string, string>;
   notes: string[];
 };
+
+/**
+ * S-29 — one line per report source stating exactly what the gate-input
+ * evidence status assumed, so the report can never again state an
+ * auto-approval count without stating what it assumed about evidence
+ * (risk 5).
+ */
+function evidenceCoverageNote(
+  evidenceRuleIds: readonly string[],
+  claims: EvidenceClaimCoverage,
+  provenance: string
+): string {
+  const unsubstantiated = unsubstantiatedEvidenceRuleIds(evidenceRuleIds, claims);
+  const substantiatedCount = evidenceRuleIds.length - unsubstantiated.length;
+  return (
+    `EVIDENCE: ${substantiatedCount} of ${evidenceRuleIds.length} policy evidence rules are ` +
+    `substantiated by a covering claim in ${provenance}; unsubstantiated: ` +
+    `[${unsubstantiated.join(", ")}]`
+  );
+}
 
 function draftEscalationTemplateList(): { id: string; nextStepText: string }[] {
   const file = loadDraftUnsignedEscalationTemplates();
@@ -827,12 +861,20 @@ function loadDraftSource(): ParameterSource {
     `Draft EVIDENCE_REGISTRY carries ${evidenceFile.content.claims.length} claims; ` +
       `draft ESCALATION_TEMPLATES carries ${escalationFile.content.templates.length} templates.`
   );
+  const draftPolicy = policyBundleContentSchema.parse(bundleFile.content);
+  const evidenceClaimsProvenance =
+    "lib/ai-coach/artifacts/drafts/evidence-registry.draft-unsigned.v1.json";
+  notes.push(
+    evidenceCoverageNote(draftPolicy.evidenceRuleIds, evidenceFile.content.claims, evidenceClaimsProvenance)
+  );
   return {
     key: "draft",
     label: "Checked-in DRAFT_UNSIGNED artifacts",
     provenance:
       "lib/ai-coach/artifacts/drafts/{policy-bundle-nutrition,exercise-catalog,evidence-registry,escalation-templates}.draft-unsigned.v1.json",
-    policy: policyBundleContentSchema.parse(bundleFile.content),
+    policy: draftPolicy,
+    evidenceClaims: evidenceFile.content.claims,
+    evidenceClaimsProvenance,
     escalationTemplates: draftEscalationTemplateList(),
     trainingCatalog: trainingCatalogSourceFromArtifactContent(exerciseFile.content),
     // The composer resolves food IDs through `catalog/loader.ts`, which serves
@@ -856,6 +898,9 @@ function loadFixtureSource(): ParameterSource {
   const set = buildSyntheticArtifactSet("t1008-runtime");
   const policy = policyBundleContentSchema.parse(set.policyBundle.content);
   const escalation = escalationTemplatesContentSchema.parse(set.escalationTemplates.content);
+  const evidenceClaims = evidenceRegistryContentSchema.parse(set.evidenceRegistry.content).claims;
+  const evidenceClaimsProvenance =
+    'lib/ai-coach/artifacts/synthetic-fixtures.ts buildSyntheticArtifactSet("t1008-runtime")';
   const exerciseFile = loadDraftUnsignedExerciseCatalog();
   return {
     key: "fixture",
@@ -863,6 +908,8 @@ function loadFixtureSource(): ParameterSource {
     provenance:
       'lib/ai-coach/artifacts/synthetic-fixtures.ts buildSyntheticArtifactSet("t1008-runtime")',
     policy,
+    evidenceClaims,
+    evidenceClaimsProvenance,
     escalationTemplates: escalation.templates.map((template) => ({
       id: template.id,
       nextStepText: template.nextStepText,
@@ -884,6 +931,7 @@ function loadFixtureSource(): ParameterSource {
         "`syntheticTrainingParameterValue`. They are deliberately fake and say nothing " +
         "clinically. This run exists to prove the mode-2 report path works end to end and " +
         "to surface structural findings that do not depend on the values.",
+      evidenceCoverageNote(policy.evidenceRuleIds, evidenceClaims, evidenceClaimsProvenance),
     ],
   };
 }
@@ -894,11 +942,24 @@ function loadBundleFileSource(filePath: string): ParameterSource {
   };
   const policy = policyBundleContentSchema.parse(raw.content);
   const exerciseFile = loadDraftUnsignedExerciseCatalog();
+  // S-29 — a caller-supplied policy-bundle file carries no evidence registry
+  // of its own, so this mode borrows the checked-in draft registry's claims.
+  // This is stated explicitly in the provenance string and the report note
+  // below, not implied (risk 5): an uncovered rule in the supplied bundle is
+  // then a real finding about that bundle, never a silent `[]` that would
+  // make every bundle-mode row `FOCUSED_CLARIFICATION`, and never a silent
+  // `SUFFICIENT` that would reproduce the drift this ticket removes.
+  const evidenceFile = loadDraftUnsignedEvidenceRegistry();
+  const evidenceClaimsProvenance =
+    "lib/ai-coach/artifacts/drafts/evidence-registry.draft-unsigned.v1.json (borrowed — the " +
+    "caller-supplied bundle file carries no EVIDENCE_REGISTRY of its own)";
   return {
     key: "bundle",
     label: `Caller-supplied policy bundle (${path.basename(filePath)})`,
     provenance: path.resolve(filePath),
     policy,
+    evidenceClaims: evidenceFile.content.claims,
+    evidenceClaimsProvenance,
     escalationTemplates: draftEscalationTemplateList(),
     trainingCatalog: trainingCatalogSourceFromArtifactContent(exerciseFile.content),
     foodCatalogVersionForComposition: FOOD_CATALOG_VERSION,
@@ -908,7 +969,7 @@ function loadBundleFileSource(filePath: string): ParameterSource {
       policyBundle: contentHash(policy),
       exerciseCatalog: contentHash(exerciseFile.content),
     },
-    notes: [],
+    notes: [evidenceCoverageNote(policy.evidenceRuleIds, evidenceFile.content.claims, evidenceClaimsProvenance)],
   };
 }
 
@@ -1370,11 +1431,14 @@ function evaluateProfile(
         id,
         status: "CONFIRMED" as const,
       })),
-      evidence: [...new Set(source.policy.evidenceRuleIds)].map((ruleId) => ({
-        ruleId,
-        status: "SUFFICIENT" as const,
+      // S-29 — derived from the source's actual evidence claims, not
+      // asserted. `facts.evidenceRuleIds` below stays deduped separately
+      // (`gate.ts` wraps it in a `Set` anyway).
+      evidence: deriveEvidenceGateEntries({
+        evidenceRuleIds: source.policy.evidenceRuleIds,
+        claims: source.evidenceClaims,
         sourceRefs: [],
-      })),
+      }),
       candidatePlanVersionId: "harness-candidate",
     };
     const facts: AutonomyGateFacts = {
@@ -1434,11 +1498,12 @@ function gateReachabilityProbes(source: ParameterSource): GateProbe[] {
     requestedScopeClasses: ["GENERAL_FITNESS_PROGRAMMING"],
     requestedDomains: ["NUTRITION", "STRENGTH", "CARDIO"],
     requiredInputs: requiredInputIds.map((id) => ({ id, status: "CONFIRMED" as const })),
-    evidence: evidenceRuleIds.map((ruleId) => ({
-      ruleId,
-      status: "SUFFICIENT" as const,
+    // S-29 — derived from the source's actual evidence claims, not asserted.
+    evidence: deriveEvidenceGateEntries({
+      evidenceRuleIds,
+      claims: source.evidenceClaims,
       sourceRefs: [],
-    })),
+    }),
     candidatePlanVersionId: "probe-candidate",
   };
   const safetyInput = {
@@ -1552,6 +1617,13 @@ function gateReachabilityProbes(source: ParameterSource): GateProbe[] {
       },
     },
     {
+      // S-29 — this is the one deliberate SUFFICIENT literal left in this
+      // file (`tests/unit/ai-coach-evidence-rule-coverage.test.ts` asserts
+      // there is exactly one occurrence of that status value, not zero): it
+      // is a `GATE_EVIDENCE_INVALID` probe for a rule id outside the
+      // policy's own `evidenceRuleIds`, which `deriveEvidenceGateEntries`
+      // would never produce — it only ever iterates the policy's own
+      // declared ids. Do not "clean this up" into `deriveEvidenceGateEntries`.
       name: "evidence rule not in the policy's set",
       input: { evidence: [{ ruleId: "NOT_A_POLICY_RULE", status: "SUFFICIENT", sourceRefs: [] }] },
     },

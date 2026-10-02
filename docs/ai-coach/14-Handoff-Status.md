@@ -16,6 +16,44 @@ its source file and is not fit to show a real user.
 
 ## Current takeover status — read before the historical log
 
+**S-29 (2026-10-02): `evidence[].status` is now derived provenance, not a hardcoded guess, and no real client could
+reach `APPROVE_AUTOMATICALLY` before this landed.** `finalization.ts` built the autonomy gate's `evidence[]` as
+`status: ruleId === "SYNTHETIC_EVIDENCE_RULE" ? "SUFFICIENT" : "UNKNOWN"` mapped over `policy.evidenceRuleIds` —
+correct only while the fixture bundle declared exactly that one rule id. T-2007 (2026-09-28) added
+`WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` to `evidenceRuleIds`, and the real signed bundle declares
+`['NUTRITION_EVIDENCE_RULE', 'WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1']` — neither the hardcoded id — so every
+candidate finalized against the real bundle wrote `UNKNOWN` and the gate turned that into `GATE_EVIDENCE_MISSING`
+-> `FOCUSED_CLARIFICATION` for every one of them (15 integration tests across 6 files had been red since the
+merge; S-24 misattributed the symptom to S-15's gate change before the lead traced it to the actual reason code).
+S-17 had already added a *publication-time* guard, `assertEvidenceRulesHaveClaims`
+(`lib/ai-coach/autonomy/gate.ts`), that throws `ARTIFACT_INCOMPATIBLE` when a declared evidence rule has no
+covering reviewed claim — but that guard and `finalization.ts`'s status map were two independently-written copies
+of "is this rule substantiated", and only one of them got updated. The fix is Design A (frozen, with amendment
+A′): `evidence[].status` means **policy provenance** — a rule is `SUFFICIENT` iff the digest-verified reviewed
+`EVIDENCE_REGISTRY` loaded in the same artifact set carries a claim listing it in `ruleIds`, `UNKNOWN` otherwise
+— and the relation now lives in exactly one pure module, `lib/ai-coach/autonomy/evidence-status.ts`
+(`evidenceRuleIsSubstantiated`, `unsubstantiatedEvidenceRuleIds`, `deriveEvidenceGateEntries`), with **four**
+callers: `assertEvidenceRulesHaveClaims` (refactored onto it, same thrown message, same code), `finalization.ts`'s
+`evidence[]` construction (the bug itself), and the validation harness's two gate-input builders
+(`scripts/ai-coach-validation-harness.ts`, which used to hardcode `status: "SUFFICIENT"` for every rule — the
+harness and the product disagreeing about evidence is exactly the drift class the harness exists to catch). The
+same commit fixes the one reader the change unmasks: `gate.ts`'s `evidenceCurrent` check used to pass
+`input.evidence.flatMap((item) => item.sourceRefs)` straight to `evidenceIsCurrent`, and finalization attaches the
+same `sourceRefs` array to every evidence entry, so once `evidenceRuleIds` has length 2 that flatMap duplicates
+the candidate's refs once per rule; `evidenceIsCurrent` fails closed (`false`) on its `max(2180)` guard, so a
+candidate with more than 1090 refs would have silently `HOLD`ed on `GATE_EVIDENCE_STALE` — unreachable only
+because `GATE_EVIDENCE_MISSING` fired first. Deduped with the existing `sortedUniqueSourceRefs` helper (now
+exported), which has the same answer for a multiset and its set, so this is not a widening. **Explicitly out of
+scope and not fixed here: client evidence (has this client supplied enough history) for the weekly rule is a
+different thing, already computed at `lib/ai-coach/weekly-controller.ts:289-322`
+(`minConsecutiveWeeks`/`maxMissingWeeks` -> `HOLD`/`INSUFFICIENT_EVIDENCE`) at execution time, before a weekly
+candidate is ever written — finalization's per-rule status is the provenance half only.** `INSUFFICIENT` stays
+written by nobody; that is a named open question, not an oversight (T-2000 review r1 BLOCKER 1,
+`board/reviews/T-2000-r1.md:16-47`, asked for exactly the provenance mapping this delivers). No enum value, schema,
+migration, REST contract or Swift type changed — `evidence[].status`'s three-value enum (`SUFFICIENT` /
+`INSUFFICIENT` / `UNKNOWN`) is unchanged and `plan-acceptance.ts`'s replay of a stored `gateInput` through
+`serverAutonomyGateInputSchema` still parses every row written before or after this change.
+
 **S-26/S-27 (2026-09-29): a run that fails its first attempt spun forever locally, and the progress UI was inventing
 stages.** Found when a local synthetic account's plan request sat on "Safety & Verification" for 3300 seconds. Two
 independent local-dev traps plus one UI defect, all reproduced against Postgres (a v2-intake synthetic account,

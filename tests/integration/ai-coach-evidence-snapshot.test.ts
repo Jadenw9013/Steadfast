@@ -2,6 +2,7 @@ import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vites
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { collectEvidence, evidenceIsCurrent } from "@/lib/ai-coach/evidence-snapshot";
+import { sortedUniqueSourceRefs } from "@/lib/ai-coach/autonomy/gate";
 import { submitAiCheckIn } from "@/lib/check-ins/ai-observation";
 import { lockAiClient } from "@/lib/ai-coach/access";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
@@ -34,5 +35,25 @@ suite("frozen evidence references", () => {
     const { user, input, snapshot } = await fixture(); await submitAiCheckIn(user.id, { ...input, clientEventId: randomUUID(), requestKey: randomUUID(), submit: false });
     expect(snapshot.evidence.observations).toHaveLength(1);
     expect(await db.$transaction(tx => evidenceIsCurrent(tx, user.id, snapshot.sourceRefs))).toBe(true);
+  });
+  /**
+   * S-29 reader #2: `gate.ts`'s `evidenceCurrent` check used to pass
+   * `input.evidence.flatMap((item) => item.sourceRefs)` straight to
+   * `evidenceIsCurrent`, and finalization attaches the *same* `sourceRefs`
+   * array to every evidence entry, so since T-2007 made `evidenceRuleIds`
+   * length 2 that flatMap is the candidate's refs duplicated once per rule.
+   * `evidenceIsCurrent` guards its input at `z.array(sourceRefSchema)
+   * .max(2180)` and returns `false` on a parse failure — this pins the exact
+   * mechanism: one real ref, duplicated past the 2180 cap, fails the guard
+   * un-deduped and passes once `sortedUniqueSourceRefs` collapses it back
+   * to one.
+   */
+  it("S-29: the 2180 max-refs guard fails a duplicated-past-cap array and passes once deduped", async () => {
+    const { user, snapshot } = await fixture();
+    const ref = snapshot.sourceRefs[0];
+    expect(await evidenceIsCurrent(db, user.id, Array(2182).fill(ref))).toBe(false);
+    expect(
+      await evidenceIsCurrent(db, user.id, sortedUniqueSourceRefs([Array(2182).fill(ref)]))
+    ).toBe(true);
   });
 });

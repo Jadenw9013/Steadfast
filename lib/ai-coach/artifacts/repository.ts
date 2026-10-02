@@ -11,6 +11,7 @@ import {
   type ArtifactKind,
   type ArtifactReference,
   type ArtifactReviewMetadata,
+  type EvidenceRegistryContent,
   type PolicyBundleContent,
   type SignedArtifactReviewMetadata,
   artifactReferenceSchema,
@@ -922,6 +923,22 @@ export function getReviewedPolicyBundleContent(artifact: LoadedArtifact): Policy
     throw new ArtifactLoadError("ARTIFACT_INCOMPATIBLE", "A reviewed policy bundle is required.");
   }
   return policyBundleContentSchema.parse(artifact.content);
+}
+
+/**
+ * S-29 — mirrors `getReviewedPolicyBundleContent`: a `SUFFICIENT` evidence
+ * status can only ever be derived from a digest-verified artifact that came
+ * through the reviewed server loader (`assertVerifiedLoadedArtifact`), never
+ * from an arbitrary `LoadedArtifact`-shaped object.
+ */
+export function getReviewedEvidenceRegistryContent(
+  artifact: LoadedArtifact
+): EvidenceRegistryContent {
+  assertVerifiedLoadedArtifact(artifact);
+  if (artifact.kind !== "EVIDENCE_REGISTRY") {
+    throw new ArtifactLoadError("ARTIFACT_INCOMPATIBLE", "A reviewed evidence registry is required.");
+  }
+  return evidenceRegistryContentSchema.parse(artifact.content);
 }
 
 export function getReviewedFoodItem(artifact: LoadedArtifact, itemId: string) {

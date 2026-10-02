@@ -5,9 +5,11 @@ import { z } from "zod";
 import { AiCoachError } from "./access";
 import {
   ArtifactLoadError,
+  getReviewedEvidenceRegistryContent,
   getReviewedPolicyBundleContent,
   loadReviewedArtifactSet,
 } from "./artifacts/repository";
+import { deriveEvidenceGateEntries } from "./autonomy/evidence-status";
 import { contentHash } from "./canonical-json";
 import { isV2Intake, intakeAnswersSchema } from "./intake";
 import { evaluateCurrentClientNutritionSafety } from "./nutrition-safety";
@@ -350,18 +352,23 @@ export async function finalizeCurrentClientPlan(planVersionId: string) {
     ]),
     requestedDomains,
     requiredInputs,
-    // T-2000 review finding 1: the server can only substantiate the known
-    // synthetic-fixture evidence rule today (T-2003 supplies a real
-    // evidence-matching mapping). Any other rule id a reviewed bundle
-    // declares maps to UNKNOWN, never a caller-asserted SUFFICIENT, so the
-    // gate fails closed to FOCUSED_CLARIFICATION rather than trusting an
-    // unsubstantiated evidence rule. The synthetic fixture bundle never
-    // declares any other rule id, so FIXTURE behavior is unchanged.
-    evidence: policy.evidenceRuleIds.map((ruleId) => ({
-      ruleId,
-      status: ruleId === "SYNTHETIC_EVIDENCE_RULE" ? ("SUFFICIENT" as const) : ("UNKNOWN" as const),
+    // S-29 — derived provenance, not a caller-asserted guess: a policy
+    // evidence rule is SUFFICIENT iff the reviewed, digest-verified
+    // EVIDENCE_REGISTRY loaded for this account (`artifacts`, above) carries
+    // a claim that lists it, UNKNOWN otherwise. T-2007 added
+    // `WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1` to `evidenceRuleIds`, and the
+    // real signed bundle declares neither of the ids a now-removed hardcoded
+    // ternary recognised, so every real candidate used to finalize into
+    // UNKNOWN -> GATE_EVIDENCE_MISSING -> FOCUSED_CLARIFICATION. This calls
+    // the same shared predicate the gate's `assertEvidenceRulesHaveClaims`
+    // precondition uses (`autonomy/gate.ts`), so the two can never again
+    // disagree about what "substantiated" means, and it fails closed: a rule
+    // with no covering claim still comes back UNKNOWN here, never SUFFICIENT.
+    evidence: deriveEvidenceGateEntries({
+      evidenceRuleIds: policy.evidenceRuleIds,
+      claims: getReviewedEvidenceRegistryContent(artifacts.evidenceRegistry).claims,
       sourceRefs,
-    })),
+    }),
     candidatePlanVersionId: candidate.id,
   };
   const eligibleOptions = distinct([
