@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   confirmAndRedirect,
   feetAndInchesToCentimeters,
+  firstIncompleteIntakeStage,
   intakeStepIssues,
   kilogramsToPounds,
   poundsToKilograms,
@@ -19,6 +20,7 @@ const completeSelections: IntakeSelections = {
   sessionLength: "MIN_30_45",
   dietaryStyle: "BALANCED",
   trackingStyle: "PORTIONS",
+  foodBudgetLevel: "MODERATE",
   allergens: ["NONE"],
   unitSystem: "IMPERIAL",
   heightCm: 167.6,
@@ -58,6 +60,7 @@ describe("T-2028 four-step validation", () => {
     expect(intakeStepIssues(2, empty, {}, true)).toEqual([
       "Choose a dietary style.",
       "Choose a tracking style.",
+      "Choose a food budget preference.",
       "Choose any allergens, or choose None.",
     ]);
     expect(intakeStepIssues(3, empty, {}, true)).toEqual([
@@ -90,6 +93,51 @@ describe("T-2028 four-step validation", () => {
     expect(feetAndInchesToCentimeters(5, 6)).toBe(167.6);
     expect(poundsToKilograms(150)).toBeCloseTo(68.04, 2);
     expect(kilogramsToPounds(68.04)).toBeCloseTo(150, 1);
+  });
+});
+
+describe("T-2008/S-33 resume at the first incomplete stage", () => {
+  const empty: IntakeSelections = {
+    allergens: [],
+    unitSystem: "IMPERIAL",
+    weightMeasuredOn: "2026-09-27",
+  };
+
+  it("lands on stage 0 for a wholly untouched draft", () => {
+    expect(firstIncompleteIntakeStage(empty, false)).toBe(0);
+  });
+
+  it("lands on stage 1 once stage 0 is satisfied", () => {
+    expect(
+      firstIncompleteIntakeStage({ ...empty, goal: "GENERAL_FITNESS", experience: "BEGINNER" }, false)
+    ).toBe(1);
+  });
+
+  it("lands on stage 2 once stages 0-1 are satisfied, including the new food budget question", () => {
+    const stage1Done: IntakeSelections = {
+      ...empty,
+      goal: "GENERAL_FITNESS",
+      experience: "BEGINNER",
+      trainingDaysPerWeek: 3,
+      equipment: "BODYWEIGHT",
+      sessionLength: "MIN_30_45",
+    };
+    // Stage 2 is still incomplete: no dietary style, tracking style, food
+    // budget or allergen choice yet.
+    expect(firstIncompleteIntakeStage(stage1Done, false)).toBe(2);
+    // Everything in stage 2 except the food budget is answered — still
+    // incomplete, and still stage 2, not a silent skip to stage 3.
+    expect(
+      firstIncompleteIntakeStage(
+        { ...stage1Done, dietaryStyle: "BALANCED", trackingStyle: "PORTIONS", allergens: ["NONE"] },
+        false
+      )
+    ).toBe(2);
+  });
+
+  it("lands on stage 3 — the only destination left — once every earlier stage is satisfied, confirmed or not", () => {
+    expect(firstIncompleteIntakeStage(completeSelections, false)).toBe(3);
+    expect(firstIncompleteIntakeStage(completeSelections, true)).toBe(3);
   });
 });
 

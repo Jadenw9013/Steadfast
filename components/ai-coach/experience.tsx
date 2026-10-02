@@ -57,6 +57,7 @@ function AiRunProgressTracker({
     status: string;
     attempts?: number;
     lastError?: string | null;
+    nextAttemptAt?: string | null;
   };
   maxAttemptsPerRun: number;
 }) {
@@ -89,6 +90,23 @@ function AiRunProgressTracker({
           {describeRunFailureReason(run.lastError)} Steadfast will retry automatically — attempt{" "}
           {Math.min(run.attempts ?? 1, maxAttemptsPerRun)} of {maxAttemptsPerRun}.
         </p>
+        {run.nextAttemptAt && (
+          // T-2008/S-33: `nextAttemptAt` is when the run becomes eligible for
+          // its next attempt, not a promise of when it will actually run —
+          // the executor sweep cadence is a daily cron today (S-32 §1 is
+          // undecided), so "scheduled for"/"will retry at" would name a time
+          // the system cannot keep.
+          <p className="text-sm text-amber-200">
+            Eligible to retry after{" "}
+            <time dateTime={run.nextAttemptAt}>
+              {new Date(run.nextAttemptAt).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}
+            </time>
+            .
+          </p>
+        )}
         <p className="text-xs text-zinc-400">
           You do not need to do anything right now. If every attempt is used without success, this
           becomes a failed preparation with a retry option.

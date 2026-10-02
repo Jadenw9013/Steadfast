@@ -3,6 +3,7 @@ import {
   buildAllergenDeclarations,
   buildConfirmPayload,
   createIntakeSelections,
+  mapSelectionsToAnswers,
   type IntakeSelections,
 } from "@/components/ai-coach/intake-wizard";
 import { intakeV2ConfirmSchema } from "@/lib/ai-coach/intake-contract";
@@ -16,6 +17,7 @@ function completeSelections(patch: Partial<IntakeSelections> = {}): IntakeSelect
     sessionLength: "MIN_45_60",
     dietaryStyle: "HIGH_PROTEIN",
     trackingStyle: "PORTIONS",
+    foodBudgetLevel: "MODERATE",
     allergens: ["NONE"],
     unitSystem: "IMPERIAL",
     heightCm: 175.3,
@@ -27,7 +29,7 @@ function completeSelections(patch: Partial<IntakeSelections> = {}): IntakeSelect
 }
 
 describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () => {
-  it("builds a schema-valid payload with safe defaults for every unasked clinical group", () => {
+  it("builds a schema-valid payload without inventing answers for unasked clinical groups", () => {
     const payload = buildConfirmPayload(completeSelections());
 
     expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(true);
@@ -70,6 +72,14 @@ describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () 
     expect(payload).not.toHaveProperty("energyMethodPopulationCategory");
     expect(payload).not.toHaveProperty("physicalActivityCategory");
     expect(payload).not.toHaveProperty("cookingAccess");
+  });
+
+  it("does not silently default the food budget", () => {
+    const selections = completeSelections({ foodBudgetLevel: undefined });
+    const payload = mapSelectionsToAnswers(selections);
+    expect(payload).not.toHaveProperty("foodBudgetLevel");
+    expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(false);
+    expect(() => buildConfirmPayload(selections)).toThrow();
   });
 
   it.each([

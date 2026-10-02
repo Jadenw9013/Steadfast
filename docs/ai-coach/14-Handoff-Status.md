@@ -1474,3 +1474,72 @@ then the statements were restored before the real gate run above.
 Weekly review parameters are now resolved from the run-bound policy artifact and frozen into an optional `weeklyPolicy` snapshot block. New weekly runs therefore replay without live policy selection; acceptance re-loads the exact policy reference and verifies the resolved parameter digest. Historical snapshots keep their hashes because the new field has no default and fail closed for new weekly proposals.
 
 Energy changes support the reviewed `REESTIMATE_FROM_CURRENT_WEIGHT` method through the T-2003 prescription engine, with minimum-energy, cooldown, per-review, and cumulative limits. Schedule simplification can use a frozen T-2039 recomposition at fewer days; session dropping remains restricted to the synthetic fixture. Evidence sufficiency now counts qualifying check-ins by canonical week using bundle-defined completeness and missing-week thresholds. The unsigned draft declares these methods but omits all weekly values, so live use remains unavailable pending qualified review.
+
+### S-33 — four onboarding honesty fixes lifted from the T-2008 candidate (2026-10-02)
+
+An architect audit of the abandoned `team/T-2008-ai-coach-onboarding-reliability-candidate` branch
+(`556b980`, see `board/tickets-archive/T-2008.md`'s "Overlap audit") found four small, independent fixes
+worth keeping even though the candidate's larger redesign (executor-side finalization, the
+discovery/chooser rewrite, weekly-evidence-rule scoping, the every-minute cron) was rejected. This
+ticket hand-lifted exactly those four onto `team/sprint-1`:
+
+1. **`foodBudgetLevel` is now an asked question, not an invented default.** The wizard previously wrote
+   `foodBudgetLevel: "MODERATE"` into every `CONFIRM_INTAKE` regardless of what the client chose
+   (`components/ai-coach/intake-wizard.tsx`'s `mapSelectionsToAnswers`), silently narrowing which meal
+   templates (`lib/ai-coach/catalog/meal-template-schema.ts`'s `budgetBand` filter) a plan could draw
+   from. The wizard now asks ("Food budget": Budget-conscious / Moderate / No preference) in stage 2,
+   requires a choice before continuing (`intakeStepIssues`), and `mapSelectionsToAnswers` omits the key
+   entirely when unset. Because `foodBudgetLevel` is a required (non-optional) field in both
+   `intakeAnswersSchema` and `intakeV2ConfirmObjectSchema` (`lib/ai-coach/intake-contract.ts`), an intake
+   that reaches `CONFIRM_INTAKE` without it already degrades correctly today: `confirmIntake`
+   (`lib/ai-coach/intake.ts`) returns `{ success: false }` from its `safeParse`, and
+   `client-commands.ts`'s `CONFIRM_INTAKE` branch turns that into a 422 `VALIDATION_ERROR` ("Complete the
+   intake before confirming.") — never a 500. No server change was needed for this; only the client had
+   to stop manufacturing an answer and start requiring one.
+2. **Three invented clinical claims removed from the wizard's copy**: "clinical DRI equations" / "BMR &
+   TDEE" (final-stats intro), "≥2.0g/kg" (the High Protein dietary option), and "PAR-Q" (the safety-check
+   intro), plus the emoji-led "Both tracking styles provide exact ingredient measurements" claim and the
+   goal-card descriptions' specific physiological promises ("preserve lean muscle tissue", "controlled
+   caloric surplus", etc). Nothing in the product computes a DRI equation, enforces a protein ratio, or
+   runs a named screening instrument — this was G01/G09 territory asserted as settled fact. Replaced with
+   neutral, non-clinical copy; no `PENDING_G01_WORDING` placeholder was touched.
+3. **The intake wizard resumes at the first incomplete stage**, not always stage 1. `firstIncompleteIntakeStage`
+   walks stages 0–2's `intakeStepIssues`; stage 3 is the only remaining destination once those are clean,
+   because it owns body-stat validation, the safety prerequisite and final review and there is no stage
+   after it — so a complete draft always resumes there regardless of whether the safety disclosure is
+   itself still outstanding (stage 3's own render handles that). The candidate's version of this function
+   had a dead tail (both branches of its final `if` returned the same literal `3`, so its
+   `safetyDisclosureCompleted` argument never changed the result); the lifted version keeps the parameter
+   for callers' clarity but documents and `void`s it rather than pretending it discriminates between two
+   outcomes that cannot exist on a four-stage wizard. S-19's dead-end fixes (the unliftable-restriction
+   explanation, the relabelled confirm button, disclosure-row-derived `needsSafetyDisclosure`) are
+   untouched.
+4. **`nextAttemptAt` on workspace runs.** `getAiWorkspace`'s run projection (`lib/queries/ai-coach.ts`)
+   now adds `nextAttemptAt: run.status === "RETRY_WAIT" ? run.leaseExpiresAt?.toISOString() ?? null :
+   null` next to S-26's `attempts`/`lastError`/`maxAttemptsPerRun` — additive, one nullable field, no
+   schema or migration change (`failRunAttempt` already wrote the retry instant into `leaseExpiresAt`,
+   `lib/ai-coach/runs.ts:96`). S-26's RETRY_WAIT card (`components/ai-coach/experience.tsx`) shows it as
+   **"Eligible to retry after `<local time>`"** when present, alongside the existing attempt-count
+   sentence — never absent when `nextAttemptAt` is null, and never "scheduled for" or "will retry at":
+   the executor sweep is a daily cron in production today (S-32 §1 is undecided), so the only honest claim
+   is when the run *becomes eligible*, not when it will actually run.
+
+**Deliberately not lifted** (per the audit and the ticket's hard fence): the weekly-evidence-rule scoping
+in `finalization.ts`/`gate.ts` (contradicts S-29 and does not fix its P0), `capabilities.ts`'s hardcoded
+kill switch, the executor cron cadence change, executor-side finalization and the deleted "Run final
+safety checks" button (would strand `PENDING_FINALIZATION` proposals — no replacement trigger exists on
+sprint-1), the `AiDiscoverySurface`/`/client` chooser rewrite, any `PENDING_G01_WORDING` replacement, the
+T-2025 five-stage walkthrough test deletion, and the entire iOS commit (`a3c025e` adds `prepareInitial`/
+`representation` to every ENROLL command; sprint-1's ENROLL schema is `.strict()` and would 422 it
+outright). `lib/ai-coach/finalization.ts`, `gate.ts`, `managed-executor.ts` and `vercel.json` were not
+touched.
+
+No schema change, no migration, no new dependency. Files touched: `components/ai-coach/intake-wizard.tsx`,
+`lib/queries/ai-coach.ts`, `components/ai-coach/experience.tsx`, plus test fixtures in
+`tests/unit/ai-coach-intake-wizard-confirm-payload.test.ts`, `tests/unit/ai-coach-intake-wizard-round3.test.ts`,
+`tests/unit/ai-coach-intake-wizard-stages.test.ts`, `tests/unit/ai-coach-experience.test.ts` and
+`tests/integration/ai-coach-intake-wizard-confirm.test.ts` (all needed `foodBudgetLevel`/`nextAttemptAt`
+added to fixtures that previously relied on the behaviour this ticket removed). Gates: full suite on a
+freshly replayed local DB, same 7 pre-existing failures as the documented baseline (6×
+`ai-coach-weekly-trajectory` `P2002`, 1× `ai-coach-beginner-workflow` timezone — S-30), unit 1856 passed
+(1846 baseline + 10 new), `pnpm run type-check` clean, `eslint` clean on every changed file.
