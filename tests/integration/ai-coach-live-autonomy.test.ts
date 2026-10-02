@@ -130,11 +130,27 @@ function buildLiveArtifactsWithRealBundleIds(namespace: string, exerciseLeaf: Ar
  * renames *both* required-input and evidence-rule ids, so its candidate
  * always short-circuits at the gate's earlier REQUIRED_INPUTS stage
  * (`gate.ts`'s fixed check order) and never actually exercises
- * `finalization.ts`'s evidence-UNKNOWN branch. This variant keeps every
+ * `finalization.ts`'s evidence-status branch. This variant keeps every
  * required-input id known (so REQUIRED_INPUTS passes) and renames only the
- * evidence-rule id, so the gate reaches EVIDENCE_SUFFICIENCY and the
- * `ruleId === "SYNTHETIC_EVIDENCE_RULE" ? SUFFICIENT : UNKNOWN` branch is the
- * one actually under test.
+ * evidence-rule id, so the gate reaches EVIDENCE_SUFFICIENCY and
+ * `finalization.ts`'s evidence[] derivation is the one actually under test.
+ *
+ * S-29 — this builder also deliberately adds the renamed id to the same
+ * claim that already covers SYNTHETIC_EVIDENCE_RULE, so the renamed id is
+ * genuinely claim-covered, not merely renamed. Before S-29, `finalization.ts`
+ * mapped any id other than the literal string "SYNTHETIC_EVIDENCE_RULE" to
+ * UNKNOWN regardless of claim coverage, so the test built on this fixture
+ * used to assert that wrong behaviour as correct. The fail-closed case this
+ * shape used to stand in for — a rule with *no* covering claim — now has its
+ * own, stronger coverage: `tests/integration/ai-coach-autonomy-gate.test.ts`
+ * ("a bundle whose evidence rule has no covering claim still fails closed
+ * with ARTIFACT_INCOMPATIBLE") at the publication-time precondition, and
+ * `tests/unit/ai-coach-evidence-rule-coverage.test.ts` ("fails closed
+ * (T-2000 review r1 BLOCKER 1)...") for the shared derivation itself. What
+ * this builder now proves (below) is the positive contract: a real,
+ * claim-covered evidence-rule id is genuinely substantiated and must reach
+ * `APPROVE_AUTOMATICALLY` through the real finalize path, not stay `UNKNOWN`
+ * merely for not being the one hardcoded fixture id.
  */
 function buildLiveArtifactsWithRealEvidenceRuleOnly(
   namespace: string,
@@ -435,7 +451,7 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     );
   });
 
-  it("T-2000 review round 2 nit 2: a real (non-synthetic) evidence-rule id alone — with every required-input id known — fails closed to FOCUSED_CLARIFICATION via the evidence branch", async () => {
+  it("S-29 / T-2000 review round 2 nit 2: a real, claim-covered evidence-rule id reaches APPROVE_AUTOMATICALLY through the real finalize path", async () => {
     const namespace = `live-autonomy-real-evidence-${randomUUID()}`;
     const exerciseLeaf = sharedArtifacts.leaves.find((leaf) => leaf.kind === "EXERCISE_CATALOG")!;
     const customArtifacts = buildLiveArtifactsWithRealEvidenceRuleOnly(namespace, exerciseLeaf);
@@ -520,9 +536,46 @@ suite("T-2000 — bounded autonomy for a real (non-synthetic) client under a liv
     });
 
     const result = await finalizeCurrentClientPlan(candidate.id);
-    expect(result.outcome).toBe("FOCUSED_CLARIFICATION");
-    expect(result.reasonCodes).toContain("GATE_EVIDENCE_MISSING");
+    expect(result.outcome).toBe("APPROVE_AUTOMATICALLY");
     expect(await db.aiAutomaticPlanApproval.count({ where: { planVersionId: candidate.id } })).toBe(
+      1
+    );
+
+    // As strong as this file's other happy-path proof ("zero-reviewer happy
+    // path"): the decision row behind the approval is itself a clean
+    // APPROVE_AUTOMATICALLY with no HOLD/clarification reason codes, so the
+    // renamed, claim-covered evidence rule did not merely slip past a
+    // different check.
+    const gate = await db.aiAutonomyGateDecision.findFirst({
+      where: { evaluatedPlanVersionId: candidate.id },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+    expect(gate).toMatchObject({
+      outcome: "APPROVE_AUTOMATICALLY",
+      orderedReasonCodes: ["GATE_APPROVED"],
+    });
+
+    const workspace = await getAiWorkspace(user.id);
+    const proposal = workspace.proposals.find((p) => p.id === candidate.id);
+    expect(proposal).toMatchObject({ status: "READY" });
+    expect(proposal?.payload).not.toBeNull();
+
+    const accepted = await acceptPlanVersionAtomic(user.id, candidate.id, acceptInputFor(candidate));
+    expect(accepted).toMatchObject({
+      success: true,
+      alreadyAccepted: false,
+      activeVersionId: candidate.id,
+    });
+    expect(
+      (await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: user.id } }))
+        .activePlanVersionId
+    ).toBe(candidate.id);
+    expect(
+      await db.aiPlanActivationAttempt.findFirst({ where: { planVersionId: candidate.id } })
+    ).toMatchObject({ outcome: "ACCEPTED", reasonCode: "AUTOMATIC_GATE_APPROVED" });
+
+    expect(await db.aiCoachReviewerGrant.count()).toBe(0);
+    expect(await db.aiPlanReviewerApproval.count({ where: { planVersionId: candidate.id } })).toBe(
       0
     );
   });
