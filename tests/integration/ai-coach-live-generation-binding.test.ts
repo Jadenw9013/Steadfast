@@ -46,6 +46,18 @@ import {
   TEST_RUNTIME_CONFIGURATION,
 } from "../helpers/ai-live-launch";
 
+// S-24: this v1 GENERAL_FITNESS intake reaches APPROVE_AUTOMATICALLY through the
+// legacy synthetic composer (composeLegacySyntheticPlan), which stamps
+// prescriptionOutcome.status: "PRESCRIBED" whenever height/weight are present --
+// independent of bodyWeightIntent/nutritionRequiredForGoal (v1 intake has no
+// bodyWeightIntent at all). Do not read this approval as evidence that the gate
+// waives prescription availability for a MAINTAIN/NO_PREFERENCE goal: 9fb5513
+// (S-15 finding 2) made autonomy/gate.ts's `!facts.prescription.available` check
+// fire regardless of `required`, specifically so a MAINTAIN v2 client with an
+// unavailable prescription still escalates instead of silently approving -- see
+// ai-coach-prescription-flow.test.ts's MAINTAIN/DECLINED-population test. If a
+// MAINTAIN client stops at FOCUSED_CLARIFICATION elsewhere, that is the fix
+// working; do not widen the gate check to make it match this fixture.
 const intake = {
   goal: "GENERAL_FITNESS" as const,
   experienceLevel: "NEW" as const,

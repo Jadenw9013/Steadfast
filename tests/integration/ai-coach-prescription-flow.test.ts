@@ -304,6 +304,51 @@ suite("T-2033 — prescription-first composer, end to end (PostgreSQL-backed)", 
     }
   });
 
+  // S-24 — coverage for S-15 finding 2 (fixed by `9fb5513`). Same shape as
+  // the LOSE/DECLINED-population test directly above, with one difference:
+  // `bodyWeightIntent: "MAINTAIN"`. Before `9fb5513`, `nutritionRequiredForGoal`
+  // (`prescription/index.ts`) returned `true` only for `bodyWeightIntent ===
+  // "LOSE" || "GAIN"`, so a MAINTAIN goal computed `required: false`, and the
+  // gate's branch at `autonomy/gate.ts` read `facts.prescription.required &&
+  // !facts.prescription.available` — with `required: false` this MAINTAIN
+  // client's unavailable prescription (population declined, same as the LOSE
+  // test above) would never trip that branch at all, so the gate fell through
+  // toward `APPROVE_AUTOMATICALLY` while silently discarding the engine's own
+  // `PRESCRIPTION_INPUT_MISSING` finding. `9fb5513` fixed this on two fronts
+  // together: `nutritionRequiredForGoal` now returns `true` for any non-null
+  // intent (so `nutritionRequired` below is `true`, not `false`, verified by
+  // running this exact fixture), and the gate condition dropped `required`
+  // entirely (`!facts.prescription.available` alone) so an unavailable
+  // prescription escalates regardless of what the goal needs. Do not re-add a
+  // `required` guard to that gate condition: that is exactly the hole this
+  // test exists to keep closed.
+  it("S-24 / S-15 finding 2: MAINTAIN intake with a DECLINED population category still produces nutrition:null, prescriptionOutcome.required:true, and the gate FOCUSED_CLARIFICATIONs (the pre-9fb5513 gate would have let this one through)", async () => {
+    const user = await v2ClientFixture({
+      bodyWeightIntent: "MAINTAIN",
+      energyMethodPopulationCategoryStatus: "DECLINED",
+    });
+    const candidate = await runToCompletion(user.id, "MACROS");
+    const payload = planPayloadSchema.parse(candidate.payload);
+    expect(payload.nutrition).toBeNull();
+    expect(payload.prescriptionOutcome).toMatchObject({
+      status: "UNAVAILABLE",
+      nutritionRequired: true,
+    });
+    expect(payload.prescriptionOutcome?.reasonCodes).toContain("PRESCRIPTION_INPUT_MISSING");
+
+    const result = await finalizeCurrentClientPlan(candidate.id);
+    expect(result.outcome).toBe("FOCUSED_CLARIFICATION");
+    expect(result).not.toMatchObject({ outcome: "APPROVE_AUTOMATICALLY" });
+    if ("reasonCodes" in result) {
+      expect(result.reasonCodes).toEqual(
+        expect.arrayContaining([
+          "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+          "PRESCRIPTION_INPUT_MISSING",
+        ])
+      );
+    }
+  });
+
   // -------------------------------------------------------------------------
   // Review r1 MAJOR 1 / MINOR 7 — finalization replays the engine against the
   // *live* intake at *today's* date. Neither an intake edit nor a weigh-in
