@@ -100,7 +100,8 @@ describe("AI client screen states", () => {
     expect(html).toContain("Synthetic preview");
     expect(html).toContain("Complete your intake");
   });
-  it("T-2028: the intake wizard renders step 1 with interactive cards and never throws, whether confirmedIntake is null, v1 or v2", () => {
+  it("T-2028/T-2008: the intake wizard renders interactive cards and never throws, whether confirmedIntake is null, v1 or v2, resuming at the first incomplete stage", () => {
+    // Nothing answered yet — stage 1, same as before S-33's resume change.
     const stage1 = renderToStaticMarkup(
       createElement(AiCoachExperience, { initial, path: ["intake"] })
     );
@@ -136,8 +137,11 @@ describe("AI client screen states", () => {
     const v2Html = renderToStaticMarkup(
       createElement(AiCoachExperience, { initial: v2Intake, path: ["intake"] })
     );
-    expect(v2Html).toContain("What are we building toward?");
-    expect(v2Html).toContain("1 / 4");
+    // v2Intake answered goal and experience (stage 0) but never a session
+    // length (stage 1), so T-2008/S-33's resume logic lands here, not back
+    // at stage 0 — the honest behavior this ticket lifted.
+    expect(v2Html).toContain("Set up your training week");
+    expect(v2Html).toContain("2 / 4");
   });
   it("labels an unfinalized proposal honestly without numerical instructions or an accept action", () => {
     const view = {
@@ -266,6 +270,7 @@ describe("T-2030 bounded explanation prose — proposal screen render states", (
           },
           attempts: 1,
           lastError: null,
+          nextAttemptAt: null,
           failureMessage: null,
         },
       ],
@@ -404,6 +409,7 @@ describe("S-26 — a run that has failed an attempt renders as failed, not as pr
           decision: null,
           attempts: 2,
           lastError: "RUNTIME_ARTIFACTS_UNPUBLISHED",
+          nextAttemptAt: null,
           failureMessage: null,
         },
       ],
@@ -421,6 +427,50 @@ describe("S-26 — a run that has failed an attempt renders as failed, not as pr
     expect(html).not.toContain("Training Periodization");
     expect(html).not.toContain("Safety & Verification");
     expect(html).not.toContain("RUNTIME_ARTIFACTS_UNPUBLISHED");
+    // T-2008/S-33: a RETRY_WAIT run with no `nextAttemptAt` (e.g. the
+    // reconciliation sweep has not yet re-armed it) still renders the S-26
+    // card in full — the new field is additive, never a precondition for it.
+    expect(html).not.toContain("Eligible to retry after");
+  });
+
+  it("a RETRY_WAIT run with a nextAttemptAt says when it becomes eligible, never that it is scheduled", () => {
+    const view: AiWorkspace = {
+      ...initial,
+      confirmedIntake: {
+        goal: "GENERAL_FITNESS",
+        experienceLevel: "NEW",
+        trainingDaysPerWeek: 2,
+        equipmentAccess: ["NONE"],
+        dietaryRestrictions: [],
+        allergies: [],
+        foodBudgetLevel: "LOW",
+        trackingPreference: "NUMBERS_VISIBLE",
+        unitsPreference: "METRIC",
+        heightCm: 170,
+        weightKg: 70,
+      },
+      safetyDisclosureCompleted: true,
+      consentedAt: new Date().toISOString(),
+      maxAttemptsPerRun: 3,
+      runs: [
+        {
+          id: "run-retry-timed",
+          kind: "INITIAL",
+          status: "RETRY_WAIT",
+          createdAt: new Date().toISOString(),
+          resultPlanVersionId: null,
+          decision: null,
+          attempts: 2,
+          lastError: "RUNTIME_ARTIFACTS_UNPUBLISHED",
+          nextAttemptAt: "2026-10-02T21:32:00.000Z",
+          failureMessage: null,
+        },
+      ],
+    };
+    const html = renderToStaticMarkup(createElement(AiCoachExperience, { initial: view, path: [] }));
+    expect(html).toContain("Eligible to retry after");
+    expect(html).not.toContain("scheduled for");
+    expect(html).not.toContain("will retry at");
   });
 
   it("a QUEUED run shows an honest indeterminate indicator, never a fabricated percentage or named stage", () => {
@@ -451,6 +501,7 @@ describe("S-26 — a run that has failed an attempt renders as failed, not as pr
           decision: null,
           attempts: 0,
           lastError: null,
+          nextAttemptAt: null,
           failureMessage: null,
         },
       ],

@@ -405,6 +405,16 @@ export async function getAiWorkspace(clientId: string) {
           // maps this to copy; it never renders the raw value.
           attempts: run.attempts,
           lastError: run.lastError,
+          // T-2008/S-33: `failRunAttempt` stores the instant a RETRY_WAIT run
+          // becomes eligible for its next attempt in `leaseExpiresAt`
+          // (`lib/ai-coach/runs.ts`). Projected only for RETRY_WAIT — a
+          // worker lease on a RUNNING run is not client-facing information.
+          // This is when the run *becomes eligible*, not a promise of when
+          // the executor sweep will next run (that cadence is undecided,
+          // S-32 §1), so the client copy must say "eligible to retry after",
+          // never "scheduled for" or "will retry at".
+          nextAttemptAt:
+            run.status === "RETRY_WAIT" ? (run.leaseExpiresAt?.toISOString() ?? null) : null,
           failureMessage:
             run.status === "FAILED"
               ? "Preparation could not finish. Your current plan has not been replaced."

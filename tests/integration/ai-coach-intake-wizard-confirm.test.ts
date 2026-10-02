@@ -51,6 +51,7 @@ const SELECTIONS: IntakeSelections = {
   sessionLength: "MIN_45_60",
   dietaryStyle: "HIGH_PROTEIN",
   trackingStyle: "PORTIONS",
+  foodBudgetLevel: "MODERATE",
   allergens: ["NONE"],
   unitSystem: "IMPERIAL",
   heightCm: 175.3,

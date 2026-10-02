@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   allergenDeclarationsSchema,
   intakeV2ConfirmObjectSchema,
@@ -27,6 +27,7 @@ type EquipmentChoice = "BODYWEIGHT" | "HOME_DUMBBELLS" | "FULL_GYM";
 type SessionLengthChoice = "MIN_30_45" | "MIN_45_60" | "MIN_60_PLUS";
 type DietaryStyleChoice = "BALANCED" | "HIGH_PROTEIN" | "PLANT_BASED" | "LOW_CARB";
 type TrackingStyleChoice = "PORTIONS" | "EXACT_MACROS";
+type FoodBudgetChoice = "LOW" | "MODERATE" | "FLEXIBLE";
 type AllergenChoice = "DAIRY" | "TREE_NUTS" | "PEANUTS" | "GLUTEN" | "SHELLFISH" | "NONE";
 type UnitSystem = "IMPERIAL" | "METRIC";
 type SafetyAnswer = "YES" | "NO" | "UNSURE";
@@ -50,6 +51,7 @@ export interface IntakeSelections {
   sessionLength?: SessionLengthChoice;
   dietaryStyle?: DietaryStyleChoice;
   trackingStyle?: TrackingStyleChoice;
+  foodBudgetLevel?: FoodBudgetChoice;
   allergens: AllergenChoice[];
   unitSystem: UnitSystem;
   heightCm?: number;
@@ -78,9 +80,9 @@ const EMPTY_ALLERGEN_DECLARATIONS: AllergenDeclarations = {
 };
 
 const INPUT_CLASS =
-  "mt-2 min-h-12 w-full rounded-xl border border-white/[0.12] bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 transition-colors placeholder:text-zinc-600 focus-visible:border-blue-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
+  "mt-2 min-h-12 w-full rounded-xl border border-white/[0.12] bg-zinc-950/70 px-4 py-3 text-base text-zinc-100 transition-colors motion-reduce:transition-none placeholder:text-zinc-600 focus-visible:border-blue-500/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30";
 const CHOICE_BASE =
-  "min-h-12 cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+  "min-h-12 cursor-pointer rounded-xl border px-4 py-3 text-left transition-colors duration-200 motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
 
 const GOAL_OPTIONS: {
   value: GoalChoice;
@@ -92,29 +94,29 @@ const GOAL_OPTIONS: {
   {
     value: "FAT_LOSS",
     label: "Fat Loss / Cut",
-    description: "Targeted caloric deficit designed to preserve lean muscle tissue while losing body fat.",
-    badge: "Preserve muscle · Drop body fat",
+    description: "Tell the planner that reducing body fat is your current preference.",
+    badge: "Body-composition preference",
     icon: "down",
   },
   {
     value: "BUILD_MUSCLE",
     label: "Build Muscle",
-    description: "Controlled caloric surplus with high-protein intake to maximize lean muscle gain.",
-    badge: "Muscle growth · Progressive overload",
+    description: "Tell the planner that building muscle is your current preference.",
+    badge: "Muscle-building preference",
     icon: "up",
   },
   {
     value: "STRENGTH",
     label: "Strength",
-    description: "Focus on neuromuscular adaptations, heavy compound lifts, and raw performance.",
-    badge: "Compound lifts · Lower rep ranges",
+    description: "Prioritize getting stronger within your available equipment and schedule.",
+    badge: "Strength preference",
     icon: "bar",
   },
   {
     value: "GENERAL_FITNESS",
     label: "General Fitness",
-    description: "A balanced, sustainable routine for cardiovascular conditioning, mobility, and overall vigor.",
-    badge: "Sustainable · All-around health",
+    description: "Build a general routine around consistency, movement, and conditioning.",
+    badge: "General routine preference",
     icon: "spark",
   },
 ];
@@ -151,7 +153,11 @@ const SESSION_OPTIONS = [
 
 const DIETARY_OPTIONS = [
   { value: "BALANCED", label: "Balanced", description: "Whole-food carbs, lean proteins, healthy fats" },
-  { value: "HIGH_PROTEIN", label: "High Protein", description: "Optimized for muscle repair (≥2.0g/kg)" },
+  {
+    value: "HIGH_PROTEIN",
+    label: "High Protein",
+    description: "Prefer meals centered on protein-rich foods",
+  },
   { value: "PLANT_BASED", label: "Plant-Based", description: "Vegetarian/vegan whole foods" },
   { value: "LOW_CARB", label: "Low Carb", description: "Higher healthy fats and vegetables" },
 ] satisfies { value: DietaryStyleChoice; label: string; description: string }[];
@@ -170,6 +176,12 @@ const TRACKING_OPTIONS = [
       "Exact measured meals plus full daily calories and macronutrient targets (protein, carbs, fats) for detailed daily tracking.",
   },
 ] satisfies { value: TrackingStyleChoice; label: string; description: string }[];
+
+const BUDGET_OPTIONS = [
+  { value: "LOW", label: "Budget-conscious", description: "Prefer lower-cost ingredients" },
+  { value: "MODERATE", label: "Moderate", description: "Balance cost and variety" },
+  { value: "FLEXIBLE", label: "No preference", description: "Do not narrow choices by cost" },
+] satisfies { value: FoodBudgetChoice; label: string; description: string }[];
 
 const ALLERGEN_OPTIONS = [
   { value: "DAIRY", label: "Dairy" },
@@ -302,6 +314,12 @@ export function createIntakeSelections(seed: Answers, today = localDateString())
         : seed.trackingPreference === "NUMBERS_VISIBLE"
           ? "EXACT_MACROS"
           : undefined,
+    foodBudgetLevel:
+      seed.foodBudgetLevel === "LOW" ||
+      seed.foodBudgetLevel === "MODERATE" ||
+      seed.foodBudgetLevel === "FLEXIBLE"
+        ? seed.foodBudgetLevel
+        : undefined,
     allergens: allergensFromSeed(sourceAllergenDeclarations),
     unitSystem: seed.unitsPreference === "METRIC" ? "METRIC" : "IMPERIAL",
     heightCm: typeof seed.heightCm === "number" ? seed.heightCm : undefined,
@@ -460,7 +478,7 @@ export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
       ? { trainingDaysPerWeek: selections.trainingDaysPerWeek }
       : {}),
     ...(equipmentAccess ? { equipmentAccess } : {}),
-    foodBudgetLevel: "MODERATE",
+    ...(selections.foodBudgetLevel ? { foodBudgetLevel: selections.foodBudgetLevel } : {}),
     ...(selections.trackingStyle
       ? {
           trackingPreference:
@@ -537,6 +555,7 @@ export function intakeStepIssues(
   if (stage === 2) {
     if (!selections.dietaryStyle) issues.push("Choose a dietary style.");
     if (!selections.trackingStyle) issues.push("Choose a tracking style.");
+    if (!selections.foodBudgetLevel) issues.push("Choose a food budget preference.");
     if (selections.allergens.length === 0) issues.push("Choose any allergens, or choose None.");
   }
   if (stage === 3) {
@@ -565,6 +584,29 @@ export function intakeStepIssues(
       issues.push("Complete the quick safety check.");
   }
   return issues;
+}
+
+/**
+ * Where a client who already has a confirmed intake or an in-progress draft
+ * should land — the first stage that still has outstanding issues, not
+ * always stage 0. A client who filled in three of four steps and closed the
+ * tab should not have to re-answer the three that were already fine.
+ *
+ * Stage 3 is the only destination once 0–2 are clean: it owns body-stat
+ * validation, the safety prerequisite and final review, and the wizard has
+ * no stage after it, so a complete draft always resumes there regardless of
+ * whether the safety disclosure is itself still outstanding — stage 3's own
+ * render handles that case.
+ */
+export function firstIncompleteIntakeStage(
+  selections: IntakeSelections,
+  safetyDisclosureCompleted: boolean
+): number {
+  for (let candidate = 0; candidate < 3; candidate += 1) {
+    if (intakeStepIssues(candidate, selections, {}, false).length > 0) return candidate;
+  }
+  void safetyDisclosureCompleted;
+  return 3;
 }
 
 /**
@@ -715,7 +757,12 @@ function ChoicePills({
 function IssueList({ issues }: { issues: string[] }) {
   if (issues.length === 0) return null;
   return (
-    <div role="alert" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4">
+    <div
+      id="intake-issues"
+      role="alert"
+      tabIndex={-1}
+      className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+    >
       <p className="text-sm font-semibold text-amber-200">A couple of choices are still needed:</p>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-100/90">
         {issues.map((issue) => (
@@ -731,7 +778,7 @@ export function IntakeWizard({
   busy,
   act,
   command,
-  initialStage = 0,
+  initialStage,
 }: {
   view: { confirmedIntake: unknown; draft: unknown; safetyDisclosureCompleted: boolean };
   busy: boolean;
@@ -741,9 +788,13 @@ export function IntakeWizard({
   initialStage?: number;
 }) {
   const seed = { ...record(view.confirmedIntake), ...record(view.draft) };
-  const [stage, setStage] = useState(initialStage);
   const [selections, setSelections] = useState<IntakeSelections>(() =>
     createIntakeSelections(seed)
+  );
+  const [stage, setStage] = useState(
+    () =>
+      initialStage ??
+      firstIncompleteIntakeStage(createIntakeSelections(seed), view.safetyDisclosureCompleted)
   );
   const [safetyAnswers, setSafetyAnswers] = useState<SafetyAnswers>({});
   const [showSafetyDetails, setShowSafetyDetails] = useState(false);
@@ -784,6 +835,9 @@ export function IntakeWizard({
 
   const currentIssues = intakeStepIssues(stage, selections, safetyAnswers, needsSafetyDisclosure);
   const visibleIssues = issueStage === stage ? currentIssues : [];
+  useEffect(() => {
+    if (visibleIssues.length > 0) document.getElementById("intake-issues")?.focus();
+  }, [stage, visibleIssues.length]);
   const continueFromStage = (next: number, keys: string[], saveAllergens = false) => {
     if (currentIssues.length > 0) {
       setIssueStage(stage);
@@ -811,7 +865,7 @@ export function IntakeWizard({
             {STAGES.map((label, index) => (
               <div
                 key={label}
-                className={`h-1.5 rounded-full transition-colors duration-200 ${
+                className={`h-1.5 rounded-full transition-colors duration-200 motion-reduce:transition-none ${
                   index <= stage ? "bg-blue-500" : "bg-zinc-800"
                 }`}
               />
@@ -1030,10 +1084,18 @@ export function IntakeWizard({
 
             <ChoicePills
               label="Dietary style"
-              hint="Select your preferred nutritional pattern. The planner balances macros within this framework."
+              hint="Select the pattern you prefer. This is a preference, not a promise that a plan is available."
               value={selections.dietaryStyle}
               options={DIETARY_OPTIONS}
               onChange={(value) => update({ dietaryStyle: value as DietaryStyleChoice })}
+            />
+
+            <ChoicePills
+              label="Food budget"
+              hint="This choice can affect which meal templates are considered, so it is never filled in for you."
+              value={selections.foodBudgetLevel}
+              options={BUDGET_OPTIONS}
+              onChange={(value) => update({ foodBudgetLevel: value as FoodBudgetChoice })}
             />
 
             <fieldset className="space-y-3">
@@ -1047,8 +1109,8 @@ export function IntakeWizard({
               </div>
 
               <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3.5 text-xs text-blue-200 space-y-1.5">
-                <p className="font-semibold flex items-center gap-1.5 text-blue-100">
-                  <span className="text-sm">⚖️</span> Both tracking styles provide exact ingredient measurements
+                <p className="font-semibold text-blue-100">
+                  Both tracking styles use the same saved plan data
                 </p>
                 <p className="text-blue-200/90 leading-relaxed">
                   Every proposed meal gives precise gram and cup quantities (e.g. <strong>100 g Jasmine Rice</strong>, <strong>150 g Chicken Breast</strong>, <strong>1 cup Rolled Oats</strong>).
@@ -1174,7 +1236,9 @@ export function IntakeWizard({
                 Last step: your starting stats
               </h2>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Height, weight, and age are used to calculate your baseline energy expenditure (BMR &amp; TDEE) under clinical DRI equations, ensuring your calorie and protein targets are tailored directly to you.
+                Height, weight, and age are saved for the reviewed preparation rules. If required
+                inputs or reviewed content are unavailable, preparation stays on hold instead of
+                guessing.
               </p>
             </div>
 
@@ -1320,7 +1384,9 @@ export function IntakeWizard({
                 <div>
                   <h3 className="font-semibold text-zinc-100">Quick safety check</h3>
                   <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-                    Standard exercise readiness screening (PAR-Q). If you have no chest pain, heart or joint conditions, or physician warnings restricting physical training, simply select &ldquo;None of these apply&rdquo;.
+                    These answers tell the server whether preparation can continue or must pause. If
+                    none apply, choose &ldquo;None of these apply&rdquo;; otherwise open the
+                    questions and answer each one.
                   </p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">

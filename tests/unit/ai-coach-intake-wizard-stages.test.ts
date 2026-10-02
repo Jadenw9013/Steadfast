@@ -153,6 +153,14 @@ describe("T-2028 four-step intake wizard rendering", () => {
     expect(allStages).not.toContain("Cooking and storage");
   });
 
+  it("T-2008/S-33: invents no clinical claim — no DRI equation, no protein-ratio number, no named screening instrument", () => {
+    const allStages = STAGE_HEADINGS.map((_, stage) => renderStage(null, stage)).join("\n");
+
+    expect(allStages).not.toContain("clinical DRI equations");
+    expect(allStages).not.toContain("≥2.0g/kg");
+    expect(allStages).not.toContain("PAR-Q");
+  });
+
   it("does not greet an untouched step with validation warnings", () => {
     const html = renderStage(null, 0);
     expect(html).not.toContain('role="alert"');
@@ -213,5 +221,44 @@ describe("T-2028 hydration preserves prior answers underneath a partial draft", 
       weightKg: 82,
       ageYears: 31,
     });
+  });
+});
+
+describe("T-2008/S-33 the wizard resumes at the first incomplete stage by default", () => {
+  function renderDefault(
+    confirmedIntake: unknown,
+    draft: unknown = null,
+    safetyDisclosureCompleted = confirmedIntake !== null
+  ) {
+    return renderToStaticMarkup(
+      createElement(IntakeWizard, {
+        view: { confirmedIntake, draft, safetyDisclosureCompleted },
+        busy: false,
+        act: noopAct,
+        command: noopCommand,
+        post: noopPost,
+        // No `initialStage` — this is the default a real mount uses.
+      })
+    );
+  }
+
+  it("starts a brand-new client at stage 1, not mid-wizard", () => {
+    const html = renderDefault(null);
+    expect(html).toContain(STAGE_HEADINGS[0]);
+    expect(html).toContain("1 / 4");
+  });
+
+  it("resumes a v1 intake missing the session-length answer at stage 2", () => {
+    // v1ConfirmedIntake has no sessionLengthBand, so stage 1 (index) is the
+    // first with an outstanding issue even though stage 0 is fully answered.
+    const html = renderDefault(v1ConfirmedIntake);
+    expect(html).toContain(STAGE_HEADINGS[1]);
+    expect(html).toContain("2 / 4");
+  });
+
+  it("resumes a fully-answered confirmed intake at the final stage, not stage 1", () => {
+    const html = renderDefault(fullV2ConfirmedIntake);
+    expect(html).toContain(STAGE_HEADINGS[3]);
+    expect(html).toContain("4 / 4");
   });
 });
