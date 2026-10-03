@@ -1609,6 +1609,13 @@ No schema change, no migration, no new dependency, no iOS change
 `tests/unit/ai-coach-coaching-chooser.test.ts`,
 `tests/unit/client-provider-routing.test.ts`,
 `tests/integration/client-coaching-chooser.test.ts` (includes the frozen
-nine-key contract freeze for `GET /api/client/coaching-context` and the
-degrade regression — an AI-pause still renders the human-coach `/coaches`
-link), `tests/browser/ai-coach-coaching-chooser-evidence.mjs`.
+nine-key contract freeze for `GET /api/client/coaching-context`, case A — a
+governance-disabled `GENERATION` control row, with the flag on, produces
+`aiPreparationState === "PAUSED"` exactly, and `renderToStaticMarkup` of the
+real `AiCoachingChooser` with the page's own props still contains the
+`/coaches` link — and case A2, the same for an unset flag producing
+`DISABLED_BY_FLAG`), `tests/browser/ai-coach-coaching-chooser-evidence.mjs`.
+(Round-1 review finding 1/2: the first committed version of case A only
+disabled the control row without stubbing `FEATURE_AI_COACH_GENERATION`, so
+it passed via the flag check, never the pause, and this paragraph's earlier
+wording claimed coverage that did not exist. Fixed in round 2.)

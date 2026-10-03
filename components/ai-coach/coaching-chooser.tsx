@@ -78,14 +78,18 @@ export function AiCoachingChooser({ offer, aiPreparationState }: AiCoachingChoos
           </Link>
         </article>
 
-        <article className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <article className="flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="text-xl font-bold text-white">Find Your Coach</h2>
           <p className="mt-3 text-sm text-zinc-400">
             Browse coaches, send a request, and get started on your fitness journey.
           </p>
+          {/* S-34 review round 1, NIT: the AI card's copy (disclosures,
+           * pricing) routinely makes it taller than this one; pin the CTA to
+           * the bottom with layout rather than padding the card with
+           * invented copy. */}
           <Link
             href="/coaches"
-            className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-white/15 px-5 text-center text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
+            className="mt-auto inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-white/15 px-5 text-center text-zinc-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400"
           >
             {offer.humanCoachLabel}
           </Link>

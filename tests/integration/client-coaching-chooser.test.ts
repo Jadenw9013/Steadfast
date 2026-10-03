@@ -1,5 +1,7 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "node:crypto";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { NextRequest } from "next/server";
 
 /**
@@ -9,6 +11,14 @@ import { NextRequest } from "next/server";
  * component identity, exactly as
  * tests/integration/client-plan-page-provider-scope.test.ts:13-18,49-60. All
  * provider state comes from the real `getClientProvider`, never a mock.
+ *
+ * `AiCoachingChooser` itself is **not** mocked (review round 1, finding 1):
+ * it has no DB import (type-only imports only, see its own file comment),
+ * so the real component can run both for `findNode` identity matching
+ * against the page's unrendered element tree *and* for
+ * `renderToStaticMarkup`, which is how case A proves the `/coaches` link
+ * actually survives a governance pause rather than asserting a tautological
+ * prop on a stubbed `null`.
  */
 
 const auth = vi.hoisted(() => ({ user: null as unknown }));
@@ -16,9 +26,6 @@ vi.mock("@/lib/auth/roles", () => ({ getCurrentDbUser: async () => auth.user }))
 vi.mock("@/components/ai-coach/client-surface", () => ({
   AiClientSurface: function AiClientSurface() { return null; },
   ProviderResolution: function ProviderResolution() { return null; },
-}));
-vi.mock("@/components/ai-coach/coaching-chooser", () => ({
-  AiCoachingChooser: function AiCoachingChooser() { return null; },
 }));
 
 import { db } from "@/lib/db";
@@ -28,6 +35,7 @@ import { activateTestLiveRelease, deactivateTestLiveRelease } from "../helpers/a
 import { AiClientSurface } from "@/components/ai-coach/client-surface";
 import { AiCoachingChooser } from "@/components/ai-coach/coaching-chooser";
 import ClientDashboard from "@/app/client/page";
+import { CheckInForm } from "@/components/check-in/check-in-form";
 import ClientPlanPage from "@/app/client/plan/page";
 import ClientTrainingPage from "@/app/client/training/page";
 import ClientMealPlanPage from "@/app/client/meal-plan/page";
@@ -67,6 +75,19 @@ function findAllByHref(node: any, href: string, acc: any[] = []): any[] {
   if (node.props?.href === href) acc.push(node);
   findAllByHref(node.props?.children, href, acc);
   return acc;
+}
+
+/** Positive text-content check against the unrendered element tree (string
+ * children are present directly, before any renderer runs) — review round 1
+ * finding 4: a page that fell through to the wrong branch, or returned an
+ * empty fragment, must not pass a test that only checks what is *absent*. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findText(node: any, text: string): boolean {
+  if (node == null) return false;
+  if (typeof node === "string") return node.includes(text);
+  if (Array.isArray(node)) return node.some((child) => findText(child, text));
+  if (typeof node === "object") return findText(node.props?.children, text);
+  return false;
 }
 
 suite("S-34 — /client coaching chooser (degrade rule, population regressions, contract freeze)", () => {
@@ -123,9 +144,16 @@ suite("S-34 — /client coaching chooser (degrade rule, population regressions, 
       await deactivateTestLiveRelease(actor.id);
     });
 
-    it("A — the degrade regression the ticket requires: an AI pause still shows the human-coach path", async () => {
+    it("A — the degrade regression the ticket requires: a governance pause produces PAUSED exactly, and the human-coach /coaches link still renders", async () => {
       const client = await offerStateClient();
       auth.user = { ...client, isClient: true };
+
+      // The flag must be on so the pause — not the flag — is what the
+      // chooser reports (review round 1, finding 1: the suite-level
+      // beforeEach only stubs FEATURE_AI_COACH_ENROLLMENT, so without this
+      // the test passed via DISABLED_BY_FLAG before the GENERATION row was
+      // ever read, and deleting the `update` below changed nothing).
+      vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true");
 
       // activateTestLiveRelease enables all five operational-control
       // scopes; explicitly pause GENERATION only, as governance would.
@@ -138,13 +166,37 @@ suite("S-34 — /client coaching chooser (degrade rule, population regressions, 
       const chooser = findNode(tree, AiCoachingChooser);
       expect(chooser).not.toBeNull();
       expect(chooser.props.offer).not.toBeNull();
-      expect(chooser.props.aiPreparationState).not.toBe("ENABLED");
+      expect(chooser.props.aiPreparationState).toBe("PAUSED");
 
-      // The human-coach path survives an AI pause: the frozen component
-      // contract always carries a /coaches destination in its offer.
-      expect(chooser.props.offer.humanCoachLabel).toBeTruthy();
+      // The human-coach path survives the pause: render the *real*
+      // component with the exact props the page produced and look for the
+      // actual `/coaches` link in the markup, not a truthy field on the
+      // offer DTO (which says nothing about what the component does with
+      // it).
+      const html = renderToStaticMarkup(createElement(AiCoachingChooser, chooser.props));
+      expect(html).toContain('href="/coaches"');
+
       const provider = await getClientProvider(client.id);
       expect(provider.aiDiscovery).not.toBeNull();
+    });
+
+    it("A2 — flag unset: aiPreparationState is DISABLED_BY_FLAG exactly, and the human-coach /coaches link still renders", async () => {
+      const client = await offerStateClient();
+      auth.user = { ...client, isClient: true };
+
+      // Explicit, not relied-on-by-omission: the suite-level beforeEach
+      // stubs only FEATURE_AI_COACH_ENROLLMENT, so this forces the
+      // GENERATION flag unset regardless of what the environment the test
+      // runner inherited happens to have.
+      vi.stubEnv("FEATURE_AI_COACH_GENERATION", undefined);
+
+      const tree = await ClientDashboard();
+      const chooser = findNode(tree, AiCoachingChooser);
+      expect(chooser).not.toBeNull();
+      expect(chooser.props.aiPreparationState).toBe("DISABLED_BY_FLAG");
+
+      const html = renderToStaticMarkup(createElement(AiCoachingChooser, chooser.props));
+      expect(html).toContain('href="/coaches"');
     });
 
     it("B — control row absent, flag on: aiPreparationState is ENABLED", async () => {
@@ -159,12 +211,15 @@ suite("S-34 — /client coaching chooser (degrade rule, population regressions, 
       expect(chooser.props.aiPreparationState).toBe("ENABLED");
     });
 
-    it("E — the §2 consequence: each tab renders its human/NONE branch, never AiClientSurface, and check-in does not throw for a client with no coach and no template", async () => {
+    it("E — the §2 consequence: each tab renders its own NONE branch (a positive node, not just an absent one), never AiClientSurface", async () => {
       const client = await offerStateClient();
       auth.user = { ...client, isClient: true };
 
+      // /client/plan's NONE branch is plain text with no CTA link, so its
+      // positive assertion is a text match rather than an href.
       const planTree = await ClientPlanPage();
       expect(findNode(planTree, AiClientSurface)).toBeNull();
+      expect(findText(planTree, "No current plan")).toBe(true);
 
       const trainingTree = await ClientTrainingPage();
       expect(findNode(trainingTree, AiClientSurface)).toBeNull();
@@ -174,9 +229,15 @@ suite("S-34 — /client coaching chooser (degrade rule, population regressions, 
       expect(findNode(mealPlanTree, AiClientSurface)).toBeNull();
       expect(findAllByHref(mealPlanTree, "/coaches").length).toBeGreaterThan(0);
 
-      await expect(ClientCheckInPage()).resolves.toBeTruthy();
+      // S-34 review finding 3: check-in now has its own NONE branch
+      // (mirroring training/meal-plan), so an offer-state (zero-CoachClient)
+      // client sees "Check-In requires a coach" + a /coaches CTA instead of
+      // a form whose every submission `lib/check-ins/submit.ts` would
+      // reject. CheckInForm must NOT be the node that renders here.
       const checkInTree = await ClientCheckInPage();
       expect(findNode(checkInTree, AiClientSurface)).toBeNull();
+      expect(findNode(checkInTree, CheckInForm)).toBeNull();
+      expect(findAllByHref(checkInTree, "/coaches").length).toBeGreaterThan(0);
     });
 
     it("G — contract freeze: GET /api/client/coaching-context returns exactly the nine frozen keys", async () => {
@@ -264,16 +325,27 @@ suite("S-34 — /client coaching chooser (degrade rule, population regressions, 
     expect(provider.aiPreviewAvailable).toBe(false);
   });
 
-  it("H — getGenerationDeliveryState reads DISABLED_BY_FLAG with the flag unset (no database access) and PAUSED in production with no GENERATION control row", async () => {
+  it("H — getGenerationDeliveryState reads DISABLED_BY_FLAG with the flag unset, provably without any database access, and PAUSED in production with no GENERATION control row", async () => {
+    // review round 1, finding 5: `count() === 0` after `deleteMany` only
+    // proves the rows are gone, not that the function made no query. Spy on
+    // the model the function would have to call through if it reached the
+    // gate at all, and assert it never did.
+    const spy = vi.spyOn(db.aiCoachOperationalControl, "findUnique");
+    try {
+      // `vi.stubEnv(name, undefined)` rather than a raw `delete` — the raw
+      // mutation is not tracked by `vi.unstubAllEnvs()` (`:afterEach` below)
+      // and would leak into whatever runs after this file in the same
+      // worker (review round 1, finding 5).
+      vi.stubEnv("FEATURE_AI_COACH_GENERATION", undefined);
+      expect(await getGenerationDeliveryState()).toBe("DISABLED_BY_FLAG");
+      expect(spy).not.toHaveBeenCalled();
+    } finally {
+      spy.mockRestore();
+    }
+
     await db.aiCoachOperationalControl.deleteMany({ where: { scope: "GENERATION" } });
-
-    delete process.env.FEATURE_AI_COACH_GENERATION;
-    expect(await getGenerationDeliveryState()).toBe("DISABLED_BY_FLAG");
-    expect(await db.aiCoachOperationalControl.count({ where: { scope: "GENERATION" } })).toBe(0);
-
     vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true");
     vi.stubEnv("NODE_ENV", "production");
     expect(await getGenerationDeliveryState()).toBe("PAUSED");
-    expect(await db.aiCoachOperationalControl.count({ where: { scope: "GENERATION" } })).toBe(0);
   });
 });
