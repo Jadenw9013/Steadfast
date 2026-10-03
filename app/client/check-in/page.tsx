@@ -1,4 +1,4 @@
-import { getClientProvider } from "@/lib/queries/client-provider";
+import { getClientProvider, rendersAiWorkspace } from "@/lib/queries/client-provider";
 import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { CheckInForm } from "@/components/check-in/check-in-form";
 import { getCurrentDbUser } from "@/lib/auth/roles";
@@ -18,7 +18,7 @@ export default async function ClientCheckInPage() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
   if (provider.resolutionRequired) return <ProviderResolution />;
-  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={["check-in"]} />;
+  if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={["check-in"]} />;
   const [latest, template] = await Promise.all([
     getLatestCheckIn(user.id),
     getActiveTemplateForClient(user.id),

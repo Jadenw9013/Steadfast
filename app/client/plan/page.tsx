@@ -1,4 +1,4 @@
-import { getClientProvider } from "@/lib/queries/client-provider";
+import { getClientProvider, rendersAiWorkspace } from "@/lib/queries/client-provider";
 import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
@@ -15,7 +15,7 @@ export default async function ClientPlanPage() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
   if (provider.resolutionRequired) return <ProviderResolution />;
-  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={["plan"]} />;
+  if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={["plan"]} />;
   if (provider.origin === "NONE") return <div className="sf-surface-card p-6"><h1 className="text-xl font-semibold">No current plan</h1><p className="mt-2 text-zinc-400">Connect with a coach to receive a new plan.</p></div>;
   const tz = user.timezone || "America/New_York";
   const todayDate = getLocalDate(new Date(), tz);
