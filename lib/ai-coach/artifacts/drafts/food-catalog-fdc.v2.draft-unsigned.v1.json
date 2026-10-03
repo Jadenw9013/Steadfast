@@ -10,6 +10,1630 @@
     ],
     "proposalProvenance": [
       {
+        "parameterId": "fdc-747447",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/747447/nutrients",
+        "sourceLocator": "fdcId 747447; dataType Foundation; publication 12/16/2019"
+      },
+      {
+        "parameterId": "fdc-170382",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170382/nutrients",
+        "sourceLocator": "fdcId 170382; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170381",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170381/nutrients",
+        "sourceLocator": "fdcId 170381; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169392",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169392/nutrients",
+        "sourceLocator": "fdcId 169392; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170494",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170494/nutrients",
+        "sourceLocator": "fdcId 170494; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-1999632",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/1999632/nutrients",
+        "sourceLocator": "fdcId 1999632; dataType Foundation; publication 10/28/2021"
+      },
+      {
+        "parameterId": "fdc-1999633",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/1999633/nutrients",
+        "sourceLocator": "fdcId 1999633; dataType Foundation; publication 10/28/2021"
+      },
+      {
+        "parameterId": "fdc-168462",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168462/nutrients",
+        "sourceLocator": "fdcId 168462; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169400",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169400/nutrients",
+        "sourceLocator": "fdcId 169400; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170500",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170500/nutrients",
+        "sourceLocator": "fdcId 170500; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170393",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170393/nutrients",
+        "sourceLocator": "fdcId 170393; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169871",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169871/nutrients",
+        "sourceLocator": "fdcId 169871; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170491",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170491/nutrients",
+        "sourceLocator": "fdcId 170491; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2258587",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2258587/nutrients",
+        "sourceLocator": "fdcId 2258587; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-168421",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168421/nutrients",
+        "sourceLocator": "fdcId 168421; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169239",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169239/nutrients",
+        "sourceLocator": "fdcId 169239; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169355",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169355/nutrients",
+        "sourceLocator": "fdcId 169355; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169238",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169238/nutrients",
+        "sourceLocator": "fdcId 169238; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2258588",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2258588/nutrients",
+        "sourceLocator": "fdcId 2258588; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-2258591",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2258591/nutrients",
+        "sourceLocator": "fdcId 2258591; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-2258590",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2258590/nutrients",
+        "sourceLocator": "fdcId 2258590; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-2258589",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2258589/nutrients",
+        "sourceLocator": "fdcId 2258589; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-170336",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170336/nutrients",
+        "sourceLocator": "fdcId 170336; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170461",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170461/nutrients",
+        "sourceLocator": "fdcId 170461; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-1999634",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/1999634/nutrients",
+        "sourceLocator": "fdcId 1999634; dataType Foundation; publication 10/28/2021"
+      },
+      {
+        "parameterId": "fdc-170463",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170463/nutrients",
+        "sourceLocator": "fdcId 170463; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170051",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170051/nutrients",
+        "sourceLocator": "fdcId 170051; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2685582",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2685582/nutrients",
+        "sourceLocator": "fdcId 2685582; dataType Foundation; publication 4/18/2024"
+      },
+      {
+        "parameterId": "fdc-168565",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168565/nutrients",
+        "sourceLocator": "fdcId 168565; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169291",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169291/nutrients",
+        "sourceLocator": "fdcId 169291; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168471",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168471/nutrients",
+        "sourceLocator": "fdcId 168471; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2685568",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2685568/nutrients",
+        "sourceLocator": "fdcId 2685568; dataType Foundation; publication 4/18/2024"
+      },
+      {
+        "parameterId": "fdc-168469",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168469/nutrients",
+        "sourceLocator": "fdcId 168469; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2685573",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2685573/nutrients",
+        "sourceLocator": "fdcId 2685573; dataType Foundation; publication 4/18/2024"
+      },
+      {
+        "parameterId": "fdc-170398",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170398/nutrients",
+        "sourceLocator": "fdcId 170398; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169389",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169389/nutrients",
+        "sourceLocator": "fdcId 169389; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169391",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169391/nutrients",
+        "sourceLocator": "fdcId 169391; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169303",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169303/nutrients",
+        "sourceLocator": "fdcId 169303; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169305",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169305/nutrients",
+        "sourceLocator": "fdcId 169305; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172317",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172317/nutrients",
+        "sourceLocator": "fdcId 172317; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174988",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174988/nutrients",
+        "sourceLocator": "fdcId 174988; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175032",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175032/nutrients",
+        "sourceLocator": "fdcId 175032; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170959",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170959/nutrients",
+        "sourceLocator": "fdcId 170959; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168816",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168816/nutrients",
+        "sourceLocator": "fdcId 168816; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168171",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168171/nutrients",
+        "sourceLocator": "fdcId 168171; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173945",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173945/nutrients",
+        "sourceLocator": "fdcId 173945; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173944",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173944/nutrients",
+        "sourceLocator": "fdcId 173944; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-1105073",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/1105073/nutrients",
+        "sourceLocator": "fdcId 1105073; dataType Foundation; publication 4/1/2020"
+      },
+      {
+        "parameterId": "fdc-167629",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167629/nutrients",
+        "sourceLocator": "fdcId 167629; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169394",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169394/nutrients",
+        "sourceLocator": "fdcId 169394; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168819",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168819/nutrients",
+        "sourceLocator": "fdcId 168819; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167577",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167577/nutrients",
+        "sourceLocator": "fdcId 167577; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171354",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171354/nutrients",
+        "sourceLocator": "fdcId 171354; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174854",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174854/nutrients",
+        "sourceLocator": "fdcId 174854; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169103",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169103/nutrients",
+        "sourceLocator": "fdcId 169103; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167762",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167762/nutrients",
+        "sourceLocator": "fdcId 167762; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168758",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168758/nutrients",
+        "sourceLocator": "fdcId 168758; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173045",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173045/nutrients",
+        "sourceLocator": "fdcId 173045; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168810",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168810/nutrients",
+        "sourceLocator": "fdcId 168810; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2346411",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2346411/nutrients",
+        "sourceLocator": "fdcId 2346411; dataType Foundation; publication 10/28/2022"
+      },
+      {
+        "parameterId": "fdc-168158",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168158/nutrients",
+        "sourceLocator": "fdcId 168158; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173951",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173951/nutrients",
+        "sourceLocator": "fdcId 173951; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172766",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172766/nutrients",
+        "sourceLocator": "fdcId 172766; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169393",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169393/nutrients",
+        "sourceLocator": "fdcId 169393; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168575",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168575/nutrients",
+        "sourceLocator": "fdcId 168575; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173040",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173040/nutrients",
+        "sourceLocator": "fdcId 173040; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-321360",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/321360/nutrients",
+        "sourceLocator": "fdcId 321360; dataType Foundation; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171381",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171381/nutrients",
+        "sourceLocator": "fdcId 171381; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2346398",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2346398/nutrients",
+        "sourceLocator": "fdcId 2346398; dataType Foundation; publication 10/28/2022"
+      },
+      {
+        "parameterId": "fdc-169665",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169665/nutrients",
+        "sourceLocator": "fdcId 169665; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-1104812",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/1104812/nutrients",
+        "sourceLocator": "fdcId 1104812; dataType Foundation; publication 10/30/2020"
+      },
+      {
+        "parameterId": "fdc-168898",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168898/nutrients",
+        "sourceLocator": "fdcId 168898; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167967",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167967/nutrients",
+        "sourceLocator": "fdcId 167967; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169679",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169679/nutrients",
+        "sourceLocator": "fdcId 169679; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169680",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169680/nutrients",
+        "sourceLocator": "fdcId 169680; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-790214",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/790214/nutrients",
+        "sourceLocator": "fdcId 790214; dataType Foundation; publication 4/1/2020"
+      },
+      {
+        "parameterId": "fdc-169714",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169714/nutrients",
+        "sourceLocator": "fdcId 169714; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169711",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169711/nutrients",
+        "sourceLocator": "fdcId 169711; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168883",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168883/nutrients",
+        "sourceLocator": "fdcId 168883; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169712",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169712/nutrients",
+        "sourceLocator": "fdcId 169712; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173576",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173576/nutrients",
+        "sourceLocator": "fdcId 173576; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172666",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172666/nutrients",
+        "sourceLocator": "fdcId 172666; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172676",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172676/nutrients",
+        "sourceLocator": "fdcId 172676; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172769",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172769/nutrients",
+        "sourceLocator": "fdcId 172769; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168873",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168873/nutrients",
+        "sourceLocator": "fdcId 168873; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168917",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168917/nutrients",
+        "sourceLocator": "fdcId 168917; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168874",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168874/nutrients",
+        "sourceLocator": "fdcId 168874; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2512372",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2512372/nutrients",
+        "sourceLocator": "fdcId 2512372; dataType Foundation; publication 4/20/2023"
+      },
+      {
+        "parameterId": "fdc-172027",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172027/nutrients",
+        "sourceLocator": "fdcId 172027; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169736",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169736/nutrients",
+        "sourceLocator": "fdcId 169736; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168927",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168927/nutrients",
+        "sourceLocator": "fdcId 168927; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172266",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172266/nutrients",
+        "sourceLocator": "fdcId 172266; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168954",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168954/nutrients",
+        "sourceLocator": "fdcId 168954; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174916",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174916/nutrients",
+        "sourceLocator": "fdcId 174916; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174091",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174091/nutrients",
+        "sourceLocator": "fdcId 174091; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172688",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172688/nutrients",
+        "sourceLocator": "fdcId 172688; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172689",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172689/nutrients",
+        "sourceLocator": "fdcId 172689; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167943",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167943/nutrients",
+        "sourceLocator": "fdcId 167943; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173734",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173734/nutrients",
+        "sourceLocator": "fdcId 173734; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168068",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168068/nutrients",
+        "sourceLocator": "fdcId 168068; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171141",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171141/nutrients",
+        "sourceLocator": "fdcId 171141; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175188",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175188/nutrients",
+        "sourceLocator": "fdcId 175188; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174288",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174288/nutrients",
+        "sourceLocator": "fdcId 174288; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2644282",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2644282/nutrients",
+        "sourceLocator": "fdcId 2644282; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-173756",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173756/nutrients",
+        "sourceLocator": "fdcId 173756; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2644288",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2644288/nutrients",
+        "sourceLocator": "fdcId 2644288; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-173800",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173800/nutrients",
+        "sourceLocator": "fdcId 173800; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2644283",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2644283/nutrients",
+        "sourceLocator": "fdcId 2644283; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-172420",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172420/nutrients",
+        "sourceLocator": "fdcId 172420; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168427",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168427/nutrients",
+        "sourceLocator": "fdcId 168427; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174284",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174284/nutrients",
+        "sourceLocator": "fdcId 174284; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171577",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171577/nutrients",
+        "sourceLocator": "fdcId 171577; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169885",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169885/nutrients",
+        "sourceLocator": "fdcId 169885; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169213",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169213/nutrients",
+        "sourceLocator": "fdcId 169213; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173744",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173744/nutrients",
+        "sourceLocator": "fdcId 173744; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171515",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171515/nutrients",
+        "sourceLocator": "fdcId 171515; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174608",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174608/nutrients",
+        "sourceLocator": "fdcId 174608; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2646170",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646170/nutrients",
+        "sourceLocator": "fdcId 2646170; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-172855",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172855/nutrients",
+        "sourceLocator": "fdcId 172855; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2646171",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646171/nutrients",
+        "sourceLocator": "fdcId 2646171; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-168961",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168961/nutrients",
+        "sourceLocator": "fdcId 168961; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172854",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172854/nutrients",
+        "sourceLocator": "fdcId 172854; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172941",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172941/nutrients",
+        "sourceLocator": "fdcId 172941; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171098",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171098/nutrients",
+        "sourceLocator": "fdcId 171098; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171093",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171093/nutrients",
+        "sourceLocator": "fdcId 171093; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171528",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171528/nutrients",
+        "sourceLocator": "fdcId 171528; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174515",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174515/nutrients",
+        "sourceLocator": "fdcId 174515; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168608",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168608/nutrients",
+        "sourceLocator": "fdcId 168608; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169447",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169447/nutrients",
+        "sourceLocator": "fdcId 169447; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172161",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172161/nutrients",
+        "sourceLocator": "fdcId 172161; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167657",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167657/nutrients",
+        "sourceLocator": "fdcId 167657; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168652",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168652/nutrients",
+        "sourceLocator": "fdcId 168652; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2727573",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2727573/nutrients",
+        "sourceLocator": "fdcId 2727573; dataType Foundation; publication 4/24/2025"
+      },
+      {
+        "parameterId": "fdc-2727574",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2727574/nutrients",
+        "sourceLocator": "fdcId 2727574; dataType Foundation; publication 4/24/2025"
+      },
+      {
+        "parameterId": "fdc-2646175",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646175/nutrients",
+        "sourceLocator": "fdcId 2646175; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-2646172",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646172/nutrients",
+        "sourceLocator": "fdcId 2646172; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-2727572",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2727572/nutrients",
+        "sourceLocator": "fdcId 2727572; dataType Foundation; publication 4/24/2025"
+      },
+      {
+        "parameterId": "fdc-2646168",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646168/nutrients",
+        "sourceLocator": "fdcId 2646168; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-2646169",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646169/nutrients",
+        "sourceLocator": "fdcId 2646169; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-168320",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168320/nutrients",
+        "sourceLocator": "fdcId 168320; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168314",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168314/nutrients",
+        "sourceLocator": "fdcId 168314; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168315",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168315/nutrients",
+        "sourceLocator": "fdcId 168315; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172343",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172343/nutrients",
+        "sourceLocator": "fdcId 172343; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173688",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173688/nutrients",
+        "sourceLocator": "fdcId 173688; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173687",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173687/nutrients",
+        "sourceLocator": "fdcId 173687; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173689",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173689/nutrients",
+        "sourceLocator": "fdcId 173689; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175138",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175138/nutrients",
+        "sourceLocator": "fdcId 175138; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175160",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175160/nutrients",
+        "sourceLocator": "fdcId 175160; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173706",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173706/nutrients",
+        "sourceLocator": "fdcId 173706; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175156",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175156/nutrients",
+        "sourceLocator": "fdcId 175156; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175159",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175159/nutrients",
+        "sourceLocator": "fdcId 175159; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173577",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173577/nutrients",
+        "sourceLocator": "fdcId 173577; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171955",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171955/nutrients",
+        "sourceLocator": "fdcId 171955; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175178",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175178/nutrients",
+        "sourceLocator": "fdcId 175178; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174190",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174190/nutrients",
+        "sourceLocator": "fdcId 174190; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2747654",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2747654/nutrients",
+        "sourceLocator": "fdcId 2747654; dataType Foundation; publication 12/18/2025"
+      },
+      {
+        "parameterId": "fdc-175180",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175180/nutrients",
+        "sourceLocator": "fdcId 175180; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175179",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175179/nutrients",
+        "sourceLocator": "fdcId 175179; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173160",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173160/nutrients",
+        "sourceLocator": "fdcId 173160; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169008",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169008/nutrients",
+        "sourceLocator": "fdcId 169008; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168077",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168077/nutrients",
+        "sourceLocator": "fdcId 168077; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175176",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175176/nutrients",
+        "sourceLocator": "fdcId 175176; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175177",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175177/nutrients",
+        "sourceLocator": "fdcId 175177; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2684442",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2684442/nutrients",
+        "sourceLocator": "fdcId 2684442; dataType Foundation; publication 4/18/2024"
+      },
+      {
+        "parameterId": "fdc-173578",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173578/nutrients",
+        "sourceLocator": "fdcId 173578; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-175139",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/175139/nutrients",
+        "sourceLocator": "fdcId 175139; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-174980",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/174980/nutrients",
+        "sourceLocator": "fdcId 174980; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167686",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167686/nutrients",
+        "sourceLocator": "fdcId 167686; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173459",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173459/nutrients",
+        "sourceLocator": "fdcId 173459; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171942",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171942/nutrients",
+        "sourceLocator": "fdcId 171942; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167587",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167587/nutrients",
+        "sourceLocator": "fdcId 167587; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167722",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167722/nutrients",
+        "sourceLocator": "fdcId 167722; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-168104",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168104/nutrients",
+        "sourceLocator": "fdcId 168104; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2647437",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2647437/nutrients",
+        "sourceLocator": "fdcId 2647437; dataType Foundation; publication 10/26/2023"
+      },
+      {
+        "parameterId": "fdc-168133",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168133/nutrients",
+        "sourceLocator": "fdcId 168133; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167569",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167569/nutrients",
+        "sourceLocator": "fdcId 167569; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170914",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170914/nutrients",
+        "sourceLocator": "fdcId 170914; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170903",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170903/nutrients",
+        "sourceLocator": "fdcId 170903; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-330137",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/330137/nutrients",
+        "sourceLocator": "fdcId 330137; dataType Foundation; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171300",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171300/nutrients",
+        "sourceLocator": "fdcId 171300; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-330415",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/330415/nutrients",
+        "sourceLocator": "fdcId 330415; dataType Foundation; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-328637",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/328637/nutrients",
+        "sourceLocator": "fdcId 328637; dataType Foundation; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169901",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169901/nutrients",
+        "sourceLocator": "fdcId 169901; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170899",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170899/nutrients",
+        "sourceLocator": "fdcId 170899; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171295",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171295/nutrients",
+        "sourceLocator": "fdcId 171295; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173439",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173439/nutrients",
+        "sourceLocator": "fdcId 173439; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169078",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169078/nutrients",
+        "sourceLocator": "fdcId 169078; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172180",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172180/nutrients",
+        "sourceLocator": "fdcId 172180; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173417",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173417/nutrients",
+        "sourceLocator": "fdcId 173417; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-328841",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/328841/nutrients",
+        "sourceLocator": "fdcId 328841; dataType Foundation; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169011",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169011/nutrients",
+        "sourceLocator": "fdcId 169011; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-748967",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/748967/nutrients",
+        "sourceLocator": "fdcId 748967; dataType Foundation; publication 12/16/2019"
+      },
+      {
+        "parameterId": "fdc-172188",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172188/nutrients",
+        "sourceLocator": "fdcId 172188; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173423",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173423/nutrients",
+        "sourceLocator": "fdcId 173423; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172185",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172185/nutrients",
+        "sourceLocator": "fdcId 172185; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-747997",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/747997/nutrients",
+        "sourceLocator": "fdcId 747997; dataType Foundation; publication 12/16/2019"
+      },
+      {
+        "parameterId": "fdc-323793",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/323793/nutrients",
+        "sourceLocator": "fdcId 323793; dataType Foundation; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172183",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172183/nutrients",
+        "sourceLocator": "fdcId 172183; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172203",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172203/nutrients",
+        "sourceLocator": "fdcId 172203; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2261420",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2261420/nutrients",
+        "sourceLocator": "fdcId 2261420; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-170567",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170567/nutrients",
+        "sourceLocator": "fdcId 170567; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171031",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171031/nutrients",
+        "sourceLocator": "fdcId 171031; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2262074",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2262074/nutrients",
+        "sourceLocator": "fdcId 2262074; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-169060",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169060/nutrients",
+        "sourceLocator": "fdcId 169060; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171030",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171030/nutrients",
+        "sourceLocator": "fdcId 171030; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170187",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170187/nutrients",
+        "sourceLocator": "fdcId 170187; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170593",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170593/nutrients",
+        "sourceLocator": "fdcId 170593; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170186",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170186/nutrients",
+        "sourceLocator": "fdcId 170186; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2346394",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2346394/nutrients",
+        "sourceLocator": "fdcId 2346394; dataType Foundation; publication 10/28/2022"
+      },
+      {
+        "parameterId": "fdc-2515376",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2515376/nutrients",
+        "sourceLocator": "fdcId 2515376; dataType Foundation; publication 4/20/2023"
+      },
+      {
+        "parameterId": "fdc-169585",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169585/nutrients",
+        "sourceLocator": "fdcId 169585; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-2262072",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2262072/nutrients",
+        "sourceLocator": "fdcId 2262072; dataType Foundation; publication 4/28/2022"
+      },
+      {
+        "parameterId": "fdc-2515374",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/2515374/nutrients",
+        "sourceLocator": "fdcId 2515374; dataType Foundation; publication 4/20/2023"
+      },
+      {
+        "parameterId": "fdc-168597",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/168597/nutrients",
+        "sourceLocator": "fdcId 168597; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170163",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170163/nutrients",
+        "sourceLocator": "fdcId 170163; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169421",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169421/nutrients",
+        "sourceLocator": "fdcId 169421; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-170184",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/170184/nutrients",
+        "sourceLocator": "fdcId 170184; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172960",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172960/nutrients",
+        "sourceLocator": "fdcId 172960; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169426",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169426/nutrients",
+        "sourceLocator": "fdcId 169426; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173925",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173925/nutrients",
+        "sourceLocator": "fdcId 173925; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-167737",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/167737/nutrients",
+        "sourceLocator": "fdcId 167737; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171413",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171413/nutrients",
+        "sourceLocator": "fdcId 171413; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171443",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171443/nutrients",
+        "sourceLocator": "fdcId 171443; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-169867",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/169867/nutrients",
+        "sourceLocator": "fdcId 169867; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171042",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171042/nutrients",
+        "sourceLocator": "fdcId 171042; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172360",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172360/nutrients",
+        "sourceLocator": "fdcId 172360; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171412",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171412/nutrients",
+        "sourceLocator": "fdcId 171412; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173595",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173595/nutrients",
+        "sourceLocator": "fdcId 173595; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172367",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172367/nutrients",
+        "sourceLocator": "fdcId 172367; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-172365",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/172365/nutrients",
+        "sourceLocator": "fdcId 172365; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-173573",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/173573/nutrients",
+        "sourceLocator": "fdcId 173573; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
+        "parameterId": "fdc-171706",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/fdc-app.html#/food-details/171706/nutrients",
+        "sourceLocator": "fdcId 171706; dataType SR Legacy; publication 4/1/2019"
+      },
+      {
         "parameterId": "fdc-167828",
         "sourceClaimId": "GAP-N12",
         "sourceId": "USDA-FDC",

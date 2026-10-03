@@ -1622,7 +1622,7 @@ wording claimed coverage that did not exist. Fixed in round 2.)
 
 ### S-31 — food catalog version 2, unsigned draft (2026-10-02)
 
-24 `foodState: "COOKED"` records (5 pork, 4 beef, 8 turkey, 5 chicken, 2 tuna — not "chicken and
+24 `foodState: "COOKED"` records (5 pork, 4 beef, 7 chicken, 6 turkey, 2 tuna — not "chicken and
 turkey" as the ticket's own framing said; corrected in the worksheet) sat uncommitted in
 `wt/T-2042-cooked-foods` for five days from a 2026-09-27 ingest rerun, alongside the 232 items S-17
 signed as v1. The lead committed the worktree output as `aff0f71` on `team/T-2042-cooked-foods`
@@ -1679,3 +1679,21 @@ dependency, no iOS change. Gates: `pnpm run type-check` clean; `pnpm exec vitest
 1876 passed / 0 failed / 119 files (baseline 1870/118, +6 new tests, zero regressions, including a
 full re-run of the `ai-coach-fdc-*` suite after reverting the two auxiliary-file edits); `eslint` clean
 on both changed files; harness before/after byte-identical (see above).
+
+**Round 2 (review findings):** round 1's `proposalProvenance` held only the 24 new rows for 256 items
+— 232 items had none, violating the same invariant v1 is held to
+(`assertProvenanceCoversEveryItem`, pulled out of `ai-coach-fdc-allowlist.test.ts` into
+`tests/helpers/food-catalog-provenance.ts` and pointed at v2 directly, replacing a weaker sibling
+assertion). Fixed: `proposalProvenance` is now v1's 232 rows byte-identical plus the 24 new rows, 256
+for 256, rebuilt by the same one-shot script. `content` digest is unchanged
+(`ff2f6a5…137510`); `reviewMetadata` digest moved to `1d3d1e2…de052` and is re-pinned. The worksheet's
+signing section was rewritten to the exact final object derived from `schema.ts`'s two `.strict()`
+discriminated-union shapes (5 fields deleted, several added/changed — not "three fields changed" as
+round 1 said), `signoffScope[3]` now names both ingest runs (plural), and the species count was
+corrected to 5 pork / 4 beef / 7 chicken / 6 turkey / 2 tuna in the worksheet and both docs (was
+miscounted "8 turkey, 5 chicken" in round 1). The ingest CLI (`scripts/ai-coach-ingest-fdc.ts`) now
+refuses to write `--out` over a file whose `reviewMetadata.decision` is `APPROVED` unless `--force` is
+passed (`isSignedFoodCatalogFile`, `lib/ai-coach/catalog/fdc/signed-file-guard.ts`, one test in
+`tests/unit/ai-coach-ingest-fdc-write-guard.test.ts`); the README's re-ingest examples now point `--out`
+at a v2 path. Gates after round 2: `pnpm run type-check` clean; `pnpm exec vitest run tests/unit`
+**1878 passed / 0 failed / 120 files**; `eslint` clean on every changed file; `doc_check.py` still 100.

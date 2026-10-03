@@ -22,6 +22,7 @@ import {
 } from "@/lib/ai-coach/catalog/fdc/allowlist-schema";
 import { mapFdcRecordToCatalogItem } from "@/lib/ai-coach/catalog/fdc/mapping";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { assertProvenanceCoversEveryItem } from "../helpers/food-catalog-provenance";
 
 const FROZEN_UNSIGNED_NOTICE =
   "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE.";
@@ -130,20 +131,6 @@ function buildSyntheticDraftFile(fixtures: string[]): DraftFoodCatalogFile {
       items,
     },
   });
-}
-
-/**
- * The invariant the spec asks for over the draft artifact: exactly one
- * provenance entry per item, every `parameterId` an item ID, so an item
- * silently dropped between mapping and envelope assembly is caught. Written as
- * a checker so it can be pointed at the real artifact unchanged once a run
- * produces one.
- */
-function assertProvenanceCoversEveryItem(file: DraftFoodCatalogFile): void {
-  const itemIds = file.content.items.map((item) => item.id);
-  const provenanceIds = (file.reviewMetadata.proposalProvenance ?? []).map((p) => p.parameterId);
-  expect(provenanceIds).toHaveLength(itemIds.length);
-  expect([...provenanceIds].sort()).toEqual([...itemIds].sort());
 }
 
 describe("T-2035 — FDC allowlist, coverage plan and DRAFT_UNSIGNED food catalog file", () => {

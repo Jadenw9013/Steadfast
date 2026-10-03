@@ -6,6 +6,7 @@ import {
 } from "@/lib/ai-coach/artifacts/drafts/loader";
 import { foodCatalogContentSchema, isDraftUnsignedReviewMetadata } from "@/lib/ai-coach/artifacts/schema";
 import { sourcedFoodCatalogSource } from "@/lib/ai-coach/catalog/food-source";
+import { assertProvenanceCoversEveryItem } from "../helpers/food-catalog-provenance";
 
 /**
  * S-31 — food catalog **v2**, DRAFT_UNSIGNED.
@@ -97,12 +98,30 @@ describe("S-31 — food catalog v2 draft (unsigned)", () => {
     }
   });
 
-  it("proposalProvenance covers exactly the 24 new items, naming the source commit and ingest date", () => {
+  it("proposalProvenance covers all 256 items, exactly, via the same checker v1 is held to", () => {
+    // S-31 review round 1, finding 1 (BLOCKER): a sibling, weaker assertion
+    // here ("covers exactly the 24") passed on a file where 232 of 256 items
+    // had no provenance row at all. Reusing the real checker, rather than a
+    // second hand-written one, is what makes that regression structurally
+    // impossible to reintroduce.
     const v2 = loadDraftUnsignedFoodCatalogV2();
+    assertProvenanceCoversEveryItem(v2);
+  });
+
+  it("the 232 carried provenance rows are byte-identical to v1's own rows; the 24 new rows name the source commit and ingest date", () => {
+    const v1 = loadDraftUnsignedFoodCatalog();
+    const v2 = loadDraftUnsignedFoodCatalogV2();
+    if (v1.reviewMetadata.decision !== "APPROVED") throw new Error("v1 is not signed");
     if (v2.reviewMetadata.decision !== "DRAFT_UNSIGNED") throw new Error("v2 is not a draft");
-    const provenance = v2.reviewMetadata.proposalProvenance;
-    expect(provenance.map((p) => p.parameterId).sort()).toEqual([...NEW_ITEM_IDS].sort());
-    for (const row of provenance) {
+
+    const v1Provenance = v1.reviewMetadata.proposalProvenance ?? [];
+    const v2Provenance = v2.reviewMetadata.proposalProvenance;
+    expect(v2Provenance).toHaveLength(256);
+    expect(v2Provenance.slice(0, 232)).toEqual(v1Provenance);
+
+    const newRows = v2Provenance.slice(232);
+    expect(newRows.map((p) => p.parameterId)).toEqual([...NEW_ITEM_IDS]);
+    for (const row of newRows) {
       expect(row.sourceId).toBe("USDA-FDC");
       expect(row.sourceUrl.startsWith("https://fdc.nal.usda.gov/")).toBe(true);
       expect(row.sourceLocator).toContain("aff0f71");
@@ -116,8 +135,11 @@ describe("S-31 — food catalog v2 draft (unsigned)", () => {
       content: contentHash(v2.content),
       reviewMetadata: contentHash(v2.reviewMetadata),
     }).toEqual({
+      // Content is unchanged from round 1 — fixing provenance never touches
+      // `content`, only `reviewMetadata`. reviewMetadata moved because
+      // `proposalProvenance` grew from 24 rows to 256.
       content: "ff2f6a59605b2a4256323eca415bc6fb8d45da7370f56ae689032bb63e137510",
-      reviewMetadata: "e458ff96f381158e64e106b146a2fbaeac563e36372bf148d83af2de9c49bc5d",
+      reviewMetadata: "1d3d1e2a40a90c6171123299701e8e3e45247c53262bb9fda76039f6730de052",
     });
   });
 

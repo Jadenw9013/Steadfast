@@ -13,6 +13,7 @@ import {
 } from "../lib/ai-coach/catalog/fdc/mapping";
 import { readFdcFoodCategory } from "../lib/ai-coach/catalog/fdc/normalize";
 import { proposeCuration, TRIAGE_FLAGS } from "../lib/ai-coach/catalog/fdc/curation";
+import { isSignedFoodCatalogFile } from "../lib/ai-coach/catalog/fdc/signed-file-guard";
 import {
   foodCatalogContentSchema,
   type SourcedFoodCatalogItem,
@@ -120,7 +121,10 @@ async function main(): Promise<void> {
       "Usage:\n" +
         "  ai-coach-ingest-fdc --plan <path> --out <path>\n" +
         "  ai-coach-ingest-fdc --allowlist <path> --out <path> [--plan <path>]\n" +
-        "                      [--source-exclusions <path>] [--dry-run]\n"
+        "                      [--source-exclusions <path>] [--dry-run] [--force]\n" +
+        "\n" +
+        "--out must never point at a signed catalog file (reviewMetadata.decision\n" +
+        "APPROVED) — write a new version file instead. --force overrides the refusal.\n"
     );
     process.exit(2);
   }
@@ -143,6 +147,7 @@ async function main(): Promise<void> {
   const outPath = getArg("--out");
   const exclusionsPath = getArg("--source-exclusions") ?? DEFAULT_SOURCE_EXCLUSIONS_PATH;
   const dryRun = args.includes("--dry-run");
+  const force = args.includes("--force");
 
   if (!outPath || (!planPath && !allowlistPath)) {
     safeError("Invalid arguments. Must supply --out and either --plan or --allowlist.");
@@ -644,6 +649,27 @@ async function main(): Promise<void> {
     }
 
     if (!dryRun) {
+      // S-31 review round 1, finding 5: this used to be a bare writeFileSync, and
+      // the README documented pointing --out at the *signed* v1 file, so a
+      // re-ingest run would silently downgrade a signed artifact's
+      // `reviewMetadata.decision` from APPROVED to DRAFT_UNSIGNED in place. Refuse
+      // unless the caller explicitly accepts that with --force.
+      if (fs.existsSync(outPath) && !force) {
+        let alreadySigned = false;
+        try {
+          alreadySigned = isSignedFoodCatalogFile(JSON.parse(fs.readFileSync(outPath, "utf8")));
+        } catch {
+          alreadySigned = false;
+        }
+        if (alreadySigned) {
+          safeError(
+            `Refusing to write ${outPath}: its reviewMetadata.decision is APPROVED (signed). ` +
+              "Re-ingesting would overwrite a signed artifact in place and silently downgrade it to " +
+              "DRAFT_UNSIGNED. Point --out at a new version file instead, or pass --force to override."
+          );
+          process.exit(1);
+        }
+      }
       fs.writeFileSync(outPath, JSON.stringify(draftFile, null, 2), "utf8");
       safeLog(`Wrote draft food catalog to ${outPath}`);
     } else {
