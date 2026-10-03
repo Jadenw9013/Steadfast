@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getClientProvider } from "@/lib/queries/client-provider";
+import { getClientProvider, rendersAiWorkspace } from "@/lib/queries/client-provider";
 import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
@@ -14,7 +14,7 @@ export default async function ClientMealPlanPage() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
   if (provider.resolutionRequired) return <ProviderResolution />;
-  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={["plan"]} />;
+  if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={["plan"]} />;
 
   if (provider.origin === "NONE") {
     return (

@@ -3,7 +3,7 @@ import { Prisma, type AiCoachOperationalScope } from "@/app/generated/prisma/cli
 import { db } from "@/lib/db";
 import { AiCoachError } from "./access";
 import type { ActiveAiCoachLiveRelease } from "./live-launch/repository";
-import { isAiCoachPublicationEnabled } from "@/lib/flags/ai-coach";
+import { isAiCoachGenerationEnabled, isAiCoachPublicationEnabled } from "@/lib/flags/ai-coach";
 import { reportServerError } from "@/lib/observability/report";
 import { CRON_FAILED } from "@/lib/observability/events";
 
@@ -56,7 +56,12 @@ export async function assertAiCoachOperationEnabled(scope: AiCoachOperationalSco
   }
 }
 
-export type AcceptanceDeliveryState = "ENABLED" | "DISABLED_BY_FLAG" | "PAUSED" | "ERRORED";
+/** S-34: named once so `getAcceptanceDeliveryState` and
+ * `getGenerationDeliveryState` share one type instead of each declaring an
+ * identical string union. `AcceptanceDeliveryState` stays as an alias — its
+ * 10 existing references are untouched. */
+export type AiCoachDeliveryState = "ENABLED" | "DISABLED_BY_FLAG" | "PAUSED" | "ERRORED";
+export type AcceptanceDeliveryState = AiCoachDeliveryState;
 
 /**
  * Single source of truth for "is the T-502 acceptance-notification drain
@@ -89,6 +94,32 @@ export async function getAcceptanceDeliveryState(): Promise<AcceptanceDeliverySt
       allow: CRON_FAILED.allow,
     });
     console.error("[ai-coach] acceptance-notification gate faulted", error);
+    return "ERRORED";
+  }
+}
+
+/**
+ * S-34: single source of truth for "can AI Coach prepare a plan right now",
+ * the GENERATION-scope sibling of `getAcceptanceDeliveryState` above, same
+ * shape, same order, same reporting. Read by `/client`'s coaching chooser
+ * (row 5 of the state table) so it can show one neutral notice instead of
+ * letting the client hit a silent 503 later at `requestAiRun`
+ * (`lib/ai-coach/run-command.ts`). The flag check runs first and returns
+ * with zero DB access when it is off, mirroring `:86` above, so a chooser
+ * render for the common flag-off case costs nothing extra.
+ */
+export async function getGenerationDeliveryState(): Promise<AiCoachDeliveryState> {
+  if (!isAiCoachGenerationEnabled()) return "DISABLED_BY_FLAG";
+  try {
+    await assertAiCoachOperationEnabled("GENERATION");
+    return "ENABLED";
+  } catch (error) {
+    if (error instanceof AiCoachError) return "PAUSED";
+    reportServerError(CRON_FAILED.evt, error, {
+      context: { job: "ai-coach-generation-gate", phase: "generation-delivery-state" },
+      allow: CRON_FAILED.allow,
+    });
+    console.error("[ai-coach] generation gate faulted", error);
     return "ERRORED";
   }
 }

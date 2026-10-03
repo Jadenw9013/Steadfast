@@ -1,5 +1,8 @@
 import { db } from "@/lib/db";
-import { getAiCoachClientDiscoveryInTransaction } from "@/lib/ai-coach/discovery";
+import {
+  getAiCoachClientDiscoveryInTransaction,
+  type AiCoachDiscoveryOffer,
+} from "@/lib/ai-coach/discovery";
 /** Resolve the server's current provider. Never guess between relationships or
  * treat historical human plans as current AI instructions. Legacy accounts with
  * no context can use one unambiguous relationship until backfill is complete. */
@@ -59,16 +62,49 @@ export async function getClientProvider(clientId: string) {
  * `deactivateAiCoachLiveRelease` running, `User.isDeactivated`/`isClient`
  * flipping, or a `CoachClient` row inserted without a context update can all
  * flip the offer while those three compared fields stay identical. The
- * actual reason it is safe to leave out: the offer is display-only and is
- * not present in any REST payload today (`rg 'aiDiscovery|aiPreviewAvailable'
- * app/api/` is empty) — none of this function's three callers
- * (`/api/client/home`, `/api/client/meal-plan/current`,
- * `/api/client/training/current`) serialise it, so a same-request flicker in
- * it cannot leak stale data. Revisit this the day `aiDiscovery` enters a REST
- * response — comparing it today would also be actively worse, since an
- * entitlement expiring mid-request would then spuriously 409 an unrelated
- * meal-plan read. */
+ * actual reason it is safe to leave out: the offer is a display-only field
+ * whose mid-request flicker cannot return a stale plan. (S-34: the offer
+ * HAS been on the wire since `/api/client/coaching-context` shipped —
+ * `app/api/client/coaching-context/route.ts` spreads the whole
+ * `getClientProvider` object through `aiHttp` rather than naming fields, so
+ * `rg 'aiDiscovery|aiPreviewAvailable' app/api/` finding nothing there
+ * proves nothing about what's on the wire. The real reason this function
+ * still doesn't compare it: comparing it would spuriously 409 this
+ * function's three callers' unrelated meal-plan and training reads for an
+ * entitlement that merely expired or a release that merely deactivated
+ * mid-request — worse, not safer.) Revisit the day a *decision* (not just a
+ * display) is keyed off the offer inside one of these three callers. */
 export async function isClientProviderCurrent(clientId: string, expected: Awaited<ReturnType<typeof getClientProvider>>) {
   const current = await getClientProvider(clientId);
   return !current.resolutionRequired && current.origin === expected.origin && current.revision === expected.revision && current.activeCoachClientId === expected.activeCoachClientId;
+}
+
+/** S-34: the full shape `getClientProvider` resolves to, named once so the
+ * two routing predicates below and their callers share one type instead of
+ * each re-deriving `Awaited<ReturnType<typeof getClientProvider>>`. */
+export type ClientProviderState = Awaited<ReturnType<typeof getClientProvider>>;
+
+/** The AI workspace replaces the client tabs only for a real provider: an
+ * enrolled client, or the non-production synthetic fixture preview. A live
+ * discovery *offer* is not a provider switch — mirrors iOS
+ * `ClientProviderModel.phase` (steadyfast/Features/App/ClientProviderModel.swift:377-387).
+ * Six guards (`app/client/layout.tsx`, `app/client/page.tsx`,
+ * `app/client/plan/page.tsx`, `app/client/training/page.tsx`,
+ * `app/client/meal-plan/page.tsx`, `app/client/check-in/page.tsx`) call this
+ * one predicate so they cannot drift (standing rule 1). */
+export function rendersAiWorkspace(p: ClientProviderState): boolean {
+  return p.origin === "AI" || (p.aiPreviewAvailable && !p.aiDiscovery);
+}
+
+/** Type guard: whether `/client` should render the coaching chooser instead
+ * of today's dashboard, narrowing `aiDiscovery` to non-null for the caller.
+ * Structurally impossible to be true at the same time as
+ * `rendersAiWorkspace` — origin "AI" excludes both this and the offer
+ * (`discovery.ts`'s `HUMAN_PROVIDER_ACTIVE`/offer logic never fires for
+ * origin AI), and the synthetic-preview arm of `rendersAiWorkspace` requires
+ * `aiDiscovery === null`. */
+export function rendersCoachingChooser(
+  p: ClientProviderState
+): p is ClientProviderState & { aiDiscovery: AiCoachDiscoveryOffer } {
+  return !p.resolutionRequired && p.origin !== "AI" && p.aiDiscovery !== null;
 }

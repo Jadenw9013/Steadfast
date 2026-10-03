@@ -402,6 +402,28 @@ proxy.ts (Clerk middleware — protects all routes except public)
               └── Onboarding gate: redirects to /onboarding if questionnaire incomplete
 ```
 
+**`/client` provider routing (S-34).** `/client` and its four tabs
+(`/client/plan`, `/client/training`, `/client/meal-plan`, `/client/check-in`)
+derive what to render from `getClientProvider()` (`lib/queries/client-provider.ts`)
+via two shared predicates, `rendersAiWorkspace()` and `rendersCoachingChooser()`
+— never a per-page copy of the condition. Evaluation order is the order below;
+the first match wins.
+
+| # | State | Condition | `/client` renders | The four tabs |
+|---|---|---|---|---|
+| 1 | Provider resolution required | `provider.resolutionRequired` | `<ProviderResolution />` | same |
+| 2 | AI active (enrolled) | `provider.origin === "AI"` | AI workspace (`AiClientSurface`) | AI workspace |
+| 3 | Synthetic fixture preview (non-production only) | `rendersAiWorkspace` — `aiPreviewAvailable && !aiDiscovery` | AI workspace | AI workspace |
+| 4 | AI offered, preparation available | `rendersCoachingChooser` and `getGenerationDeliveryState() === "ENABLED"` | `<AiCoachingChooser />` (AI card → `/client/ai-coach/start`, human card → `/coaches`) | each tab's existing NONE branch |
+| 5 | AI offered, preparation paused | `rendersCoachingChooser` and the delivery state is not `"ENABLED"` | `<AiCoachingChooser />` with one neutral `role="status"` notice | each tab's existing NONE branch |
+| 6 | HUMAN assigned | `provider.origin === "HUMAN"` | today's client dashboard | the plan/training/meal-plan/check-in content |
+| 7 | No provider / offer, or ineligible/gates-closed (indistinguishable by design) | `origin === "NONE"`, `aiDiscovery === null`, `aiPreviewAvailable === false` | "Find Your Coach" | each tab's existing NONE branch |
+
+A live discovery *offer* (row 4/5) is never a provider switch — only rows 2
+and 3 replace the client shell. `getGenerationDeliveryState()`
+(`lib/ai-coach/operations.ts`) is read only inside the chooser branch, so a
+client with no offer costs nothing extra.
+
 ### Two Roles, One App
 
 The app serves two distinct user roles from one codebase:
@@ -820,6 +842,7 @@ release gate is off.
 | DELETE | `/api/me/push-token` | Unregister APNs token |
 | GET/PUT | `/api/me/notifications` | Notification preferences |
 | GET | `/api/client/home` | Client home dashboard data. The active plan and `adherence.mealNames` are resolved by `lib/meal-plans/active-plan.ts` |
+| GET | `/api/client/coaching-context` | S-34: returns `getClientProvider()`'s object verbatim — the route is a spread (`NextResponse.json({ data: await getClientProvider(id), requestId })`), not a field-by-field projection, so a future field added to `getClientProvider` ships to iOS the moment it lands here, with no route change. Exactly nine keys today: `origin`, `revision`, `resolutionRequired`, `activeCoachClientId`, `coachId`, `relationshipStartedAt`, `aiPreviewAvailable`, `aiDiscovery`, `aiDiscoveryReasonCode`. iOS (`team/sprint-1`) decodes `aiDiscovery` and renders its own chooser (`AICoachDiscoveryView`) from the same payload. |
 | GET | `/api/client/meal-plan/current` | Active published meal plan, resolved by `lib/meal-plans/active-plan.ts` |
 | GET | `/api/client/training/current` | Active published training program |
 | GET/POST | `/api/client/checkin` | Check-in submission |

@@ -1,5 +1,7 @@
-import { getClientProvider } from "@/lib/queries/client-provider";
+import { getClientProvider, rendersAiWorkspace, rendersCoachingChooser } from "@/lib/queries/client-provider";
 import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
+import { AiCoachingChooser } from "@/components/ai-coach/coaching-chooser";
+import { getGenerationDeliveryState } from "@/lib/ai-coach/operations";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getClientCheckInsLight, getLatestCoachMessage } from "@/lib/queries/check-ins";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
@@ -41,7 +43,14 @@ export default async function ClientDashboard() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
   if (provider.resolutionRequired) return <ProviderResolution />;
-  if (provider.origin === "AI" || provider.aiPreviewAvailable) return <AiClientSurface clientId={user.id} path={[]} />;
+  if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={[]} />;
+  if (rendersCoachingChooser(provider))
+    return (
+      <AiCoachingChooser
+        offer={provider.aiDiscovery}
+        aiPreparationState={await getGenerationDeliveryState()}
+      />
+    );
 
   const coachAssignment = await db.coachClient.findFirst({
     where: { clientId: user.id, id: provider.activeCoachClientId ?? "unassigned" },

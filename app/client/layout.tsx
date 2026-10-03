@@ -1,4 +1,4 @@
-import { getClientProvider } from "@/lib/queries/client-provider";
+import { getClientProvider, rendersAiWorkspace } from "@/lib/queries/client-provider";
 import { redirect } from "next/navigation";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -20,7 +20,7 @@ export default async function ClientLayout({
   }
 
   const provider = await getClientProvider(user.id);
-  const aiCoaching = provider.origin === "AI" || provider.aiPreviewAvailable;
+  const aiCoaching = rendersAiWorkspace(provider);
 
   // Enforce Onboarding Questionnaire completion before allowing dashboard access
   // NOTE: explicit select avoids selecting Int[]/Json columns that can trip up

@@ -1528,11 +1528,12 @@ ticket hand-lifted exactly those four onto `team/sprint-1`:
 in `finalization.ts`/`gate.ts` (contradicts S-29 and does not fix its P0), `capabilities.ts`'s hardcoded
 kill switch, the executor cron cadence change, executor-side finalization and the deleted "Run final
 safety checks" button (would strand `PENDING_FINALIZATION` proposals — no replacement trigger exists on
-sprint-1), the `AiDiscoverySurface`/`/client` chooser rewrite, any `PENDING_G01_WORDING` replacement, the
-T-2025 five-stage walkthrough test deletion, and the entire iOS commit (`a3c025e` adds `prepareInitial`/
-`representation` to every ENROLL command; sprint-1's ENROLL schema is `.strict()` and would 422 it
-outright). `lib/ai-coach/finalization.ts`, `gate.ts`, `managed-executor.ts` and `vercel.json` were not
-touched.
+sprint-1), any `PENDING_G01_WORDING` replacement, the T-2025 five-stage walkthrough test deletion, and the
+entire iOS commit (`a3c025e` adds `prepareInitial`/`representation` to every ENROLL command; sprint-1's
+ENROLL schema is `.strict()` and would 422 it outright). `lib/ai-coach/finalization.ts`, `gate.ts`,
+`managed-executor.ts` and `vercel.json` were not touched. (The `AiDiscoverySurface`/`/client` chooser
+rewrite itself *was* lifted — separately, as its own ticket, shape-only and without `capabilities.ts` — see
+S-34 below.)
 
 No schema change, no migration, no new dependency. Files touched: `components/ai-coach/intake-wizard.tsx`,
 `lib/queries/ai-coach.ts`, `components/ai-coach/experience.tsx`, plus test fixtures in
@@ -1543,3 +1544,78 @@ added to fixtures that previously relied on the behaviour this ticket removed). 
 freshly replayed local DB, same 7 pre-existing failures as the documented baseline (6×
 `ai-coach-weekly-trajectory` `P2002`, 1× `ai-coach-beginner-workflow` timezone — S-30), unit 1856 passed
 (1846 baseline + 10 new), `pnpm run type-check` clean, `eslint` clean on every changed file.
+
+### S-34 — `/client` coaching chooser, web/iOS parity (2026-10-02)
+
+iOS `team/sprint-1` already renders a chooser from a live discovery offer
+(`ClientProviderModel.phase` returns `.aiDiscovery(offer)`,
+`ClientTabView` renders `AICoachDiscoveryView`); web's six client route
+guards instead treated any offer as a provider switch and handed an
+offer-state client the whole AI workspace. This ticket makes web match iOS's
+phase ordering — no wire change, no iOS change.
+
+1. **Two pure predicates carry the whole routing decision**, exported from
+   `lib/queries/client-provider.ts` (additive; `getClientProvider`'s body and
+   return keys are untouched): `rendersAiWorkspace(provider)` —
+   `origin === "AI" || (aiPreviewAvailable && !aiDiscovery)` — and
+   `rendersCoachingChooser(provider)`, a type guard —
+   `!resolutionRequired && origin !== "AI" && aiDiscovery !== null`. All six
+   guards (`app/client/layout.tsx`, `app/client/page.tsx`,
+   `app/client/plan/page.tsx`, `app/client/training/page.tsx`,
+   `app/client/meal-plan/page.tsx`, `app/client/check-in/page.tsx`) now call
+   `rendersAiWorkspace` instead of each inlining
+   `origin === "AI" || aiPreviewAvailable` — `grep -rn aiPreviewAvailable
+   app/ lib/ components/` after this ticket finds only the computation, the
+   predicate and tests. The synthetic-fixture-preview population
+   (`syntheticPreviewAvailable`) keeps today's takeover unchanged; only a
+   client with a **live** offer moves, and only on `/client` — the four tabs
+   fall through to their existing NONE branch, unchanged copy.
+2. **The chooser is `components/ai-coach/coaching-chooser.tsx`** (new),
+   `AiCoachingChooser({ offer, aiPreparationState })` — not `"use client"`,
+   not `async`, type-only imports of `AiCoachDiscoveryOffer`
+   (`lib/ai-coach/discovery.ts`) and `AiCoachDeliveryState`
+   (`lib/ai-coach/operations.ts`) so it stays a leaf a Server Component can
+   render without pulling `lib/db.ts` into any bundle that needs this shape
+   (the `intake-contract.ts` leaf-module lesson). Rendered only from
+   `app/client/page.tsx` when `rendersCoachingChooser(provider)` is true; the
+   `await getGenerationDeliveryState()` call sits inside that branch, so a
+   client with no offer costs nothing extra. All three non-`"ENABLED"`
+   delivery states render byte-identically — one neutral
+   `role="status"` notice ("AI coaching cannot prepare a plan right now.")
+   — because `lib/ai-coach/discovery.ts` already freezes "any gate failure is
+   indistinguishable from unavailable"; the AI CTA is never disabled or
+   removed. No `capabilities.ts` and no `lib/ai-coach/discovery.ts` change —
+   S-32 §2's rejection stands.
+3. **`getGenerationDeliveryState()`** (`lib/ai-coach/operations.ts`,
+   additive) is a structural copy of `getAcceptanceDeliveryState` for the
+   `GENERATION` scope: `isAiCoachGenerationEnabled()` first (zero DB access
+   when the flag is off), then `assertAiCoachOperationEnabled("GENERATION")`.
+   `AcceptanceDeliveryState` becomes an alias of the new
+   `AiCoachDeliveryState` union; its 10 existing references are unaffected.
+4. **Not lifted from the candidate** (`556b980`): the invented frame copy
+   ("Review both options before choosing…", "Work with a coach"), the
+   `offer.releaseId === "synthetic-preview-release"` string match and its
+   paragraph, `/client/ai-coach/intake` as the AI destination (uses
+   `/client/ai-coach/start` instead — the path `/ai-coach` already
+   deep-links and the one in the `/client/ai-coach/[[...path]]` allow-list),
+   and the deletion of `syntheticPreviewAvailable`.
+
+No schema change, no migration, no new dependency, no iOS change
+(`build_order: web-only`). Files: `lib/queries/client-provider.ts`,
+`lib/ai-coach/operations.ts`, `components/ai-coach/coaching-chooser.tsx`
+(new), `app/client/page.tsx`, `app/client/layout.tsx`,
+`app/client/plan/page.tsx`, `app/client/training/page.tsx`,
+`app/client/meal-plan/page.tsx`, `app/client/check-in/page.tsx`. Tests:
+`tests/unit/ai-coach-coaching-chooser.test.ts`,
+`tests/unit/client-provider-routing.test.ts`,
+`tests/integration/client-coaching-chooser.test.ts` (includes the frozen
+nine-key contract freeze for `GET /api/client/coaching-context`, case A — a
+governance-disabled `GENERATION` control row, with the flag on, produces
+`aiPreparationState === "PAUSED"` exactly, and `renderToStaticMarkup` of the
+real `AiCoachingChooser` with the page's own props still contains the
+`/coaches` link — and case A2, the same for an unset flag producing
+`DISABLED_BY_FLAG`), `tests/browser/ai-coach-coaching-chooser-evidence.mjs`.
+(Round-1 review finding 1/2: the first committed version of case A only
+disabled the control row without stubbing `FEATURE_AI_COACH_GENERATION`, so
+it passed via the flag check, never the pause, and this paragraph's earlier
+wording claimed coverage that did not exist. Fixed in round 2.)
