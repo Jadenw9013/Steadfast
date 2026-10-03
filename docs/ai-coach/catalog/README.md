@@ -38,6 +38,26 @@ The catalog size is whatever the coverage plan's `targetCount` values sum to and
 
 `loadDraftUnsignedFoodCatalog()` reads the artifact at call time and throws a named error while it does not exist, so a missing run is a loud failure rather than a silently empty catalog. It also refuses to load at all when `NODE_ENV === "production"`.
 
+### 1.1 Version 2 exists, unsigned (S-31)
+
+`content.version: 2` of the `food-catalog` artifact exists at
+`lib/ai-coach/artifacts/drafts/food-catalog-fdc.v2.draft-unsigned.v1.json`, loaded by
+`loadDraftUnsignedFoodCatalogV2()` (same module as v1's loader). It is **DRAFT_UNSIGNED**, not signed,
+and sits next to v1 without touching it: v1 (232 items, signed by S-17 2026-09-28) stays exactly as
+signed; v2 carries those 232 byte-identical and appends 24 additional `foodState: "COOKED"` records —
+5 pork, 4 beef, 7 chicken, 6 turkey, 2 tuna — adopted from the 2026-09-27 ingest run preserved at
+commit `aff0f71` on `team/T-2042-cooked-foods`. See `board/CATALOG-WORKSHEET-v2.md` for the full table
+(FDC ids, macros, allergens, provenance, digests) and the exact fields Jaden changes to sign it.
+
+Nothing in the product resolves v2 today. `lib/ai-coach/catalog/loader.ts`'s `getFoodItem` never served
+the FDC catalog at any version (it only carries the synthetic fixture catalogs); the artifact-registry
+path (`getReviewedFoodItem`, used by the AI-proposed-food boundary and the T-2036 template gate) resolves
+whichever `(artifactKey, version)` row is registered and `PUBLISHED` in the database, and v2 is not
+registered by this ticket. Composition is unaffected: measured with the validation harness before and
+after building v2, the 4064-profile distribution is byte-identical (1 `COMPOSED_WITH_MEALS`, 496
+`MACROS_ONLY`, 3567 `UNAVAILABLE`, 0 `THREW`), because the real composer path never reaches the FDC
+catalog regardless of version (§6 below, and the worksheet's "Composition" section).
+
 ---
 
 ## 2. RD review and curation workflow
@@ -93,9 +113,16 @@ The file is checked in so the RD can read what the tool dropped and why without 
 ```bash
 FDC_API_KEY=... pnpm ai-coach:fdc:ingest -- \
   --allowlist data/ai-coach/catalog/fdc-allowlist.v1.json \
-  --out lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json \
+  --out lib/ai-coach/artifacts/drafts/food-catalog-fdc.v2.draft-unsigned.v1.json \
   [--source-exclusions data/ai-coach/catalog/fdc-source-exclusions.v1.json]
 ```
+
+**`--out` must never point at `food-catalog-fdc.draft-unsigned.v1.json` once it is signed** (it is, as
+of S-17). That file is `content.version: 1`; a re-ingest after signing writes a *new* version's `--out`
+path (`food-catalog-fdc.v2.draft-unsigned.v1.json` and up — see §1.1), never back into v1's file. The
+CLI refuses this itself (S-31 review round 1, finding 5): if `--out` already exists and its
+`reviewMetadata.decision` is `APPROVED`, the run exits non-zero rather than overwriting it, unless
+`--force` is passed.
 
 It is fail-closed in both directions:
 
@@ -119,8 +146,11 @@ Re-run ingestion after review:
 ```bash
 FDC_API_KEY="$(cat ~/.steadfast-fdc-key)" pnpm ai-coach:fdc:ingest -- \
   --allowlist data/ai-coach/catalog/fdc-allowlist.v1.json \
-  --out lib/ai-coach/artifacts/drafts/food-catalog-fdc.draft-unsigned.v1.json
+  --out lib/ai-coach/artifacts/drafts/food-catalog-fdc.v2.draft-unsigned.v1.json
 ```
+
+(Again: `--out` here is a new version's path, never the signed v1 file — see the refusal described
+above.)
 
 `--ingest` re-verifies the allowlist's `coveragePlanDigest` against the coverage plan before fetching anything, so an allowlist generated against an older plan stops the run instead of ingesting silently. `STRUCK` entries are logged and skipped; they are never fetched and never reach the artifact. Per-entry acceptance lives in the allowlist and nowhere else — the review metadata has no acceptance array, so there is one writer and one truth.
 

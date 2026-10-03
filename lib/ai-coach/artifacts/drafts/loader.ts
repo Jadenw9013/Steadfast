@@ -110,6 +110,42 @@ export function loadDraftUnsignedFoodCatalog(): DraftFoodCatalogFile {
   return draftFoodCatalogFileSchema.parse(JSON.parse(fs.readFileSync(fileUrl, "utf8")));
 }
 
+export const DRAFT_FOOD_CATALOG_V2_FILENAME = "food-catalog-fdc.v2.draft-unsigned.v1.json";
+
+export const FOOD_CATALOG_V2_DRAFT_NOT_GENERATED =
+  "The DRAFT_UNSIGNED food catalog v2 has not been generated. It is content.version 2 of the " +
+  "reviewed USDA FoodData Central catalog (S-31): the signed v1's 232 items carried over " +
+  "byte-identical plus 24 additional COOKED items adopted from the recorded 2026-09-27 ingest " +
+  "run preserved at commit aff0f71 on team/T-2042-cooked-foods, built by a script and never " +
+  "hand-written; see board/CATALOG-WORKSHEET-v2.md.";
+
+/**
+ * Loads and strictly parses the DRAFT_UNSIGNED food catalog **v2** file (S-31).
+ *
+ * This is a second, additive version of the `food-catalog` artifact key,
+ * sitting next to {@link loadDraftUnsignedFoodCatalog} (v1, signed) without
+ * touching it — v1's bytes are never read or modified by this function. The
+ * artifact model is already versioned per key (`AiCoachArtifactVersion` is
+ * keyed by `(artifactKey, version)`, selecting the latest `PUBLISHED` row by
+ * `version desc`); this is the file-based mirror of that for the not-yet-signed
+ * v2 content, the same way {@link loadDraftUnsignedFoodCatalog} is the mirror
+ * for v1 before S-17 signed it.
+ *
+ * Throws in production environments — draft artifacts must never be loaded in
+ * production. Reached only by `scripts/` and `tests/`, never by `app/` or
+ * runtime `lib/` code, same as {@link loadDraftUnsignedFoodCatalog}.
+ */
+export function loadDraftUnsignedFoodCatalogV2(): DraftFoodCatalogFile {
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("Draft unsigned artifacts cannot be loaded in production environments.");
+  }
+  const fileUrl = new URL(`./${DRAFT_FOOD_CATALOG_V2_FILENAME}`, import.meta.url);
+  if (!fs.existsSync(fileUrl)) {
+    throw new Error(FOOD_CATALOG_V2_DRAFT_NOT_GENERATED);
+  }
+  return draftFoodCatalogFileSchema.parse(JSON.parse(fs.readFileSync(fileUrl, "utf8")));
+}
+
 export const draftMealTemplateFileSchema = z
   .object({
     fileSchemaVersion: z.literal(1),

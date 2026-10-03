@@ -1619,3 +1619,81 @@ real `AiCoachingChooser` with the page's own props still contains the
 disabled the control row without stubbing `FEATURE_AI_COACH_GENERATION`, so
 it passed via the flag check, never the pause, and this paragraph's earlier
 wording claimed coverage that did not exist. Fixed in round 2.)
+
+### S-31 — food catalog version 2, unsigned draft (2026-10-02)
+
+24 `foodState: "COOKED"` records (5 pork, 4 beef, 7 chicken, 6 turkey, 2 tuna — not "chicken and
+turkey" as the ticket's own framing said; corrected in the worksheet) sat uncommitted in
+`wt/T-2042-cooked-foods` for five days from a 2026-09-27 ingest rerun, alongside the 232 items S-17
+signed as v1. The lead committed the worktree output as `aff0f71` on `team/T-2042-cooked-foods`
+without merging it (a signed artifact's content cannot change under its signature), and Jaden decided
+to adopt. This ticket builds `content.version: 2` of the `food-catalog` artifact as a new
+**DRAFT_UNSIGNED** file, `lib/ai-coach/artifacts/drafts/food-catalog-fdc.v2.draft-unsigned.v1.json`,
+loaded by the new `loadDraftUnsignedFoodCatalogV2()` (`artifacts/drafts/loader.ts`) — v1's file, loader
+and signed `reviewMetadata` are untouched.
+
+Built by a one-shot script (not committed, the S-25 pattern), never hand-typed: load v1 verbatim, load
+`aff0f71`'s copy of the catalog via `git show`, assert the 24 new ids are absent from v1 and present in
+source, append them after v1's own 232 items (not the source commit's restamped copies of them — see
+below), write `proposalProvenance` rows naming the source commit, the ingest date and each FDC id in
+the same five-field shape v1's rows use. `tests/unit/ai-coach-food-catalog-v2-draft.test.ts` (6 tests)
+pins the two digests (computed via `contentHash`, pasted from stdout), asserts the 232 carried items
+are `toEqual` v1's own items, and proves the read-path split: `sourcedFoodCatalogSource` resolves a
+sample id at `food-catalog:v2` and reports `UNKNOWN_ID` for the same id at `food-catalog:v1`.
+
+**Finding: `aff0f71`'s own 232 carried items are not byte-identical to v1.** The 9/27 rerun restamped
+`source.reviewedAt`, `sourceRecord.retrievedAt` and every `allergenFactsV2.categories[].verifiedAt` on
+all 256 items, including the 232 that didn't otherwise change. v2 therefore takes the 232 from v1
+itself, not from the source commit, to honor "byte-identical carryover" literally.
+
+**Composition is unaffected, measured not assumed:** the validation harness run before and after
+building v2 produced byte-identical output across the 4064-profile grid (1 `COMPOSED_WITH_MEALS`, 496
+`MACROS_ONLY`, 3567 `UNAVAILABLE`, 0 `THREW`) — the real composer path (`composeMealsToPrescription`
+called with no `options`, `representation.ts:112` / `initial-plan.ts:652`) never reaches the FDC
+catalog at any version; it is hard-wired to three fixture ids against the synthetic fixture catalog.
+The template-based path that could read the FDC catalog (`meal-composer.ts`'s
+`composeWeekFromTemplates`) is reached by no live caller, and the T-2036 meal-template draft (29
+distinct referenced FDC ids, independently re-scanned) names none of the 24 — T-2036 is not blocked on
+this ticket.
+
+**Judgment call, not a stop:** the artifact *database* model (`AiCoachArtifactVersion`, keyed by
+`(artifactKey, version)` with `state`, `orderBy version desc`) already supports multiple versions per
+key; only the file loader hard-coded one filename per module, which is additive to fix (a sibling
+constant and function), not a schema redesign — so this ticket did not stop on the "exactly one version
+per key" question the spec raised.
+
+**Not adopted into the working tree:** the allowlist/coverage-plan deltas in `aff0f71` (24 more
+allowlist entries, one new coverage-plan category `COOKED_PROTEINS`). Applying them breaks an existing
+pinned unit test asserting the plan has exactly ten category ids
+(`ai-coach-fdc-curation.test.ts`, "every derived categoryId is one of the coverage plan's ten ids").
+Neither file is read by any runtime path (grep-confirmed: only ingest tooling and tests), and the
+ticket's stated deliverable is the catalog version plus the worksheet, so this was left as a named,
+unresolved delta rather than silently widening the ticket by editing an unrelated pinned test.
+`fdc-source-exclusions.v1.json` carries no substantive delta at all (same 13 excluded ids, same
+reasons; only timestamps moved), so nothing there was adopted either.
+
+Worksheet: `board/CATALOG-WORKSHEET-v2.md` (the 24 records' macros/allergens/provenance, both digests,
+the exact `reviewMetadata` fields Jaden changes to sign — `decision`, `reviewedAt`, `reviewRecordId`,
+with everything else carried from v1's signed record unchanged). No migration, no network, no new
+dependency, no iOS change. Gates: `pnpm run type-check` clean; `pnpm exec vitest run tests/unit`
+1876 passed / 0 failed / 119 files (baseline 1870/118, +6 new tests, zero regressions, including a
+full re-run of the `ai-coach-fdc-*` suite after reverting the two auxiliary-file edits); `eslint` clean
+on both changed files; harness before/after byte-identical (see above).
+
+**Round 2 (review findings):** round 1's `proposalProvenance` held only the 24 new rows for 256 items
+— 232 items had none, violating the same invariant v1 is held to
+(`assertProvenanceCoversEveryItem`, pulled out of `ai-coach-fdc-allowlist.test.ts` into
+`tests/helpers/food-catalog-provenance.ts` and pointed at v2 directly, replacing a weaker sibling
+assertion). Fixed: `proposalProvenance` is now v1's 232 rows byte-identical plus the 24 new rows, 256
+for 256, rebuilt by the same one-shot script. `content` digest is unchanged
+(`ff2f6a5…137510`); `reviewMetadata` digest moved to `1d3d1e2…de052` and is re-pinned. The worksheet's
+signing section was rewritten to the exact final object derived from `schema.ts`'s two `.strict()`
+discriminated-union shapes (5 fields deleted, several added/changed — not "three fields changed" as
+round 1 said), `signoffScope[3]` now names both ingest runs (plural), and the species count was
+corrected to 5 pork / 4 beef / 7 chicken / 6 turkey / 2 tuna in the worksheet and both docs (was
+miscounted "8 turkey, 5 chicken" in round 1). The ingest CLI (`scripts/ai-coach-ingest-fdc.ts`) now
+refuses to write `--out` over a file whose `reviewMetadata.decision` is `APPROVED` unless `--force` is
+passed (`isSignedFoodCatalogFile`, `lib/ai-coach/catalog/fdc/signed-file-guard.ts`, one test in
+`tests/unit/ai-coach-ingest-fdc-write-guard.test.ts`); the README's re-ingest examples now point `--out`
+at a v2 path. Gates after round 2: `pnpm run type-check` clean; `pnpm exec vitest run tests/unit`
+**1878 passed / 0 failed / 120 files**; `eslint` clean on every changed file; `doc_check.py` still 100.
