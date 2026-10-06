@@ -32,14 +32,15 @@ export function substitutionOptionsFor(
 export function mealTargetsMatch(
   plan: PlanPayload,
   answers: IntakeAnswers,
-  source?: FoodCatalogSource
+  source?: FoodCatalogSource,
+  runtimePolicyArtifactKey?: string
 ): boolean {
   if (!plan.meals) return true;
   if (answers.dietaryRestrictions.some(r => !dietaryTagSchema.safeParse(r.trim().toUpperCase().replace(/[\s-]+/g, "_")).success)) return false;
   if (!plan.nutrition) return false;
   for (const day of plan.meals.days) {
     const components = day.meals.flatMap(m => m.ingredients);
-    if (!checkMealComposition({ components, allergies: answers.allergies, dietaryRestrictions: answers.dietaryRestrictions, nutritionPermission: "ALLOW", policyVersion: plan.policyVersion, source }).feasible) return false;
+    if (!checkMealComposition({ components, allergies: answers.allergies, dietaryRestrictions: answers.dietaryRestrictions, nutritionPermission: "ALLOW", policyVersion: plan.policyVersion, source, runtimePolicyArtifactKey }).feasible) return false;
     const calculated = computeNutrientTotals(components, source);
     if (!calculated.success) return false;
     for (const key of ["energyKcal", "proteinG", "carbsG", "fatG"] as const) {
@@ -109,7 +110,11 @@ export function representFixturePlan(base: PlanPayload, answers: IntakeAnswers, 
         tolerancePercent: payload.nutrition.tolerancePercent,
         assumptions: payload.nutrition.assumptions,
       };
-      payload.meals = composeMealsToPrescription(answers, asPrescription, FOOD_CATALOG_VERSION);
+      // T-2040/S-36a: the gate four lines above guarantees
+      // `payload.catalogVersions.food === FOOD_CATALOG_VERSION` on every
+      // reachable input, so this is the plan's own bound key, not a second,
+      // potentially-disagreeing writer of the same value.
+      payload.meals = composeMealsToPrescription(answers, asPrescription, payload.catalogVersions.food);
       if (!payload.meals) return noChange("NO_FEASIBLE_MEALS", "The fixture catalog cannot compose meals within tolerance of the reviewed prescription.");
     } else {
       const reference = composeFixtureMeals(answers, 1);

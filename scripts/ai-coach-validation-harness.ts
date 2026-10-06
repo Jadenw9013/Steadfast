@@ -87,7 +87,13 @@ import { loadDraftUnsignedExerciseCatalog } from "../lib/ai-coach/artifacts/draf
 import {
   DRAFT_FOOD_CATALOG_FILENAME,
   draftFoodCatalogFileSchema,
+  loadDraftUnsignedMealTemplates,
+  loadDraftUnsignedFoodCatalog,
 } from "../lib/ai-coach/artifacts/drafts/loader";
+import { sourcedFoodCatalogSource, type FoodCatalogSource } from "../lib/ai-coach/catalog/food-source";
+import type { MealTemplateSet } from "../lib/ai-coach/catalog/meal-template-schema";
+import { mealComposerConstraintsFromIntake } from "../lib/ai-coach/meal-constraints";
+import { composeMealsToPrescriptionWithReasons } from "../lib/ai-coach/initial-plan";
 import { buildSyntheticArtifactSet } from "../lib/ai-coach/artifacts/synthetic-fixtures";
 import { trainingCatalogSourceFromArtifactContent } from "../lib/ai-coach/training/catalog-source";
 import type {
@@ -1128,6 +1134,224 @@ function attributeCompositionFailure(
       .join("+")}`;
   }
   return "SOLVER_OR_TOLERANCE";
+}
+
+/* ------------------------------------- S-36a composition measurement table */
+
+/**
+ * S-36a: the reviewed draft template set + the signed v1 food catalog,
+ * loaded ONLY for the second, separately-labelled measurement table below.
+ * The primary table and `evaluateProfile`/`attributeCompositionFailure`
+ * above are untouched by this and stay byte-identical. `null` when either
+ * draft file is absent (loader throws when NODE_ENV==="production" or the
+ * file is missing), so the section degrades to a stated skip instead of
+ * crashing the whole report.
+ */
+type CatalogComposerInputs = {
+  templateSet: MealTemplateSet;
+  source: FoodCatalogSource;
+  templateSetLabel: string;
+  catalogLabel: string;
+  catalogArtifactKey: string;
+};
+
+function loadSignedCatalogComposerInputs(): CatalogComposerInputs | null {
+  try {
+    const templatesFile = loadDraftUnsignedMealTemplates();
+    const catalogFile = loadDraftUnsignedFoodCatalog();
+    return {
+      templateSet: templatesFile.content,
+      source: sourcedFoodCatalogSource(catalogFile.content),
+      templateSetLabel: `${templatesFile.content.artifactKey}:v${templatesFile.content.version}`,
+      catalogLabel: `${catalogFile.content.artifactKey}:v${catalogFile.content.version}`,
+      catalogArtifactKey: catalogFile.content.artifactKey,
+    };
+  } catch {
+    return null;
+  }
+}
+
+type CompositionMeasurementResult = {
+  profile: Profile;
+  status: "COMPOSED_WITH_MEALS" | "MACROS_ONLY" | "UNAVAILABLE" | "THREW";
+  reasonCodes: string[];
+};
+
+/**
+ * Re-evaluates one profile against the reviewed template set + signed v1
+ * catalog, through the real shared composer
+ * (`composeMealsToPrescriptionWithReasons`) rather than `composeInitialPlan`,
+ * so the bucket histogram is the composer's own granular `ComposeReason[]`
+ * (and the mapper's fail-closed block code) instead of a generic decision
+ * reason code. `allergenDeclarations` is overridden to CONFIRMED/no-known on
+ * the answers object before anything else runs -- the measurement
+ * assumption named in the report, never product behaviour.
+ */
+function evaluateCompositionAgainstReviewedCatalog(
+  profile: Profile,
+  source: ParameterSource,
+  binding: Binding,
+  evaluatedOn: string,
+  composer: CatalogComposerInputs
+): CompositionMeasurementResult {
+  const axes = profile.axes;
+  const rawAnswers = answersFor(axes, evaluatedOn);
+  (rawAnswers as Record<string, unknown>).allergenDeclarations = {
+    status: "CONFIRMED",
+    noKnownAllergens: true,
+    items: [],
+  };
+
+  const parsedAnswers = intakeAnswersSchema.safeParse(rawAnswers);
+  if (!parsedAnswers.success) {
+    return { profile, status: "THREW", reasonCodes: ["HARNESS_INVALID_INTAKE"] };
+  }
+
+  if (!binding.prescriptionParameters) {
+    return { profile, status: "UNAVAILABLE", reasonCodes: ["PRESCRIPTION_PARAMETER_MISSING"] };
+  }
+  const built = buildPrescriptionInput(rawAnswers, evaluatedOn);
+  if (!built.ok) {
+    return { profile, status: "UNAVAILABLE", reasonCodes: [...built.reasonCodes] };
+  }
+  const prescriptionResult = computePrescription(binding.prescriptionParameters, built.input);
+  if (prescriptionResult.status !== "PRESCRIBED") {
+    return { profile, status: "UNAVAILABLE", reasonCodes: [...prescriptionResult.reasonCodes] };
+  }
+
+  const mapped = mealComposerConstraintsFromIntake(parsedAnswers.data);
+  if (!mapped.composable) {
+    return { profile, status: "MACROS_ONLY", reasonCodes: [mapped.block] };
+  }
+
+  try {
+    const composed = composeMealsToPrescriptionWithReasons(
+      parsedAnswers.data,
+      prescriptionResult.prescription,
+      composer.catalogArtifactKey,
+      {
+        templateSet: composer.templateSet,
+        source: composer.source,
+        constraints: mapped.constraints,
+        policyVersion: source.policyVersionForPayload,
+        exerciseCatalogVersion: source.exerciseCatalogVersionForPayload,
+      }
+    );
+    if (composed.meals) return { profile, status: "COMPOSED_WITH_MEALS", reasonCodes: [] };
+    return {
+      profile,
+      status: "MACROS_ONLY",
+      reasonCodes: composed.reasons.map((reason) => reason.code),
+    };
+  } catch (error) {
+    return {
+      profile,
+      status: "THREW",
+      reasonCodes: [error instanceof Error ? `${error.name}: ${error.message}` : String(error)],
+    };
+  }
+}
+
+/**
+ * Builds the "Composition against the reviewed catalog and template set"
+ * section: a second, clearly-labelled table over the SAME profile grid as
+ * the primary report, with the CONFIRMED-allergen override stated in the
+ * output text itself (risk 5 in the spec), never only in code. Reports
+ * `COMPOSED_WITH_MEALS` / `MACROS_ONLY` / `UNAVAILABLE` / `THREW`, the
+ * reason-code histogram, and a breakdown by declared dietary pattern.
+ */
+function buildCompositionAgainstReviewedCatalogSection(
+  profiles: readonly Profile[],
+  source: ParameterSource,
+  binding: Binding,
+  evaluatedOn: string
+): string {
+  const composer = loadSignedCatalogComposerInputs();
+  if (!composer) {
+    return [
+      "### Composition against the reviewed catalog and template set",
+      "",
+      "**SKIPPED** -- the draft meal-templates file and/or the signed v1 food-catalog draft file were " +
+        "not found by `loadDraftUnsignedMealTemplates`/`loadDraftUnsignedFoodCatalog`. This table runs " +
+        "only when both are present on disk.",
+    ].join("\n");
+  }
+
+  const results = profiles.map((profile) =>
+    evaluateCompositionAgainstReviewedCatalog(profile, source, binding, evaluatedOn, composer)
+  );
+
+  const statusCounts = new Counter();
+  for (const key of ["COMPOSED_WITH_MEALS", "MACROS_ONLY", "UNAVAILABLE", "THREW"]) {
+    statusCounts.declare(key);
+  }
+  const reasonHistogram = new Counter();
+  for (const result of results) {
+    statusCounts.add(result.status);
+    for (const code of result.reasonCodes) reasonHistogram.add(code);
+  }
+
+  const patternKeys = [
+    "OMNIVORE",
+    "LACTO_OVO_VEGETARIAN",
+    "VEGAN",
+    "PESCATARIAN",
+    "OTHER",
+    "NONE_DECLARED",
+    "ABSENT",
+  ];
+  const patternTotals = new Map<string, Counter>();
+  for (const key of patternKeys) {
+    const counter = new Counter();
+    for (const statusKey of ["COMPOSED_WITH_MEALS", "MACROS_ONLY", "UNAVAILABLE", "THREW"]) {
+      counter.declare(statusKey);
+    }
+    patternTotals.set(key, counter);
+  }
+  for (const result of results) {
+    const key = result.profile.axes.pattern ?? "ABSENT";
+    patternTotals.get(key)?.add(result.status);
+  }
+
+  const lines: string[] = [];
+  lines.push("### Composition against the reviewed catalog and template set");
+  lines.push("");
+  lines.push(
+    `Template set: \`${composer.templateSetLabel}\`. Food catalog: \`${composer.catalogLabel}\`.`
+  );
+  lines.push("");
+  lines.push(
+    "**Measurement assumption, stated here and not only in code:** every profile's " +
+      "`allergenDeclarations` is overridden to `{ status: \"CONFIRMED\", noKnownAllergens: true }` " +
+      "before this table is computed. The primary table above leaves every profile's declared " +
+      "`UNKNOWN` status untouched and is unaffected by this override -- its numbers and run key are " +
+      "byte-identical to the pre-S-36a report."
+  );
+  lines.push("");
+  lines.push(`Profiles: **${results.length}** (same grid as the primary table).`);
+  lines.push("");
+  lines.push("| Composer outcome | Profiles |");
+  lines.push("|---|---|");
+  for (const [key, count] of statusCounts.entries()) lines.push(`| ${key} | ${count} |`);
+  lines.push("");
+  lines.push("| Reason code | Profiles |");
+  lines.push("|---|---|");
+  for (const [key, count] of reasonHistogram.entries()) lines.push(`| \`${key}\` | ${count} |`);
+  lines.push("");
+  lines.push(
+    "By declared dietary pattern (`ABSENT` = `dietaryPattern` not declared on that profile):"
+  );
+  lines.push("");
+  lines.push("| Pattern | COMPOSED_WITH_MEALS | MACROS_ONLY | UNAVAILABLE | THREW |");
+  lines.push("|---|---|---|---|---|");
+  for (const key of patternKeys) {
+    const counter = patternTotals.get(key)!;
+    lines.push(
+      `| ${key} | ${counter.get("COMPOSED_WITH_MEALS")} | ${counter.get("MACROS_ONLY")} | ` +
+        `${counter.get("UNAVAILABLE")} | ${counter.get("THREW")} |`
+    );
+  }
+  return lines.join("\n");
 }
 
 function envelopeChecks(
@@ -3677,10 +3901,13 @@ function main(): void {
       "re-creates only its six-line bundle-order template lookup."
   );
   out.push(
-    "- **The FDC draft food catalog cannot reach the meal composer.** `composeMealsToPrescription` " +
-      "resolves food IDs through `catalog/loader.ts`, which serves only the in-code fixture keys, and " +
-      "it is hard-wired to three fixture food IDs. Meal composition is therefore exercised against " +
-      "the fixture catalog; the 232-item draft catalog is reported on but not composed from."
+    "- **The primary report above (section 4+) still composes only against the three hard-wired " +
+      "fixture ids.** `composeInitialPlan` with no `mealComposer` (every production call site today) " +
+      "resolves food IDs through `catalog/loader.ts`'s in-code fixture keys. S-36a's separate " +
+      "'composition against the reviewed catalog and template set' section below exercises the real " +
+      "draft template set + the signed v1 FDC catalog through the shared composer " +
+      "(`composeMealsToPrescriptionWithReasons`) with a stated measurement override " +
+      "(`allergenDeclarations` forced CONFIRMED); it is additive and does not change the primary numbers."
   );
   out.push(
     "- **The weekly controller, finalization, acceptance and the provider boundary.** All DB-bound or " +
@@ -3709,6 +3936,28 @@ function main(): void {
   }
 
   let nextSection = 4 + reports.length;
+
+  // S-36a: a second, separately-labelled measurement over the SAME grid as
+  // the primary report above (section 4+), against the reviewed draft
+  // template set and the signed v1 food catalog instead of the three
+  // hard-wired fixture ids. This never reads or mutates `profiles`,
+  // `reports` or anything the run key (above) is a hash of, so the primary
+  // table and the run key stay byte-identical -- re-run and diff to confirm.
+  out.push(
+    `## ${nextSection}. S-36a — composition against the reviewed catalog and template set`
+  );
+  out.push("");
+  out.push(
+    buildCompositionAgainstReviewedCatalogSection(
+      profiles,
+      primary,
+      reports[0].binding,
+      evaluatedOn
+    )
+  );
+  out.push("");
+  nextSection += 1;
+
   if (adaptiveHistory) {
     const adaptive = adaptiveHistorySection(sources, seed, adaptiveReplicates);
     out.push(`## ${nextSection}. S-23 adaptive energy estimator — synthetic history vs ground truth`);

@@ -464,6 +464,23 @@ During clinical review, the Registered Dietitian reviews each template and subst
 4. **Draft sign-off:**
    - Once review is complete, the `reviewMetadata` transitions to `APPROVED` with a qualified professional review signature, enabling registration and live execution.
 
+### 6.3 How the composer reads `requiredEquipment` and `catalogVersion` (S-36a)
+
+A template's `requiredEquipment` is read through a fixed appliance **capability lattice**
+(`EQUIPMENT_PROVIDES` in `lib/ai-coach/meal-composer.ts`), not literal set membership against what the client
+declared: `FULL_KITCHEN` provides every appliance (plus `NONE`); each single appliance (`MICROWAVE`, `STOVETOP`,
+`OVEN`) provides only itself (plus `NONE`, which is always available); no appliance implies any other appliance
+(`OVEN` does not imply `STOVETOP`). A client who declares `FULL_KITCHEN` is therefore eligible for a template
+that names any single appliance, while a client who declares only `MICROWAVE` is still correctly excluded from a
+`STOVETOP`-only template. Each direct food ingredient's `portion` ranges are resolved during composition against
+the **catalog version the template itself declares** (`ingredient.catalogVersion`) — a template can only ever
+be registered inside the catalog version whose items it references (see §1's subset invariant) — while the
+*plan* a client receives records the run's **bound** catalog key (`PlanPayload.catalogVersions.food`), which the
+composer stamps onto every emitted ingredient at assembly time. These are deliberately two different strings in
+general (`"food-catalog:v1"` vs. `"food-catalog"`): resolution needs the specific version; the plan needs the key
+the run is actually bound to, which is what every downstream reader (the autonomy gate, nutrition-safety history,
+the weekly re-verification) checks the plan against.
+
 ---
 
 # Exercise catalog (T-2038)

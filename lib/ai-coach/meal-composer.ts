@@ -20,6 +20,25 @@ export type ComposeConstraints = {
   dislikedFoodIds: string[]; // ranking-only, never a hard exclusion (T-2002)
 };
 
+/** Appliance capability lattice (S-36a defect 1). `FULL_KITCHEN` provides
+ *  every appliance; the three single appliances provide only themselves;
+ *  `NONE` is always available. Frozen here because both the intake
+ *  (`cookingAccess.equipment`) and the template (`requiredEquipment`) use
+ *  this exact five-value vocabulary. `OVEN` and `STOVETOP` are deliberately
+ *  disjoint: neither implies the other. */
+export const EQUIPMENT_PROVIDES: Readonly<
+  Record<
+    "NONE" | "MICROWAVE" | "STOVETOP" | "OVEN" | "FULL_KITCHEN",
+    readonly ("NONE" | "MICROWAVE" | "STOVETOP" | "OVEN" | "FULL_KITCHEN")[]
+  >
+> = {
+  NONE: ["NONE"],
+  MICROWAVE: ["NONE", "MICROWAVE"],
+  STOVETOP: ["NONE", "STOVETOP"],
+  OVEN: ["NONE", "OVEN"],
+  FULL_KITCHEN: ["NONE", "MICROWAVE", "STOVETOP", "OVEN", "FULL_KITCHEN"],
+};
+
 export type ComposeTemplatesInput = {
   targets: { energyKcal: number; proteinG: number; carbsG: number; fatG: number };
   tolerancePercent: number;
@@ -30,6 +49,14 @@ export type ComposeTemplatesInput = {
   policyVersion: string;
   nutritionPermission: AiDomainPermission;
   maxRepeatsPerWeek: number; // default 3
+  /** The policy artifact key this run is bound to. Passed through to
+   *  `checkMealComposition` as `runtimePolicyArtifactKey`. Omitted => today's
+   *  compile-time ACTIVE_POLICY_VERSION comparison, unchanged. */
+  runtimePolicyArtifactKey?: string;
+  /** The food-catalog key to stamp on every emitted ingredient, i.e. the run
+   *  binding's `catalogVersions.food`. Omitted => the template's own declared
+   *  `catalogVersion`, which is today's behaviour byte for byte. */
+  payloadCatalogVersion?: string;
 };
 
 export type ComposeReason =
@@ -390,8 +417,37 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
   const clientBudget = BUDGET_LEVEL[input.constraints.budgetBand] ?? 3;
   const clientPrep = PREP_LEVEL[input.constraints.prepTimeBand] ?? 4;
   const clientRefrig = REFRIG_LEVEL[input.constraints.refrigeration] ?? 3;
-  const clientEquipment = new Set(input.constraints.equipment);
-  clientEquipment.add("NONE"); // NONE is always available
+  // S-36a defect 1: the client's available appliances are the UNION of what
+  // every declared appliance *provides* through the lattice above, not the
+  // literal set of declared tokens. A client who declares FULL_KITCHEN
+  // thereby provides STOVETOP/OVEN/MICROWAVE/NONE too.
+  const clientEquipment = new Set<string>(["NONE"]);
+  for (const equipment of input.constraints.equipment) {
+    for (const provided of EQUIPMENT_PROVIDES[equipment] ?? [equipment]) {
+      clientEquipment.add(provided);
+    }
+  }
+
+  // S-36a defect 3 (binding-time check): when the caller names the catalog
+  // key this plan will be bound to, the injected source must actually BE
+  // that catalog (by key or by its own `key:vN` form) before any solve runs.
+  // This is the "the template set and the catalog must be the same artifact"
+  // check on this side of S-36b.
+  if (
+    input.payloadCatalogVersion !== undefined &&
+    input.source.catalogVersion !== input.payloadCatalogVersion &&
+    !input.source.catalogVersion.startsWith(`${input.payloadCatalogVersion}:v`)
+  ) {
+    return {
+      feasible: false,
+      reasons: [
+        {
+          code: "CATALOG_REFERENCE_INVALID",
+          detail: { expected: input.payloadCatalogVersion, actual: input.source.catalogVersion },
+        },
+      ],
+    };
+  }
 
   // 1. Filter
   const survivors: MealTemplate[] = [];
@@ -481,6 +537,7 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
       allergenDeclarations: input.constraints.allergenDeclarations,
       nutritionPermission: input.nutritionPermission,
       policyVersion: input.policyVersion,
+      runtimePolicyArtifactKey: input.runtimePolicyArtifactKey,
       source: input.source,
     });
 
@@ -753,6 +810,7 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
       allergenDeclarations: input.constraints.allergenDeclarations,
       nutritionPermission: input.nutritionPermission,
       policyVersion: input.policyVersion,
+      runtimePolicyArtifactKey: input.runtimePolicyArtifactKey,
       source: input.source,
     });
 
@@ -772,7 +830,11 @@ export function composeWeekFromTemplates(input: ComposeTemplatesInput): ComposeT
     const meals = candidate.templates.map((template, mealIdx) => {
       const mealIngredients = candidate.ingredientsByMeal[mealIdx].map((ing) => ({
         foodId: ing.foodId,
-        catalogVersion: ing.catalogVersion,
+        // S-36a defect 3: the emitted PAYLOAD ingredient is stamped with the
+        // run's bound catalog key when the caller supplies one; resolution
+        // above always used the template's own declared `ing.catalogVersion`
+        // and is unaffected by this restamp.
+        catalogVersion: input.payloadCatalogVersion ?? ing.catalogVersion,
         grams: ing.currentGrams,
         state: ing.state,
       }));

@@ -5,12 +5,14 @@ import {
   representFixturePlan,
   isTargetPreserving,
   substitutionOptionsFor,
+  mealTargetsMatch,
 } from "@/lib/ai-coach/representation";
 import type { IntakeAnswers } from "@/lib/ai-coach/intake";
 import { getFoodItem } from "@/lib/ai-coach/catalog/loader";
 import { FOOD_SUBSTITUTIONS } from "@/lib/ai-coach/catalog/food-catalog";
 import { loadDraftUnsignedMealTemplates } from "@/lib/ai-coach/artifacts/drafts/loader";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
+import type { PlanPayload } from "@/lib/ai-coach/plan-contract";
 
 const answers: IntakeAnswers = {
   goal: "GENERAL_FITNESS",
@@ -163,6 +165,44 @@ describe("T-2040 — a plan bound to a catalog this build does not carry", () =>
     });
     expect(result.payload).toBeNull();
     expect(result.decision.reasonCodes).toEqual(["NO_FEASIBLE_MEALS"]);
+  });
+
+  it("(12) a payload bound to 'food-catalog' still returns NO_FEASIBLE_MEALS at the :85 gate, unchanged", () => {
+    const base = buildInitialFixturePlan(answers, "rx", "MACROS").payload;
+    const plan: PlanPayload = {
+      ...base,
+      contentKind: "REVIEWED_LIVE_V1",
+      catalogVersions: { ...base.catalogVersions, food: "food-catalog" },
+    };
+    const result = representFixturePlan(plan, answers, "MEALS");
+    expect(result.payload).toBeNull();
+    expect(result.decision.reasonCodes).toEqual(["NO_FEASIBLE_MEALS"]);
+    expect(plan.catalogVersions.food).toBe("food-catalog");
+  });
+});
+
+describe("S-36a defect 2 — mealTargetsMatch's optional runtimePolicyArtifactKey", () => {
+  it("(13) accepts a payload whose policyVersion is a live key with the 4th argument, and refuses it without the argument", () => {
+    const meals = buildInitialFixturePlan(answers, "rx", "MEALS").payload.meals!;
+    const livePayload: PlanPayload = {
+      schemaVersion: 1,
+      contentKind: "SYNTHETIC_FIXTURE",
+      nutrition: {
+        prescriptionId: "rx",
+        method: "SYNTHETIC_CATALOG_MATCH",
+        targets: { energyKcal: 2000, proteinG: 150, carbsG: 200, fatG: 60 },
+        tolerancePercent: 100,
+        assumptions: [],
+      },
+      meals,
+      strength: [],
+      cardio: [],
+      policyVersion: "policy-live-x",
+      catalogVersions: { food: "food-fixture-v2", exercise: "exercise-fixture-v1" },
+    };
+
+    expect(mealTargetsMatch(livePayload, answers, undefined, "policy-live-x")).toBe(true);
+    expect(mealTargetsMatch(livePayload, answers)).toBe(false);
   });
 });
 

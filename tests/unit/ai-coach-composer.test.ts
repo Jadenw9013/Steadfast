@@ -46,6 +46,11 @@ import {
   buildSyntheticSafetyFloors,
 } from "../helpers/ai-prescription-bundle";
 import { buildV2Answers } from "../helpers/ai-intake-v2";
+import {
+  loadDraftUnsignedMealTemplates,
+  loadDraftUnsignedFoodCatalog,
+} from "@/lib/ai-coach/artifacts/drafts/loader";
+import { sourcedFoodCatalogSource } from "@/lib/ai-coach/catalog/food-source";
 
 // ---------------------------------------------------------------------------
 // Shared fixtures
@@ -556,6 +561,170 @@ function feasibleMacroPlan(): PlanPayload {
     },
   });
 }
+
+describe("composeInitialPlan — S-36a mealComposer (reviewed template set + catalog)", () => {
+  const draftTemplates = loadDraftUnsignedMealTemplates().content;
+  const draftCatalog = loadDraftUnsignedFoodCatalog();
+  const draftSource = sourcedFoodCatalogSource(draftCatalog.content);
+  const REVIEWED_BINDING = {
+    policyVersion: ACTIVE_POLICY_VERSION,
+    foodCatalogVersion: "food-catalog",
+    exerciseCatalogVersion: EXERCISE_CATALOG_VERSION,
+  };
+
+  /** A concrete (population, activity, intent, pace, weight) combination
+   *  whose real-engine-computed prescription (from the synthetic bundle's
+   *  own 10% composition tolerance) is reachable by the real draft template
+   *  set against the real signed-v1 catalog, with a FULL_KITCHEN / FLEXIBLE
+   *  / OVER_60 client. Found by direct search (board/evidence/S-36a.md
+   *  records the search), not hand-picked — the draft corpus's honest
+   *  coverage is narrow (S-36 decision summary point 4), so an arbitrary v2
+   *  intake does not generally compose. */
+  function composableV2Answers(overrides: Record<string, unknown> = {}) {
+    return buildV2Answers({
+      ageYears: 30,
+      ageStatus: "CONFIRMED",
+      energyMethodPopulationCategory: "MALE_ADULT",
+      energyMethodPopulationCategoryStatus: "CONFIRMED",
+      physicalActivityCategory: "INACTIVE",
+      physicalActivityCategoryStatus: "CONFIRMED",
+      bodyMeasurementStatus: "CONFIRMED",
+      heightCm: 175,
+      weightKg: 125,
+      weightMeasuredOn: "2026-09-20",
+      bodyWeightIntent: "LOSE",
+      goalPaceClass: "MODERATE",
+      goalStatus: "CONFIRMED",
+      resistanceTrainingContext: "NONE",
+      trainingContextStatus: "CONFIRMED",
+      dietaryPattern: {
+        pattern: "OMNIVORE",
+        reason: "PREFERENCE",
+        status: "CONFIRMED",
+        otherLabel: null,
+        mandatory: false,
+      },
+      cookingAccessStatus: "CONFIRMED",
+      cookingAccess: {
+        equipment: ["FULL_KITCHEN"],
+        refrigeration: "FRIDGE_AND_FREEZER",
+        mealPrepCapacity: "SOME",
+        typicalPrepMinutesBand: "OVER_60",
+      },
+      dislikes: [],
+      cuisinePreferences: [],
+      allergenDeclarations: { status: "CONFIRMED", noKnownAllergens: true, items: [] },
+      foodBudgetLevel: "FLEXIBLE",
+      ...overrides,
+    });
+  }
+
+  function allTemplateSetFoodIds(): Set<string> {
+    const ids = new Set<string>();
+    for (const t of draftTemplates.templates) {
+      for (const ing of t.ingredients) {
+        if (ing.kind === "FOOD") ids.add(ing.foodId);
+      }
+    }
+    for (const group of draftTemplates.substitutionGroups) {
+      for (const id of group.memberFoodIds) ids.add(id);
+    }
+    return ids;
+  }
+
+  it("(7) composes real meals from the reviewed template set + catalog and parses, with every ingredient id drawn from the 29 template ids -- the defect-3 regression (throws on faed556)", () => {
+    const result = composeInitialPlan({
+      rawAnswers: composableV2Answers(),
+      prescriptionId: "rx-reviewed",
+      mode: "MEALS",
+      evaluatedOn: EVALUATED_ON,
+      parameters: PARAMETERS,
+      binding: REVIEWED_BINDING,
+      mealComposer: { templateSet: draftTemplates, source: draftSource },
+    });
+
+    // planPayloadSchema.parse already ran inside assembleV2Plan; reaching
+    // this line at all (without throwing) is half the regression proof.
+    expect(() => planPayloadSchema.parse(result.payload)).not.toThrow();
+    expect(result.payload.meals).not.toBeNull();
+    expect(result.payload.catalogVersions.food).toBe("food-catalog");
+
+    const validIds = allTemplateSetFoodIds();
+    expect(validIds.size).toBe(29);
+    for (const day of result.payload.meals!.days) {
+      for (const meal of day.meals) {
+        for (const ingredient of meal.ingredients) {
+          expect(validIds.has(ingredient.foodId), `unexpected id ${ingredient.foodId}`).toBe(true);
+          expect(ingredient.catalogVersion).toBe("food-catalog");
+        }
+      }
+    }
+  });
+
+  it("(8) cookingAccessStatus: UNKNOWN degrades to PRESCRIBED/meals:null/NO_FEASIBLE_MEALS with the cooking-access explanation -- degrade, never disappear", () => {
+    const result = composeInitialPlan({
+      rawAnswers: composableV2Answers({ cookingAccessStatus: "UNKNOWN", cookingAccess: undefined }),
+      prescriptionId: "rx-no-cooking-access",
+      mode: "MEALS",
+      evaluatedOn: EVALUATED_ON,
+      parameters: PARAMETERS,
+      binding: REVIEWED_BINDING,
+      mealComposer: { templateSet: draftTemplates, source: draftSource },
+    });
+
+    expect(result.prescription.status).toBe("PRESCRIBED");
+    expect(result.payload.prescriptionOutcome?.status).toBe("PRESCRIBED");
+    expect(result.payload.nutrition).not.toBeNull();
+    expect(result.payload.meals).toBeNull();
+    expect(result.decision.reasonCodes).toContain("NO_FEASIBLE_MEALS");
+    expect(result.decision.explanation).toMatch(/cooking equipment and storage/);
+    expect(result.decision.nextAction).toMatch(/Confirm your cooking equipment/);
+  });
+
+  it("(9) with mealComposer absent (or explicitly null), composeInitialPlan's existing output is byte-identical -- the four golden composeFixtureMeals hashes are asserted separately in ai-coach-representation.test.ts", () => {
+    // Regression guard: composeInitialPlan's existing behaviour (asserted
+    // throughout this file) must not move when `mealComposer` is omitted --
+    // every production call site (managed-executor.ts) omits it today.
+    const withoutComposer = composeInitialPlan({
+      rawAnswers: v2Answers(),
+      prescriptionId: "rx-no-composer",
+      mode: "MEALS",
+      evaluatedOn: EVALUATED_ON,
+      parameters: PARAMETERS,
+      binding: BINDING,
+    });
+    const explicitlyNull = composeInitialPlan({
+      rawAnswers: v2Answers(),
+      prescriptionId: "rx-no-composer",
+      mode: "MEALS",
+      evaluatedOn: EVALUATED_ON,
+      parameters: PARAMETERS,
+      binding: BINDING,
+      mealComposer: null,
+    });
+    expect(contentHash(withoutComposer.payload)).toBe(contentHash(explicitlyNull.payload));
+  });
+
+  it("(10) a v2 intake with binding.foodCatalogVersion = 'food-catalog' and no mealComposer returns meals: null via the foodCatalogIsServedInCode guard, never the three fixture ids", () => {
+    const result = composeInitialPlan({
+      rawAnswers: composableV2Answers(),
+      prescriptionId: "rx-unbound-catalog",
+      mode: "MEALS",
+      evaluatedOn: EVALUATED_ON,
+      parameters: PARAMETERS,
+      binding: REVIEWED_BINDING,
+      // No mealComposer: this build does not carry "food-catalog" in its
+      // in-code catalog registry, so the legacy fixture path must refuse to
+      // compose rather than silently stamp the three hard-wired ids under a
+      // catalog key it does not serve.
+    });
+    expect(result.payload.nutrition).not.toBeNull();
+    expect(result.payload.meals).toBeNull();
+    for (const foodId of ["chicken-breast-raw", "brown-rice-cooked", "broccoli-steamed"]) {
+      expect(JSON.stringify(result.payload)).not.toContain(foodId);
+    }
+  });
+});
 
 describe("representFixturePlan — prescribed plan round trip", () => {
   it("MACROS -> MEALS -> MACROS preserves nutrition exactly (isTargetPreserving)", () => {

@@ -68,6 +68,9 @@ export interface CheckMealCompositionInput {
   policyVersion: string;
   allergenDeclarations?: AllergenDeclarations;
   source?: FoodCatalogSource;
+  /** T-2000's two-argument policy check, reached from the composed path.
+   *  Omitted => the existing one-argument ACTIVE_POLICY_VERSION comparison. */
+  runtimePolicyArtifactKey?: string;
 }
 
 export function checkMealComposition(input: CheckMealCompositionInput): FeasibilityResult {
@@ -77,7 +80,7 @@ export function checkMealComposition(input: CheckMealCompositionInput): Feasibil
     reasons.push({ code: "NUTRITION_DOMAIN_NOT_ALLOWED" });
   }
 
-  const policyCheck = checkPolicyVersionUsable(input.policyVersion);
+  const policyCheck = checkPolicyVersionUsable(input.policyVersion, input.runtimePolicyArtifactKey);
   if (!policyCheck.usable) {
     reasons.push({
       code: policyCheck.error === "POLICY_REVOKED" ? "POLICY_VERSION_REVOKED" : "POLICY_UNKNOWN_VERSION",
