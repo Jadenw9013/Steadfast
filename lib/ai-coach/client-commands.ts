@@ -374,10 +374,22 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
       // *current* live release each time, so keeping the first timestamp
       // while overwriting the version/digest columns would have produced a
       // row claiming consent to a disclosure that did not exist yet on the
-      // date recorded. A context upsert and transition receipt are written
+      // date recorded. The transition receipt is now written
       // unconditionally too (previously skipped when already in AI mode),
       // so a re-consent always leaves a record, not just a profile row an
       // auditor has to take on faith.
+      //
+      // S-21 round 3 (MAJOR 1): the context `revision` must NOT bump on a
+      // re-consent while already in AI mode. `revision` is read by seven
+      // other paths as "has the coaching context changed since this was
+      // computed" (queries/ai-coach.ts, plan-acceptance.ts, reviewer.ts,
+      // retry-command.ts, managed-executor.ts, autonomy/gate.ts,
+      // current-client-plan.ts — see the handoff note for what each one
+      // does with a stale match) — none of which a mere re-consent to the
+      // same provider should invalidate. A re-consent is not a provider
+      // transition: `fromMode` and `toMode` are both "AI", so the receipt
+      // records `fromContextRevision === toContextRevision` for it, which
+      // is the honest shape (nothing about the coaching context changed).
       //
       // Ambiguity window (rows written before this fix shipped): a
       // `consentedAt` with no `AiCoachProviderTransitionReceipt` at all was
@@ -406,10 +418,13 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
           consentTextDigest: input.consentTextDigest ?? null,
         },
       });
+      const isProviderTransition = context?.mode !== "AI";
       const updatedContext = await tx.clientCoachingContext.upsert({
         where: { clientId },
         create: { clientId, mode: "AI", revision: 1 },
-        update: { mode: "AI", activeCoachClientId: null, revision: { increment: 1 } },
+        update: isProviderTransition
+          ? { mode: "AI", activeCoachClientId: null, revision: { increment: 1 } }
+          : { mode: "AI" },
       });
       if (liveRelease) {
         await tx.aiCoachProviderTransitionReceipt.create({

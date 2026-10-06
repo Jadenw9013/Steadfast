@@ -308,6 +308,109 @@ suite("client intake, consent and HTTP boundaries", () => {
     }
   });
 
+  it("S-21 round 3 (MAJOR 1): re-consenting while already in AI mode does not bump contextRevision, so a PROPOSED plan at that revision is still served, not stranded STALE", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+    });
+    await db.aiCoachProfile.create({
+      data: { clientId: client.id, isSynthetic: false, confirmedIntake: answers },
+    });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    mocks.clerkId = id;
+    const actor = await createTestGovernanceActor(
+      ["APPROVE_LIVE_LAUNCH", "ACTIVATE_LIVE_LAUNCH", "DEACTIVATE_LIVE_LAUNCH"],
+      "S-21-reconsent-revision-test"
+    );
+    const namespace = `client-commands-reconsent-revision-${randomUUID()}`;
+    await activateTestLiveRelease({ namespace, actorUserId: actor.id });
+    try {
+      const discovery = TEST_RUNTIME_CONFIGURATION.discovery;
+      const enroll = {
+        ...base(),
+        operation: "ENROLL",
+        consent: true,
+        expectedContextRevision: 0,
+        reviewTimezone: "America/Los_Angeles",
+        consentConfigurationId: discovery.configurationId,
+        consentConfigurationVersion: discovery.version,
+        privacyNoticeVersion: discovery.privacyNoticeVersion,
+        consentTextDigest: contentHash(discovery),
+      } as const;
+      await applyAiClientCommand(client.id, enroll);
+      const contextAfterFirstEnroll = await db.clientCoachingContext.findUniqueOrThrow({
+        where: { clientId: client.id },
+      });
+      expect(contextAfterFirstEnroll.mode).toBe("AI");
+      const contextRevisionAfterFirstEnroll = contextAfterFirstEnroll.revision;
+
+      // A reviewer-approved PROPOSED plan at the current revision — exactly
+      // the row `getAiWorkspace`'s `fresh` check and `plan-acceptance.ts`'s
+      // acceptance guard key off `contextRevision`.
+      const plan = await db.aiPlanVersion.create({
+        data: {
+          clientId: client.id,
+          version: 1,
+          status: "PROPOSED",
+          // INITIAL short-circuits weeklyCandidateIsValid to true (it only
+          // re-derives a weekly-review proof for ROUTINE/PROTECTIVE
+          // candidates) — this test is about contextRevision, not weekly
+          // proof replay.
+          changeClass: "INITIAL",
+          payload: {},
+          payloadHash: "h",
+          contextRevision: contextRevisionAfterFirstEnroll,
+          profileRevision: 0,
+          observationRevision: 0,
+          safetyRevision: 0,
+          policyVersion: "p1",
+          catalogVersions: {},
+          sourceRefs: [],
+        },
+      });
+
+      // A measurable gap, same technique as the MAJOR 3 test above.
+      await new Promise((resolve) => setTimeout(resolve, 5));
+
+      // Re-consent to the SAME disclosure while already in AI mode — no
+      // PAUSE in between, no provider change, just a second ENROLL.
+      await applyAiClientCommand(client.id, {
+        ...enroll,
+        requestKey: randomUUID(),
+        expectedContextRevision: contextRevisionAfterFirstEnroll,
+      });
+
+      const contextAfterReconsent = await db.clientCoachingContext.findUniqueOrThrow({
+        where: { clientId: client.id },
+      });
+      expect(contextAfterReconsent.mode).toBe("AI");
+      // The fix this test is for: revision must NOT have moved.
+      expect(contextAfterReconsent.revision).toBe(contextRevisionAfterFirstEnroll);
+
+      const receipts = await db.aiCoachProviderTransitionReceipt.findMany({
+        where: { clientId: client.id },
+        orderBy: { createdAt: "asc" },
+      });
+      expect(receipts).toHaveLength(2);
+      expect(receipts[1]!.fromMode).toBe("AI");
+      expect(receipts[1]!.toMode).toBe("AI");
+      expect(receipts[1]!.fromContextRevision).toBe(contextRevisionAfterFirstEnroll);
+      expect(receipts[1]!.toContextRevision).toBe(contextRevisionAfterFirstEnroll);
+
+      // The seven-reader consequence (standing rule 10): unchanged revision
+      // means the plan is still `fresh` in `getAiWorkspace` — not silently
+      // withheld (lib/queries/ai-coach.ts:227) — and still acceptable
+      // (lib/ai-coach/plan-acceptance.ts:332 would reject on a mismatch).
+      const workspace = await getAiWorkspace(client.id);
+      const proposal = workspace.proposals.find((candidate) => candidate.id === plan.id);
+      expect(proposal).toBeDefined();
+      expect(proposal!.status).not.toBe("STALE");
+      expect(proposal!.expectedContextRevision).toBe(contextRevisionAfterFirstEnroll);
+    } finally {
+      await deactivateTestLiveRelease(actor.id);
+    }
+  });
+
   it("T-2024: ALLERGIES v2 shape writes both allergenDeclarations and the derived legacy allergies array", async () => {
     const client = await fixture();
     const declarations = {

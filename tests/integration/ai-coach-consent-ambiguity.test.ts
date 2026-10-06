@@ -47,20 +47,38 @@ async function seedClient(opts: { isSynthetic?: boolean } = {}) {
   return client;
 }
 
-suite("countConsentAmbiguity — S-21 round 2 (MAJOR 1/2/4)", () => {
+suite("countConsentAmbiguity — S-21 round 3 (MAJOR 2)", () => {
   afterAll(() => db.$disconnect());
 
-  it("counts exactly the two knowable ambiguity windows across the four row shapes, through the real Prisma query", async () => {
+  it("counts exactly the three knowable ambiguity windows across five row shapes, through the real Prisma query", async () => {
     const before = await countConsentAmbiguity(db);
 
-    // Shape 1 — confirm-only stamp: consentedAt set by the (now-removed)
-    // confirmIntake writer, never enrolled, so no receipt exists at all.
-    // Counted in `stampedWithNoEnrollmentReceipt`.
+    // Shape 1 — confirm-only stamp, receipt era: consentedAt set by the
+    // (now-removed) confirmIntake writer, never enrolled, so no receipt
+    // exists at all, and the stamp is on/after RECEIPT_ERA_START
+    // (2026-09-23) — every real ENROLL from that date on writes exactly one
+    // receipt, so zero receipts here proves this was never a consent
+    // decision. Counted in `stampedWithNoEnrollmentReceipt`.
     const confirmOnly = await seedClient();
     await db.clientCoachingContext.create({ data: { clientId: confirmOnly.id, mode: "NONE" } });
     await db.aiCoachProfile.update({
       where: { clientId: confirmOnly.id },
-      data: { consentedAt: new Date("2026-09-20T00:00:00.000Z") },
+      data: { consentedAt: new Date("2026-09-24T00:00:00.000Z") },
+    });
+
+    // Shape 5 — pre-receipt-era stamp, no receipt: consentedAt is set,
+    // before RECEIPT_ERA_START, and no receipt exists. Before 2026-09-23
+    // (commit 3b9eb3e) ENROLL itself wrote consentedAt with no receipt, no
+    // digest check and no synthetic distinction, so this row is
+    // indistinguishable from a real pre-era consent — MUST be reported as
+    // unclassifiable, never as "never consented".
+    const preEraUnclassifiable = await seedClient();
+    await db.clientCoachingContext.create({
+      data: { clientId: preEraUnclassifiable.id, mode: "NONE" },
+    });
+    await db.aiCoachProfile.update({
+      where: { clientId: preEraUnclassifiable.id },
+      data: { consentedAt: new Date("2026-09-15T00:00:00.000Z") },
     });
 
     // Shape 2 — real enrolment: consentedAt and the receipt's createdAt
@@ -124,8 +142,29 @@ suite("countConsentAmbiguity — S-21 round 2 (MAJOR 1/2/4)", () => {
 
     expect(after.stampedWithNoEnrollmentReceipt - before.stampedWithNoEnrollmentReceipt).toBe(1);
     expect(
+      after.preReceiptEraStampUnclassifiable - before.preReceiptEraStampUnclassifiable
+    ).toBe(1);
+    expect(
       after.consentedAtPredatesEarliestReceipt - before.consentedAtPredatesEarliestReceipt
     ).toBe(1);
+  });
+
+  it("MINOR 3 — a one-second clock-skew tolerance does not misclassify a genuinely fresh, same-transaction enrolment", async () => {
+    const before = await countConsentAmbiguity(db);
+    const withinTolerance = await seedClient();
+    await db.clientCoachingContext.create({ data: { clientId: withinTolerance.id, mode: "AI" } });
+    const consentedAt = new Date("2026-10-01T00:00:00.500Z");
+    // Receipt's DB-clock timestamp reads 400ms after the app-clock's
+    // consentedAt — well within normal same-transaction elapsed time, and
+    // under CLOCK_SKEW_TOLERANCE_MS, so this must NOT count as "predates".
+    const receiptCreatedAt = new Date("2026-10-01T00:00:00.900Z");
+    await db.aiCoachProfile.update({
+      where: { clientId: withinTolerance.id },
+      data: { consentedAt },
+    });
+    await seedReceipt(withinTolerance.id, receiptCreatedAt);
+    const after = await countConsentAmbiguity(db);
+    expect(after).toEqual(before);
   });
 
   it("is zero-delta when nothing ambiguous is seeded (a confirmed-but-never-consented profile reports neither window)", async () => {
