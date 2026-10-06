@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   loadDraftUnsignedMealTemplates,
   loadDraftUnsignedFoodCatalog,
+  loadDraftUnsignedFoodCatalogV2,
 } from "@/lib/ai-coach/artifacts/drafts/loader";
 import { sourcedFoodCatalogSource } from "@/lib/ai-coach/catalog/food-source";
 import {
@@ -289,5 +290,53 @@ describe("A07 — meal template dataset contract and invariants", () => {
     const result = validateTemplateSetAgainstCatalog(cloned, catalogSource);
     expect(result.valid).toBe(false);
     expect(result.templateErrors.some((e) => e.error === "PATTERN_TAG_UNSATISFIED")).toBe(true);
+  });
+
+  it("(14) S-36a/S-36 decision 2: all 29 referenced ids (templates and substitution groups) exist in the signed v1 catalog, and none is one of v2's 24 additional ids", () => {
+    const referencedIds = new Set<string>();
+    for (const template of draftTemplatesFile.content.templates) {
+      for (const ing of template.ingredients) {
+        if (ing.kind === "FOOD") referencedIds.add(ing.foodId);
+      }
+    }
+    for (const group of draftTemplatesFile.content.substitutionGroups) {
+      for (const foodId of group.memberFoodIds) referencedIds.add(foodId);
+    }
+    expect(referencedIds.size).toBe(29);
+
+    const v1Ids = new Set(draftCatalogFile.content.items.map((item) => item.id));
+    for (const id of referencedIds) {
+      expect(v1Ids.has(id), `referenced id ${id} must exist in the signed v1 catalog`).toBe(true);
+    }
+
+    const v2File = loadDraftUnsignedFoodCatalogV2();
+    const v2OnlyIds = new Set(
+      v2File.content.items.map((item) => item.id).filter((id) => !v1Ids.has(id))
+    );
+    expect(v2OnlyIds.size).toBe(24);
+    for (const id of referencedIds) {
+      expect(v2OnlyIds.has(id), `referenced id ${id} must not be one of v2's new ids`).toBe(false);
+    }
+  });
+
+  it("(15) widening a template's patternTags beyond the intersection of its ingredients' (including a nested component template) reports PATTERN_TAG_UNSATISFIED -- patterns come from the catalog, not from names", () => {
+    const cloned = JSON.parse(JSON.stringify(draftTemplatesFile.content)) as {
+      templates: MealTemplate[];
+    } & typeof draftTemplatesFile.content;
+    // This template nests a COMPONENT_TEMPLATE ingredient (chicken/egg are
+    // not vegan), so widening to VEGAN must fail through the flattened
+    // nested-component path, not only a direct FOOD ingredient.
+    const target = cloned.templates.find((t) => t.id === "bf-omni-mod-chicken-omelet");
+    if (!target) throw new Error("expected bf-omni-mod-chicken-omelet fixture");
+    expect(target.patternTags).toEqual(["OMNIVORE"]);
+    target.patternTags = ["OMNIVORE", "VEGAN"];
+
+    const result = validateTemplateSetAgainstCatalog(cloned, catalogSource);
+    expect(result.valid).toBe(false);
+    expect(
+      result.templateErrors.some(
+        (e) => e.templateId === "bf-omni-mod-chicken-omelet" && e.error === "PATTERN_TAG_UNSATISFIED"
+      )
+    ).toBe(true);
   });
 });

@@ -30,6 +30,8 @@ import { trainingCatalogSourceFromDraftFile } from "./training/catalog-source";
 import type { MealTemplateSet } from "./catalog/meal-template-schema";
 import type { FoodCatalogSource } from "./catalog/food-source";
 import { composeWeekFromTemplates, type ComposeConstraints, type ComposeReason } from "./meal-composer";
+import { foodCatalogIsServedInCode } from "./catalog/loader";
+import { mealComposerConstraintsFromIntake } from "./meal-constraints";
 
 /** All doses, targets and templates below are SYNTHETIC TEST FIXTURES (G01/G02).
  * The runtime must additionally require a synthetic subject and nonproduction
@@ -181,11 +183,26 @@ export type ComposeMealsToPrescriptionOptions = {
   source: FoodCatalogSource;
   constraints: ComposeConstraints;
   nutritionPermission?: "ALLOW" | "PAUSED" | "REVOKED";
+  /** Defaults to ACTIVE_POLICY_VERSION / EXERCISE_CATALOG_VERSION so every
+   *  existing caller (the T-2036 unit corpus) compiles and behaves identically. */
+  policyVersion?: string;
+  exerciseCatalogVersion?: string;
+  /** Defaults to 3 (today's value, unchanged for every existing caller).
+   *  Measurement-only knob: S-36a round 1 review found the harness's 6/4064
+   *  composed count is produced by this cap's interaction with the per-day
+   *  greedy assignment (`meal-composer.ts`'s `enforceRepeatLimit`), not by
+   *  template macro coverage — see the harness's labelled cap-3/cap-7
+   *  comparison. No production caller sets this. */
+  maxRepeatsPerWeek?: number;
 };
 
 export type ComposeMealsWithReasonsResult = {
   meals: NonNullable<PlanPayload["meals"]> | null;
   reasons: ComposeReason[];
+  /** Forwarded from `composeWeekFromTemplates` on a successful compose (e.g.
+   *  `LOW_TEMPLATE_VARIETY`). Absent on the legacy path and on any failure --
+   *  a caller composing is the only case where "how it composed" matters. */
+  warnings?: string[];
 };
 
 export function composeMealsToPrescriptionWithReasons(
@@ -221,6 +238,18 @@ export function composeMealsToPrescriptionWithReasons(
       };
     }
 
+    // S-36a defect 2 & 4: `policyVersion` is resolved once from the caller's
+    // binding (defaulting to the compile-time fixture for every existing
+    // caller) and used identically for the compose-time check AND the
+    // verification payload below, so the two can never disagree about which
+    // policy this composition is bound to. Passing the SAME value as both
+    // `policyVersion` and `runtimePolicyArtifactKey` makes the compose-time
+    // usability check an identity by construction; the load-bearing checks on
+    // this value live elsewhere (`mealTargetsMatch` on a *stored* payload, and
+    // `autonomy/gate.ts`'s `bindingsMatch`), not here.
+    const policyVersion = options.policyVersion ?? ACTIVE_POLICY_VERSION;
+    const exerciseCatalogVersion = options.exerciseCatalogVersion ?? EXERCISE_CATALOG_VERSION;
+
     const result = composeWeekFromTemplates({
       targets: {
         energyKcal: prescription.targetEnergyKcal,
@@ -233,9 +262,11 @@ export function composeMealsToPrescriptionWithReasons(
       constraints: mergedConstraints,
       templateSet: options.templateSet,
       source: options.source,
-      policyVersion: ACTIVE_POLICY_VERSION,
+      policyVersion,
+      runtimePolicyArtifactKey: policyVersion,
+      payloadCatalogVersion: foodCatalogVersion,
       nutritionPermission: permission,
-      maxRepeatsPerWeek: 3,
+      maxRepeatsPerWeek: options.maxRepeatsPerWeek ?? 3,
     });
 
     if (!result.feasible) {
@@ -261,21 +292,40 @@ export function composeMealsToPrescriptionWithReasons(
       meals,
       strength: [],
       cardio: [],
-      policyVersion: ACTIVE_POLICY_VERSION,
-      catalogVersions: { food: foodCatalogVersion, exercise: EXERCISE_CATALOG_VERSION },
+      policyVersion,
+      catalogVersions: { food: foodCatalogVersion, exercise: exerciseCatalogVersion },
     };
 
-    if (!mealTargetsMatch(verification, answers, options.source)) {
+    if (!mealTargetsMatch(verification, answers, options.source, policyVersion)) {
       return {
         meals: null,
         reasons: [{ code: "NO_FEASIBLE_MEALS", detail: { reason: "VERIFICATION_FAILED" } }],
       };
     }
 
-    return { meals, reasons: [] };
+    return { meals, reasons: [], warnings: result.warnings };
   }
 
-  const legacyMeals = composeLegacyMealsInternal(answers, prescription, foodCatalogVersion, carbTarget, fatTarget);
+  // S-36a defect 5 (one-side-of-S-36b guard): a run bound to a catalog key
+  // this build does not carry in code must never fall back to the three
+  // hard-wired fixture ids. Today the only bound food key is the fixture
+  // itself, so this is unreachable; it is what guarantees that stays true
+  // once a run binds to a reviewed catalog key.
+  if (!foodCatalogIsServedInCode(foodCatalogVersion)) {
+    return {
+      meals: null,
+      reasons: [
+        { code: "CATALOG_REFERENCE_INVALID", detail: { reason: "CATALOG_NOT_SERVED_IN_CODE" } },
+      ],
+    };
+  }
+  const legacyMeals = composeLegacyMealsInternal(
+    answers,
+    prescription,
+    foodCatalogVersion,
+    carbTarget,
+    fatTarget
+  );
   return {
     meals: legacyMeals,
     reasons: legacyMeals ? [] : [{ code: "NO_FEASIBLE_MEALS", detail: { reason: "LEGACY_COMPOSITION_FAILED" } }],
@@ -298,6 +348,12 @@ function composeLegacyMealsInternal(
   carbTarget: number,
   fatTarget: number
 ): NonNullable<PlanPayload["meals"]> | null {
+  // S-36a defect 5: never compose the three hard-wired fixture ids against a
+  // catalog key this build does not actually carry in code. The caller
+  // (`composeMealsToPrescriptionWithReasons`) already checks this and reports
+  // a specific reason; this is the defense-in-depth guard for any other
+  // caller of this internal function.
+  if (!foodCatalogIsServedInCode(foodCatalogVersion)) return null;
 
   // Same fixture-catalog dietary-restriction guard as composeFixtureMeals:
   // never silently drop an unknown restriction or claim feasibility that
@@ -401,6 +457,12 @@ export type ComposeInitialPlanInput = {
   trainingCatalog?: TrainingCatalogSource | null;
   trainingEffortText?: { strength: string; cardio: string } | null;
   activeContraindicationRuleIds?: readonly string[];
+  /** When present AND `mode === "MEALS"`, the prescribed plan is composed
+   *  from this reviewed template set against this catalog source instead of
+   *  the three in-code fixture ids. `null`/absent keeps today's behaviour
+   *  exactly: no production call site passes this (`managed-executor.ts`
+   *  calls `composeInitialPlan` with no `mealComposer`). */
+  mealComposer?: { templateSet: MealTemplateSet; source: FoodCatalogSource } | null;
 };
 
 /**
@@ -647,12 +709,50 @@ export function composeInitialPlan(input: ComposeInitialPlanInput): ComposeIniti
     carbsG: midpoint(prescription.carbohydrateRangeG),
     fatG: midpoint(prescription.fatRangeG),
   };
-  const meals =
-    input.mode === "MEALS"
-      ? composeMealsToPrescription(answers, prescription, input.binding.foodCatalogVersion)
-      : null;
+  // S-36a: when a reviewed template set + catalog source is supplied for a
+  // MEALS request, route through the shared intake->constraints mapper and
+  // the real composer instead of the three in-code fixture ids. Absent
+  // `mealComposer` (every production call site today) keeps the exact
+  // existing call.
+  let meals: PlanPayload["meals"] = null;
+  let mealsDegrade: { explanation: string; nextAction: string } | null = null;
+  if (input.mode === "MEALS") {
+    if (input.mealComposer) {
+      const mapped = mealComposerConstraintsFromIntake(answers);
+      if (!mapped.composable) {
+        mealsDegrade =
+          mapped.block === "COOKING_ACCESS_NOT_CONFIRMED"
+            ? {
+                explanation:
+                  "Targets are shown without a meal plan because your cooking equipment and storage have not been confirmed. Meals are matched to the equipment you tell us you have.",
+                nextAction: "Confirm your cooking equipment, storage and usual prep time in your intake.",
+              }
+            : {
+                explanation:
+                  "Targets are shown without a meal plan because your allergy answers have not been confirmed. Specific foods are not suggested until they are.",
+                nextAction: "Confirm your allergy answers in your intake.",
+              };
+      } else {
+        const composed = composeMealsToPrescriptionWithReasons(
+          answers,
+          prescription,
+          input.binding.foodCatalogVersion,
+          {
+            templateSet: input.mealComposer.templateSet,
+            source: input.mealComposer.source,
+            constraints: mapped.constraints,
+            policyVersion: input.binding.policyVersion,
+            exerciseCatalogVersion: input.binding.exerciseCatalogVersion,
+          }
+        );
+        meals = composed.meals;
+      }
+    } else {
+      meals = composeMealsToPrescription(answers, prescription, input.binding.foodCatalogVersion);
+    }
+  }
   // Degrade, never disappear: a prescribed macro-only plan asked for MEALS
-  // that the fixture catalog cannot compose keeps its nutrition targets.
+  // that the catalog cannot compose keeps its nutrition targets.
   const feasible = input.mode !== "MEALS" || meals !== null;
   const payload = assembleV2Plan(
     input.binding,
@@ -686,9 +786,16 @@ export function composeInitialPlan(input: ComposeInitialPlanInput): ComposeIniti
       ),
       explanation: feasible
         ? "Your proposal is ready for review. It is not active until review and acceptance are complete."
-        : "The catalog cannot compose meals within tolerance of the reviewed prescription; targets are shown without a meal plan.",
+        : (mealsDegrade?.explanation ??
+          // Deliberately generic: this branch is reached for every composer
+          // failure reason (solver/tolerance, an unresolved catalog
+          // reference, a failed re-verification...), not only a tolerance
+          // miss, so the copy must not name a specific cause it cannot see.
+          "The catalog cannot compose meals that satisfy the reviewed prescription; targets are shown without a meal plan."),
       limitations: ["Synthetic catalog only; nutrient adequacy is not established."],
-      nextAction: "Review the proposal when it has been approved.",
+      nextAction: feasible
+        ? "Review the proposal when it has been approved."
+        : (mealsDegrade?.nextAction ?? "Review the proposal when it has been approved."),
       changeClass: "INITIAL",
     },
     prescription: prescriptionResult,

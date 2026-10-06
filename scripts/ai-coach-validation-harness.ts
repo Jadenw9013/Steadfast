@@ -87,7 +87,13 @@ import { loadDraftUnsignedExerciseCatalog } from "../lib/ai-coach/artifacts/draf
 import {
   DRAFT_FOOD_CATALOG_FILENAME,
   draftFoodCatalogFileSchema,
+  loadDraftUnsignedMealTemplates,
+  loadDraftUnsignedFoodCatalog,
 } from "../lib/ai-coach/artifacts/drafts/loader";
+import { sourcedFoodCatalogSource, type FoodCatalogSource } from "../lib/ai-coach/catalog/food-source";
+import type { MealTemplateSet } from "../lib/ai-coach/catalog/meal-template-schema";
+import { mealComposerConstraintsFromIntake } from "../lib/ai-coach/meal-constraints";
+import { composeMealsToPrescriptionWithReasons } from "../lib/ai-coach/initial-plan";
 import { buildSyntheticArtifactSet } from "../lib/ai-coach/artifacts/synthetic-fixtures";
 import { trainingCatalogSourceFromArtifactContent } from "../lib/ai-coach/training/catalog-source";
 import type {
@@ -1128,6 +1134,386 @@ function attributeCompositionFailure(
       .join("+")}`;
   }
   return "SOLVER_OR_TOLERANCE";
+}
+
+/* ------------------------------------- S-36a composition measurement table */
+
+/**
+ * S-36a: the reviewed draft template set + the signed v1 food catalog,
+ * loaded ONLY for the second, separately-labelled measurement table below.
+ * The primary table and `evaluateProfile`/`attributeCompositionFailure`
+ * above are untouched by this and stay byte-identical. `null` when either
+ * draft file is absent (loader throws when NODE_ENV==="production" or the
+ * file is missing), so the section degrades to a stated skip instead of
+ * crashing the whole report.
+ */
+type CatalogComposerInputs = {
+  templateSet: MealTemplateSet;
+  source: FoodCatalogSource;
+  templateSetLabel: string;
+  catalogLabel: string;
+  catalogArtifactKey: string;
+};
+
+function loadSignedCatalogComposerInputs(): CatalogComposerInputs | null {
+  try {
+    const templatesFile = loadDraftUnsignedMealTemplates();
+    const catalogFile = loadDraftUnsignedFoodCatalog();
+    return {
+      templateSet: templatesFile.content,
+      source: sourcedFoodCatalogSource(catalogFile.content),
+      templateSetLabel: `${templatesFile.content.artifactKey}:v${templatesFile.content.version}`,
+      catalogLabel: `${catalogFile.content.artifactKey}:v${catalogFile.content.version}`,
+      catalogArtifactKey: catalogFile.content.artifactKey,
+    };
+  } catch {
+    return null;
+  }
+}
+
+type CompositionMeasurementResult = {
+  profile: Profile;
+  status: "COMPOSED_WITH_MEALS" | "MACROS_ONLY" | "UNAVAILABLE" | "THREW";
+  /** Deduped (a `Set` turned back into an array): one entry per DISTINCT
+   *  code this profile produced, never one entry per rejected template. See
+   *  review round 1 MINOR 4 -- the composer pushes one reason per rejected
+   *  template, so counting raw occurrences inflates a histogram meant to be
+   *  read as "how many profiles hit this reason" into "how many templates". */
+  reasonCodes: string[];
+  /** `LOW_TEMPLATE_VARIETY` etc. from `composeWeekFromTemplates`, forwarded
+   *  through `composeMealsToPrescriptionWithReasons`. Only ever non-empty
+   *  when `status === "COMPOSED_WITH_MEALS"`. Review round 1 MINOR 3: this
+   *  is the discriminator between a composed week drawn from real variety
+   *  and one combination reused because the per-slot survivor count fell
+   *  below the repeat-cap's own enforcement threshold (see MAJOR 1 below). */
+  warnings: string[];
+};
+
+/**
+ * Re-evaluates one profile against the reviewed template set + signed v1
+ * catalog, through the real shared composer
+ * (`composeMealsToPrescriptionWithReasons`) rather than `composeInitialPlan`,
+ * so the bucket histogram is the composer's own granular `ComposeReason[]`
+ * (and the mapper's fail-closed block code) instead of a generic decision
+ * reason code. `allergenDeclarations` is overridden to CONFIRMED/no-known on
+ * the answers object before anything else runs -- the measurement
+ * assumption named in the report, never product behaviour.
+ *
+ * `maxRepeatsPerWeek` is a measurement-only knob (round 1 MAJOR 1): the
+ * composer's own `maxRepeatsPerWeek` default is 3 and no production caller
+ * ever changes it; this function is called twice by the section builder
+ * below, once at today's value and once at 7, so the content question (what
+ * the corpus can feed a client) and the scheduling question (how the
+ * per-day greedy spends its survivor pool against the cap) are separable.
+ */
+function evaluateCompositionAgainstReviewedCatalog(
+  profile: Profile,
+  source: ParameterSource,
+  binding: Binding,
+  evaluatedOn: string,
+  composer: CatalogComposerInputs,
+  maxRepeatsPerWeek: number
+): CompositionMeasurementResult {
+  const axes = profile.axes;
+  const rawAnswers = answersFor(axes, evaluatedOn);
+  (rawAnswers as Record<string, unknown>).allergenDeclarations = {
+    status: "CONFIRMED",
+    noKnownAllergens: true,
+    items: [],
+  };
+
+  const parsedAnswers = intakeAnswersSchema.safeParse(rawAnswers);
+  if (!parsedAnswers.success) {
+    return { profile, status: "THREW", reasonCodes: ["HARNESS_INVALID_INTAKE"], warnings: [] };
+  }
+
+  if (!binding.prescriptionParameters) {
+    return {
+      profile,
+      status: "UNAVAILABLE",
+      reasonCodes: ["PRESCRIPTION_PARAMETER_MISSING"],
+      warnings: [],
+    };
+  }
+  const built = buildPrescriptionInput(rawAnswers, evaluatedOn);
+  if (!built.ok) {
+    return { profile, status: "UNAVAILABLE", reasonCodes: [...new Set(built.reasonCodes)], warnings: [] };
+  }
+  const prescriptionResult = computePrescription(binding.prescriptionParameters, built.input);
+  if (prescriptionResult.status !== "PRESCRIBED") {
+    return {
+      profile,
+      status: "UNAVAILABLE",
+      reasonCodes: [...new Set(prescriptionResult.reasonCodes)],
+      warnings: [],
+    };
+  }
+
+  const mapped = mealComposerConstraintsFromIntake(parsedAnswers.data);
+  if (!mapped.composable) {
+    return { profile, status: "MACROS_ONLY", reasonCodes: [mapped.block], warnings: [] };
+  }
+
+  try {
+    const composed = composeMealsToPrescriptionWithReasons(
+      parsedAnswers.data,
+      prescriptionResult.prescription,
+      composer.catalogArtifactKey,
+      {
+        templateSet: composer.templateSet,
+        source: composer.source,
+        constraints: mapped.constraints,
+        policyVersion: source.policyVersionForPayload,
+        exerciseCatalogVersion: source.exerciseCatalogVersionForPayload,
+        maxRepeatsPerWeek,
+      }
+    );
+    if (composed.meals) {
+      return {
+        profile,
+        status: "COMPOSED_WITH_MEALS",
+        reasonCodes: [],
+        warnings: [...new Set(composed.warnings ?? [])],
+      };
+    }
+    return {
+      profile,
+      status: "MACROS_ONLY",
+      reasonCodes: [...new Set(composed.reasons.map((reason) => reason.code))],
+      warnings: [],
+    };
+  } catch (error) {
+    return {
+      profile,
+      status: "THREW",
+      reasonCodes: [error instanceof Error ? `${error.name}: ${error.message}` : String(error)],
+      warnings: [],
+    };
+  }
+}
+
+const COMPOSITION_PATTERN_KEYS = [
+  "OMNIVORE",
+  "LACTO_OVO_VEGETARIAN",
+  "VEGAN",
+  "PESCATARIAN",
+  "OTHER",
+  "NONE_DECLARED",
+  "ABSENT",
+];
+const COMPOSITION_STATUS_KEYS = ["COMPOSED_WITH_MEALS", "MACROS_ONLY", "UNAVAILABLE", "THREW"];
+
+/**
+ * One cap's worth of results (round 1 MAJOR 1: this is called once at
+ * `maxRepeatsPerWeek: 3` and once at `7`), rendered as one sub-table block.
+ * Round 1 MINOR 4: the reason tables are split prescription-stage
+ * (why `UNAVAILABLE`) vs composer-stage (why `MACROS_ONLY`), and each is
+ * counted once per profile, never once per rejected template.
+ */
+function renderCompositionCapSection(
+  label: string,
+  profiles: readonly Profile[],
+  source: ParameterSource,
+  binding: Binding,
+  evaluatedOn: string,
+  composer: CatalogComposerInputs,
+  maxRepeatsPerWeek: number
+): string[] {
+  const results = profiles.map((profile) =>
+    evaluateCompositionAgainstReviewedCatalog(
+      profile,
+      source,
+      binding,
+      evaluatedOn,
+      composer,
+      maxRepeatsPerWeek
+    )
+  );
+
+  const statusCounts = new Counter();
+  for (const key of COMPOSITION_STATUS_KEYS) statusCounts.declare(key);
+  const prescriptionReasons = new Counter();
+  const composerReasons = new Counter();
+  const warningCounts = new Counter();
+  let composedWithWarnings = 0;
+  for (const result of results) {
+    statusCounts.add(result.status);
+    if (result.status === "UNAVAILABLE") {
+      for (const code of result.reasonCodes) prescriptionReasons.add(code);
+    } else if (result.status === "MACROS_ONLY") {
+      for (const code of result.reasonCodes) composerReasons.add(code);
+    }
+    if (result.warnings.length > 0) {
+      composedWithWarnings += 1;
+      for (const warning of result.warnings) warningCounts.add(warning);
+    }
+  }
+
+  const patternTotals = new Map<string, Counter>();
+  for (const key of COMPOSITION_PATTERN_KEYS) {
+    const counter = new Counter();
+    for (const statusKey of COMPOSITION_STATUS_KEYS) counter.declare(statusKey);
+    patternTotals.set(key, counter);
+  }
+  for (const result of results) {
+    const key = result.profile.axes.pattern ?? "ABSENT";
+    patternTotals.get(key)?.add(result.status);
+  }
+
+  const lines: string[] = [];
+  lines.push(`#### ${label}`);
+  lines.push("");
+  lines.push("| Composer outcome | Profiles |");
+  lines.push("|---|---|");
+  for (const [key, count] of statusCounts.entries()) lines.push(`| ${key} | ${count} |`);
+  lines.push("");
+  lines.push(
+    `Profiles whose composed week carries \`LOW_TEMPLATE_VARIETY\` (one combination reused across more ` +
+      `days than the corpus's own variety would normally allow, because the per-slot survivor count fell ` +
+      `below the repeat cap's own enforcement threshold): **${composedWithWarnings}** of ` +
+      `${statusCounts.get("COMPOSED_WITH_MEALS")} composed.`
+  );
+  lines.push("");
+  lines.push(
+    "Prescription-stage reason, one count per profile (why no prescription reached the composer at all):"
+  );
+  lines.push("");
+  lines.push("| Reason code | Profiles |");
+  lines.push("|---|---|");
+  if (prescriptionReasons.total === 0) lines.push("| (none) | 0 |");
+  for (const [key, count] of prescriptionReasons.entries()) lines.push(`| \`${key}\` | ${count} |`);
+  lines.push("");
+  lines.push(
+    "Composer-stage reason, one count per profile (why a real prescription still did not compose):"
+  );
+  lines.push("");
+  lines.push("| Reason code | Profiles |");
+  lines.push("|---|---|");
+  if (composerReasons.total === 0) lines.push("| (none) | 0 |");
+  for (const [key, count] of composerReasons.entries()) lines.push(`| \`${key}\` | ${count} |`);
+  lines.push("");
+  lines.push(
+    "By declared dietary pattern (`ABSENT` = `dietaryPattern` not declared on that profile):"
+  );
+  lines.push("");
+  lines.push("| Pattern | COMPOSED_WITH_MEALS | MACROS_ONLY | UNAVAILABLE | THREW |");
+  lines.push("|---|---|---|---|---|");
+  for (const key of COMPOSITION_PATTERN_KEYS) {
+    const counter = patternTotals.get(key)!;
+    lines.push(
+      `| ${key} | ${counter.get("COMPOSED_WITH_MEALS")} | ${counter.get("MACROS_ONLY")} | ` +
+        `${counter.get("UNAVAILABLE")} | ${counter.get("THREW")} |`
+    );
+  }
+  return lines;
+}
+
+/**
+ * Builds the "Composition against the reviewed catalog and template set"
+ * section: a second, clearly-labelled measurement over the SAME profile
+ * grid as the primary report, with the CONFIRMED-allergen override stated in
+ * the output text itself (risk 5 in the spec), never only in code. Reports
+ * TWO cap values side by side (round 1 MAJOR 1) -- `maxRepeatsPerWeek: 3`
+ * (today's production value) and `7` -- because round 1 review showed the
+ * composed count is produced by the repeat cap's interaction with the
+ * per-day greedy day-assignment, not by template macro coverage, and
+ * widening the cap is explicitly NOT done in this ticket (risk 4: do not fix
+ * the measurement by loosening a filter). The cap's value is a product/
+ * content decision for Jaden; this table gives him both numbers.
+ */
+function buildCompositionAgainstReviewedCatalogSection(
+  profiles: readonly Profile[],
+  source: ParameterSource,
+  binding: Binding,
+  evaluatedOn: string
+): string {
+  const composer = loadSignedCatalogComposerInputs();
+  if (!composer) {
+    return [
+      "### Composition against the reviewed catalog and template set",
+      "",
+      "**SKIPPED** -- the draft meal-templates file and/or the signed v1 food-catalog draft file were " +
+        "not found by `loadDraftUnsignedMealTemplates`/`loadDraftUnsignedFoodCatalog`. This table runs " +
+        "only when both are present on disk.",
+    ].join("\n");
+  }
+
+  const lines: string[] = [];
+  lines.push("### Composition against the reviewed catalog and template set");
+  lines.push("");
+  lines.push(
+    `Template set: \`${composer.templateSetLabel}\`. Food catalog: \`${composer.catalogLabel}\`.`
+  );
+  lines.push("");
+  lines.push(
+    "**Measurement assumption, stated here and not only in code:** every profile's " +
+      "`allergenDeclarations` is overridden to `{ status: \"CONFIRMED\", noKnownAllergens: true }` " +
+      "before this section is computed. The primary table above leaves every profile's declared " +
+      "`UNKNOWN` status untouched and is unaffected by this override -- its numbers and run key are " +
+      "byte-identical to the pre-S-36a report."
+  );
+  lines.push("");
+  lines.push(
+    "**`UNAVAILABLE` is defined differently here than in the primary table above, by necessity** (round " +
+      "1 MINOR 5): the primary table's `UNAVAILABLE` is `payload.nutrition === null` after the full " +
+      "`composeInitialPlan` routing, which also runs the one v1-intake profile through the entirely " +
+      "separate legacy composer; this section's `UNAVAILABLE` is `prescriptionResult.status !== " +
+      "\"PRESCRIBED\"` (or the v2 prescription input failing to build), computed directly because this " +
+      "section measures the template-composer path specifically, not the legacy one. The two predicates " +
+      "agree on every v2 profile and differ only on that single v1 profile — which is why this section's " +
+      "`UNAVAILABLE` total is 3568 where the primary table's is 3567. That one-profile gap is this " +
+      "definition difference, not a regression."
+  );
+  lines.push("");
+  lines.push(`Profiles: **${profiles.length}** (same grid as the primary table), evaluated twice below.`);
+  lines.push("");
+  lines.push(
+    "**Mechanism (round 1 MAJOR 1): the repeat cap decides WHICH profiles compose at cap 3; template " +
+      "macro coverage bounds the ceiling.** At cap 7, 408 of the 496 prescribed profiles still fail " +
+      "`NO_FEASIBLE_MEALS`, so coverage is a live constraint, not a solved one -- both levers are real. " +
+      "`composeWeekFromTemplates` computes `minNeeded = ceil(7 / maxRepeatsPerWeek)` and " +
+      "only enforces the repeat cap on a slot whose own survivor count is `>= minNeeded` " +
+      "(`enforceRepeatLimit`); a client whose per-slot survivor count falls BELOW that threshold has the " +
+      "cap silently switched off for that slot and can reuse its one in-tolerance combination all 7 days. " +
+      "At `maxRepeatsPerWeek: 3`, `minNeeded = 3`: a profile with 2 survivors per slot (a smaller, " +
+      "pattern-filtered set, e.g. a mandatory VEGAN client) clears that threshold's absence and composes " +
+      "by repeating the same week; a profile with a LARGER survivor set (e.g. the same targets with no " +
+      "pattern filter, or OMNIVORE, whose survivor set is a strict superset) is held to the cap, and the " +
+      "day-by-day greedy can burn its best in-tolerance combinations on days 1-6 and reject the WHOLE week " +
+      "on day 7 — even when a lower-variety combination that would satisfy every day is still sitting " +
+      "unused in its own pool. This is pre-existing T-2036 scheduling behaviour, untouched by this ticket; " +
+      "the two tables below hold the targets and the catalog fixed and change only this one cap, to show " +
+      "the effect in isolation. Whether MORE templates would push more clients over the `>= 3` threshold " +
+      "and LOWER the count at cap 3 is an unmeasured inference, not a finding; it needs this table " +
+      "re-run against an extended set. **The cap is not changed in this ticket** -- raising it is a product/content " +
+      "decision, reported here as a number for Jaden, not applied as a fix."
+  );
+  lines.push("");
+
+  lines.push(
+    ...renderCompositionCapSection(
+      "maxRepeatsPerWeek: 3 (today's production value)",
+      profiles,
+      source,
+      binding,
+      evaluatedOn,
+      composer,
+      3
+    )
+  );
+  lines.push("");
+  lines.push(
+    ...renderCompositionCapSection(
+      "maxRepeatsPerWeek: 7 (measurement only -- not applied)",
+      profiles,
+      source,
+      binding,
+      evaluatedOn,
+      composer,
+      7
+    )
+  );
+  return lines.join("\n");
 }
 
 function envelopeChecks(
@@ -3677,10 +4063,13 @@ function main(): void {
       "re-creates only its six-line bundle-order template lookup."
   );
   out.push(
-    "- **The FDC draft food catalog cannot reach the meal composer.** `composeMealsToPrescription` " +
-      "resolves food IDs through `catalog/loader.ts`, which serves only the in-code fixture keys, and " +
-      "it is hard-wired to three fixture food IDs. Meal composition is therefore exercised against " +
-      "the fixture catalog; the 232-item draft catalog is reported on but not composed from."
+    "- **The primary report above (section 4+) still composes only against the three hard-wired " +
+      "fixture ids.** `composeInitialPlan` with no `mealComposer` (every production call site today) " +
+      "resolves food IDs through `catalog/loader.ts`'s in-code fixture keys. S-36a's separate " +
+      "'composition against the reviewed catalog and template set' section below exercises the real " +
+      "draft template set + the signed v1 FDC catalog through the shared composer " +
+      "(`composeMealsToPrescriptionWithReasons`) with a stated measurement override " +
+      "(`allergenDeclarations` forced CONFIRMED); it is additive and does not change the primary numbers."
   );
   out.push(
     "- **The weekly controller, finalization, acceptance and the provider boundary.** All DB-bound or " +
@@ -3709,6 +4098,28 @@ function main(): void {
   }
 
   let nextSection = 4 + reports.length;
+
+  // S-36a: a second, separately-labelled measurement over the SAME grid as
+  // the primary report above (section 4+), against the reviewed draft
+  // template set and the signed v1 food catalog instead of the three
+  // hard-wired fixture ids. This never reads or mutates `profiles`,
+  // `reports` or anything the run key (above) is a hash of, so the primary
+  // table and the run key stay byte-identical -- re-run and diff to confirm.
+  out.push(
+    `## ${nextSection}. S-36a — composition against the reviewed catalog and template set`
+  );
+  out.push("");
+  out.push(
+    buildCompositionAgainstReviewedCatalogSection(
+      profiles,
+      primary,
+      reports[0].binding,
+      evaluatedOn
+    )
+  );
+  out.push("");
+  nextSection += 1;
+
   if (adaptiveHistory) {
     const adaptive = adaptiveHistorySection(sources, seed, adaptiveReplicates);
     out.push(`## ${nextSection}. S-23 adaptive energy estimator — synthetic history vs ground truth`);

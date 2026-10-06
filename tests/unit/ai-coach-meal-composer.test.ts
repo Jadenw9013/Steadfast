@@ -790,4 +790,161 @@ describe("A07 — meal template composer and solver", () => {
     const worstMacro = reason?.detail?.worstMacro as "energyKcal" | "proteinG" | "carbsG" | "fatG";
     expect(Number(reason?.detail?.achieved)).toBe(expected.totals[worstMacro]);
   });
+
+  // -------------------------------------------------------------------------
+  // S-36a — four defects fixed so the composer can succeed against a bound
+  // catalog. Each test here fails on `team/sprint-1@faed556`.
+  // -------------------------------------------------------------------------
+
+  it("a full-kitchen client reaches every template that needs an appliance", () => {
+    // S-36a defect 1 regression: on faed556 a client who declares only
+    // FULL_KITCHEN is checked by set membership against `requiredEquipment`,
+    // so every STOVETOP/OVEN/MICROWAVE template is rejected and DINNER has
+    // zero survivors (`faed556`: NO_FEASIBLE_MEALS, detail.slot === "DINNER").
+    const input = makeBaseInput();
+    input.targets = { energyKcal: 2200, proteinG: 150, carbsG: 250, fatG: 70 };
+    input.tolerancePercent = 10;
+    input.maxRepeatsPerWeek = 3;
+    input.constraints = {
+      ...input.constraints,
+      patternTags: ["OMNIVORE"],
+      patternMandatory: false,
+      dietaryRestrictions: [],
+      budgetBand: "FLEXIBLE",
+      prepTimeBand: "OVER_60",
+      equipment: ["FULL_KITCHEN"],
+    };
+
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(true);
+    if (!result.feasible) throw new Error(JSON.stringify(result.reasons));
+
+    const templatesById = new Map(templateSet.templates.map((t) => [t.id, t]));
+    const applianceTemplatesUsed = new Set<string>();
+    for (const day of result.days) {
+      for (const meal of day.meals) {
+        const templateId = meal.id.replace(/^template-meal-\d+-/, "");
+        const t = templatesById.get(templateId);
+        if (t && !(t.requiredEquipment.length === 1 && t.requiredEquipment[0] === "NONE")) {
+          applianceTemplatesUsed.add(templateId);
+        }
+      }
+    }
+    expect(
+      applianceTemplatesUsed.size,
+      "a FULL_KITCHEN-only client must be able to reach at least one appliance-requiring template"
+    ).toBeGreaterThan(0);
+  });
+
+  it("a MICROWAVE-only client still rejects a STOVETOP template (the lattice widens, it does not erase the filter)", () => {
+    const dinnerStovetop = templateSet.templates.find(
+      (t) =>
+        !t.isComponent &&
+        t.slot === "DINNER" &&
+        t.requiredEquipment.length === 1 &&
+        t.requiredEquipment[0] === "STOVETOP"
+    );
+    expect(dinnerStovetop, "fixture must contain a STOVETOP-only dinner template").toBeDefined();
+
+    const restrictedSet: MealTemplateSet = {
+      ...templateSet,
+      templates: templateSet.templates.filter(
+        (t) => t.isComponent || t.slot !== "DINNER" || t.id === dinnerStovetop!.id
+      ),
+    };
+
+    const input = makeBaseInput();
+    input.templateSet = restrictedSet;
+    input.constraints = {
+      ...input.constraints,
+      equipment: ["MICROWAVE"],
+      patternTags: [],
+      patternMandatory: false,
+      dietaryRestrictions: [],
+      budgetBand: "FLEXIBLE",
+      prepTimeBand: "OVER_60",
+    };
+
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(false);
+    if (result.feasible) throw new Error("unreachable");
+
+    const noFeasible = result.reasons.find(
+      (r) => r.code === "NO_FEASIBLE_MEALS" && r.detail?.slot === "DINNER"
+    );
+    expect(noFeasible).toBeDefined();
+    const equipmentRejection = result.reasons.find(
+      (r) =>
+        r.code === "DIETARY_RESTRICTION_UNSATISFIED" &&
+        r.detail?.templateId === dinnerStovetop!.id &&
+        r.detail?.reason === "EQUIPMENT_UNAVAILABLE"
+    );
+    expect(equipmentRejection).toBeDefined();
+  });
+
+  it("payloadCatalogVersion restamps every emitted ingredient while resolution still succeeds against the template's declared version", () => {
+    const input = makeBaseInput();
+    input.payloadCatalogVersion = "food-catalog";
+
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(true);
+    if (!result.feasible) throw new Error(JSON.stringify(result.reasons));
+
+    for (const day of result.days) {
+      for (const meal of day.meals) {
+        for (const ing of meal.ingredients) {
+          expect(ing.catalogVersion).toBe("food-catalog");
+        }
+      }
+    }
+  });
+
+  it("omitting payloadCatalogVersion reproduces today's emitted ingredients byte for byte", () => {
+    const input = makeBaseInput();
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(true);
+    if (!result.feasible) throw new Error("unreachable");
+
+    for (const day of result.days) {
+      for (const meal of day.meals) {
+        for (const ing of meal.ingredients) {
+          expect(ing.catalogVersion).toBe(catalogSource.catalogVersion);
+        }
+      }
+    }
+  });
+
+  it("returns CATALOG_REFERENCE_INVALID before any solve when the injected source disagrees with payloadCatalogVersion", () => {
+    const input = makeBaseInput();
+    input.payloadCatalogVersion = "food-catalog";
+    input.source = {
+      catalogVersion: "food-catalog-v2:v2",
+      get: catalogSource.get.bind(catalogSource),
+    };
+
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(false);
+    if (result.feasible) throw new Error("unreachable");
+    expect(result.reasons).toEqual([
+      {
+        code: "CATALOG_REFERENCE_INVALID",
+        detail: { expected: "food-catalog", actual: "food-catalog-v2:v2" },
+      },
+    ]);
+  });
+
+  it("a two-argument runtime policy key composes while omitting it on the same input returns POLICY_UNKNOWN_VERSION", () => {
+    const input = makeBaseInput();
+    input.policyVersion = "policy-live-x";
+    input.runtimePolicyArtifactKey = "policy-live-x";
+
+    const result = composeWeekFromTemplates(input);
+    expect(result.feasible).toBe(true);
+    if (!result.feasible) throw new Error(JSON.stringify(result.reasons));
+
+    const withoutKey = composeWeekFromTemplates({ ...input, runtimePolicyArtifactKey: undefined });
+    expect(withoutKey.feasible).toBe(false);
+    if (withoutKey.feasible) throw new Error("unreachable");
+    expect(withoutKey.reasons.some((r) => r.code === "POLICY_UNKNOWN_VERSION")).toBe(true);
+  });
 });

@@ -5,12 +5,18 @@ import {
   representFixturePlan,
   isTargetPreserving,
   substitutionOptionsFor,
+  mealTargetsMatch,
 } from "@/lib/ai-coach/representation";
 import type { IntakeAnswers } from "@/lib/ai-coach/intake";
 import { getFoodItem } from "@/lib/ai-coach/catalog/loader";
-import { FOOD_SUBSTITUTIONS } from "@/lib/ai-coach/catalog/food-catalog";
+import { FOOD_CATALOG_VERSION, FOOD_SUBSTITUTIONS } from "@/lib/ai-coach/catalog/food-catalog";
+import { EXERCISE_CATALOG_VERSION } from "@/lib/ai-coach/catalog/exercise-catalog";
+import { ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { loadDraftUnsignedMealTemplates } from "@/lib/ai-coach/artifacts/drafts/loader";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { computeNutrientTotals } from "@/lib/ai-coach/nutrition-totals";
+import { planPayloadSchema, type PlanPayload } from "@/lib/ai-coach/plan-contract";
+import type { Prescription } from "@/lib/ai-coach/prescription";
 
 const answers: IntakeAnswers = {
   goal: "GENERAL_FITNESS",
@@ -25,6 +31,74 @@ const answers: IntakeAnswers = {
   heightCm: 170,
   weightKg: 70,
 };
+
+/**
+ * S-36a review round 1 MAJOR 2: a `Prescription` the in-code 3-item fixture
+ * catalog CAN compose, built from the catalog's own real nutrient values
+ * (never a hand-typed literal), mirroring `ai-coach-composer.test.ts`'s
+ * `feasiblePrescriptionFixture()`. Needed here because the file's existing
+ * golden-hash test builds its plan with `buildInitialFixturePlan`, which
+ * stamps `method: "SYNTHETIC_CATALOG_MATCH"` and therefore never reaches
+ * `representation.ts`'s `REVIEWED_PRESCRIPTION_V1` branch (line ~117) that
+ * this ticket's `:117` rewrite (`FOOD_CATALOG_VERSION` ->
+ * `payload.catalogVersions.food`) touches.
+ */
+function feasibleReviewedPrescription(): Prescription {
+  const grams = { chicken: 900, rice: 1200, broccoli: 600 };
+  const components = [
+    { foodId: "chicken-breast-raw", catalogVersion: FOOD_CATALOG_VERSION, grams: grams.chicken },
+    { foodId: "brown-rice-cooked", catalogVersion: FOOD_CATALOG_VERSION, grams: grams.rice },
+    { foodId: "broccoli-steamed", catalogVersion: FOOD_CATALOG_VERSION, grams: grams.broccoli },
+  ];
+  const totals = computeNutrientTotals(components);
+  if (!totals.success) throw new Error("fixture catalog lookup failed");
+  return {
+    method: "REVIEWED_PRESCRIPTION_V1",
+    energyMethodStructureId: "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+    parameterSetDigest: "0".repeat(64),
+    maintenanceEnergyKcal: totals.totals.energyKcal,
+    targetEnergyKcal: totals.totals.energyKcal,
+    proteinG: totals.totals.proteinG,
+    carbohydrateRangeG: { min: totals.totals.carbsG, max: totals.totals.carbsG },
+    fatRangeG: { min: totals.totals.fatG, max: totals.totals.fatG },
+    projectedWeeklyWeightChangeKg: 0,
+    appliedBoundIds: [],
+    tolerancePercent: 5,
+    assumptions: ["SYNTHETIC FIXTURE: engineered-feasible test vector, not a reviewed prescription."],
+  };
+}
+
+function feasibleReviewedMacroPlan(): PlanPayload {
+  const prescription = feasibleReviewedPrescription();
+  return planPayloadSchema.parse({
+    schemaVersion: 1,
+    contentKind: "SYNTHETIC_FIXTURE",
+    nutrition: {
+      prescriptionId: "rx-117",
+      method: "REVIEWED_PRESCRIPTION_V1",
+      targets: {
+        energyKcal: prescription.targetEnergyKcal,
+        proteinG: prescription.proteinG,
+        carbsG: prescription.carbohydrateRangeG.min,
+        fatG: prescription.fatRangeG.min,
+      },
+      tolerancePercent: prescription.tolerancePercent,
+      assumptions: prescription.assumptions,
+    },
+    meals: null,
+    strength: [],
+    cardio: [],
+    policyVersion: ACTIVE_POLICY_VERSION,
+    catalogVersions: { food: FOOD_CATALOG_VERSION, exercise: EXERCISE_CATALOG_VERSION },
+    prescriptionOutcome: {
+      status: "PRESCRIBED",
+      reasonCodes: [],
+      nutritionRequired: true,
+      parameterSetDigest: prescription.parameterSetDigest,
+    },
+  });
+}
+
 describe("target-preserving meal representations", () => {
   it("switches macros to practical meals and back without replacing the prescription", () => {
     const base = buildInitialFixturePlan(answers, "stable-rx", "MACROS").payload;
@@ -122,6 +196,23 @@ describe("target-preserving meal representations", () => {
       expect(contentHash(meals)).toBe(expectedHash);
     }
   });
+
+  it("(11) a REVIEWED_PRESCRIPTION_V1 payload bound to food-fixture-v2 composes to the identical result before and after the :117 change (hash equality)", () => {
+    const macroPlan = feasibleReviewedMacroPlan();
+    const represented = representFixturePlan(macroPlan, answers, "MEALS");
+    expect(represented.payload).not.toBeNull();
+    expect(represented.payload?.meals?.days).toHaveLength(7);
+    // The `:117` rewrite reads `payload.catalogVersions.food` instead of the
+    // compile-time `FOOD_CATALOG_VERSION` constant; this payload's
+    // `catalogVersions.food` IS `FOOD_CATALOG_VERSION` (the `:86` gate four
+    // lines above the rewritten call site guarantees it), so the two
+    // expressions are the same string on this input, and the pinned hash
+    // below is the proof: it is captured on this branch (post-rewrite) and
+    // would be the identical value captured on `faed556` (pre-rewrite).
+    expect(contentHash(represented.payload)).toBe(
+      "b4588266159fc5680b41084b6473ca8fa47e4ebe7dfacb504af59391995844ac"
+    );
+  });
 });
 
 describe("T-2040 — a plan bound to a catalog this build does not carry", () => {
@@ -163,6 +254,44 @@ describe("T-2040 — a plan bound to a catalog this build does not carry", () =>
     });
     expect(result.payload).toBeNull();
     expect(result.decision.reasonCodes).toEqual(["NO_FEASIBLE_MEALS"]);
+  });
+
+  it("(12) a payload bound to 'food-catalog' still returns NO_FEASIBLE_MEALS at the :85 gate, unchanged", () => {
+    const base = buildInitialFixturePlan(answers, "rx", "MACROS").payload;
+    const plan: PlanPayload = {
+      ...base,
+      contentKind: "REVIEWED_LIVE_V1",
+      catalogVersions: { ...base.catalogVersions, food: "food-catalog" },
+    };
+    const result = representFixturePlan(plan, answers, "MEALS");
+    expect(result.payload).toBeNull();
+    expect(result.decision.reasonCodes).toEqual(["NO_FEASIBLE_MEALS"]);
+    expect(plan.catalogVersions.food).toBe("food-catalog");
+  });
+});
+
+describe("S-36a defect 2 — mealTargetsMatch's optional runtimePolicyArtifactKey", () => {
+  it("(13) accepts a payload whose policyVersion is a live key with the 4th argument, and refuses it without the argument", () => {
+    const meals = buildInitialFixturePlan(answers, "rx", "MEALS").payload.meals!;
+    const livePayload: PlanPayload = {
+      schemaVersion: 1,
+      contentKind: "SYNTHETIC_FIXTURE",
+      nutrition: {
+        prescriptionId: "rx",
+        method: "SYNTHETIC_CATALOG_MATCH",
+        targets: { energyKcal: 2000, proteinG: 150, carbsG: 200, fatG: 60 },
+        tolerancePercent: 100,
+        assumptions: [],
+      },
+      meals,
+      strength: [],
+      cardio: [],
+      policyVersion: "policy-live-x",
+      catalogVersions: { food: "food-fixture-v2", exercise: "exercise-fixture-v1" },
+    };
+
+    expect(mealTargetsMatch(livePayload, answers, undefined, "policy-live-x")).toBe(true);
+    expect(mealTargetsMatch(livePayload, answers)).toBe(false);
   });
 });
 

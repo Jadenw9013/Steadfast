@@ -1825,3 +1825,137 @@ test in `ai-coach-client-commands.test.ts` and the clock-skew-tolerance test in
 `ai-coach-consent-ambiguity.test.ts` — the five-shape bucket test was extended in place, not added as a new
 test). The 7 failures are the same pre-existing S-30 baseline, byte-identical by file and test name to every
 prior round's log; `doc_check.py` still 100.
+
+### S-36a — four composer defects fixed so the template composer can succeed against a bound catalog (2026-10-06)
+
+T-2036 shipped a general template composer (`meal-composer.ts`) and the real draft template set/catalog, but
+nothing on the managed run path could actually compose a meal with them — four independent defects, each
+confirmed by test on `team/sprint-1@faed556` before the fix:
+
+1. **Equipment was set membership, not a capability lattice.** A client who declares `["FULL_KITCHEN"]` did not
+   satisfy a `STOVETOP`/`OVEN`/`MICROWAVE` template, so `DINNER` (all 9 schedulable templates name an appliance)
+   had zero survivors for every client, every time. Fixed with an exported `EQUIPMENT_PROVIDES` lattice in
+   `meal-composer.ts` (`FULL_KITCHEN` provides every appliance plus `NONE`; the three single appliances provide
+   only themselves plus `NONE`; `OVEN` does **not** imply `STOVETOP`) and `clientEquipment` built as the union of
+   `EQUIPMENT_PROVIDES[e]` over the declared equipment. The per-template rejection reason/detail
+   (`DIETARY_RESTRICTION_UNSATISFIED` / `EQUIPMENT_UNAVAILABLE`) is unchanged.
+2. **The policy-usability check was always the one-argument, compile-time form.** `checkMealComposition` called
+   `checkPolicyVersionUsable(policyVersion)` with no second argument, so a run bound to a real policy key always
+   got `POLICY_UNKNOWN_VERSION`. `CheckMealCompositionInput` and `ComposeTemplatesInput` both gain an optional
+   `runtimePolicyArtifactKey`, forwarded into the two-argument form T-2000 already added; omitted, nothing changes.
+3. **The composer stamped the template's declared `catalogVersion`; the payload stamped the binding's key.**
+   `meal-composer.ts`'s emitted `PlanPayload` ingredient used the template's own `"food-catalog:v1"` while
+   `assembleV2Plan` stamps `catalogVersions.food = binding.foodCatalogVersion` (the artifact key, `"food-catalog"`)
+   — `plan-contract.ts`'s per-ingredient binding check requires those equal, so the first successful composition
+   would have **thrown** inside `planPayloadSchema.parse`, failing the run instead of degrading. Fixed with an
+   optional `payloadCatalogVersion` on `ComposeTemplatesInput`: resolution during the solve still uses the
+   template's own declared version (so the real catalog source still resolves every ingredient); only the
+   *emitted* payload ingredient is restamped. A frozen binding-time check runs before any solve: when
+   `payloadCatalogVersion` is supplied, the injected source's own `catalogVersion` must equal it or start with
+   `` `${payloadCatalogVersion}:v` ``, else `CATALOG_REFERENCE_INVALID` with `{expected, actual}` — the
+   "the template set and the catalog must be the same artifact" check on this side of S-36b.
+4. **The options branch stamped compile-time constants (`ACTIVE_POLICY_VERSION` / `EXERCISE_CATALOG_VERSION`)
+   into its own verification payload**, so a run bound to a real policy/exercise key verified against the wrong
+   values. `ComposeMealsToPrescriptionOptions` gains optional `policyVersion` / `exerciseCatalogVersion` (default
+   to the two compile-time constants, so the T-2036 unit corpus is unaffected); `composeMealsToPrescriptionWithReasons`
+   resolves both once and uses them for the compose call, `runtimePolicyArtifactKey` (set to the SAME value as
+   `policyVersion`, an identity by construction — see code comment for why that's safe), and the verification
+   payload/`mealTargetsMatch` call, so none of the three can disagree.
+
+**New shared mapper, `lib/ai-coach/meal-constraints.ts`** (`mealComposerConstraintsFromIntake`): the single,
+pure function mapping a confirmed intake to `ComposeConstraints`, implementing S-36 decision 3's fail-closed
+rules — no meal composition (block `COOKING_ACCESS_NOT_CONFIRMED` / `ALLERGENS_NOT_CONFIRMED`) unless cooking
+access and allergen declarations are both `CONFIRMED`; `patternTags: []` when no pattern is declared or it is
+`OTHER`/`NONE_DECLARED`; a dislike with `canonicalFoodId: null` is dropped and counted, never matched by label.
+**S-36's "Decisions reserved for Jaden", item 3 (whether a non-mandatory declared pattern should still
+hard-filter) is Jaden's, not decided here** — the mapper passes `patternMandatory` through exactly as declared,
+with a comment citing the reserved decision by its correct number (round 1 review MINOR 6 caught an earlier
+draft citing the frozen "Decision 4" — a different, already-settled question about reading patterns from the
+catalog rather than from names — instead of this reserved one).
+
+**`composeInitialPlan` gains an optional `mealComposer: { templateSet, source } | null` field.** Absent (every
+production call site today — `managed-executor.ts` passes none), behaviour is byte-identical **except for one
+client-visible string**, asserted by test. That exception, disclosed rather than reverted (review r2 finding 1):
+the degrade explanation on the live path read "The catalog cannot compose meals **within tolerance of** the
+reviewed prescription" and now reads "...**that satisfy**...". The branch is reached for every composer failure
+— an unresolved catalog reference or a failed re-verification as much as a tolerance miss — so the old wording
+named a cause the code cannot see. The new wording claims less, which is why it stands; test (9)'s pinned
+decision hash `e87c6c8b…` encodes the new string, and this entry is the record that it changed.
+Present and `mode === "MEALS"`: the mapper runs first; on a block, `meals: null` with the prescription kept and
+one of two frozen, non-clinical explanation/nextAction pairs (never a new decision reason code — the closed
+`decisionSchema.reasonCodes` registry is untouched, the structured block travels only in `ComposeReason[]`,
+read by tests/the harness); on success, the real composer runs against the supplied template set/catalog.
+`composeLegacyMealsInternal` (the three-hard-wired-id path) gained one guard: it refuses (returning
+`CATALOG_REFERENCE_INVALID`/`CATALOG_NOT_SERVED_IN_CODE`) when `foodCatalogIsServedInCode(foodCatalogVersion)`
+is false, so a run bound to a reviewed catalog key can never silently fall back to the fixture ids.
+
+**`representation.ts:117`** (named drift since T-2040/S-31): `composeMealsToPrescription(..., FOOD_CATALOG_VERSION)`
+→ `composeMealsToPrescription(..., payload.catalogVersions.food)`. The `:86` gate four lines above the call
+already guarantees `payload.catalogVersions.food === FOOD_CATALOG_VERSION` on every input that reaches line 117,
+so the two expressions are provably the same string there. **Round 1 review correction:** this was first claimed
+to be "proven a no-op by the existing golden-hash test", but that test (`composeFixtureMeals` scaled, asserting
+`SYNTHETIC_CATALOG_MATCH` plans) never reaches line 117 at all — `representFixturePlan` only takes that branch
+for `method === "REVIEWED_PRESCRIPTION_V1"`. Spec test (11), added in round 2, exercises the actual branch: a
+`REVIEWED_PRESCRIPTION_V1` payload bound to `food-fixture-v2` through `representFixturePlan(..., "MEALS")`, with
+a pinned content hash verified identical whether the call site reads the literal `FOOD_CATALOG_VERSION` or
+`payload.catalogVersions.food` (checked by hand both ways while writing the test). The behavioural round trip
+in `ai-coach-composer.test.ts`'s "representFixturePlan — prescribed plan round trip" (via `feasibleMacroPlan()`,
+which is `REVIEWED_PRESCRIPTION_V1`) already exercised the branch too, just without a pinned hash.
+
+**Measured on the harness, not assumed (`scripts/ai-coach-validation-harness.ts`):** the primary table and its
+run key are **byte-identical** to the pre-S-36a baseline — `3567 UNAVAILABLE / 496 MACROS_ONLY / 1
+COMPOSED_WITH_MEALS / 0 THREW`, run key `e2360a4489c7e776a98437202db968add2d1d55443628f5981452f7d0657584c` —
+because every harness v2 profile's `allergenDeclarations.status` is `UNKNOWN` (decision 3 fails closed on that,
+same as today) and no production call site passes `mealComposer`. A **second, separately-labelled section**
+("Composition against the reviewed catalog and template set") re-evaluates the same 4064 profiles with
+`allergenDeclarations` overridden to `{ status: "CONFIRMED", noKnownAllergens: true }` — a stated measurement
+assumption, not product behaviour — against the real draft template set (`meal-templates:v1`) and the signed v1
+catalog (`food-catalog:v1`), through the real shared composer.
+
+**Round 1 review MAJOR 1, the correction that matters most in this section:** the first draft measured only
+`maxRepeatsPerWeek: 3` (today's production value) and reported **6 of 4064 profiles compose**, all `VEGAN`/
+mandatory, framing the result as a template-content finding ("the honest ceiling is the content gap"). The
+reviewer reproduced the 6, then showed the claimed cause was wrong: every `VEGAN`-tagged template also claims
+`OMNIVORE`, so an omnivore client's survivor set is a **strict superset** of a vegan client's at the same
+targets -- an omnivore cannot have *fewer* feasible 7-day schedules on template content grounds, and yet at one
+of the six composing profiles' own targets (1470 kcal / 56P / 202-238C / 33-57F, 5% tolerance), `VEGAN`
+composes and `OMNIVORE` fails `NO_FEASIBLE_MEALS day 7` on the identical inputs except pattern. The actual
+mechanism: `composeWeekFromTemplates` computes `minNeeded = ceil(7 / maxRepeatsPerWeek)` and
+(`enforceRepeatLimit`) enforces the repeat cap on a slot **only when that slot's own survivor count is
+`>= minNeeded`**. At `maxRepeatsPerWeek: 3`, `minNeeded = 3`: a mandatory-VEGAN client's smaller, pattern-
+filtered survivor set (often 2 per slot) falls *below* that threshold, so the cap is silently switched off and
+the client's one in-tolerance day-combination is simply reused all 7 days; an OMNIVORE client's larger survivor
+set clears the threshold, so the cap is enforced, and the day-by-day greedy can burn its best in-tolerance
+combinations on days 1-6 and reject the **whole week** on day 7 — even when a lower-variety combination that
+would satisfy every day is still sitting unused in the very same pool.
+
+**What the two tables do and do not establish** (review r2 finding 2). The cap decides *which* profiles compose
+at cap 3: 6 instead of 88, and every one of the 6 is a low-survivor profile with the cap silently off. It does
+**not** follow that macro coverage is irrelevant — at cap 7, **408 of the 496 prescribed profiles still fail
+`NO_FEASIBLE_MEALS`**, so template coverage bounds the ceiling at 88/496 and is a live constraint. Both levers
+are real: the cap explains the shape of today's number, coverage explains its ceiling.
+Whether adding templates would push more clients over the `>= 3` threshold and lower the count at cap 3 is an
+**unmeasured inference**, first made by the reviewer in round 1 and restated here as one — not a finding. It can
+be measured by re-running this table against an extended template set, which nothing in this ticket does.
+
+Per the reviewer's direction, **the cap is not changed in this ticket** (risk 4 forbids loosening a filter to
+raise the measured number). The harness now reports the measurement at both `maxRepeatsPerWeek: 3` (today) and
+`7` side by side, with the mechanism stated in the report text itself, so the content question and the
+scheduling question are separable: at cap 3, **6 of 4064** compose (all `VEGAN`/mandatory, all at the
+body-weight grid's extreme low edge of 40-41 kg -- a boundary-stress-test artifact of the grid, not a claim
+about typical body weights); at cap 7, **88 of 4064** compose, spanning every declared pattern including 18
+`OMNIVORE`. The scheduling defect itself (the cap/greedy interaction) is pre-existing T-2036 code, untouched by
+this diff, and is recommended as its own follow-up ticket next to T-2053. The cap's value, and whether the
+scheduling defect should be fixed, are both product/content decisions for Jaden -- this ticket's job was the
+honest measurement, not the fix.
+
+Files: `lib/ai-coach/meal-composer.ts`, `composition-feasibility.ts`, `representation.ts`, `initial-plan.ts`,
+`meal-constraints.ts` (new), `scripts/ai-coach-validation-harness.ts`. Tests:
+`tests/unit/ai-coach-meal-composer.test.ts` (+6), `ai-coach-meal-constraints.test.ts` (new, 14),
+`ai-coach-composer.test.ts` (+4), `ai-coach-representation.test.ts` (+3, including round 2's test 11),
+`ai-coach-meal-templates.test.ts` (+2).
+No migration, no Prisma change, no REST/Swift contract change, no iOS change. Gates (round 2): `pnpm run
+type-check` clean; `pnpm exec vitest run tests/unit` **121 files / 1907 passed / 0 failed** (baseline
+120/1878, +1 file, +29 tests, zero regressions); `eslint` clean on every changed file (the one pre-existing
+`initial-plan.ts` `any` predates this ticket, confirmed via `git diff`); harness primary table/run key
+byte-identical across repeated runs (see above).
