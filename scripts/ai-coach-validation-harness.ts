@@ -1468,8 +1468,10 @@ function buildCompositionAgainstReviewedCatalogSection(
   lines.push(`Profiles: **${profiles.length}** (same grid as the primary table), evaluated twice below.`);
   lines.push("");
   lines.push(
-    "**Mechanism (round 1 MAJOR 1): the composed count is produced by the repeat cap, not by template " +
-      "macro coverage.** `composeWeekFromTemplates` computes `minNeeded = ceil(7 / maxRepeatsPerWeek)` and " +
+    "**Mechanism (round 1 MAJOR 1): the repeat cap decides WHICH profiles compose at cap 3; template " +
+      "macro coverage bounds the ceiling.** At cap 7, 408 of the 496 prescribed profiles still fail " +
+      "`NO_FEASIBLE_MEALS`, so coverage is a live constraint, not a solved one -- both levers are real. " +
+      "`composeWeekFromTemplates` computes `minNeeded = ceil(7 / maxRepeatsPerWeek)` and " +
       "only enforces the repeat cap on a slot whose own survivor count is `>= minNeeded` " +
       "(`enforceRepeatLimit`); a client whose per-slot survivor count falls BELOW that threshold has the " +
       "cap silently switched off for that slot and can reuse its one in-tolerance combination all 7 days. " +
@@ -1481,7 +1483,9 @@ function buildCompositionAgainstReviewedCatalogSection(
       "on day 7 — even when a lower-variety combination that would satisfy every day is still sitting " +
       "unused in its own pool. This is pre-existing T-2036 scheduling behaviour, untouched by this ticket; " +
       "the two tables below hold the targets and the catalog fixed and change only this one cap, to show " +
-      "the effect in isolation. **The cap is not changed in this ticket** -- raising it is a product/content " +
+      "the effect in isolation. Whether MORE templates would push more clients over the `>= 3` threshold " +
+      "and LOWER the count at cap 3 is an unmeasured inference, not a finding; it needs this table " +
+      "re-run against an extended set. **The cap is not changed in this ticket** -- raising it is a product/content " +
       "decision, reported here as a number for Jaden, not applied as a fix."
   );
   lines.push("");

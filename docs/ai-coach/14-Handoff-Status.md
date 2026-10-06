@@ -1746,7 +1746,13 @@ draft citing the frozen "Decision 4" — a different, already-settled question a
 catalog rather than from names — instead of this reserved one).
 
 **`composeInitialPlan` gains an optional `mealComposer: { templateSet, source } | null` field.** Absent (every
-production call site today — `managed-executor.ts` passes none), behaviour is byte-identical, asserted by test.
+production call site today — `managed-executor.ts` passes none), behaviour is byte-identical **except for one
+client-visible string**, asserted by test. That exception, disclosed rather than reverted (review r2 finding 1):
+the degrade explanation on the live path read "The catalog cannot compose meals **within tolerance of** the
+reviewed prescription" and now reads "...**that satisfy**...". The branch is reached for every composer failure
+— an unresolved catalog reference or a failed re-verification as much as a tolerance miss — so the old wording
+named a cause the code cannot see. The new wording claims less, which is why it stands; test (9)'s pinned
+decision hash `e87c6c8b…` encodes the new string, and this entry is the record that it changed.
 Present and `mode === "MEALS"`: the mapper runs first; on a block, `meals: null` with the prescription kept and
 one of two frozen, non-clinical explanation/nextAction pairs (never a new decision reason code — the closed
 `decisionSchema.reasonCodes` registry is untouched, the structured block travels only in `ComposeReason[]`,
@@ -1793,10 +1799,16 @@ filtered survivor set (often 2 per slot) falls *below* that threshold, so the ca
 the client's one in-tolerance day-combination is simply reused all 7 days; an OMNIVORE client's larger survivor
 set clears the threshold, so the cap is enforced, and the day-by-day greedy can burn its best in-tolerance
 combinations on days 1-6 and reject the **whole week** on day 7 — even when a lower-variety combination that
-would satisfy every day is still sitting unused in the very same pool. **The binder is the repeat cap's
-interaction with the per-day greedy assignment, not template macro coverage**, and more templates would push
-*more* clients over the `>= 3` threshold, making the composed count *worse*, not better — the opposite of what
-the original framing ("more templates, or a wider carbohydrate/fat range") implied.
+would satisfy every day is still sitting unused in the very same pool.
+
+**What the two tables do and do not establish** (review r2 finding 2). The cap decides *which* profiles compose
+at cap 3: 6 instead of 88, and every one of the 6 is a low-survivor profile with the cap silently off. It does
+**not** follow that macro coverage is irrelevant — at cap 7, **408 of the 496 prescribed profiles still fail
+`NO_FEASIBLE_MEALS`**, so template coverage bounds the ceiling at 88/496 and is a live constraint. Both levers
+are real: the cap explains the shape of today's number, coverage explains its ceiling.
+Whether adding templates would push more clients over the `>= 3` threshold and lower the count at cap 3 is an
+**unmeasured inference**, first made by the reviewer in round 1 and restated here as one — not a finding. It can
+be measured by re-running this table against an extended template set, which nothing in this ticket does.
 
 Per the reviewer's direction, **the cap is not changed in this ticket** (risk 4 forbids loosening a filter to
 raise the measured number). The harness now reports the measurement at both `maxRepeatsPerWeek: 3` (today) and
