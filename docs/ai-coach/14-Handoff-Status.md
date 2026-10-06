@@ -1698,33 +1698,68 @@ passed (`isSignedFoodCatalogFile`, `lib/ai-coach/catalog/fdc/signed-file-guard.t
 at a v2 path. Gates after round 2: `pnpm run type-check` clean; `pnpm exec vitest run tests/unit`
 **1878 passed / 0 failed / 120 files**; `eslint` clean on every changed file; `doc_check.py` still 100.
 
-**S-21 `consentedAt` was stamped without a consent decision (2026-10-06):** `AiCoachProfile.consentedAt` had
-three writers; only `ENROLL` (`lib/ai-coach/client-commands.ts`) records an actual consent decision — it
-verifies `consentTextDigest` against the live release's approved disclosure text before writing. `confirmIntake`
-(`lib/ai-coach/intake.ts`) stamped `consentedAt: existing?.consentedAt ?? new Date()` on every confirmed intake,
-and the run-request fallback (`lib/ai-coach/run-command.ts`) stamped it when starting a run for a synthetic or
-already-AI-mode profile. Neither confirming an intake nor requesting a run is a consent decision. Both writes
-are removed; `ENROLL` is now the sole writer. The field name is unchanged (a rename is a migration and a
-rule-10 reader audit for no gain now that only one path writes it).
+**S-21 `consentedAt` was stamped without a consent decision (2026-10-06, round 2 2026-10-06):**
+`AiCoachProfile.consentedAt` had three writers; only `ENROLL` (`lib/ai-coach/client-commands.ts`) records an
+actual consent decision — it verifies `consentTextDigest` against the live release's approved disclosure text
+before writing (non-synthetic). `confirmIntake` (`lib/ai-coach/intake.ts`) stamped
+`consentedAt: existing?.consentedAt ?? new Date()` on every confirmed intake, and the run-request fallback
+(`lib/ai-coach/run-command.ts`) stamped it when starting a run for a synthetic or already-AI-mode profile.
+Neither confirming an intake nor requesting a run is a consent decision. Both writes are removed; `ENROLL` is
+now the sole writer. The field name is unchanged (a rename is a migration and a rule-10 reader audit for no gain
+now that only one path writes it); a one-line invariant comment is on the column itself
+(`prisma/schema.prisma:211`, comment only, no migration).
 
-The one downstream reader that checked `consentedAt` as a proxy signal, `lib/ai-coach/reviewer-capacity.ts`'s
-`consentedAt: { not: null }` filter (combined with `mode: "AI"`), is unaffected: `mode: "AI"` is written only by
-`ENROLL`, in the same transaction as `consentedAt`, so that filter was already redundant with the mode check for
-every row and stays redundant after this fix — confirmed by reading every writer of `mode: "AI"` in the
-codebase (one call site). `lib/queries/ai-coach.ts`'s DTO projection and `components/ai-coach/experience.tsx`'s
-`awaitingConsent` derivation both read `consentedAt` for display/gating that is already dominated by `origin !==
-"AI"`, so their behavior does not change either — `awaitingConsent` was already true whenever origin wasn't
-"AI", regardless of what the two now-removed writers had stamped.
+**Round 2 fixed two things round 1 got wrong, both found by review, and closed the "can't actually run this"
+gap:**
 
-**Existing rows are left untouched** — no backfill, no clearing, per the lead's explicit decision. This leaves
-an ambiguity window: a row with `consentedAt` set before this fix deployed, whose `ClientCoachingContext.mode`
-is **not** `"AI"`, was stamped by one of the two removed writers, not by a consent decision (only `ENROLL` ever
-sets `mode: "AI"`, always alongside `consentedAt`, so a row that genuinely consented via `ENROLL` has mode
-`"AI"` by the time `consentedAt` is non-null). `lib/ai-coach/consent-ambiguity.ts` exports
-`countAmbiguousConsentRows`, a read-only reporting helper (`consentedAt` not null AND mode not `"AI"` or no
-coaching context row) with a unit test against a seeded fixture
-(`tests/unit/ai-coach-consent-ambiguity.test.ts`). It is not a gate — nothing in the request path calls it. Run
-it against a replayed database to know the number before a deploy; the production count is Jaden's to pull.
+1. **Re-consent used to keep the old timestamp.** `ENROLL` is reachable a second time (`PAUSE` then
+   re-enroll, or re-consenting to a newer disclosure while still in AI mode), and round 1's
+   `consentedAt: profile.consentedAt ?? new Date()` preserved the *first* consent's timestamp while
+   overwriting the sibling columns (`consentConfigurationVersion`, `consentPrivacyNoticeVersion`,
+   `consentTextDigest`, ...) that describe the *current* one — so a row could claim consent to a disclosure
+   version that did not exist yet on the date recorded, in the one writer this ticket declared canonical. Fixed:
+   every accepted `ENROLL` now stamps `new Date()` unconditionally, and the `ClientCoachingContext` upsert and
+   `AiCoachProviderTransitionReceipt` write (previously skipped once already in AI mode) now happen
+   unconditionally too, so a re-consent always leaves its own receipt. `consentedAt` now means "when the client
+   consented to the disclosure recorded alongside it", not "first ever consent". Covered by a new integration
+   test (consent v1, publish v3, re-consent) asserting the second `consentedAt` is strictly later than the
+   first, the version/privacy-notice columns move to v3, and a second receipt exists.
+   - Rule 10, the three readers of this now-possibly-later timestamp: `reviewer-capacity.ts` only checks
+     presence (`not: null`), never compares values — unaffected. `queries/ai-coach.ts`'s DTO projection shows
+     the latest decision, which is the correct, intended behavior. `experience.tsx`'s `awaitingConsent` only
+     checks truthiness — unaffected.
+2. **"`consentedAt` set + mode != AI` ⇒ never consented" (round 1's counter and doc) is false.** `PAUSE`
+   (`client-commands.ts`) sets mode `"NONE"` without touching `consentedAt`, and a later human-coach
+   reconciliation (`lib/activation.ts`) can move it on to `"HUMAN"` — a genuinely-consented row ends up with
+   mode off `"AI"`. Round 1's own unit test seeded exactly this row and called it "a false positive the counter
+   cannot avoid" while the shipped docblock said the opposite; round 2 makes the code agree with the honest
+   caveat instead. The counter and doc now key off `AiCoachProviderTransitionReceipt` (written once per
+   accepted non-synthetic `ENROLL`, unconditionally per fix 1 above), not mode:
+   - `stampedWithNoEnrollmentReceipt` — `consentedAt` set, **no** transition receipt exists for that client at
+     all. This is the side that is knowable with certainty: every real consent now writes exactly one receipt,
+     so zero receipts means the stamp came from one of the two removed writers.
+   - `consentedAtPredatesEarliestReceipt` — `consentedAt` set, a receipt exists, but `consentedAt` is *earlier*
+     than that client's earliest receipt's `createdAt`. Round 1's predicate reported **zero** for this whole
+     set, because every row that enrolled *before* round 2's fix shipped kept its `confirmIntake` timestamp
+     (the old `?? new Date()`) while genuinely enrolling (mode "AI", so round 1's predicate excluded it) — the
+     real consent moment is `receipt.createdAt`, always later. This is the half with real, consented clients in
+     it, and round 1 told a deployer it was empty.
+   - Synthetic (`isSynthetic: true`) profiles are excluded from both counts: `ENROLL`'s fixture branch never
+     writes a receipt by design (no live release to bind one to), so every synthetic consent would otherwise
+     misreport as ambiguous; synthetic rows are never real clients.
+3. **The counter could not actually be run.** Added `scripts/count-ambiguous-ai-consent.ts`
+   (`pnpm ai-coach:consent-ambiguity`) — read-only, refuses when `NODE_ENV=production` or `VERCEL_ENV` is set
+   (mirrors `scripts/ai-coach-seed-fixtures.ts`'s guard), prints only the target database's host/port/name, then
+   prints the two counts above with their exact meaning. One integration test
+   (`tests/integration/ai-coach-consent-ambiguity.test.ts`) seeds the four row shapes (confirm-only stamp; real
+   enrolment; enrolment then paused; pre-fix early stamp with a later receipt) plus a synthetic control, and
+   asserts the two counts move by exactly 1 and 1 through the real Prisma query (`groupBy` + in-memory join, no
+   raw SQL) — not a fake. The round-1 unit test, which re-implemented the predicate by hand and silently ignored
+   the real `where.OR` clause it claimed to exercise, is deleted in favor of this.
+
+**Existing rows are still left untouched** — no backfill, no clearing, per the lead's explicit decision; only
+the two counts above are new. Run `pnpm ai-coach:consent-ambiguity` against a replayed database to know the
+numbers before a deploy; the production numbers are Jaden's to pull himself.
 
 Tests: `tests/integration/ai-coach-intake-wizard-confirm.test.ts` and
 `tests/integration/ai-coach-run-command.test.ts` gained direct assertions that confirming an intake alone, and

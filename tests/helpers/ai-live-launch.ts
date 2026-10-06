@@ -156,8 +156,19 @@ export function completeNonTestLaunchPacket(input: {
   artifactBindings: ArtifactReference[];
   now?: Date;
   approvalRequirements?: readonly LaunchApprovalRequirement[];
+  /** S-21: override for a test that needs a distinguishably different
+   * published disclosure (e.g. a later `discovery.version` to simulate
+   * re-consent to a newer release) instead of the shared
+   * `TEST_RUNTIME_CONFIGURATION`. Defaults to it, byte-identical to before
+   * this option existed. */
+  runtimeConfiguration?: import("@/lib/ai-coach/live-launch/schema").LiveRuntimeConfiguration;
 }): LiveLaunchPacket {
   const now = input.now ?? new Date();
+  const runtimeConfiguration = input.runtimeConfiguration ?? TEST_RUNTIME_CONFIGURATION;
+  const runtimeConfigurationDigest =
+    input.runtimeConfiguration !== undefined
+      ? contentHash(input.runtimeConfiguration)
+      : TEST_RUNTIME_CONFIGURATION_DIGEST;
   const approvalRequirements = input.approvalRequirements ?? ALL_APPROVAL_REQUIREMENTS;
   const signedAt = new Date(now.getTime() - 60_000).toISOString();
   const expiresAt = new Date(now.getTime() + 3_600_000).toISOString();
@@ -179,8 +190,8 @@ export function completeNonTestLaunchPacket(input: {
     authoredAt: signedAt,
     authoringStatus: "DRAFT_NOT_AUTHORIZED",
     testOnly: false,
-    runtimeConfiguration: TEST_RUNTIME_CONFIGURATION,
-    runtimeConfigurationDigest: TEST_RUNTIME_CONFIGURATION_DIGEST,
+    runtimeConfiguration,
+    runtimeConfigurationDigest,
     sourceRecords: [{ id: `synthetic-source-${input.suffix}`, path: "synthetic", digest: DIGEST }],
     artifactBindings: input.artifactBindings,
     decisionRecords: REQUIRED_DECISION_IDS.map((decisionId) => ({
@@ -205,7 +216,7 @@ export function completeNonTestLaunchPacket(input: {
       jurisdictions: ["SYNTHETIC_TEST_JURISDICTION"],
       subjectReleaseId: releaseId,
       subjectArtifactDigests: input.artifactBindings.map((binding) => binding.digest),
-      subjectConfigurationDigest: TEST_RUNTIME_CONFIGURATION_DIGEST,
+      subjectConfigurationDigest: runtimeConfigurationDigest,
       recordId: `synthetic-approval-record-${requirement.toLowerCase()}-${input.suffix}`,
       recordDigest: DIGEST,
       signedAt,
@@ -222,7 +233,7 @@ export function completeNonTestLaunchPacket(input: {
       status: "PASSED",
       requiredHumanDecision: null,
       subjectRevision: releaseId,
-      subjectConfigurationDigest: TEST_RUNTIME_CONFIGURATION_DIGEST,
+      subjectConfigurationDigest: runtimeConfigurationDigest,
       recordId: `synthetic-evidence-record-${requirement.toLowerCase()}-${input.suffix}`,
       recordDigest: DIGEST,
       observedAt: signedAt,
@@ -279,6 +290,8 @@ export async function activateTestLiveRelease(input: {
    * than once across separate tests, so each activation gets its own
    * packet/release identity instead of colliding on a duplicate id. */
   packetSuffix?: string;
+  /** S-21: forwarded to `completeNonTestLaunchPacket` — see there. */
+  runtimeConfiguration?: import("@/lib/ai-coach/live-launch/schema").LiveRuntimeConfiguration;
 }): Promise<{
   activation: Awaited<ReturnType<typeof activateAiCoachLiveRelease>>;
   packet: LiveLaunchPacket;
@@ -296,6 +309,7 @@ export async function activateTestLiveRelease(input: {
   const packet = completeNonTestLaunchPacket({
     suffix: input.packetSuffix ?? input.namespace,
     artifactBindings: artifacts.references,
+    runtimeConfiguration: input.runtimeConfiguration,
   });
   await registerLiveLaunchPacket(packet);
   await approveLiveLaunchPacket({

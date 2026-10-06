@@ -208,6 +208,12 @@ model AiCoachProfile {
   safetyRevision              Int       @default(0)
   reviewTimezone              String?
   activePlanVersionId         String?
+  // Written only by ENROLL's accepted path (lib/ai-coach/client-commands.ts),
+  // which verifies consentTextDigest against the live release's approved
+  // disclosure text (non-synthetic) before writing — never by confirmIntake
+  // or a run request. Stamped fresh on every accepted ENROLL, including
+  // re-consent, so it means "when the client consented to the disclosure
+  // recorded alongside it", not merely "first ever consent". See S-21.
   consentedAt                 DateTime?
   consentReleaseId            String?
   consentConfigurationDigest  String?
