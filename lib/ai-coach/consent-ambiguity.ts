@@ -77,6 +77,12 @@ import type { Prisma, PrismaClient } from "@/app/generated/prisma/client";
  * himself against production; see that script's header for why agents
  * never do this themselves.
  */
+/**
+ * Review r3 finding 1: this is the **commit** date of `3b9eb3e`, not the date production
+ * ran it. Bucket 1's certainty assumes production served `3b9eb3e` from this date; if the
+ * production deploy ledger says later, raise this constant to that date — a real consent
+ * stamped in the gap would otherwise be reported as certainly-not-consent.
+ */
 export const RECEIPT_ERA_START = new Date("2026-09-23T00:00:00.000Z");
 
 /** See the module docblock: an app-clock (`consentedAt`) vs DB-clock
