@@ -344,7 +344,7 @@ suite("client intake, consent and HTTP boundaries", () => {
       expect(contextAfterFirstEnroll.mode).toBe("AI");
       const contextRevisionAfterFirstEnroll = contextAfterFirstEnroll.revision;
 
-      // A reviewer-approved PROPOSED plan at the current revision — exactly
+      // A PROPOSED plan (reviewerStatus PENDING) at the current revision — exactly
       // the row `getAiWorkspace`'s `fresh` check and `plan-acceptance.ts`'s
       // acceptance guard key off `contextRevision`.
       const plan = await db.aiPlanVersion.create({

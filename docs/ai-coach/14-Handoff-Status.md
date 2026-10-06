@@ -1790,7 +1790,7 @@ Fix: `revision: { increment: 1 }` only runs when `context?.mode !== "AI"` (a gen
 re-consent while already in AI mode writes `mode: "AI"` with the revision untouched. The receipt stays
 unconditional (round 2's fix), so `fromMode === toMode === "AI"` and `fromContextRevision === toContextRevision`
 for a re-consent — an honest shape: a consent decision happened, nothing about the coaching context did.
-New integration test (`ai-coach-client-commands.test.ts`): a client enrols, a reviewer-approved `PROPOSED` plan
+New integration test (`ai-coach-client-commands.test.ts`): a client enrols, a `PROPOSED` plan (reviewer status pending)
 is created at that `contextRevision`, the client re-consents (same release, new `requestKey`) — asserts
 `revision` is unchanged, a second receipt exists with matching `fromContextRevision`/`toContextRevision`, and
 `getAiWorkspace` still reports the plan's `status` as not `"STALE"`.
