@@ -130,9 +130,9 @@ describe("mealComposerConstraintsFromIntake — S-36 decision 3 fail-closed mapp
     expect(mandatoryResult.constraints.patternTags).toEqual(["VEGAN"]);
     expect(mandatoryResult.constraints.patternMandatory).toBe(true);
 
-    // S-36 decision 4 (Jaden's, not this ticket's): a PREFERENCE-reason,
-    // non-mandatory pattern stays non-mandatory -- today's behaviour,
-    // unchanged by this mapper.
+    // S-36 "Decisions reserved for Jaden" item 3 (Jaden's, not this
+    // ticket's): a PREFERENCE-reason, non-mandatory pattern stays
+    // non-mandatory -- today's behaviour, unchanged by this mapper.
     const preferenceResult = mealComposerConstraintsFromIntake(
       baseAnswers({
         dietaryPattern: {

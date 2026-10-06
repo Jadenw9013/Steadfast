@@ -576,10 +576,16 @@ describe("composeInitialPlan — S-36a mealComposer (reviewed template set + cat
    *  whose real-engine-computed prescription (from the synthetic bundle's
    *  own 10% composition tolerance) is reachable by the real draft template
    *  set against the real signed-v1 catalog, with a FULL_KITCHEN / FLEXIBLE
-   *  / OVER_60 client. Found by direct search (board/evidence/S-36a.md
-   *  records the search), not hand-picked — the draft corpus's honest
-   *  coverage is narrow (S-36 decision summary point 4), so an arbitrary v2
-   *  intake does not generally compose. */
+   *  / OVER_60 client. Found by a direct scan over (population, activity,
+   *  intent, pace, weight) that ran `computePrescription` then
+   *  `composeWeekFromTemplates` for each combination and kept the first hit
+   *  (reported to the lead in the dispatch round that added this test), not
+   *  hand-picked to a macro shape — the draft corpus's honest coverage is
+   *  narrow (S-36 decision summary point 4), so an arbitrary v2 intake does
+   *  not generally compose. The widened practical bands here (`FLEXIBLE`
+   *  budget, `OVER_60` prep) relative to the harness corpus (`MODERATE`,
+   *  `MIN_30_60`) are in the filters this test is not about; every emitted
+   *  ingredient id is asserted against the real 29 below regardless. */
   function composableV2Answers(overrides: Record<string, unknown> = {}) {
     return buildV2Answers({
       ageYears: 30,
@@ -681,28 +687,45 @@ describe("composeInitialPlan — S-36a mealComposer (reviewed template set + cat
     expect(result.decision.nextAction).toMatch(/Confirm your cooking equipment/);
   });
 
-  it("(9) with mealComposer absent (or explicitly null), composeInitialPlan's existing output is byte-identical -- the four golden composeFixtureMeals hashes are asserted separately in ai-coach-representation.test.ts", () => {
-    // Regression guard: composeInitialPlan's existing behaviour (asserted
-    // throughout this file) must not move when `mealComposer` is omitted --
-    // every production call site (managed-executor.ts) omits it today.
+  it("(9) with mealComposer absent, composeInitialPlan's MEALS-mode output is a pinned golden hash, not merely 'undefined agrees with null'", () => {
+    // S-36a review round 1 MINOR 7: comparing `mealComposer` omitted against
+    // `mealComposer: null` only proves the two spellings agree with EACH
+    // OTHER (trivially true -- both take the same falsy `if
+    // (input.mealComposer)` branch). The real regression guard is a pinned
+    // hash of the no-composer path's actual output, so a future change to
+    // that path (the only one every production caller reaches --
+    // managed-executor.ts passes no `mealComposer`) cannot move silently.
+    // Same scenario as "MEALS mode degrades to macro-only NO_FEASIBLE_MEALS
+    // ..." above: the real bundle's prescription is infeasible for this
+    // fixture catalog, so meals stay null and the degrade fires.
     const withoutComposer = composeInitialPlan({
       rawAnswers: v2Answers(),
-      prescriptionId: "rx-no-composer",
+      prescriptionId: "rx-9",
       mode: "MEALS",
       evaluatedOn: EVALUATED_ON,
       parameters: PARAMETERS,
       binding: BINDING,
     });
+    expect(withoutComposer.payload.meals).toBeNull();
+    expect(withoutComposer.decision.reasonCodes).toEqual(["NO_FEASIBLE_MEALS"]);
+    expect(contentHash(withoutComposer.payload)).toBe(
+      "74c24e172aa81f2ea73877d6a9f984ba7388cc42931928a625731fe58d728180"
+    );
+    expect(contentHash(withoutComposer.decision)).toBe(
+      "e87c6c8be890775d95765f9318c7463b7c14af7bd8f0baa22af4f6e4f0f0d63e"
+    );
+
+    // The `mealComposer: null` spelling reaches the identical branch.
     const explicitlyNull = composeInitialPlan({
       rawAnswers: v2Answers(),
-      prescriptionId: "rx-no-composer",
+      prescriptionId: "rx-9",
       mode: "MEALS",
       evaluatedOn: EVALUATED_ON,
       parameters: PARAMETERS,
       binding: BINDING,
       mealComposer: null,
     });
-    expect(contentHash(withoutComposer.payload)).toBe(contentHash(explicitlyNull.payload));
+    expect(contentHash(explicitlyNull.payload)).toBe(contentHash(withoutComposer.payload));
   });
 
   it("(10) a v2 intake with binding.foodCatalogVersion = 'food-catalog' and no mealComposer returns meals: null via the foodCatalogIsServedInCode guard, never the three fixture ids", () => {

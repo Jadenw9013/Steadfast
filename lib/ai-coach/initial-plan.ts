@@ -187,11 +187,22 @@ export type ComposeMealsToPrescriptionOptions = {
    *  existing caller (the T-2036 unit corpus) compiles and behaves identically. */
   policyVersion?: string;
   exerciseCatalogVersion?: string;
+  /** Defaults to 3 (today's value, unchanged for every existing caller).
+   *  Measurement-only knob: S-36a round 1 review found the harness's 6/4064
+   *  composed count is produced by this cap's interaction with the per-day
+   *  greedy assignment (`meal-composer.ts`'s `enforceRepeatLimit`), not by
+   *  template macro coverage — see the harness's labelled cap-3/cap-7
+   *  comparison. No production caller sets this. */
+  maxRepeatsPerWeek?: number;
 };
 
 export type ComposeMealsWithReasonsResult = {
   meals: NonNullable<PlanPayload["meals"]> | null;
   reasons: ComposeReason[];
+  /** Forwarded from `composeWeekFromTemplates` on a successful compose (e.g.
+   *  `LOW_TEMPLATE_VARIETY`). Absent on the legacy path and on any failure --
+   *  a caller composing is the only case where "how it composed" matters. */
+  warnings?: string[];
 };
 
 export function composeMealsToPrescriptionWithReasons(
@@ -255,7 +266,7 @@ export function composeMealsToPrescriptionWithReasons(
       runtimePolicyArtifactKey: policyVersion,
       payloadCatalogVersion: foodCatalogVersion,
       nutritionPermission: permission,
-      maxRepeatsPerWeek: 3,
+      maxRepeatsPerWeek: options.maxRepeatsPerWeek ?? 3,
     });
 
     if (!result.feasible) {
@@ -292,7 +303,7 @@ export function composeMealsToPrescriptionWithReasons(
       };
     }
 
-    return { meals, reasons: [] };
+    return { meals, reasons: [], warnings: result.warnings };
   }
 
   // S-36a defect 5 (one-side-of-S-36b guard): a run bound to a catalog key
@@ -300,11 +311,7 @@ export function composeMealsToPrescriptionWithReasons(
   // hard-wired fixture ids. Today the only bound food key is the fixture
   // itself, so this is unreachable; it is what guarantees that stays true
   // once a run binds to a reviewed catalog key.
-  const legacyCatalogServed = foodCatalogIsServedInCode(foodCatalogVersion);
-  const legacyMeals = legacyCatalogServed
-    ? composeLegacyMealsInternal(answers, prescription, foodCatalogVersion, carbTarget, fatTarget)
-    : null;
-  if (!legacyCatalogServed) {
+  if (!foodCatalogIsServedInCode(foodCatalogVersion)) {
     return {
       meals: null,
       reasons: [
@@ -312,6 +319,13 @@ export function composeMealsToPrescriptionWithReasons(
       ],
     };
   }
+  const legacyMeals = composeLegacyMealsInternal(
+    answers,
+    prescription,
+    foodCatalogVersion,
+    carbTarget,
+    fatTarget
+  );
   return {
     meals: legacyMeals,
     reasons: legacyMeals ? [] : [{ code: "NO_FEASIBLE_MEALS", detail: { reason: "LEGACY_COMPOSITION_FAILED" } }],
@@ -773,7 +787,11 @@ export function composeInitialPlan(input: ComposeInitialPlanInput): ComposeIniti
       explanation: feasible
         ? "Your proposal is ready for review. It is not active until review and acceptance are complete."
         : (mealsDegrade?.explanation ??
-          "The catalog cannot compose meals within tolerance of the reviewed prescription; targets are shown without a meal plan."),
+          // Deliberately generic: this branch is reached for every composer
+          // failure reason (solver/tolerance, an unresolved catalog
+          // reference, a failed re-verification...), not only a tolerance
+          // miss, so the copy must not name a specific cause it cannot see.
+          "The catalog cannot compose meals that satisfy the reviewed prescription; targets are shown without a meal plan."),
       limitations: ["Synthetic catalog only; nutrient adequacy is not established."],
       nextAction: feasible
         ? "Review the proposal when it has been approved."

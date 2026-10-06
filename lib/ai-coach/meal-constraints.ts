@@ -34,8 +34,11 @@ export function mealComposerConstraintsFromIntake(answers: IntakeAnswers): MealC
       ? [dietaryPattern.pattern]
       : [];
 
-  // S-36 decision 4 is reserved for Jaden (whether a non-mandatory declared
-  // pattern should still act as a hard filter). This line implements today's
+  // S-36 "Decisions reserved for Jaden", item 3, is reserved for Jaden
+  // (whether a non-mandatory declared pattern should still act as a hard
+  // filter) -- not to be confused with S-36's frozen Decision 4 ("allergens
+  // and patterns are read from the bound catalog, never from names"), which
+  // is a different, already-settled question. This line implements today's
   // behaviour unchanged: `patternMandatory` is passed through exactly as the
   // client declared it, so a PREFERENCE-reason pattern stays a ranking-only
   // tie-break downstream (meal-composer.ts's `patternMismatch`), never a hard
