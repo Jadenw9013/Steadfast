@@ -27,6 +27,7 @@
     "ai-coach:grant": "tsx scripts/manage-ai-coach-grants.ts",
     "ai-coach:sweep": "tsx scripts/ai-coach-sweep.ts",
     "ai-coach:seed-fixtures": "tsx scripts/ai-coach-seed-fixtures.ts",
+    "ai-coach:consent-ambiguity": "tsx scripts/count-ambiguous-ai-consent.ts",
     "ai-coach:fdc:propose": "tsx scripts/ai-coach-ingest-fdc.ts",
     "ai-coach:fdc:ingest": "tsx scripts/ai-coach-ingest-fdc.ts",
     "prisma:replay": "bash scripts/replay-prisma-migrations.sh",

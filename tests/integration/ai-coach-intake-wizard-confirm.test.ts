@@ -465,6 +465,10 @@ suite("S-19 — the intake's three self-serve dead ends", () => {
       ).toBe(0);
       // This is the state that renders the consent card in experience.tsx.
       expect(after.origin !== "AI" || !after.consentedAt).toBe(true);
+      // S-21: confirming an intake alone is not a consent decision — the
+      // exact reproduction that found the defect — so `consentedAt` must be
+      // null, not merely "falsy while origin isn't AI yet".
+      expect(after.consentedAt).toBeNull();
     });
 
     it("the next step the new copy names actually completes: consent, then a plan request that starts a run", async () => {

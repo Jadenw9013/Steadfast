@@ -517,15 +517,21 @@ export async function requestAiRun(clientId: string, raw: unknown) {
         "REVISION_CONFLICT",
         "Your intake or coaching provider changed. Refresh to continue."
       );
-    if (!profile.consentedAt || !profile.reviewTimezone) {
+    // S-21: this used to also backfill `consentedAt` here, alongside
+    // `reviewTimezone`. Requesting a run is not a consent decision — only
+    // `ENROLL` (lib/ai-coach/client-commands.ts) records one, after
+    // verifying `consentTextDigest` against the live release's approved
+    // disclosure text. The gate below is unchanged: a synthetic profile or
+    // one already in AI mode (which, post-ENROLL, already carries a real
+    // `consentedAt`) may proceed; everyone else is still turned back. Only
+    // the operational default (`reviewTimezone`) is written here now.
+    if (!profile.reviewTimezone) {
       if (profile.confirmedIntake && (profile.isSynthetic || context?.mode === "AI")) {
-        const consentedAt = profile.consentedAt ?? new Date();
-        const reviewTimezone = profile.reviewTimezone ?? "America/Los_Angeles";
+        const reviewTimezone = "America/Los_Angeles";
         await tx.aiCoachProfile.update({
           where: { clientId },
-          data: { consentedAt, reviewTimezone },
+          data: { reviewTimezone },
         });
-        profile.consentedAt = consentedAt;
         profile.reviewTimezone = reviewTimezone;
       } else {
         throw new AiCoachError(

@@ -138,6 +138,17 @@ suite("client intake, consent and HTTP boundaries", () => {
       expect(
         await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })
       ).toBe(0);
+      // S-21 (contract, not a regression — this profile is seeded directly
+      // with no prior confirmIntake stamp to inherit, so this passed before
+      // the fix too; the removed-writer regressions are
+      // `ai-coach-intake-wizard-confirm.test.ts` "confirms the intake and
+      // enrols nothing…" and `ai-coach-run-command.test.ts` "S-21: requesting
+      // a run for a synthetic profile…"): ENROLL with a valid digest sets
+      // `consentedAt`.
+      expect(
+        (await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } }))
+          .consentedAt
+      ).not.toBeNull();
     } finally {
       await deactivateTestLiveRelease(actor.id);
     }
@@ -173,11 +184,232 @@ suite("client intake, consent and HTTP boundaries", () => {
       await expect(applyAiClientCommand(client.id, enroll)).rejects.toMatchObject({
         code: "REVISION_CONFLICT",
       });
+      // S-21 (contract, not a regression — same reasoning as above: this
+      // profile never had a confirmIntake stamp either, so this already
+      // passed on the pre-fix rollback): a rejected ENROLL (consent-digest
+      // mismatch) must not have recorded a consent decision.
+      expect(
+        (await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } }))
+          .consentedAt
+      ).toBeNull();
     } finally {
       await deactivateTestLiveRelease(actor.id);
     }
   });
 
+  it("S-21 round 2 (MAJOR 3): re-consenting to a newer disclosure stamps the new moment and a new receipt, never the old timestamp under the new version", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test` },
+    });
+    await db.aiCoachProfile.create({
+      data: { clientId: client.id, isSynthetic: false, confirmedIntake: answers },
+    });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    mocks.clerkId = id;
+    const actorV1 = await createTestGovernanceActor(
+      ["APPROVE_LIVE_LAUNCH", "ACTIVATE_LIVE_LAUNCH", "DEACTIVATE_LIVE_LAUNCH"],
+      "S-21-reconsent-test-v1"
+    );
+    const namespaceV1 = `client-commands-reconsent-v1-${randomUUID()}`;
+    await activateTestLiveRelease({ namespace: namespaceV1, actorUserId: actorV1.id });
+    // `deactivateTestLiveRelease` deletes its actor's user row as part of
+    // cleanup (tests/helpers/ai-live-launch.ts), so a second
+    // activate/deactivate cycle in the same test needs its own actor — the
+    // first cannot be reused once deactivated.
+    let actorV3Id: string | undefined;
+    try {
+      const discoveryV1 = TEST_RUNTIME_CONFIGURATION.discovery;
+      await applyAiClientCommand(client.id, {
+        ...base(),
+        operation: "ENROLL",
+        consent: true,
+        expectedContextRevision: 0,
+        reviewTimezone: "America/Los_Angeles",
+        consentConfigurationId: discoveryV1.configurationId,
+        consentConfigurationVersion: discoveryV1.version,
+        privacyNoticeVersion: discoveryV1.privacyNoticeVersion,
+        consentTextDigest: contentHash(discoveryV1),
+      });
+      const afterFirst = await db.aiCoachProfile.findUniqueOrThrow({
+        where: { clientId: client.id },
+      });
+      expect(afterFirst.consentedAt).not.toBeNull();
+      expect(
+        await db.aiCoachProviderTransitionReceipt.count({ where: { clientId: client.id } })
+      ).toBe(1);
+      const contextAfterFirst = await db.clientCoachingContext.findUniqueOrThrow({
+        where: { clientId: client.id },
+      });
+      expect(contextAfterFirst.mode).toBe("AI");
+
+      // A measurable gap so the two consentedAt stamps cannot land in the
+      // same millisecond (same technique as
+      // tests/integration/invite-redemption-identity.test.ts:323).
+      await new Promise((resolve) => setTimeout(resolve, 5));
+
+      await deactivateTestLiveRelease(actorV1.id);
+      const actorV3 = await createTestGovernanceActor(
+        ["APPROVE_LIVE_LAUNCH", "ACTIVATE_LIVE_LAUNCH", "DEACTIVATE_LIVE_LAUNCH"],
+        "S-21-reconsent-test-v3"
+      );
+      actorV3Id = actorV3.id;
+      const runtimeConfigurationV3 = {
+        ...TEST_RUNTIME_CONFIGURATION,
+        discovery: {
+          ...discoveryV1,
+          version: 3,
+          privacyNoticeVersion: "synthetic-privacy-v3",
+        },
+      };
+      const namespaceV3 = `client-commands-reconsent-v3-${randomUUID()}`;
+      await activateTestLiveRelease({
+        namespace: namespaceV3,
+        actorUserId: actorV3.id,
+        runtimeConfiguration: runtimeConfigurationV3,
+      });
+      const discoveryV3 = runtimeConfigurationV3.discovery;
+      await applyAiClientCommand(client.id, {
+        ...base(),
+        expectedProfileRevision: afterFirst.profileRevision,
+        operation: "ENROLL",
+        consent: true,
+        expectedContextRevision: contextAfterFirst.revision,
+        reviewTimezone: "America/Los_Angeles",
+        consentConfigurationId: discoveryV3.configurationId,
+        consentConfigurationVersion: discoveryV3.version,
+        privacyNoticeVersion: discoveryV3.privacyNoticeVersion,
+        consentTextDigest: contentHash(discoveryV3),
+      });
+      const afterSecond = await db.aiCoachProfile.findUniqueOrThrow({
+        where: { clientId: client.id },
+      });
+      expect(afterSecond.consentedAt).not.toBeNull();
+      expect(afterSecond.consentedAt!.getTime()).toBeGreaterThan(
+        afterFirst.consentedAt!.getTime()
+      );
+      expect(afterSecond.consentConfigurationVersion).toBe(3);
+      expect(afterSecond.consentPrivacyNoticeVersion).toBe("synthetic-privacy-v3");
+      // The defect this test guards against: the row must never claim
+      // consent to v3 at the v1 timestamp.
+      expect(afterSecond.consentedAt!.getTime()).not.toBe(afterFirst.consentedAt!.getTime());
+
+      const receipts = await db.aiCoachProviderTransitionReceipt.findMany({
+        where: { clientId: client.id },
+        orderBy: { createdAt: "asc" },
+      });
+      expect(receipts).toHaveLength(2);
+      expect(receipts[1]!.discoveryConfigurationVersion).toBe(3);
+      expect(receipts[1]!.privacyNoticeVersion).toBe("synthetic-privacy-v3");
+      expect(receipts[1]!.createdAt.getTime()).toBeGreaterThan(receipts[0]!.createdAt.getTime());
+    } finally {
+      if (actorV3Id) await deactivateTestLiveRelease(actorV3Id);
+      else await deactivateTestLiveRelease(actorV1.id);
+    }
+  });
+
+  it("S-21 round 3 (MAJOR 1): re-consenting while already in AI mode does not bump contextRevision, so a PROPOSED plan at that revision is still served, not stranded STALE", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+    });
+    await db.aiCoachProfile.create({
+      data: { clientId: client.id, isSynthetic: false, confirmedIntake: answers },
+    });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    mocks.clerkId = id;
+    const actor = await createTestGovernanceActor(
+      ["APPROVE_LIVE_LAUNCH", "ACTIVATE_LIVE_LAUNCH", "DEACTIVATE_LIVE_LAUNCH"],
+      "S-21-reconsent-revision-test"
+    );
+    const namespace = `client-commands-reconsent-revision-${randomUUID()}`;
+    await activateTestLiveRelease({ namespace, actorUserId: actor.id });
+    try {
+      const discovery = TEST_RUNTIME_CONFIGURATION.discovery;
+      const enroll = {
+        ...base(),
+        operation: "ENROLL",
+        consent: true,
+        expectedContextRevision: 0,
+        reviewTimezone: "America/Los_Angeles",
+        consentConfigurationId: discovery.configurationId,
+        consentConfigurationVersion: discovery.version,
+        privacyNoticeVersion: discovery.privacyNoticeVersion,
+        consentTextDigest: contentHash(discovery),
+      } as const;
+      await applyAiClientCommand(client.id, enroll);
+      const contextAfterFirstEnroll = await db.clientCoachingContext.findUniqueOrThrow({
+        where: { clientId: client.id },
+      });
+      expect(contextAfterFirstEnroll.mode).toBe("AI");
+      const contextRevisionAfterFirstEnroll = contextAfterFirstEnroll.revision;
+
+      // A PROPOSED plan (reviewerStatus PENDING) at the current revision — exactly
+      // the row `getAiWorkspace`'s `fresh` check and `plan-acceptance.ts`'s
+      // acceptance guard key off `contextRevision`.
+      const plan = await db.aiPlanVersion.create({
+        data: {
+          clientId: client.id,
+          version: 1,
+          status: "PROPOSED",
+          // INITIAL short-circuits weeklyCandidateIsValid to true (it only
+          // re-derives a weekly-review proof for ROUTINE/PROTECTIVE
+          // candidates) — this test is about contextRevision, not weekly
+          // proof replay.
+          changeClass: "INITIAL",
+          payload: {},
+          payloadHash: "h",
+          contextRevision: contextRevisionAfterFirstEnroll,
+          profileRevision: 0,
+          observationRevision: 0,
+          safetyRevision: 0,
+          policyVersion: "p1",
+          catalogVersions: {},
+          sourceRefs: [],
+        },
+      });
+
+      // A measurable gap, same technique as the MAJOR 3 test above.
+      await new Promise((resolve) => setTimeout(resolve, 5));
+
+      // Re-consent to the SAME disclosure while already in AI mode — no
+      // PAUSE in between, no provider change, just a second ENROLL.
+      await applyAiClientCommand(client.id, {
+        ...enroll,
+        requestKey: randomUUID(),
+        expectedContextRevision: contextRevisionAfterFirstEnroll,
+      });
+
+      const contextAfterReconsent = await db.clientCoachingContext.findUniqueOrThrow({
+        where: { clientId: client.id },
+      });
+      expect(contextAfterReconsent.mode).toBe("AI");
+      // The fix this test is for: revision must NOT have moved.
+      expect(contextAfterReconsent.revision).toBe(contextRevisionAfterFirstEnroll);
+
+      const receipts = await db.aiCoachProviderTransitionReceipt.findMany({
+        where: { clientId: client.id },
+        orderBy: { createdAt: "asc" },
+      });
+      expect(receipts).toHaveLength(2);
+      expect(receipts[1]!.fromMode).toBe("AI");
+      expect(receipts[1]!.toMode).toBe("AI");
+      expect(receipts[1]!.fromContextRevision).toBe(contextRevisionAfterFirstEnroll);
+      expect(receipts[1]!.toContextRevision).toBe(contextRevisionAfterFirstEnroll);
+
+      // The seven-reader consequence (standing rule 10): unchanged revision
+      // means the plan is still `fresh` in `getAiWorkspace` — not silently
+      // withheld (lib/queries/ai-coach.ts:227) — and still acceptable
+      // (lib/ai-coach/plan-acceptance.ts:332 would reject on a mismatch).
+      const workspace = await getAiWorkspace(client.id);
+      const proposal = workspace.proposals.find((candidate) => candidate.id === plan.id);
+      expect(proposal).toBeDefined();
+      expect(proposal!.status).not.toBe("STALE");
+      expect(proposal!.expectedContextRevision).toBe(contextRevisionAfterFirstEnroll);
+    } finally {
+      await deactivateTestLiveRelease(actor.id);
+    }
+  });
 
   it("T-2024: ALLERGIES v2 shape writes both allergenDeclarations and the derived legacy allergies array", async () => {
     const client = await fixture();

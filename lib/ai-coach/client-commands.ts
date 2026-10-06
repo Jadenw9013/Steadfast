@@ -355,10 +355,60 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
           "REVISION_CONFLICT",
           "Your established review timezone cannot be changed during the pilot."
         );
+      // S-21: this is the ONLY path that may write `consentedAt`. Everywhere
+      // else that used to touch it — `confirmIntake` (lib/ai-coach/intake.ts)
+      // and the run-request fallback (lib/ai-coach/run-command.ts) — stamped
+      // a timestamp with no consent decision behind it and has been fixed to
+      // stop. This is the one place that verified `consentTextDigest`
+      // (above) against the live release's approved disclosure text before
+      // reaching here, for a non-synthetic profile, so `consentedAt` means
+      // "when the client consented to the disclosure recorded alongside it"
+      // — the sibling consent columns (consentConfigurationVersion,
+      // consentPrivacyNoticeVersion, consentTextDigest, ...) describe which
+      // disclosure that was.
+      //
+      // S-21 round 2 (MAJOR 3): every accepted ENROLL is its own consent
+      // decision and stamps `new Date()`, never the prior value. ENROLL is
+      // reachable a second time (PAUSE -> re-enroll, or re-consenting to a
+      // newer release while still in AI mode) and validates against the
+      // *current* live release each time, so keeping the first timestamp
+      // while overwriting the version/digest columns would have produced a
+      // row claiming consent to a disclosure that did not exist yet on the
+      // date recorded. The transition receipt is now written
+      // unconditionally too (previously skipped when already in AI mode),
+      // so a re-consent always leaves a record, not just a profile row an
+      // auditor has to take on faith.
+      //
+      // S-21 round 3 (MAJOR 1): the context `revision` must NOT bump on a
+      // re-consent while already in AI mode. `revision` is read by seven
+      // other paths as "has the coaching context changed since this was
+      // computed" (queries/ai-coach.ts, plan-acceptance.ts, reviewer.ts,
+      // retry-command.ts, managed-executor.ts, autonomy/gate.ts,
+      // current-client-plan.ts — see the handoff note for what each one
+      // does with a stale match) — none of which a mere re-consent to the
+      // same provider should invalidate. A re-consent is not a provider
+      // transition: `fromMode` and `toMode` are both "AI", so the receipt
+      // records `fromContextRevision === toContextRevision` for it, which
+      // is the honest shape (nothing about the coaching context changed).
+      //
+      // Ambiguity window (rows written before this fix shipped): a
+      // `consentedAt` with no `AiCoachProviderTransitionReceipt` at all was
+      // stamped by one of the two removed writers (`confirmIntake` or the
+      // run-request fallback), not by consent — mode is NOT a reliable
+      // signal for this on its own, because PAUSE and a later human
+      // reconciliation (lib/activation.ts) move a genuinely-consented
+      // profile's mode away from "AI" without touching `consentedAt`. And
+      // every row that *did* enrol before this fix still carries the
+      // `confirmIntake` timestamp, not the real consent moment, because the
+      // old `?? new Date()` here preserved it — that moment is
+      // `AiCoachProviderTransitionReceipt.createdAt`. See
+      // `lib/ai-coach/consent-ambiguity.ts`, `scripts/count-ambiguous-ai-consent.ts`
+      // and `docs/ai-coach/14-Handoff-Status.md`.
+      const consentedAt = new Date();
       await tx.aiCoachProfile.update({
         where: { clientId },
         data: {
-          consentedAt: profile.consentedAt ?? new Date(),
+          consentedAt,
           reviewTimezone: input.reviewTimezone,
           consentReleaseId: liveRelease?.releaseId ?? null,
           consentConfigurationDigest: liveRelease?.runtimeConfigurationDigest ?? null,
@@ -368,29 +418,30 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
           consentTextDigest: input.consentTextDigest ?? null,
         },
       });
-      if (context?.mode !== "AI") {
-        const updatedContext = await tx.clientCoachingContext.upsert({
-          where: { clientId },
-          create: { clientId, mode: "AI", revision: 1 },
-          update: { mode: "AI", activeCoachClientId: null, revision: { increment: 1 } },
+      const isProviderTransition = context?.mode !== "AI";
+      const updatedContext = await tx.clientCoachingContext.upsert({
+        where: { clientId },
+        create: { clientId, mode: "AI", revision: 1 },
+        update: isProviderTransition
+          ? { mode: "AI", activeCoachClientId: null, revision: { increment: 1 } }
+          : { mode: "AI" },
+      });
+      if (liveRelease) {
+        await tx.aiCoachProviderTransitionReceipt.create({
+          data: {
+            clientId,
+            fromMode: context?.mode ?? "NONE",
+            fromContextRevision: context?.revision ?? 0,
+            toMode: "AI",
+            toContextRevision: updatedContext.revision,
+            releaseId: liveRelease.releaseId,
+            runtimeConfigurationDigest: liveRelease.runtimeConfigurationDigest,
+            discoveryConfigurationId: liveRelease.runtimeConfiguration.discovery.configurationId,
+            discoveryConfigurationVersion: liveRelease.runtimeConfiguration.discovery.version,
+            privacyNoticeVersion: liveRelease.runtimeConfiguration.discovery.privacyNoticeVersion,
+            consentTextDigest: input.consentTextDigest!,
+          },
         });
-        if (liveRelease) {
-          await tx.aiCoachProviderTransitionReceipt.create({
-            data: {
-              clientId,
-              fromMode: context?.mode ?? "NONE",
-              fromContextRevision: context?.revision ?? 0,
-              toMode: "AI",
-              toContextRevision: updatedContext.revision,
-              releaseId: liveRelease.releaseId,
-              runtimeConfigurationDigest: liveRelease.runtimeConfigurationDigest,
-              discoveryConfigurationId: liveRelease.runtimeConfiguration.discovery.configurationId,
-              discoveryConfigurationVersion: liveRelease.runtimeConfiguration.discovery.version,
-              privacyNoticeVersion: liveRelease.runtimeConfiguration.discovery.privacyNoticeVersion,
-              consentTextDigest: input.consentTextDigest!,
-            },
-          });
-        }
       }
     }
     if (input.operation === "PAUSE") {

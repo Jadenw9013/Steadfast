@@ -102,15 +102,20 @@ export async function confirmIntake(clientId: string, rawAnswers: unknown, trans
 
   const confirm = async (tx: Prisma.TransactionClient) => {
     const existing = await tx.aiCoachProfile.findUnique({ where: { clientId } });
-    const consentedAt = existing?.consentedAt ?? new Date();
     const reviewTimezone = existing?.reviewTimezone ?? "America/Los_Angeles";
+    // S-21: confirming an intake is not a consent decision, so this must
+    // never write `consentedAt`. It used to (`existing?.consentedAt ?? new
+    // Date()`), which meant every confirm stamped a consent timestamp with
+    // no consent having occurred. `consentedAt` is now written only by
+    // `ENROLL` (lib/ai-coach/client-commands.ts), the one path that verifies
+    // `consentTextDigest` against the live release's approved disclosure
+    // text before writing it.
     const updated = await tx.aiCoachProfile.upsert({
       where: { clientId },
-      create: { clientId, confirmedIntake: dataToStore, profileRevision: 1, consentedAt, reviewTimezone },
+      create: { clientId, confirmedIntake: dataToStore, profileRevision: 1, reviewTimezone },
       update: {
         confirmedIntake: dataToStore,
         profileRevision: { increment: 1 },
-        consentedAt,
         ...(existing?.reviewTimezone ? {} : { reviewTimezone }),
       },
     });
