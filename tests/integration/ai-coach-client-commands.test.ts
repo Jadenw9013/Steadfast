@@ -138,6 +138,12 @@ suite("client intake, consent and HTTP boundaries", () => {
       expect(
         await db.aiCoachReviewerGrant.count({ where: { clientIds: { has: client.id } } })
       ).toBe(0);
+      // S-21: a valid `consentTextDigest` against the live release is the one
+      // thing that may write `consentedAt`.
+      expect(
+        (await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } }))
+          .consentedAt
+      ).not.toBeNull();
     } finally {
       await deactivateTestLiveRelease(actor.id);
     }
@@ -173,6 +179,12 @@ suite("client intake, consent and HTTP boundaries", () => {
       await expect(applyAiClientCommand(client.id, enroll)).rejects.toMatchObject({
         code: "REVISION_CONFLICT",
       });
+      // S-21: a rejected ENROLL (consent-digest mismatch) must not have
+      // recorded a consent decision.
+      expect(
+        (await db.aiCoachProfile.findUniqueOrThrow({ where: { clientId: client.id } }))
+          .consentedAt
+      ).toBeNull();
     } finally {
       await deactivateTestLiveRelease(actor.id);
     }

@@ -355,6 +355,24 @@ export async function applyAiClientCommand(clientId: string, raw: unknown) {
           "REVISION_CONFLICT",
           "Your established review timezone cannot be changed during the pilot."
         );
+      // S-21: this is the ONLY path that may write `consentedAt`. Everywhere
+      // else that used to touch it — `confirmIntake` (lib/ai-coach/intake.ts)
+      // and the run-request fallback (lib/ai-coach/run-command.ts) — stamped
+      // a timestamp with no consent decision behind it and has been fixed to
+      // stop. This is the one place that verified `consentTextDigest`
+      // (above) against the live release's approved disclosure text before
+      // reaching here, for a non-synthetic profile, so a non-null
+      // `consentedAt` from here on genuinely means "this client consented".
+      // `?? new Date()` only preserves an already-recorded consent moment
+      // across re-enrollment (e.g. pause/resume); it never overwrites one.
+      //
+      // Ambiguity window: rows where `consentedAt` was set before this fix
+      // shipped by one of the two removed writers, not by a consent
+      // decision, can be told apart from real ENROLL consent by checking
+      // `coachingContext.mode !== "AI"` — only ENROLL ever sets mode "AI",
+      // and it always sets `consentedAt` in the same transaction, so a row
+      // with `consentedAt` set and mode not "AI" was never consent. See
+      // `lib/ai-coach/consent-ambiguity.ts` and `docs/ai-coach/14-Handoff-Status.md`.
       await tx.aiCoachProfile.update({
         where: { clientId },
         data: {

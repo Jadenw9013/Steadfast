@@ -85,6 +85,47 @@ suite("managed run request boundary", () => {
     });
     expect(run.activationEndsAt!.getTime()).toBeGreaterThan(run.activationStartsAt!.getTime());
   });
+  it("S-21: requesting a run for a synthetic profile with no consent record leaves consentedAt null (only defaults reviewTimezone)", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+    });
+    // `lockAiClient`'s default `requireAuthority` gate requires
+    // `context.mode === "AI"` for every caller, synthetic or not — so this
+    // row is required to even reach run-command's own gate. It is seeded
+    // directly here (as `fixture()` above does), never through ENROLL, so
+    // nothing has recorded a consent decision for this client.
+    await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    await db.aiCoachProfile.create({
+      data: {
+        clientId: client.id,
+        isSynthetic: true,
+        // Neither consentedAt nor reviewTimezone is set — no ENROLL. The
+        // run must still be permitted (confirmedIntake + AI mode) without
+        // stamping consent.
+        confirmedIntake: {
+          goal: "GENERAL_FITNESS",
+          experienceLevel: "NEW",
+          trainingDaysPerWeek: 3,
+          equipmentAccess: ["NONE"],
+          allergies: [],
+          dietaryRestrictions: [],
+          foodBudgetLevel: "LOW",
+          trackingPreference: "NUMBERS_VISIBLE",
+          unitsPreference: "METRIC",
+          heightCm: 170,
+          weightKg: 70,
+        },
+      },
+    });
+    expect(await requestAiRun(client.id, command())).toHaveProperty("runId");
+    const profile = await db.aiCoachProfile.findUniqueOrThrow({
+      where: { clientId: client.id },
+    });
+    expect(profile.reviewTimezone).toBe("America/Los_Angeles");
+    expect(profile.consentedAt).toBeNull();
+  });
   it("replays exact requests, rejects changed payloads under one key", async () => {
     const client = await fixture();
     const input = command();

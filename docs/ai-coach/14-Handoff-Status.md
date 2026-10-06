@@ -1697,3 +1697,37 @@ passed (`isSignedFoodCatalogFile`, `lib/ai-coach/catalog/fdc/signed-file-guard.t
 `tests/unit/ai-coach-ingest-fdc-write-guard.test.ts`); the README's re-ingest examples now point `--out`
 at a v2 path. Gates after round 2: `pnpm run type-check` clean; `pnpm exec vitest run tests/unit`
 **1878 passed / 0 failed / 120 files**; `eslint` clean on every changed file; `doc_check.py` still 100.
+
+**S-21 `consentedAt` was stamped without a consent decision (2026-10-06):** `AiCoachProfile.consentedAt` had
+three writers; only `ENROLL` (`lib/ai-coach/client-commands.ts`) records an actual consent decision — it
+verifies `consentTextDigest` against the live release's approved disclosure text before writing. `confirmIntake`
+(`lib/ai-coach/intake.ts`) stamped `consentedAt: existing?.consentedAt ?? new Date()` on every confirmed intake,
+and the run-request fallback (`lib/ai-coach/run-command.ts`) stamped it when starting a run for a synthetic or
+already-AI-mode profile. Neither confirming an intake nor requesting a run is a consent decision. Both writes
+are removed; `ENROLL` is now the sole writer. The field name is unchanged (a rename is a migration and a
+rule-10 reader audit for no gain now that only one path writes it).
+
+The one downstream reader that checked `consentedAt` as a proxy signal, `lib/ai-coach/reviewer-capacity.ts`'s
+`consentedAt: { not: null }` filter (combined with `mode: "AI"`), is unaffected: `mode: "AI"` is written only by
+`ENROLL`, in the same transaction as `consentedAt`, so that filter was already redundant with the mode check for
+every row and stays redundant after this fix — confirmed by reading every writer of `mode: "AI"` in the
+codebase (one call site). `lib/queries/ai-coach.ts`'s DTO projection and `components/ai-coach/experience.tsx`'s
+`awaitingConsent` derivation both read `consentedAt` for display/gating that is already dominated by `origin !==
+"AI"`, so their behavior does not change either — `awaitingConsent` was already true whenever origin wasn't
+"AI", regardless of what the two now-removed writers had stamped.
+
+**Existing rows are left untouched** — no backfill, no clearing, per the lead's explicit decision. This leaves
+an ambiguity window: a row with `consentedAt` set before this fix deployed, whose `ClientCoachingContext.mode`
+is **not** `"AI"`, was stamped by one of the two removed writers, not by a consent decision (only `ENROLL` ever
+sets `mode: "AI"`, always alongside `consentedAt`, so a row that genuinely consented via `ENROLL` has mode
+`"AI"` by the time `consentedAt` is non-null). `lib/ai-coach/consent-ambiguity.ts` exports
+`countAmbiguousConsentRows`, a read-only reporting helper (`consentedAt` not null AND mode not `"AI"` or no
+coaching context row) with a unit test against a seeded fixture
+(`tests/unit/ai-coach-consent-ambiguity.test.ts`). It is not a gate — nothing in the request path calls it. Run
+it against a replayed database to know the number before a deploy; the production count is Jaden's to pull.
+
+Tests: `tests/integration/ai-coach-intake-wizard-confirm.test.ts` and
+`tests/integration/ai-coach-run-command.test.ts` gained direct assertions that confirming an intake alone, and
+requesting a run for a synthetic profile, leave `consentedAt` null; `tests/integration/ai-coach-client-commands.test.ts`
+asserts `ENROLL` sets it on a valid `consentTextDigest` and does not on an invalid one. No migration (the column
+is unchanged), no new dependency.
