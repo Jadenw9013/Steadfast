@@ -476,6 +476,18 @@ describe("T-2028 r3 — rendering", () => {
     const html = renderStage({ ...v1ConfirmedIntake, allergies: [" padded "] }, 2);
     expect(html).toContain("Earlier entries that cannot be saved as written");
     expect(html).toContain('aria-label="Remove earlier entry padded"');
+
+    // T-2055 item 2: a v1 token over the contract's 80 characters is shown in
+    // full, never truncated, and the copy no longer points at chips that
+    // cannot hold it.
+    const long = "x".repeat(90);
+    const longHtml = renderStage({ ...v1ConfirmedIntake, allergies: [long] }, 2);
+    expect(longHtml).toContain(`<span class="break-all">${long}</span>`);
+    expect(longHtml).toContain(
+      "These earlier allergy entries cannot be carried into the new format exactly as written, and no option on this step matches them. We will not shorten or change them for you. If one still applies, contact support before you remove it."
+    );
+    expect(longHtml).not.toContain("choose the matching");
+    expect(longHtml).not.toContain("option above");
   });
 
   it("lead decision C: step 4 says every confirm cancels a plan being prepared, and no longer that unchanged answers avoid it", () => {
@@ -504,5 +516,48 @@ describe("T-2028 r3 — rendering", () => {
     expect(html).toContain("On file as a preference: <strong>Pescatarian</strong>");
     expect(html).toContain("Choose a different style");
     expect(html).not.toContain("Remove requirement");
+  });
+});
+
+describe("T-2055 — rendering", () => {
+  const POPULATION_ACTIVITY_WORDING = ["PENDING_G01", "Physiological", "Activity level", "Low active"];
+
+  it("item 1: step 1 offers Preferred pace for Fat Loss without Maintain, and not for Strength", () => {
+    const fatLoss = renderStage(
+      {
+        ...fullV2ConfirmedIntake,
+        bodyWeightIntent: "LOSE",
+        goalPaceClass: "MODERATE",
+      },
+      0
+    );
+    for (const text of ["Preferred pace", "Gradual", "Moderate", "Undecided"])
+      expect(fatLoss).toContain(text);
+    expect(fatLoss).not.toContain("Maintain");
+
+    const strength = renderStage(
+      {
+        ...fullV2ConfirmedIntake,
+        goal: "STRENGTH",
+        goalStatus: "UNKNOWN",
+        bodyWeightIntent: undefined,
+        goalPaceClass: undefined,
+        weightNeutralAccepted: undefined,
+      },
+      0
+    );
+    expect(strength).not.toContain("Preferred pace");
+
+    for (const html of [fatLoss, strength])
+      for (const text of POPULATION_ACTIVITY_WORDING) expect(html).not.toContain(text);
+  });
+
+  it("item 4: step 2 shows an Under 30m pill only for a stored UNDER_30 band", () => {
+    expect(renderStage({ ...fullV2ConfirmedIntake, sessionLengthBand: "UNDER_30" }, 1)).toContain(
+      "Under 30m"
+    );
+    expect(renderStage({ ...fullV2ConfirmedIntake, sessionLengthBand: "MIN_45_60" }, 1)).not.toContain(
+      "Under 30m"
+    );
   });
 });

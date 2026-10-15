@@ -26,9 +26,17 @@ type Answers = Record<string, unknown>;
 type GoalChoice = "FAT_LOSS" | "BUILD_MUSCLE" | "STRENGTH" | "GENERAL_FITNESS";
 type ExperienceChoice = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 type EquipmentChoice = "BODYWEIGHT" | "HOME_DUMBBELLS" | "FULL_GYM";
-type SessionLengthChoice = "MIN_30_45" | "MIN_45_60" | "MIN_60_PLUS";
+type SessionLengthChoice = "UNDER_30" | "MIN_30_45" | "MIN_45_60" | "MIN_60_PLUS";
 /** Exactly the contract enum for `resistanceTrainingContext`; no other category exists. */
 type CurrentTrainingChoice = NonNullable<IntakeV2ConfirmAnswers["resistanceTrainingContext"]>;
+/**
+ * T-2055 — the `goalPaceClass` values offered for Fat Loss / Build Muscle.
+ * MAINTAIN is not offered: LOSE/GAIN + MAINTAIN has no bundle parameter.
+ */
+type GoalPaceChoice = Extract<
+  NonNullable<IntakeV2ConfirmAnswers["goalPaceClass"]>,
+  "GRADUAL" | "MODERATE" | "UNDECIDED"
+>;
 type DietaryStyleChoice = "BALANCED" | "HIGH_PROTEIN" | "PLANT_BASED" | "LOW_CARB";
 type TrackingStyleChoice = "PORTIONS" | "EXACT_MACROS";
 type FoodBudgetChoice = "LOW" | "MODERATE" | "FLEXIBLE";
@@ -49,10 +57,20 @@ export type SafetyAnswers = Partial<Record<SafetyKey, SafetyAnswer>>;
 
 export interface IntakeSelections {
   goal?: GoalChoice;
+  /**
+   * T-2055 — the client's own answer to "Preferred pace" (Fat Loss / Build
+   * Muscle only). Seeded only from a stored CONFIRMED goal; never defaulted.
+   */
+  goalPace?: GoalPaceChoice;
   experience?: ExperienceChoice;
   trainingDaysPerWeek?: number;
   equipment?: EquipmentChoice;
   sessionLength?: SessionLengthChoice;
+  /**
+   * T-2055 — a stored band the three standard pills cannot show exactly
+   * (UNDER_30, OVER_90), kept so an untouched re-save writes it back unchanged.
+   */
+  storedSessionLengthBand?: "UNDER_30" | "OVER_90";
   /**
    * T-2028 r3 (r2 finding 2, lead decision A) — the client's own answer to the
    * current-training question on step 2. Seeded only from a stored CONFIRMED
@@ -119,6 +137,12 @@ const CURRENT_TRAINING_OPTIONS = [
   { value: "OCCASIONAL", label: "Occasional" },
   { value: "REGULAR", label: "Regular" },
 ] satisfies { value: CurrentTrainingChoice; label: string }[];
+
+const GOAL_PACE_OPTIONS = [
+  { value: "GRADUAL", label: "Gradual" },
+  { value: "MODERATE", label: "Moderate" },
+  { value: "UNDECIDED", label: "Undecided" },
+] satisfies { value: GoalPaceChoice; label: string }[];
 
 const EMPTY_ALLERGEN_DECLARATIONS: AllergenDeclarations = {
   status: "UNKNOWN",
@@ -308,10 +332,24 @@ function equipmentFromSeed(seed: Answers): EquipmentChoice | undefined {
 }
 
 function sessionLengthFromSeed(seed: Answers): SessionLengthChoice | undefined {
+  if (seed.sessionLengthBand === "UNDER_30") return "UNDER_30";
   if (seed.sessionLengthBand === "MIN_30_45") return "MIN_30_45";
   if (seed.sessionLengthBand === "MIN_45_60") return "MIN_45_60";
   if (seed.sessionLengthBand === "MIN_60_90" || seed.sessionLengthBand === "OVER_90")
     return "MIN_60_PLUS";
+  return undefined;
+}
+
+function goalPaceFromSeed(seed: Answers): GoalPaceChoice | undefined {
+  const goal = goalFromSeed(seed);
+  if (seed.goalStatus !== "CONFIRMED" || (goal !== "FAT_LOSS" && goal !== "BUILD_MUSCLE"))
+    return undefined;
+  if (
+    seed.goalPaceClass === "GRADUAL" ||
+    seed.goalPaceClass === "MODERATE" ||
+    seed.goalPaceClass === "UNDECIDED"
+  )
+    return seed.goalPaceClass;
   return undefined;
 }
 
@@ -472,11 +510,16 @@ export function createIntakeSelections(seed: Answers, today = localDateString())
     dislikes: seededList(seed, "dislikes"),
     cuisinePreferences: seededList(seed, "cuisinePreferences"),
     goal: goalFromSeed(seed),
+    goalPace: goalPaceFromSeed(seed),
     experience: experienceFromSeed(seed),
     trainingDaysPerWeek:
       typeof seed.trainingDaysPerWeek === "number" ? seed.trainingDaysPerWeek : undefined,
     equipment: equipmentFromSeed(seed),
     sessionLength: sessionLengthFromSeed(seed),
+    storedSessionLengthBand:
+      seed.sessionLengthBand === "UNDER_30" || seed.sessionLengthBand === "OVER_90"
+        ? seed.sessionLengthBand
+        : undefined,
     dietaryStyle: dietaryStyleFromSeed(seed),
     trackingStyle:
       seed.trackingPreference === "PORTIONS_ONLY"
@@ -507,26 +550,29 @@ function mappedGoal(choice?: GoalChoice): IntakeV2ConfirmAnswers["goal"] | undef
 }
 
 function mappedGoalDetails(
-  choice?: GoalChoice
+  choice?: GoalChoice,
+  pace?: GoalPaceChoice
 ):
   | Pick<
       IntakeV2ConfirmAnswers,
       "goalStatus" | "bodyWeightIntent" | "goalPaceClass" | "weightNeutralAccepted"
     >
   | { goalStatus: "UNKNOWN" } {
-  if (choice === "FAT_LOSS") {
+  // T-2055: a pace is written only from the client's explicit answer; a
+  // Fat Loss / Build Muscle choice without one fails closed to UNKNOWN.
+  if (choice === "FAT_LOSS" && pace) {
     return {
       goalStatus: "CONFIRMED",
       bodyWeightIntent: "LOSE",
-      goalPaceClass: "UNDECIDED",
+      goalPaceClass: pace,
       weightNeutralAccepted: false,
     };
   }
-  if (choice === "BUILD_MUSCLE") {
+  if (choice === "BUILD_MUSCLE" && pace) {
     return {
       goalStatus: "CONFIRMED",
       bodyWeightIntent: "GAIN",
-      goalPaceClass: "UNDECIDED",
+      goalPaceClass: pace,
       weightNeutralAccepted: false,
     };
   }
@@ -552,9 +598,12 @@ function mappedEquipment(
 }
 
 function mappedSessionLength(
-  choice?: SessionLengthChoice
+  choice?: SessionLengthChoice,
+  stored?: IntakeSelections["storedSessionLengthBand"]
 ): IntakeV2ConfirmAnswers["sessionLengthBand"] | undefined {
-  if (choice === "MIN_60_PLUS") return "MIN_60_90";
+  if (choice === "UNDER_30") return "UNDER_30";
+  // T-2055: a stored OVER_90 shown as "60m+" round-trips unchanged.
+  if (choice === "MIN_60_PLUS") return stored === "OVER_90" ? "OVER_90" : "MIN_60_90";
   return choice;
 }
 
@@ -682,8 +731,11 @@ export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
   // Finding 2 / lead decision A: only the client's own answer to the
   // current-training question, never inferred from the experience pill.
   const resistanceTrainingContext = selections.currentTraining;
-  const sessionLengthBand = mappedSessionLength(selections.sessionLength);
-  const goalDetails = mappedGoalDetails(selections.goal);
+  const sessionLengthBand = mappedSessionLength(
+    selections.sessionLength,
+    selections.storedSessionLengthBand
+  );
+  const goalDetails = mappedGoalDetails(selections.goal, selections.goalPace);
   const hasBodyMeasurements =
     selections.heightCm !== undefined &&
     selections.weightKg !== undefined &&
@@ -709,6 +761,8 @@ export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
     unitsPreference: selections.unitSystem,
     ageStatus: selections.ageYears === undefined ? "UNKNOWN" : "CONFIRMED",
     ...(selections.ageYears === undefined ? {} : { ageYears: selections.ageYears }),
+    // T-2055 spec: population and activity stay UNKNOWN; their client-facing
+    // wording is human gate G01's deliverable (open question Q1, T-2066).
     energyMethodPopulationCategoryStatus: "UNKNOWN",
     physicalActivityCategoryStatus: "UNKNOWN",
     bodyMeasurementStatus: hasBodyMeasurements ? "CONFIRMED" : "UNKNOWN",
@@ -770,6 +824,11 @@ export function intakeStepIssues(
   const issues: string[] = [];
   if (stage === 0) {
     if (!selections.goal) issues.push("Choose your main goal.");
+    if (
+      (selections.goal === "FAT_LOSS" || selections.goal === "BUILD_MUSCLE") &&
+      !selections.goalPace
+    )
+      issues.push("Choose a preferred pace, or Undecided.");
     if (!selections.experience) issues.push("Choose your experience level.");
   }
   if (stage === 1) {
@@ -1158,7 +1217,12 @@ export function IntakeWizard({
                           ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/[0.06]"
                           : "border-white/[0.08] bg-zinc-950/40 hover:border-blue-500/30 hover:bg-zinc-900/80"
                       }`}
-                      onClick={() => update({ goal: option.value })}
+                      onClick={() =>
+                        update({
+                          goal: option.value,
+                          ...(option.value !== selections.goal ? { goalPace: undefined } : {}),
+                        })
+                      }
                     >
                       <span className="flex items-start gap-3">
                         <span
@@ -1190,6 +1254,16 @@ export function IntakeWizard({
                 })}
               </div>
             </fieldset>
+
+            {(selections.goal === "FAT_LOSS" || selections.goal === "BUILD_MUSCLE") && (
+              <ChoicePills
+                label="Preferred pace"
+                hint="How quickly you would like to work toward this goal. The reviewed preparation rules set the actual targets, and you can change this later."
+                value={selections.goalPace}
+                options={GOAL_PACE_OPTIONS}
+                onChange={(value) => update({ goalPace: value as GoalPaceChoice })}
+              />
+            )}
 
             <ChoicePills
               label="Experience level"
@@ -1295,7 +1369,18 @@ export function IntakeWizard({
               label="Typical session length"
               hint="Total workout duration including warm-up."
               value={selections.sessionLength}
-              options={SESSION_OPTIONS}
+              options={
+                selections.storedSessionLengthBand === "UNDER_30"
+                  ? [
+                      {
+                        value: "UNDER_30",
+                        label: "Under 30m",
+                        description: "From your earlier answers",
+                      },
+                      ...SESSION_OPTIONS,
+                    ]
+                  : SESSION_OPTIONS
+              }
               onChange={(value) => update({ sessionLength: value as SessionLengthChoice })}
             />
 
@@ -1585,8 +1670,9 @@ export function IntakeWizard({
                     Earlier entries that cannot be saved as written
                   </p>
                   <p className="text-xs text-zinc-400">
-                    Remove each one before continuing. If it still applies, choose the matching
-                    option above.
+                    These earlier allergy entries cannot be carried into the new format exactly as
+                    written, and no option on this step matches them. We will not shorten or change
+                    them for you. If one still applies, contact support before you remove it.
                   </p>
                   <ul className="space-y-2">
                     {selections.unsavableLegacyAllergies?.map((token, index) => (
