@@ -1,6 +1,9 @@
 -- T-2060: CoachClientEpisode history + plan authorship. Additive or relaxing only.
 -- Generated with the diff workflow (web CLAUDE.md), then the raw SQL below the
 -- generated block was hand-added (partial unique index, CHECK, backfill).
+-- Review r1 (before any release): "publishedByCoachId" is a plain id with no
+-- foreign key, so a purge can never turn an authored plan into an
+-- unknown-author (NULL) one; the purge writes the 'purged' sentinel instead.
 
 -- CreateEnum
 CREATE TYPE "CoachClientEpisodeSource" AS ENUM ('LIVE', 'BACKFILL');
@@ -52,12 +55,6 @@ ALTER TABLE "CoachClientEpisode" ADD CONSTRAINT "CoachClientEpisode_coachId_fkey
 
 -- AddForeignKey
 ALTER TABLE "CoachClientEpisode" ADD CONSTRAINT "CoachClientEpisode_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "MealPlan" ADD CONSTRAINT "MealPlan_publishedByCoachId_fkey" FOREIGN KEY ("publishedByCoachId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "TrainingProgram" ADD CONSTRAINT "TrainingProgram_publishedByCoachId_fkey" FOREIGN KEY ("publishedByCoachId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 
 -- (raw) At most one open episode per CoachClient row. Same pattern as

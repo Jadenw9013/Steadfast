@@ -76,7 +76,10 @@ export type PublishTrainingProgramResult =
       supersededCount: number;
     }
   | { ok: false; code: "NOT_DRAFT"; status: TrainingProgramStatus }
-  | { ok: false; code: "RACE_LOST" };
+  | { ok: false; code: "RACE_LOST" }
+  /** T-2060 r1 — see the meal twin: the author has no CoachClient row for the
+   *  client at write time. Nothing was written. */
+  | { ok: false; code: "NOT_ASSIGNED" };
 
 /**
  * Reads the row every surface needs before its own authorization check.
@@ -144,6 +147,18 @@ class RaceLost extends Error {
 }
 
 /**
+ * T-2060 r1 BLOCKER: thrown inside the publish transaction when the author has
+ * no CoachClient row for this client, so nothing (not even the supersede)
+ * commits. Private; mapped to `NOT_ASSIGNED`.
+ */
+class NotAssigned extends Error {
+  constructor() {
+    super("publishing coach is not assigned to this client");
+    this.name = "NotAssigned";
+  }
+}
+
+/**
  * CB05 — the only place `TrainingProgram.status` becomes `"PUBLISHED"`. Callers
  * MUST have authorized coach access to target.clientId first.
  */
@@ -160,6 +175,19 @@ export async function publishTrainingProgramTarget(
   let supersededCount: number;
   try {
     supersededCount = await db.$transaction(async (tx) => {
+      // T-2060 r1: the author must still coach this client, checked and
+      // locked inside the same transaction as the flip. FOR SHARE conflicts
+      // with the row lock a CoachClient DELETE takes, so a concurrent removal
+      // either commits first (no row: NOT_ASSIGNED, nothing published) or
+      // waits for this publish to commit (the plan lands inside the author's
+      // open episode, before it closes). Concurrent publishes are not
+      // serialized by it. Every caller has authorized already; this closes the
+      // gap between that check and the write (and covers every transport).
+      const link = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "CoachClient"
+         WHERE "coachId" = ${opts.publishedByCoachId} AND "clientId" = ${target.clientId}
+         FOR SHARE`;
+      if (link.length === 0) throw new NotAssigned();
       // Exclude the target itself: a losing racer in a concurrent
       // double-publish must never demote the row the winner just published.
       // There is deliberately NO `weekOf` filter here (see the file header) and
@@ -185,6 +213,7 @@ export async function publishTrainingProgramTarget(
     });
   } catch (err) {
     if (err instanceof RaceLost) return { ok: false, code: "RACE_LOST" };
+    if (err instanceof NotAssigned) return { ok: false, code: "NOT_ASSIGNED" };
     if (isDuplicatePublishedProgramError(err)) return { ok: false, code: "RACE_LOST" };
     // Any other failure — including a P2002 from a different constraint — must
     // still surface as a 500 so it stays visible, never silently swallowed.

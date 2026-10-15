@@ -224,7 +224,7 @@ suite("T-2060 CoachClientEpisode writers", () => {
   });
 
   describe("account purge", () => {
-    it("coach purge closes the client's episode COACH_ACCOUNT_DELETED with coachId NULL, and the client's plans lose only their author", async () => {
+    it("coach purge closes the client's episode COACH_ACCOUNT_DELETED with coachId NULL, and the client's plans keep a 'purged' author (never NULL)", async () => {
       const coach = await mk("coach"); const client = await mk("client");
       await link(coach, client);
       const { mealId, programId } = await publishAs(coach, client);
@@ -236,8 +236,8 @@ suite("T-2060 CoachClientEpisode writers", () => {
       expect(eps).toHaveLength(1);
       expect(eps[0]).toMatchObject({ coachId: null, endReason: "COACH_ACCOUNT_DELETED" });
       expect(eps[0].endedAt).toBeInstanceOf(Date);
-      expect(await db.mealPlan.findUniqueOrThrow({ where: { id: mealId } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: null });
-      expect(await db.trainingProgram.findUniqueOrThrow({ where: { id: programId } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: null });
+      expect(await db.mealPlan.findUniqueOrThrow({ where: { id: mealId } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: "purged" });
+      expect(await db.trainingProgram.findUniqueOrThrow({ where: { id: programId } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: "purged" });
     });
 
     it("coach purge keeps an already-closed episode's end and reason, only anonymising it", async () => {
@@ -296,8 +296,8 @@ suite("T-2060 CoachClientEpisode writers", () => {
     const reconcilePath = join(root, "scripts/sql/T-2060-episode-reconcile.sql");
 
     /**
-     * One psql session. Temp tables shadow public."CoachClient" and
-     * public."CoachClientEpisode" (pg_temp is searched first), copied with
+     * One psql session. Temp tables shadow public."CoachClient",
+     * public."CoachClientEpisode", "MealPlan" and "TrainingProgram" (pg_temp is searched first), copied with
      * their defaults, CHECK constraint and indexes (including the partial
      * unique one), so the scripts' unqualified names hit only these fixtures.
      */
@@ -305,6 +305,8 @@ suite("T-2060 CoachClientEpisode writers", () => {
       const args = [process.env.DATABASE_URL!, "-X", "-q", "-v", "ON_ERROR_STOP=1", "-At", "-F", "|",
         "-c", `CREATE TEMP TABLE "CoachClient" (LIKE public."CoachClient" INCLUDING ALL);
                CREATE TEMP TABLE "CoachClientEpisode" (LIKE public."CoachClientEpisode" INCLUDING ALL);
+               CREATE TEMP TABLE "MealPlan" (LIKE public."MealPlan" INCLUDING ALL);
+               CREATE TEMP TABLE "TrainingProgram" (LIKE public."TrainingProgram" INCLUDING ALL);
                ${fixtureSql}`];
       for (const s of steps) {
         if (s.file) args.push("-f", s.file);
@@ -349,11 +351,21 @@ suite("T-2060 CoachClientEpisode writers", () => {
       const out = execFileSync("psql", [process.env.DATABASE_URL!, "-X", "-v", "ON_ERROR_STOP=1",
         "-c", `CREATE TEMP TABLE "CoachClient" (LIKE public."CoachClient" INCLUDING ALL);
                CREATE TEMP TABLE "CoachClientEpisode" (LIKE public."CoachClientEpisode" INCLUDING ALL);
-               ${fixtures}`,
-        "-f", reconcilePath, "-f", reconcilePath], { encoding: "utf8" });
-      // The first two tags are the fixture INSERTs; then two per reconcile run.
-      const tags = out.split("\n").filter((l) => /^(INSERT|UPDATE) /.test(l)).slice(2);
-      expect(tags).toEqual(["INSERT 0 1", "UPDATE 1", "INSERT 0 0", "UPDATE 0"]);
+               CREATE TEMP TABLE "MealPlan" (LIKE public."MealPlan" INCLUDING ALL);
+               CREATE TEMP TABLE "TrainingProgram" (LIKE public."TrainingProgram" INCLUDING ALL);
+               ${fixtures}
+               INSERT INTO "MealPlan" ("id","clientId","weekOf","status","publishedByCoachId","updatedAt") VALUES
+                 ('mp-dead-author', 'client-1', '2026-01-05', 'PUBLISHED', 'user-that-no-longer-exists', now()),
+                 ('mp-null-author', 'client-1', '2026-01-12', 'PUBLISHED', NULL, now());`,
+        "-f", reconcilePath, "-f", reconcilePath,
+        "-c", `SELECT "id", coalesce("publishedByCoachId", 'NULL') FROM "MealPlan" ORDER BY "id"`], { encoding: "utf8" });
+      // The first three tags are the fixture INSERTs; then four per reconcile run:
+      // episode backfill, zombie close, MealPlan and TrainingProgram author
+      // sentinel (a dead author id becomes 'purged'; NULL stays NULL).
+      const tags = out.split("\n").filter((l) => /^(INSERT|UPDATE) /.test(l)).slice(3);
+      expect(tags).toEqual(["INSERT 0 1", "UPDATE 1", "UPDATE 1", "UPDATE 0", "INSERT 0 0", "UPDATE 0", "UPDATE 0", "UPDATE 0"]);
+      expect(out).toMatch(/mp-dead-author \| purged/);
+      expect(out).toMatch(/mp-null-author \| NULL/);
     });
   });
 });

@@ -151,6 +151,8 @@ suite("observability beacons (T-920) — the three production incidents as code"
       const client = await makeClient();
       // T-2060: the publish service requires an author (an FK to User).
       const coach = await makeCoach();
+      // T-2060 r1: the publish service requires the author's CoachClient row.
+      await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
 
       // WEEK_A publishes first...
       const draftA = await db.trainingProgram.create({

@@ -30,6 +30,16 @@ import type { ClientProviderState } from "@/lib/queries/client-provider";
  * `/api/client/coaching-context`, so a new field would change the wire.
  */
 
+/**
+ * Review r1: what account purge writes into `publishedByCoachId` in place of the
+ * purged coach's id (plain column, no FK). Never equal to a real user id
+ * (cuid), so such a plan is "authored by someone else": never visible. It must
+ * never become NULL, which would move it into the unknown-author arm. Raw SQL
+ * copies: lib/account-deletion/purge.ts (parameterised with this constant) and
+ * scripts/purge-now.mjs; tests/unit/coach-client-writers.test.ts pins both.
+ */
+export const PURGED_PUBLISHER_ID = "purged";
+
 export type PlanVisibility = {
   /** provider.coachId */
   coachId: string;

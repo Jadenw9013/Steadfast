@@ -215,7 +215,7 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(after.status).toBe("ACCEPTED");
     expect(after.coachId).toBe(other.id);
   });
-  it("T-2060: purge backfills, deletes, closes and anonymises CoachClientEpisode rows and forgets plan authorship (one case per line)", async () => {
+  it("T-2060: purge backfills, deletes, closes and anonymises CoachClientEpisode rows and replaces plan authorship with the purged sentinel (one case per line)", async () => {
     const { user, other } = await fixture(true);
     const mkClient = async () => {
       const id = randomUUID();
@@ -272,8 +272,8 @@ suite("account deletion with real PostgreSQL constraints", () => {
     const closed = await db.coachClientEpisode.findMany({ where: { clientId: closedEpisode.id } });
     expect(closed).toMatchObject([{ coachId: null, endReason: "COACH_REMOVED" }]);
     expect(closed[0].endedAt?.getTime()).toBe(endedAt.getTime());
-    expect(await db.mealPlan.findUniqueOrThrow({ where: { id: meal.id } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: null });
-    expect(await db.trainingProgram.findUniqueOrThrow({ where: { id: program.id } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: null });
+    expect(await db.mealPlan.findUniqueOrThrow({ where: { id: meal.id } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: "purged" });
+    expect(await db.trainingProgram.findUniqueOrThrow({ where: { id: program.id } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: "purged" });
     expect(await db.mealPlan.findUniqueOrThrow({ where: { id: control.id } })).toMatchObject({ publishedByCoachId: other.id });
   });
 

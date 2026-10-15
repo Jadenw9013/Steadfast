@@ -99,6 +99,9 @@ export async function publishTrainingProgram(input: unknown) {
   const result = await publishTrainingProgramTarget(target, { publishedByCoachId: coach.id });
   if (!result.ok) {
     if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
+    // T-2060 r1: removed between the access check and the write; same message
+    // verifyCoachAccessToClient throws.
+    if (result.code === "NOT_ASSIGNED") throw new Error("Not assigned to this client");
     throw new Error("This program was already published or changed by someone else — refresh and try again.");
   }
 

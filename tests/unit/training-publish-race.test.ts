@@ -119,7 +119,7 @@ describe("publishTrainingProgramTarget — transaction failure mapping", () => {
       .fn()
       .mockResolvedValueOnce({ count: 1 })
       .mockResolvedValueOnce({ count: 1 });
-    const tx = { trainingProgram: { updateMany } };
+    const tx = { $queryRaw: vi.fn().mockResolvedValue([{ id: "link-1" }]), trainingProgram: { updateMany } };
     mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => callback(tx));
     const now = new Date("2026-10-16T00:00:00.000Z");
 
@@ -131,5 +131,32 @@ describe("publishTrainingProgramTarget — transaction failure mapping", () => {
       where: { id: target.id, status: "DRAFT" },
       data: { status: "PUBLISHED", publishedAt: now, publishedByCoachId: "coach-1" },
     });
+  });
+
+  // T-2060 r1 — the author's CoachClient row is checked inside the transaction.
+  it("returns NOT_ASSIGNED and writes nothing when the author no longer coaches the client", async () => {
+    const updateMany = vi.fn();
+    const queryRaw = vi.fn().mockResolvedValue([]);
+    const tx = { $queryRaw: queryRaw, trainingProgram: { updateMany } };
+    let callbackThrew = false;
+    mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+      try {
+        return await callback(tx);
+      } catch (err) {
+        callbackThrew = true;
+        throw err;
+      }
+    });
+
+    const result = await publishTrainingProgramTarget(target, { publishedByCoachId: "coach-removed" });
+
+    expect(result).toEqual({ ok: false, code: "NOT_ASSIGNED" });
+    // Thrown out of the callback (rolls back), and checked BEFORE the supersede.
+    expect(callbackThrew).toBe(true);
+    expect(updateMany).not.toHaveBeenCalled();
+    const sql = (queryRaw.mock.calls[0][0] as string[]).join("?");
+    expect(sql).toMatch(/FROM "CoachClient"/);
+    expect(sql).toMatch(/FOR SHARE/);
+    expect(queryRaw.mock.calls[0].slice(1)).toEqual(["coach-removed", target.clientId]);
   });
 });

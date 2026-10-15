@@ -67,6 +67,11 @@ export async function POST(req: NextRequest, { params }: Params) {
     // the only writer of TrainingProgram.status = "PUBLISHED" (T-739).
     const result = await publishTrainingProgramTarget(target, { publishedByCoachId: user.id });
     if (!result.ok) {
+      // T-2060 r1: the assignment was removed after the check above; the
+      // route's existing not-authorized response.
+      if (result.code === "NOT_ASSIGNED") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.json(
         result.code === "RACE_LOST"
           ? {

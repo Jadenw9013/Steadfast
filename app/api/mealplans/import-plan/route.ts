@@ -134,6 +134,12 @@ export async function POST(req: NextRequest) {
         // T-102b — a document that parsed to zero items produces an empty
         // MEAL_PLAN plan. Without this branch the shared guard's EMPTY_PLAN
         // would be misreported as PLAN_NOT_DRAFT.
+        // T-2060 r1: the importing coach has no CoachClient row for this
+        // client at write time; the publish service refused (nothing
+        // published). The route-level check before the draft is T-2069.
+        if (result.code === "NOT_ASSIGNED") {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
         if (result.code === "EMPTY_PLAN") {
           return NextResponse.json(
             { error: emptyPlanMessage(result.planMode), code: "PLAN_EMPTY" },

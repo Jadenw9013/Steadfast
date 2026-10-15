@@ -432,13 +432,18 @@ read (web pages, `/api/client/home`, `/api/client/meal-plan/current`, `/api/clie
 `AiCoachProviderTransitionReceipt.createdAt` and `AiCoachProfile.consentedAt` (three indexed reads). Let C be the
 current coach and S the current `CoachClient.createdAt` (`relationshipStartedAt`, unchanged and still on the wire via
 `/api/client/coaching-context`).
-- **Unknown author** (`publishedByCoachId` NULL: every plan published before T-2060, or by a purged coach): visible
+- **Unknown author** (`publishedByCoachId` NULL: every plan published before T-2060; drafts and forks): visible
   from S, narrowed past the end of any other provider's episode that overlapped the current link (an open one counts
   to now). Decision 4: a legacy unknown-author plan published while another coach's row overlapped is hidden.
 - **Authored by C:** visible from the start of C's uninterrupted recorded run of episodes. Any other coach's episode,
   an anonymised (purged) one, an AI transition receipt or an AI consent ends the run, so A->B->A and A->AI->A stay
   strict (decision 2). If the current link has no matching open episode (an un-backfilled row), the bound is S.
-- **Authored by anyone else:** never visible (decision 3), even if published after the current link.
+- **Authored by anyone else:** never visible (decision 3), even if published after the current link. This holds
+  after the author's account is purged: `publishedByCoachId` is a plain id with no FK, and purge rewrites it to the
+  `'purged'` sentinel (`PURGED_PUBLISHER_ID`), never to NULL, so a purged author's plan can never fall into the
+  unknown-author arm (review r1). Both publish services also re-check, inside their transaction, that the author
+  still has a `CoachClient` row for the client (`SELECT ... FOR SHARE`, else `NOT_ASSIGNED`, mapped to each caller's
+  not-authorized response), so an authored PUBLISHED row always lies inside an open episode of its author.
 
 Invariant: `sameCoachSince <= S <= unknownAuthorSince`, so the only widening admits plans C published, and every
 inconsistency falls back to S. A same-coach re-link (remove, re-add) therefore keeps the coach's authored plan; a
@@ -542,7 +547,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 |---|---|
 | `User` | All users (coaches + clients). Contains role flags, notification preferences, APNs token |
 | `CoachClient` | Many-to-many coach↔client assignment. Carries per-client overrides (cadence, adherence, notes). Hard-deleted on removal; unique per (coach, client) |
-| `CoachClientEpisode` | T-2060: the recorded history of each `CoachClient` row (`coachClientId` is a plain id, no FK). Opened in the same transaction as every `CoachClient` create (`lib/activation.ts`) and closed in the same transaction as every delete (`lib/coach-client/end-relationship.ts`, `COACH_REMOVED`/`CLIENT_LEFT`), via `lib/coach-client/episodes.ts`; `startedAt` is copied from `CoachClient.createdAt`. Account purge closes and anonymises the coach's episodes (`coachId` NULL, `COACH_ACCOUNT_DELETED`) and deletes the purged user's own client episodes. Raw SQL adds a partial unique index (one open episode per `coachClientId`) and a CHECK that `endedAt`/`endReason` are both set or both null. `tests/unit/coach-client-writers.test.ts` pins the three CoachClient writers. Backfill (migration + `scripts/sql/T-2060-episode-reconcile.sql`) is facts only: an open `BACKFILL` episode per live row |
+| `CoachClientEpisode` | T-2060: the recorded history of each `CoachClient` row (`coachClientId` is a plain id, no FK). Opened in the same transaction as every `CoachClient` create (`lib/activation.ts`) and closed in the same transaction as every delete (`lib/coach-client/end-relationship.ts`, `COACH_REMOVED`/`CLIENT_LEFT`), via `lib/coach-client/episodes.ts`; `startedAt` is copied from `CoachClient.createdAt`. Account purge closes and anonymises the coach's episodes (`coachId` NULL, `COACH_ACCOUNT_DELETED`) and deletes the purged user's own client episodes. Raw SQL adds a partial unique index (one open episode per `coachClientId`) and a CHECK that `endedAt`/`endReason` are both set or both null. `tests/unit/coach-client-writers.test.ts` pins the CoachClient writers across `app/`, `lib/`, `scripts/` and `prisma/` (the three product writers plus `scripts/purge-now.mjs`; `prisma/seed.ts` is a documented exception) and counts each write site against its episode write. Backfill (migration + `scripts/sql/T-2060-episode-reconcile.sql`) is facts only: an open `BACKFILL` episode per live row |
 
 ### Check-Ins & Progress
 
@@ -561,7 +566,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 
 | Model | Purpose |
 |---|---|
-| `MealPlan` | Week-scoped plan with DRAFT/PUBLISHED status + planExtras (JSON). `publishedByCoachId` (T-2060, nullable, `ON DELETE SET NULL`) is stamped only by the DRAFT→PUBLISHED flip in `lib/meal-plans/publish.ts`; NULL means unknown author (every pre-T-2060 plan, drafts and forks, or a purged coach) |
+| `MealPlan` | Week-scoped plan with DRAFT/PUBLISHED status + planExtras (JSON). `publishedByCoachId` (T-2060, nullable, plain id with **no FK**) is stamped only by the DRAFT→PUBLISHED flip in `lib/meal-plans/publish.ts`, after an in-transaction check that the author still coaches the client; NULL means unknown author (every pre-T-2060 plan, drafts and forks); `'purged'` means the author's account was purged (never visible) |
 | `MealPlanItem` | Individual food items within a plan (name, quantity, macros) |
 | `MealPlanUpload` | File upload tracking for OCR import pipeline |
 | `MealPlanDraft` | AI-parsed draft (extracted text + structured JSON) |
@@ -689,12 +694,14 @@ Every model above with a `User` foreign key has a purge line in
 rows still without an open episode gets its `BACKFILL` episode; the purged user's own client episodes are deleted;
 every episode they coached is closed (`COACH_ACCOUNT_DELETED`, keeping an earlier end and reason) and anonymised
 (`coachId` NULL), so the client keeps the fact that another provider existed; and `MealPlan`/`TrainingProgram`
-`publishedByCoachId` pointing at them is set to NULL (the plans are the client's and stay). Intakes the purged coach
+`publishedByCoachId` pointing at them is rewritten to the `'purged'` sentinel, never NULL (the plans are the
+client's and stay; NULL would move them into the unknown-author arm). Intakes the purged coach
 sent: re-homed to the client's other coach when there is one (T-2056); otherwise a COMPLETED intake is kept with
 `coachId` NULL (decision 6) and PENDING/IN_PROGRESS rows and the coach's own self row are deleted. A later purge of
 that client deletes the orphaned intake by `clientId`.
-`scripts/purge-now.mjs` closes the coach's open episodes before its `CoachClient` delete and leaves the rest to the
-FKs (`CoachClientEpisode.coachId` SET NULL, `clientId` CASCADE; both `publishedByCoachId` SET NULL). Cases live in
+`scripts/purge-now.mjs` runs the same backfill, episode close and `'purged'` author rewrite in one transaction with
+its `CoachClient` delete, and leaves the rest to the FKs (`CoachClientEpisode.coachId` SET NULL, `clientId`
+CASCADE). Cases live in
 `tests/integration/coach-client-episodes.test.ts`.
 
 **T-2041 (2026-09-27), no migration:** `AiCoachRun.inputSnapshot` (JSON) gains one **optional** key, `runtimeBinding` — the runtime artifact set the run was prepared against: `mode`, `engineVersion`, `synthetic`, `contentKind`, `modelConfiguration`, `policyVersion`, `catalogVersions` and the five exact `artifactRefs` (`id`/`artifactKey`/`version`/`kind`/`digest`, one per artifact kind, sorted by kind). `POST /api/client/ai-coach/runs` (`requestAiRun`) resolves and freezes it before its transaction opens; the executor re-loads those exact references under its lock, and `plans/[id]/finalize` compares them against the set it loads for the account. The key is never defaulted, so a snapshot written before this change parses — and content-hashes — exactly as before. No column, no table, no purge line; the REST contract is unchanged.
@@ -825,7 +832,8 @@ before any purge cron run confirms it the hard way.
 `lib/coach-client/end-relationship.ts` now write that table, so **migration
 `20261016000000_coach_client_episodes_and_plan_authorship` must be applied before the T-2060 code is promoted**, and
 `scripts/sql/T-2060-episode-reconcile.sql` run immediately after promotion (it opens episodes for rows the old code
-created in between and closes the ones whose row it deleted; idempotent). The migration is additive or relaxing
+created in between and closes the ones whose row it deleted; idempotent; re-run it if any verification count is
+non-zero). The migration is additive or relaxing
 (`ClientIntake.coachId` DROP NOT NULL); every new FK is CASCADE or SET NULL, so the previously deployed purge keeps
 working against the migrated schema.
 

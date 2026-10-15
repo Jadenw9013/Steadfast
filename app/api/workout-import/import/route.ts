@@ -166,6 +166,10 @@ export async function POST(req: NextRequest) {
           status: "DRAFT",
         }, { publishedByCoachId: coach.id });
         if (!result.ok) {
+          // T-2060 r1: assignment removed after the check above.
+          if (result.code === "NOT_ASSIGNED") {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+          }
           // Return BEFORE the bookkeeping writes. Marking the import IMPORTED
           // on a failed publish would trip the "Already imported" 400 on the
           // coach's retry and strand the import permanently.

@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { enqueueStorageCleanup } from "@/lib/storage/cleanup-outbox";
 import { stopAccountBilling } from "./billing";
 import { reconcileCoachingContextForClient } from "@/lib/activation";
+import { PURGED_PUBLISHER_ID } from "@/lib/coach-client/plan-visibility";
 
 /** External cleanup is retryable; all database deletes commit together. */
 export async function purgeUserAccount(userId: string): Promise<void> {
@@ -245,9 +246,11 @@ export async function purgeUserAccount(userId: string): Promise<void> {
            "coachId" = NULL
      WHERE "coachId" = ${userId}
   `;
-      // 4. The plans stay (they are the client's); only the author is forgotten.
-      await tx.$executeRaw`UPDATE "MealPlan" SET "publishedByCoachId" = NULL WHERE "publishedByCoachId" = ${userId}`;
-      await tx.$executeRaw`UPDATE "TrainingProgram" SET "publishedByCoachId" = NULL WHERE "publishedByCoachId" = ${userId}`;
+      // 4. The plans stay (they are the client's). The author's id is replaced by
+      //    the "purged" sentinel, never NULL: NULL is the unknown-author arm and
+      //    would make another coach's plan visible to the client (review r1).
+      await tx.$executeRaw`UPDATE "MealPlan" SET "publishedByCoachId" = ${PURGED_PUBLISHER_ID} WHERE "publishedByCoachId" = ${userId}`;
+      await tx.$executeRaw`UPDATE "TrainingProgram" SET "publishedByCoachId" = ${PURGED_PUBLISHER_ID} WHERE "publishedByCoachId" = ${userId}`;
       const coachedClients = await tx.coachClient.findMany({
         where: { coachId: userId, clientId: { not: userId } },
         select: { clientId: true },

@@ -26,8 +26,11 @@ vi.mock("@/lib/auth/roles", () => ({
     return auth.user;
   },
 }));
+// T-2060 r1: routes that authenticate through Clerk's auth() (import-plan)
+// read this clerkId; null everywhere else, as before.
+const clerk = vi.hoisted(() => ({ userId: null as string | null }));
 vi.mock("@clerk/nextjs/server", () => ({
-  auth: async () => ({ userId: null }),
+  auth: async () => ({ userId: clerk.userId }),
   currentUser: vi.fn(),
   clerkClient: async () => ({ users: { deleteUser: async () => ({}) } }),
 }));
@@ -68,6 +71,9 @@ import { GET as mealRoute } from "@/app/api/client/meal-plan/current/route";
 import { GET as trainingRoute } from "@/app/api/client/training/current/route";
 import { POST as clerkWebhook } from "@/app/api/webhooks/clerk/route";
 import { purgeUserAccount } from "@/lib/account-deletion/purge";
+import { POST as importPlanRoute } from "@/app/api/mealplans/import-plan/route";
+import { publishMealPlan } from "@/app/actions/meal-plans";
+import { endCoachClientRelationship } from "@/lib/coach-client/end-relationship";
 import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
 import { publishTrainingProgramTarget } from "@/lib/training-programs/publish";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
@@ -192,6 +198,7 @@ async function expectSeesNothing(client: U) {
 suite("T-2058 relationship rules", () => {
   beforeEach(() => {
     auth.user = null;
+    clerk.userId = null;
     fail.reconcile = false;
   });
   afterAll(() => db.$disconnect());
@@ -350,10 +357,17 @@ suite("T-2058 relationship rules", () => {
       await expectSeesNothing(client);
     });
 
-    it("a plan published by B through the service while the client is linked to A (TOCTOU emulation) is hidden", async () => {
+    it("B, not assigned, cannot publish for A's client through either service (NOT_ASSIGNED, nothing written)", async () => {
       const a = await mk("coach"); const b = await mk("coach"); const client = await mk("client");
       await link(a, client);
-      await publishAs(b, client);
+      const mealDraft = await db.mealPlan.create({
+        data: { clientId: client.id, weekOf: WEEK, status: "DRAFT", items: { create: [{ mealName: "B", foodName: "B food", quantity: "1", unit: "cup" }] } },
+      });
+      expect(await publishMealPlanTarget((await getMealPlanPublishTarget(mealDraft.id))!, { publishedByCoachId: b.id })).toEqual({ ok: false, code: "NOT_ASSIGNED" });
+      const programDraft = await db.trainingProgram.create({ data: { clientId: client.id, weekOf: WEEK, status: "DRAFT" } });
+      expect(await publishTrainingProgramTarget({ id: programDraft.id, clientId: client.id, status: "DRAFT" }, { publishedByCoachId: b.id })).toEqual({ ok: false, code: "NOT_ASSIGNED" });
+      expect(await db.mealPlan.findUniqueOrThrow({ where: { id: mealDraft.id } })).toMatchObject({ status: "DRAFT", publishedByCoachId: null });
+      expect(await db.trainingProgram.findUniqueOrThrow({ where: { id: programDraft.id } })).toMatchObject({ status: "DRAFT", publishedByCoachId: null });
       expect((await expectSeesNothing(client)).provider.coachId).toBe(a.id);
     });
 
@@ -577,6 +591,108 @@ suite("T-2058 relationship rules", () => {
       const moved = await db.user.update({ where: { id: c.id }, data: { email: `changed-${randomUUID()}@example.test` } });
       await link(a, moved);
       await expectSeesNothing(moved);
+    });
+  });
+
+  // ── T-2060 review r1 BLOCKER: a removed (and then purged) coach's plan ────
+
+  describe("T-2060 r1: a removed coach can never publish for, or after purge expose a plan to, the client", () => {
+    async function purgeCoach(u: U) {
+      await db.user.update({ where: { id: u.id }, data: { isDeactivated: true } });
+      await db.accountDeletionRequest.create({ data: { userId: u.id, roleAtRequest: "COACH", status: "PURGING", purgeStartedAt: new Date(), scheduledPurgeAt: new Date(0) } });
+      await purgeUserAccount(u.id);
+      expect(await db.user.findUnique({ where: { id: u.id } })).toBeNull();
+    }
+    async function expectSeesOnly(client: U, plan: { meal: { id: string }; program: { id: string } }) {
+      expect(await clientSees(client)).toMatchObject({
+        webMealId: plan.meal.id, webProgramId: plan.program.id,
+        iosMealId: plan.meal.id, iosProgramId: plan.program.id, mealNames: ["Breakfast"],
+      });
+    }
+    const status = async (id: string) => (await db.mealPlan.findUniqueOrThrow({ where: { id } })).status;
+
+    it("import after removal: B's OCR import-and-publish for K is refused (403), A's plan stays PUBLISHED and visible, before and after B is purged", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const k = await mk("client");
+      await link(b, k);
+      // B uploads K's plan while assigned; the parse leaves a draft.
+      const upload = await db.mealPlanUpload.create({ data: { coachId: b.id, clientId: k.id, storagePath: `meal-plan-uploads/${randomUUID()}.pdf`, status: "NEEDS_REVIEW" } });
+      const importDraft = await db.mealPlanDraft.create({ data: { uploadId: upload.id, parsedJson: { title: "B plan", meals: [{ name: "B meal", items: [{ food: "B food", portion: "1 cup" }] }] } } });
+      await coachRemoves(b, k);
+      await link(a, k);
+      const pa = await publishAs(a, k);
+
+      clerk.userId = b.clerkId;
+      const res = await importPlanRoute(new NextRequest("https://example.test/api/mealplans/import-plan", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId: importDraft.id, publish: true }),
+      }));
+      expect(res.status).toBe(403);
+      expect(await db.mealPlan.count({ where: { clientId: k.id, status: "PUBLISHED", publishedByCoachId: b.id } })).toBe(0);
+      expect(await status(pa.meal.id)).toBe("PUBLISHED");
+      await expectSeesOnly(k, pa);
+
+      await purgeCoach(b);
+      expect(await status(pa.meal.id)).toBe("PUBLISHED");
+      await expectSeesOnly(k, pa);
+    });
+
+    it("publish after removal, then purge: B's service publish is refused; a B-authored row published after K's re-link (legacy/raced shape) stays hidden after B's purge (author 'purged', never NULL)", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const k = await mk("client");
+      await link(b, k);
+      await coachRemoves(b, k);
+      await link(a, k);
+      const pa = await publishAs(a, k);
+      // B publishes after removal through the service: refused, nothing written.
+      const bDraft = await db.mealPlan.create({
+        data: { clientId: k.id, weekOf: new Date("2026-05-11T00:00:00Z"), status: "DRAFT", items: { create: [{ mealName: "B meal", foodName: "B food", quantity: "1", unit: "cup" }] } },
+      });
+      expect(await publishMealPlanTarget((await getMealPlanPublishTarget(bDraft.id))!, { publishedByCoachId: b.id })).toEqual({ ok: false, code: "NOT_ASSIGNED" });
+      // The shape the purge used to expose: a B-authored PUBLISHED row newer than
+      // K's link to A (written before this fix, or by a raced pre-lock publish).
+      const legacyB = await db.mealPlan.create({
+        data: {
+          clientId: k.id, weekOf: new Date("2026-05-18T00:00:00Z"), status: "PUBLISHED", publishedAt: new Date(), publishedByCoachId: b.id,
+          items: { create: [{ mealName: "B meal", foodName: "B food", quantity: "1", unit: "cup" }] },
+        },
+      });
+      await expectSeesOnly(k, pa);
+
+      await purgeCoach(b);
+      expect(await db.mealPlan.findUniqueOrThrow({ where: { id: legacyB.id } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: "purged" });
+      expect(await status(pa.meal.id)).toBe("PUBLISHED");
+      await expectSeesOnly(k, pa);
+    });
+
+    it("race: B's web publish authorizes, then B is removed, K links A and A publishes before B's write -> B refused, A's plan stays PUBLISHED and visible", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const k = await mk("client");
+      await link(b, k);
+      const bDraft = await db.mealPlan.create({
+        data: { clientId: k.id, weekOf: WEEK, version: 1, status: "DRAFT", items: { create: [{ mealName: "B meal", foodName: "B food", quantity: "1", unit: "cup" }] } },
+      });
+      let pa: Awaited<ReturnType<typeof publishAs>> | null = null;
+      // The service's content read runs after the action's access check and
+      // before the transaction: the exact window between check and write.
+      const realFindUnique = db.mealPlan.findUnique.bind(db.mealPlan);
+      const spy = vi.spyOn(db.mealPlan, "findUnique");
+      spy.mockImplementationOnce(((args: Parameters<typeof realFindUnique>[0]) =>
+        (async () => {
+          const content = await realFindUnique(args);
+          const row = await db.coachClient.findUniqueOrThrow({ where: { coachId_clientId: { coachId: b.id, clientId: k.id } }, select: { id: true } });
+          await endCoachClientRelationship({ coachClientId: row.id, coachId: b.id, clientId: k.id, endedBy: "COACH" });
+          await link(a, k);
+          pa = await publishAs(a, k);
+          return content;
+        })()) as unknown as typeof db.mealPlan.findUnique);
+      try {
+        auth.user = { ...b, activeRole: "COACH", isCoach: true };
+        await expect(publishMealPlan({ mealPlanId: bDraft.id, notifyClient: false })).rejects.toThrow("Not assigned to this client");
+      } finally {
+        spy.mockRestore();
+      }
+      expect(pa).not.toBeNull();
+      expect(await status(pa!.meal.id)).toBe("PUBLISHED");
+      expect(await db.mealPlan.count({ where: { clientId: k.id, publishedByCoachId: b.id } })).toBe(0);
+      await expectSeesOnly(k, pa!);
     });
   });
 

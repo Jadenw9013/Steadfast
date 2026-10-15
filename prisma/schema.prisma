@@ -170,8 +170,6 @@ model User {
   // T-2060: recorded relationship history and plan authorship.
   coachEpisodes             CoachClientEpisode[] @relation("CoachEpisodes")
   clientEpisodes            CoachClientEpisode[] @relation("ClientEpisodes")
-  publishedMealPlans        MealPlan[]           @relation("MealPlanPublisher")
-  publishedTrainingPrograms TrainingProgram[]    @relation("TrainingProgramPublisher")
 }
 
 enum CoachingMode {
@@ -1367,14 +1365,15 @@ model MealPlan {
   planExtras     Json? // PlanExtras object (see types/meal-plan-extras.ts)
   publishedAt    DateTime?
   // T-2060: the coach whose publish flipped this row to PUBLISHED. Written only
-  // by lib/meal-plans/publish.ts. NULL = unknown author: every pre-T-2060 plan,
-  // drafts and forks, or a coach whose account was purged.
+  // by lib/meal-plans/publish.ts. Plain id, NO foreign key (review r1): a purge
+  // must never turn an authored plan into an unknown-author one, so purge
+  // rewrites it to the "purged" sentinel instead of NULL. NULL = unknown author:
+  // every pre-T-2060 plan, drafts and forks.
   publishedByCoachId String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   client       User              @relation("MealPlans", fields: [clientId], references: [id])
-  publishedBy  User?             @relation("MealPlanPublisher", fields: [publishedByCoachId], references: [id], onDelete: SetNull)
   items        MealPlanItem[]
   macroTargets MealMacroTarget[]
 
@@ -1716,7 +1715,8 @@ model TrainingProgram {
   weekOf           DateTime
   status           TrainingProgramStatus @default(DRAFT)
   publishedAt      DateTime?
-  // T-2060: see MealPlan.publishedByCoachId. Written only by
+  // T-2060: see MealPlan.publishedByCoachId (plain id, no FK, "purged" sentinel
+  // after the author's account purge). Written only by
   // lib/training-programs/publish.ts.
   publishedByCoachId String?
   templateSourceId String?
@@ -1728,7 +1728,6 @@ model TrainingProgram {
   updatedAt        DateTime              @updatedAt
 
   client         User                   @relation("TrainingPrograms", fields: [clientId], references: [id])
-  publishedBy    User?                  @relation("TrainingProgramPublisher", fields: [publishedByCoachId], references: [id], onDelete: SetNull)
   templateSource TrainingTemplate?      @relation("TemplateSource", fields: [templateSourceId], references: [id])
   days           TrainingDay[]
   cardio         TrainingProgramCardio?

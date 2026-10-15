@@ -130,6 +130,9 @@ export async function publishMealPlan(input: unknown) {
   const result = await publishMealPlanTarget(target, { publishedByCoachId: coach.id });
   if (!result.ok) {
     if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
+    // T-2060 r1: removed between the access check and the write; same message
+    // verifyCoachAccessToClient throws.
+    if (result.code === "NOT_ASSIGNED") throw new Error("Not assigned to this client");
     // T-102b — the wording lives in lib/meal-plans/publish.ts so this action,
     // the REST publish route and the import route all say the same thing.
     if (result.code === "EMPTY_PLAN") throw new Error(emptyPlanMessage(result.planMode));

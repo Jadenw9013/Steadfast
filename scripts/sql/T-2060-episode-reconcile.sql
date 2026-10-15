@@ -11,10 +11,18 @@
 --   2. closes every open episode whose CoachClient row no longer exists
 --      ("zombies"). The close time is an upper bound; a later end only makes
 --      the plan-visibility rule stricter, never wider.
---   3. prints a read-only verification row. Expected:
+--   3. rewrites any plan author id whose User no longer exists to the 'purged'
+--      sentinel (PURGED_PUBLISHER_ID). Only reachable if the code was reverted
+--      and the OLD purge deleted an author (the column has no FK); the plan was
+--      already never visible, this only removes the dead user's id;
+--   4. prints a read-only verification row. Expected:
 --      rows = open_episodes, rows_without_episode = 0, zombie_episodes = 0.
+--      IF ANY VERIFICATION COUNT IS NON-ZERO (rows <> open_episodes, or either
+--      of the last two > 0), RE-RUN THIS SCRIPT. A CoachClient delete racing
+--      the first run can leave one open zombie; it fails closed (stricter) and
+--      the next run closes it.
 --
--- No authorship is written here. Nothing is deleted.
+-- No authorship is invented here. Nothing is deleted.
 BEGIN;
 
 INSERT INTO "CoachClientEpisode" ("id","coachId","clientId","coachClientId","startedAt","source","createdAt")
@@ -25,6 +33,14 @@ WHERE NOT EXISTS (SELECT 1 FROM "CoachClientEpisode" e WHERE e."coachClientId" =
 
 UPDATE "CoachClientEpisode" e SET "endedAt" = now(), "endReason" = 'RECONCILED'
 WHERE e."endedAt" IS NULL AND NOT EXISTS (SELECT 1 FROM "CoachClient" cc WHERE cc."id" = e."coachClientId");
+
+UPDATE "MealPlan" p SET "publishedByCoachId" = 'purged'
+WHERE p."publishedByCoachId" IS NOT NULL AND p."publishedByCoachId" <> 'purged'
+  AND NOT EXISTS (SELECT 1 FROM "User" u WHERE u."id" = p."publishedByCoachId");
+
+UPDATE "TrainingProgram" p SET "publishedByCoachId" = 'purged'
+WHERE p."publishedByCoachId" IS NOT NULL AND p."publishedByCoachId" <> 'purged'
+  AND NOT EXISTS (SELECT 1 FROM "User" u WHERE u."id" = p."publishedByCoachId");
 
 COMMIT;
 
