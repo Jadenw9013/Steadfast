@@ -222,6 +222,15 @@ suite("T-502 — acceptance-notification drain with real PostgreSQL constraints"
 
     const created = await db.aiPlanAcceptanceOutbox.findUniqueOrThrow({ where: { planVersionId: candidate.id } });
     expect(created.processedAt).toBeNull();
+    // S-30: the drain takes the oldest DRAIN_BATCH_LIMIT pending rows. Rows
+    // other files leave pending (ai-coach-plan-acceptance leaves 18 per run)
+    // sort ahead of a row created "now", so with >= 20 of them this row fell
+    // outside the batch and `delivered` was 0 depending on file order. Pin it
+    // to the same controlled past point the other fixtures in this file use.
+    await db.aiPlanAcceptanceOutbox.update({
+      where: { id: created.id },
+      data: { createdAt: safeOldTimestamp() },
+    });
 
     const summary = await runExecutorSweep();
     expect(summary.notifications.delivered).toBeGreaterThanOrEqual(1);
@@ -242,19 +251,21 @@ suite("T-502 — acceptance-notification drain with real PostgreSQL constraints"
 
   it("delivers exactly once under two concurrent sweeps (the claim-conditional-update regression)", async () => {
     const client = await makeClient();
-    const row = await makeOutboxRow(client.id);
-    const send = vi.fn(async (): Promise<AiPlanNotificationResult> => {
+    // S-30: pinned into the batch (see the test above), and the assertions
+    // below are about THIS client's row: other files' pending rows are drained
+    // by the same two sweeps, so global send/claim counts depended on order.
+    const row = await makeOutboxRow(client.id, { createdAt: safeOldTimestamp() });
+    const send = vi.fn<(clientId: string) => Promise<AiPlanNotificationResult>>(async () => {
       await new Promise((r) => setTimeout(r, 50));
       return { status: "RESOLVED", outcome: "DELIVERED" };
     });
 
-    const [a, b] = await Promise.all([
+    await Promise.all([
       drainAcceptanceNotifications({ send }),
       drainAcceptanceNotifications({ send }),
     ]);
 
-    expect(send).toHaveBeenCalledTimes(1);
-    expect(a.claimed + b.claimed).toBe(1);
+    expect(send.mock.calls.filter(([id]) => id === client.id)).toHaveLength(1);
     const final = await outboxRow(row.id);
     expect(final.attempts).toBe(1);
     expect(final.deliveryOutcome).toBe("DELIVERED");

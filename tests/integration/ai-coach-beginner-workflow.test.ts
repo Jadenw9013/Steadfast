@@ -13,6 +13,7 @@ import { approvalStateHash } from "@/lib/ai-coach/validated-plan";
 import { acceptPlanVersionAtomic } from "@/lib/ai-coach/plan-acceptance";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
+import { publishRuntimeFixtureArtifacts } from "../helpers/ai-live-launch";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
@@ -31,6 +32,10 @@ suite("beginner shared-command journey with real persistence", () => {
   afterEach(() => vi.unstubAllEnvs());
   afterAll(() => db.$disconnect());
   it("completes onboarding and generation without allowing reviewer activation", async () => {
+    // S-30: publish the runtime fixture set this generation resolves instead of
+    // inheriting whatever an earlier file (or an earlier run against a reused
+    // database, possibly expired: ARTIFACT_EXPIRED) left as the latest version.
+    await publishRuntimeFixtureArtifacts();
     const seed = randomUUID();
     const client = await db.user.create({ data: { clerkId: seed, email: `${seed}@example.test` } });
     const grant = await assignFixtureReviewer(client.id);
@@ -74,12 +79,17 @@ suite("beginner shared-command journey with real persistence", () => {
     expect(afterV1Confirm.schemaVersion).toBe(1);
     expect(afterV1Confirm.confirmedIntake).toMatchObject({ goal: "GENERAL_FITNESS" });
     expect(afterV1Confirm.confirmedIntake).not.toHaveProperty("intakeVersion");
+    // S-30: CONFIRM_INTAKE establishes a default review timezone (bbe8155), and
+    // ENROLL refuses to change an established one. Send the established zone,
+    // exactly as both clients do (`workspace.reviewTimezone ?? device zone`).
+    const established = afterV1Confirm.reviewTimezone;
+    expect(established).toBeTruthy();
     await command({
       operation: "ENROLL",
       expectedProfileRevision: 1,
       expectedContextRevision: 0,
       consent: true,
-      reviewTimezone: "UTC",
+      reviewTimezone: established ?? "UTC",
     });
     async function execute(kind: "INITIAL" | "WEEKLY_REVIEW") {
       const w = await getAiWorkspace(client.id);

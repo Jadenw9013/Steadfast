@@ -17,6 +17,7 @@ import {
 import { contentHash } from "@/lib/ai-coach/canonical-json";
 import { ACTIVE_POLICY_VERSION } from "@/lib/ai-coach/policy/policy-version";
 import { db } from "@/lib/db";
+import { publishFreshRuntimeFixtureArtifacts } from "./ai-artifacts";
 import {
   activateAiCoachLiveRelease,
   approveLiveLaunchPacket,
@@ -411,9 +412,13 @@ export function bumpVersion<T extends ArtifactDraftInput<ArtifactReviewMetadata>
  * static module (required for `planPayloadSchema`'s own validation of any
  * strength exercise) and this reviewed live artifact.
  *
- * Only the exercise catalog reuses that reserved key, at version 2 (the
- * "t1008-runtime" synthetic fixture other suites share already holds
- * version 1 there). That is safe only because nothing resolves an
+ * Only the exercise catalog reuses that reserved key, at the reserved
+ * version `LIVE_TRAINING_EXERCISE_CATALOG_VERSION`. S-30: it used to be
+ * version 2, which is exactly where the "t1008-runtime" runtime series
+ * (`publishRuntimeFixtureArtifactSet`, versions 1, 2, 3, ...) lands next, so
+ * whichever family wrote `exercise-fixture-v1:v2` first broke the other
+ * (P2002 in weekly-trajectory one way, a stale synthetic 1 h row silently
+ * reused by the live suites the other way). That is safe only because nothing resolves an
  * EXERCISE_CATALOG artifact by "latest version for this key" the way policy
  * bundles are — every exercise/food/evidence/escalation lookup is by the
  * owning policy's own exact `dependencies` references
@@ -428,11 +433,16 @@ export function bumpVersion<T extends ArtifactDraftInput<ArtifactReviewMetadata>
  * proves): this is still a **control-flow proof, not a content proof**. Every
  * fixture here reuses "t1008-runtime" content with `synthetic` flipped.
  */
+/** S-30: far outside the runtime fixture series (it advances by one per
+ * `publishRuntimeFixtureArtifactSet` call), so the two families can never
+ * claim the same `exercise-fixture-v1` id or (kind, key, version) slot. */
+export const LIVE_TRAINING_EXERCISE_CATALOG_VERSION = 1_000_000;
+
 export function buildLiveTrainingArtifacts() {
   const runtimeExerciseSource = buildNonSyntheticLaunchTestArtifacts("t1008-runtime").leaves.find(
     (leaf) => leaf.kind === "EXERCISE_CATALOG"
   )!;
-  const customExercise = bumpVersion(runtimeExerciseSource, 2);
+  const customExercise = bumpVersion(runtimeExerciseSource, LIVE_TRAINING_EXERCISE_CATALOG_VERSION);
 
   const base = buildNonSyntheticLaunchTestArtifacts(`live-autonomy-${randomUUID()}`);
   const leaves = base.leaves.map((leaf) =>
@@ -457,6 +467,17 @@ export async function ensureLiveTrainingExerciseCatalogPublished(
 ): Promise<void> {
   const customExercise = artifacts.leaves.find((leaf) => leaf.kind === "EXERCISE_CATALOG")!;
   const existing = await db.aiCoachArtifactVersion.findUnique({ where: { id: customExercise.id } });
+  // S-30: never silently adopt a row some other fixture wrote at this id.
+  // Skipping it (the old behaviour) turned an id collision into a dozen
+  // unrelated-looking ARTIFACT_INCOMPATIBLE / window failures downstream.
+  const expectedDigest = artifactContentDigest(customExercise);
+  if (existing && (existing.synthetic || existing.contentDigest !== expectedDigest)) {
+    throw new Error(
+      `ensureLiveTrainingExerciseCatalogPublished: "${customExercise.id}" already exists with ` +
+        `different content (synthetic=${existing.synthetic}, contentDigest=${existing.contentDigest}, ` +
+        `expected ${expectedDigest}). Another fixture claimed this reserved id.`
+    );
+  }
   if (!existing) await registerArtifactVersion(customExercise);
   if (existing?.state !== "PUBLISHED") {
     await publishArtifactVersion({
@@ -556,8 +577,31 @@ export async function assertRuntimeFixtureArtifactsUsable(
  */
 export async function publishRuntimeFixtureArtifacts(): Promise<ArtifactReference[]> {
   const references = await publishSyntheticArtifactSetForTest(RUNTIME_FIXTURE_NAMESPACE);
-  await assertRuntimeFixtureArtifactsUsable(references);
-  return references;
+  // S-30: `ensurePublished` keeps whatever window the first writer of the
+  // shared `policy-fixture-v1:v1` row chose, and the FIXTURE binding resolves
+  // the *latest* version of that key, not v1. On a reused database either one
+  // can be a row an earlier run wrote with a now-expired window, so this call
+  // was green or red depending on what ran before it. If the version the
+  // binding will actually resolve is not this usable v1 set, publish a fresh
+  // version (collision-free since S-30; it becomes the latest) and hand back
+  // that set instead.
+  const latest = await db.aiCoachArtifactVersion.findFirst({
+    where: { kind: "POLICY_BUNDLE", artifactKey: ACTIVE_POLICY_VERSION },
+    orderBy: { version: "desc" },
+    select: { id: true, state: true, effectiveAt: true, expiresAt: true },
+  });
+  const now = new Date();
+  const policyId = references.find((reference) => reference.kind === "POLICY_BUNDLE")?.id;
+  const latestIsTheseAndUsable =
+    latest?.id === policyId &&
+    latest?.state === "PUBLISHED" &&
+    !!latest.effectiveAt &&
+    latest.effectiveAt <= now &&
+    !!latest.expiresAt &&
+    latest.expiresAt > now;
+  const usable = latestIsTheseAndUsable ? references : await publishFreshRuntimeFixtureArtifacts();
+  await assertRuntimeFixtureArtifactsUsable(usable);
+  return usable;
 }
 
 /**
