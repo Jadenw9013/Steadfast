@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getTodayAdherence } from "@/lib/queries/adherence";
 import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
 import { getClientProvider } from "@/lib/queries/client-provider";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 /** Returns YYYY-MM-DD in the client's local timezone (or UTC fallback). */
 function todayString(tz: string): string {
@@ -39,10 +40,12 @@ export async function GET() {
     // were unfiltered. Resolve first so `getActiveMealNames` gets the gate;
     // a non-HUMAN provider simply yields `mealNames: []` (no new status code).
     const provider = await getClientProvider(user.id);
+    // T-2060: the recorded-facts plan visibility rule (null for non-HUMAN).
+    const visibility = await getPlanVisibility(user.id, provider);
 
     const [adherence, mealEntries, coachClient] = await Promise.all([
       getTodayAdherence(user.id, date),
-      getActiveMealNames(user.id, provider.relationshipStartedAt),
+      getActiveMealNames(user.id, visibility),
       // T-202: this `coachClient.findFirst({ where: { clientId } })` is
       // deliberately left unfiltered here — fixing it is T-202's scope, not
       // T-105's, so `enabled` can still be true while `mealNames` is [].

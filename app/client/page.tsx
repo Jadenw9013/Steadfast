@@ -34,6 +34,7 @@ import { getWeightHistory } from "@/lib/queries/weight-history";
 import dayjs from "dayjs";
 import utcPlugin from "dayjs/plugin/utc";
 import timezonePlugin from "dayjs/plugin/timezone";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 
 dayjs.extend(utcPlugin);
@@ -42,6 +43,8 @@ dayjs.extend(timezonePlugin);
 export default async function ClientDashboard() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
+  // T-2060: the recorded-facts plan visibility rule (null for non-HUMAN).
+  const visibility = await getPlanVisibility(user.id, provider);
   if (provider.resolutionRequired) return <ProviderResolution />;
   if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={[]} />;
   if (rendersCoachingChooser(provider))
@@ -154,14 +157,14 @@ export default async function ClientDashboard() {
 
   const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake, adherenceEnabled, todayAdherence, planMeals, pendingInvites] = await Promise.all([
     getClientCheckInsLight(user.id),
-    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
+    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, visibility) : Promise.resolve(null),
     getLatestCoachMessage(user.id),
     getWeightHistory(user.id),
-    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
+    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, visibility) : Promise.resolve(null),
     getMyIntake(user.id),
     getAdherenceEnabled(user.id),
     getTodayAdherence(user.id, todayDate),
-    getActiveMealNames(user.id, provider.relationshipStartedAt),
+    getActiveMealNames(user.id, visibility),
     getMyPendingCoachInvites(user.email),
   ]);
 

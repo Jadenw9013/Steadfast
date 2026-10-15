@@ -48,11 +48,12 @@ vi.mock("@/lib/notifications/push", () => ({ pushMealPlanUpdated: mocks.pushMeal
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { createDraftMealPlan, publishMealPlan } from "@/app/actions/meal-plans";
+import { createDraftMealPlan, publishMealPlan, saveDraftMealPlan } from "@/app/actions/meal-plans";
 import { POST as publishRest } from "@/app/api/coach/clients/[clientId]/meal-plan/publish/route";
 // T-102b — the third publish transport, which inherits the same guard.
 import { POST as importPlanRoute } from "@/app/api/mealplans/import-plan/route";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { getCurrentWeekMonday } from "@/lib/utils/date";
 import {
   PUBLISHED_MEAL_PLAN_INDEX,
   isDuplicatePublishedPlanError,
@@ -342,7 +343,7 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
   // reports a fault. Both cases below fail against the pre-T-745 service.
 
   it("a publish target that vanishes after the empty-plan read rolls the supersede back instead of leaving zero PUBLISHED plans", async () => {
-    const { client } = await fixture();
+    const { coach, client } = await fixture();
     const week = "2026-03-02";
 
     const v1 = await draft(client.id, week);
@@ -372,7 +373,7 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
         clientId: client.id,
         weekOf,
         status: "DRAFT",
-      });
+      }, { publishedByCoachId: coach.id });
     } finally {
       spy.mockRestore();
     }
@@ -383,7 +384,7 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
   });
 
   it("a stale DRAFT target whose row is no longer DRAFT rolls the supersede back", async () => {
-    const { client } = await fixture();
+    const { coach, client } = await fixture();
     const week = "2026-03-09";
 
     const v1 = await draft(client.id, week);
@@ -401,7 +402,7 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
       clientId: client.id,
       weekOf,
       status: "DRAFT",
-    });
+    }, { publishedByCoachId: coach.id });
 
     expect(result).toEqual({ ok: false, code: "RACE_LOST" });
     expect(await statusOf(v1)).toBe("PUBLISHED");
@@ -713,5 +714,65 @@ suite("meal-plan publish parity (action vs REST) with real PostgreSQL constraint
     expect((await publishViaRest(client.id, { mealPlanId: loud, notifyClient: true })).status).toBe(200);
     await vi.waitFor(() => expect(mocks.notifySms).toHaveBeenCalledTimes(1));
     expect(mocks.notifySms.mock.calls[0][0]).toBe(client.id);
+  });
+
+  // ── T-2060: the publish stamps the author ─────────────────────────────────
+
+  const authorOf = async (id: string) =>
+    (await db.mealPlan.findUniqueOrThrow({ where: { id } })).publishedByCoachId;
+
+  it("T-2060: web action, iOS route and OCR import each stamp publishedByCoachId; supersede leaves the old author", async () => {
+    const { coach, client } = await fixture();
+    // The import route always targets the current week, so all three share it.
+    const week = getCurrentWeekMonday().toISOString().split("T")[0];
+
+    const viaAction = await draft(client.id, week);
+    expect(await authorOf(viaAction)).toBeNull();
+    expect(await publishMealPlan({ mealPlanId: viaAction })).toEqual({ success: true });
+    expect(await authorOf(viaAction)).toBe(coach.id);
+
+    const viaRest = await draft(client.id, week);
+    expect((await publishViaRest(client.id, { mealPlanId: viaRest })).status).toBe(200);
+    expect(await authorOf(viaRest)).toBe(coach.id);
+    // Superseded by the REST publish: status moves, the author does not.
+    expect(await statusOf(viaAction)).toBe("SUPERSEDED");
+    expect(await authorOf(viaAction)).toBe(coach.id);
+
+    const upload = await db.mealPlanUpload.create({
+      data: { coachId: coach.id, clientId: client.id, storagePath: `meal-plan-uploads/${randomUUID()}.pdf`, status: "NEEDS_REVIEW" },
+    });
+    const importDraft = await db.mealPlanDraft.create({
+      data: {
+        uploadId: upload.id,
+        parsedJson: { title: "Imported", meals: [{ name: "Meal 1", items: [{ food: "Oats", portion: "1 cup" }] }] },
+      },
+    });
+    const response = await importPlanRoute(
+      new NextRequest("https://example.test/api/mealplans/import-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draftId: importDraft.id, publish: true }),
+      })
+    );
+    expect(response.status).toBe(200);
+    const imported = await db.mealPlan.findFirstOrThrow({ where: { clientId: client.id, status: "PUBLISHED" } });
+    expect(imported.id).not.toBe(viaRest);
+    expect(imported.publishedByCoachId).toBe(coach.id);
+    expect(await statusOf(viaRest)).toBe("SUPERSEDED");
+    expect(await authorOf(viaRest)).toBe(coach.id);
+  });
+
+  it("T-2060: a fork of a published plan is a DRAFT with no author", async () => {
+    const { coach, client } = await fixture();
+    const published = await draft(client.id, "2026-06-08");
+    await publishMealPlan({ mealPlanId: published });
+    expect(await authorOf(published)).toBe(coach.id);
+
+    const saved = await saveDraftMealPlan({ mealPlanId: published, items: [FIXTURE_ITEM] });
+    expect(saved).toMatchObject({ success: true, forkedNewDraftId: expect.any(String) });
+    const forkId = (saved as { forkedNewDraftId: string }).forkedNewDraftId;
+    const fork = await db.mealPlan.findUniqueOrThrow({ where: { id: forkId } });
+    expect(fork).toMatchObject({ status: "DRAFT", publishedByCoachId: null, publishedAt: null });
+    expect(await authorOf(published)).toBe(coach.id);
   });
 });

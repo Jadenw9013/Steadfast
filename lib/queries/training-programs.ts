@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { reportAnomaly } from "@/lib/observability/report";
 import { TRAINING_WEEK_EMPTY } from "@/lib/observability/events";
 import type { Prisma } from "@/app/generated/prisma/client";
+import { publishedPlanVisibilityWhere, type PlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 const daySelect = {
   id: true,
@@ -125,13 +126,12 @@ export async function getLatestPublishedTrainingProgramForCoach(clientId: string
   });
 }
 
-export async function getPublishedTrainingProgram(clientId: string, publishedAfter: Date | null) {
+export async function getPublishedTrainingProgram(clientId: string, visibility: PlanVisibility | null) {
   // `== null` (not `===`): fails closed on `undefined` too, so an untyped or
-  // `as any` caller cannot reintroduce the pre-T-665 unfiltered read — Prisma
-  // treats `gte: undefined` as no filter.
-  if (publishedAfter == null) return null;
+  // `as any` caller cannot reintroduce the pre-T-665 unfiltered read.
+  if (visibility == null) return null;
   return db.trainingProgram.findFirst({
-    where: { clientId, status: "PUBLISHED", publishedAt: { gte: publishedAfter } },
+    where: { clientId, ...publishedPlanVisibilityWhere(visibility) },
     orderBy: PUBLISHED_TRAINING_ORDER_BY,
     include: programInclude,
   });

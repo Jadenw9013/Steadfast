@@ -142,7 +142,10 @@ export async function POST(req: NextRequest) {
       // writes MealPlan.status, and the flip itself is gated in the database
       // (`updateMany where status: "DRAFT"`), so any staleness degrades to
       // RACE_LOST rather than a wrong publish.
-      const result = await publishMealPlanTarget({ id: mealPlanId, clientId, weekOf, status: "DRAFT" });
+      const result = await publishMealPlanTarget(
+        { id: mealPlanId, clientId, weekOf, status: "DRAFT" },
+        { publishedByCoachId: coach.id },
+      );
       if (!result.ok) {
         // Return BEFORE the bookkeeping writes. Marking the upload IMPORTED on a
         // failed publish would trip the "Already imported" 400 on the coach's
@@ -151,6 +154,12 @@ export async function POST(req: NextRequest) {
         // T-102b — a document that parsed to zero items produces an empty
         // MEAL_PLAN plan. Without this branch the shared guard's EMPTY_PLAN
         // would be misreported as PLAN_NOT_DRAFT.
+        // T-2060 r1: the importing coach has no CoachClient row for this
+        // client at write time; the publish service refused (nothing
+        // published). The route-level check before the draft is T-2069.
+        if (result.code === "NOT_ASSIGNED") {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
         if (result.code === "EMPTY_PLAN") {
           return NextResponse.json(
             { error: emptyPlanMessage(result.planMode), code: "PLAN_EMPTY" },

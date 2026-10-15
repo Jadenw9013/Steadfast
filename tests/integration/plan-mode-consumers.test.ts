@@ -61,6 +61,7 @@ import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { PUBLISHED_MEAL_PLAN_INDEX } from "@/lib/meal-plans/publish";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibilityFor } from "../helpers/plan-visibility";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
 if (enabled) requireLocalTestDb();
@@ -105,7 +106,7 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
     const client = await db.user.create({ data: { clerkId: clientClerkId, email: `client-${clientClerkId}@example.test`, isClient: true } });
     const link = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
     mocks.authUserId = coach.clerkId;
-    // T-105: `link` is returned so tests can pass `link.createdAt` as the
+    // T-105: `link` is returned so tests can pass `await visibilityFor(client.id)` as the
     // provider gate (`publishedAfter`), which `getActiveMealNames` requires.
     return { coach, client, link };
   }
@@ -225,10 +226,10 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
 
   describe("adherence meal checklist (finding 2)", () => {
     it("returns the macro targets' meal names for a MACROS plan, not carried-forward food meals", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       await macroPlanCarryingFoodsForward(client.id);
 
-      const names = await getActiveMealNames(client.id, link.createdAt);
+      const names = await getActiveMealNames(client.id, await visibilityFor(client.id));
 
       // These are exactly the names macro-plan-view.tsx checks off, so both
       // surfaces write the same `mealNameSnapshot` rows for the same day.
@@ -241,18 +242,18 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
     });
 
     it("returns the items' meal names for a MEAL_PLAN plan (regression)", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       const foods = await createDraftMealPlan({ clientId: client.id, weekStartDate: WEEK_A, items: FOOD_ITEMS });
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
-      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([
         { mealName: "Breakfast", order: 0 },
         { mealName: "Lunch", order: 1 },
       ]);
     });
 
     it("deduplicates repeated meal names, preserving first-seen order (regression)", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       const foods = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -263,14 +264,14 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
       });
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
-      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([
         { mealName: "Breakfast", order: 0 },
         { mealName: "Lunch", order: 1 },
       ]);
     });
 
     it("returns an empty list for a pre-T-102b PUBLISHED MACROS plan with no targets set", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       const foods = await createDraftMealPlan({ clientId: client.id, weekStartDate: WEEK_A, items: FOOD_ITEMS });
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
@@ -294,12 +295,12 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
         },
       });
 
-      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([]);
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([]);
     });
 
     it("returns an empty list when the client has no published plan (regression)", async () => {
-      const { client, link } = await fixture();
-      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([]);
+      const { client } = await fixture();
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([]);
     });
   });
 
@@ -318,13 +319,13 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
    */
   describe("client dashboard nutrition card (review r2 finding 1)", () => {
     it("counts meals from the mode-gated list, not the MACROS plan's carried-forward items", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       await macroPlanCarryingFoodsForward(client.id);
 
       // `app/client/page.tsx` fetches exactly these two in its Promise.all.
       const [mealPlan, planMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id, link.createdAt),
-        getActiveMealNames(client.id, link.createdAt),
+        getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id)),
+        getActiveMealNames(client.id, await visibilityFor(client.id)),
       ]);
 
       // Precondition: the card renders at all (it is gated on `mealPlan`), and
@@ -340,11 +341,11 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
 
       // And it agrees with the adherence checklist rendered directly below it
       // and with the `mealNames` iOS reads from /api/client/home.
-      expect(planMeals).toEqual(await getActiveMealNames(client.id, link.createdAt));
+      expect(planMeals).toEqual(await getActiveMealNames(client.id, await visibilityFor(client.id)));
     });
 
     it("still counts the food meals for a MEAL_PLAN client (regression)", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       const foods = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -357,8 +358,8 @@ suite("planMode-aware client-facing consumers (PDF export, adherence checklist)"
       await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
 
       const [mealPlan, planMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id, link.createdAt),
-        getActiveMealNames(client.id, link.createdAt),
+        getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id)),
+        getActiveMealNames(client.id, await visibilityFor(client.id)),
       ]);
 
       expect(mealPlan!.planMode).toBe("MEAL_PLAN");

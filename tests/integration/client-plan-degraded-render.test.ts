@@ -41,6 +41,7 @@ import { PUBLISHED_MEAL_PLAN_INDEX, emptyPlanMessage } from "@/lib/meal-plans/pu
 import { resolveClientPlanView, isCheckoffEligible, deriveCheckoffNames } from "@/lib/meal-plans/client-plan-view";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibilityFor } from "../helpers/plan-visibility";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
 if (enabled) requireLocalTestDb();
@@ -90,7 +91,7 @@ suite("client plan degraded render (T-802a)", () => {
   const asClient = (clerkId: string) => { mocks.authUserId = clerkId; };
 
   it("a legacy MACROS row with no targets and items reaches the reader intact", async () => {
-    const { client, link } = await fixture();
+    const { client } = await fixture();
 
     // T-102b's publish guard (lib/meal-plans/publish.ts:105-110) refuses to
     // publish a MACROS plan with zero targets, so this row — the T-800
@@ -109,7 +110,7 @@ suite("client plan degraded render (T-802a)", () => {
       },
     });
 
-    const plan = await getCurrentPublishedMealPlan(client.id, link.createdAt);
+    const plan = await getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id));
     expect(plan).not.toBeNull();
     expect(plan!.planMode).toBe("MACROS");
     expect(plan!.macroTargets.length).toBe(0);
@@ -128,7 +129,7 @@ suite("client plan degraded render (T-802a)", () => {
     // The T-800 production shape again — this time proving the lead's
     // 2026-09-18 "degraded states are read-only" decision (board/tickets/
     // T-802.md), not just the render verdict.
-    const { client, link } = await fixture();
+    const { client } = await fixture();
 
     await db.mealPlan.create({
       data: {
@@ -142,7 +143,7 @@ suite("client plan degraded render (T-802a)", () => {
       },
     });
 
-    const plan = await getCurrentPublishedMealPlan(client.id, link.createdAt);
+    const plan = await getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id));
     const view = resolveClientPlanView({
       planMode: plan!.planMode,
       itemCount: plan!.items.length,
@@ -168,7 +169,7 @@ suite("client plan degraded render (T-802a)", () => {
     // deriveMealNames / getActiveMealNames — the dashboard/coach-facing
     // checklist source — is untouched by this ticket: still keyed strictly on
     // the DECLARED planMode, still [] for this row, exactly as T-105 pinned.
-    const activeNames = await getActiveMealNames(client.id, link.createdAt);
+    const activeNames = await getActiveMealNames(client.id, await visibilityFor(client.id));
     expect(activeNames).toEqual([]);
 
     // NOTE (T-802a review r3, MINOR 1): a prior version of this test also
@@ -226,7 +227,7 @@ suite("client plan degraded render (T-802a)", () => {
     // MEAL_PLAN, 0 items, 2 targets — T-802's symmetric extension (§4.1) of
     // T-800's one-directional rule. Same legacy-only reachability as above:
     // T-102b's guard blocks it going forward.
-    const { client, link } = await fixture();
+    const { client } = await fixture();
 
     await db.mealPlan.create({
       data: {
@@ -240,7 +241,7 @@ suite("client plan degraded render (T-802a)", () => {
       },
     });
 
-    const plan = await getCurrentPublishedMealPlan(client.id, link.createdAt);
+    const plan = await getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id));
     expect(plan).not.toBeNull();
     expect(plan!.planMode).toBe("MEAL_PLAN");
     expect(plan!.items.length).toBe(0);
@@ -260,7 +261,7 @@ suite("client plan degraded render (T-802a)", () => {
     // MACROS plan that also carries foods forward is the NORMAL case, not a
     // defect. The defensive arms must never fire for it: row 1 of the truth
     // table (targets present) wins before any degradation is considered.
-    const { client, link } = await fixture();
+    const { client } = await fixture();
 
     const foods = await createDraftMealPlan({ clientId: client.id, weekStartDate: WEEK_A, items: FOOD_ITEMS, startBlank: true });
     await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
@@ -285,7 +286,7 @@ suite("client plan degraded render (T-802a)", () => {
     expect(stored.items.length).toBe(FOOD_ITEMS.length);
     expect(stored.macroTargets.length).toBe(MACRO_TARGETS.length);
 
-    const plan = await getCurrentPublishedMealPlan(client.id, link.createdAt);
+    const plan = await getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id));
     expect(
       resolveClientPlanView({
         planMode: plan!.planMode,
@@ -318,7 +319,7 @@ suite("client plan degraded render (T-802a)", () => {
     // macro-target names (not the carried-forward foods), and
     // toggleMealCheckoff for each name twice writes exactly names.length
     // DailyMealCheckoff rows with no P2002.
-    const { client, link } = await fixture();
+    const { client } = await fixture();
 
     const foods = await createDraftMealPlan({ clientId: client.id, weekStartDate: WEEK_A, items: FOOD_ITEMS, startBlank: true });
     await publishMealPlan({ mealPlanId: foods.mealPlanId, notifyClient: false });
@@ -331,7 +332,7 @@ suite("client plan degraded render (T-802a)", () => {
     });
     await publishMealPlan({ mealPlanId: macros.mealPlanId, notifyClient: false });
 
-    const names = await getActiveMealNames(client.id, link.createdAt);
+    const names = await getActiveMealNames(client.id, await visibilityFor(client.id));
     expect(names.map((n) => n.mealName)).toEqual(["Meal 1", "Meal 2"]);
 
     const date = new Date().toISOString().split("T")[0];

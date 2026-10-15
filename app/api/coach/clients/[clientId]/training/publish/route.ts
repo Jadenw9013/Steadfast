@@ -65,8 +65,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // CB05 supersede + race guard live in lib/training-programs/publish.ts,
     // the only writer of TrainingProgram.status = "PUBLISHED" (T-739).
-    const result = await publishTrainingProgramTarget(target);
+    const result = await publishTrainingProgramTarget(target, { publishedByCoachId: user.id });
     if (!result.ok) {
+      // T-2060 r1: the assignment was removed after the check above; the
+      // route's existing not-authorized response.
+      if (result.code === "NOT_ASSIGNED") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.json(
         result.code === "RACE_LOST"
           ? {

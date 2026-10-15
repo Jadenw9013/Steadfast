@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { enqueueStorageCleanup } from "@/lib/storage/cleanup-outbox";
 import { stopAccountBilling } from "./billing";
 import { reconcileCoachingContextForClient } from "@/lib/activation";
+import { PURGED_PUBLISHER_ID } from "@/lib/coach-client/plan-visibility";
 
 /** External cleanup is retryable; all database deletes commit together. */
 export async function purgeUserAccount(userId: string): Promise<void> {
@@ -221,6 +222,35 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       // client as HUMAN with no relationship, which getClientProvider reads as
       // resolutionRequired (409 on every client plan route). Collect the
       // clients first, then re-derive each context in this same transaction.
+      // T-2060: relationship history (CoachClientEpisode) and plan authorship.
+      // 1. Any of this coach's own rows still without an open episode (created
+      //    by pre-T-2060 code before the reconcile ran) gets its BACKFILL
+      //    episode first, so step 3 can close and anonymise it.
+      await tx.$executeRaw`
+    INSERT INTO "CoachClientEpisode" ("id","coachId","clientId","coachClientId","startedAt","source","createdAt")
+    SELECT gen_random_uuid()::text, cc."coachId", cc."clientId", cc."id", cc."createdAt",
+           'BACKFILL'::"CoachClientEpisodeSource", now()
+    FROM "CoachClient" cc
+    WHERE cc."coachId" = ${userId} AND cc."clientId" <> ${userId}
+      AND NOT EXISTS (SELECT 1 FROM "CoachClientEpisode" e WHERE e."coachClientId" = cc."id" AND e."endedAt" IS NULL)
+  `;
+      // 2. This user's own client history goes with them.
+      await tx.$executeRaw`DELETE FROM "CoachClientEpisode" WHERE "clientId" = ${userId}`;
+      // 3. Close and anonymise the episodes this user coached. The client keeps
+      //    the fact that another provider existed (coachId NULL still counts as
+      //    "another provider" in lib/coach-client/plan-visibility.ts).
+      await tx.$executeRaw`
+    UPDATE "CoachClientEpisode"
+       SET "endedAt" = COALESCE("endedAt", now()),
+           "endReason" = COALESCE("endReason", 'COACH_ACCOUNT_DELETED'::"CoachClientEpisodeEndReason"),
+           "coachId" = NULL
+     WHERE "coachId" = ${userId}
+  `;
+      // 4. The plans stay (they are the client's). The author's id is replaced by
+      //    the "purged" sentinel, never NULL: NULL is the unknown-author arm and
+      //    would make another coach's plan visible to the client (review r1).
+      await tx.$executeRaw`UPDATE "MealPlan" SET "publishedByCoachId" = ${PURGED_PUBLISHER_ID} WHERE "publishedByCoachId" = ${userId}`;
+      await tx.$executeRaw`UPDATE "TrainingProgram" SET "publishedByCoachId" = ${PURGED_PUBLISHER_ID} WHERE "publishedByCoachId" = ${userId}`;
       const coachedClients = await tx.coachClient.findMany({
         where: { coachId: userId, clientId: { not: userId } },
         select: { clientId: true },
@@ -232,10 +262,8 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       // T-2056 (D6): an intake this user sent as a coach holds the client's own
       // answers. If the client has another coach, re-home the row to that coach
       // (the reconciled active one first, else the most recent) instead of
-      // deleting it. Reads key on clientId; coachId only addresses the
-      // completion email, which resendClientIntake already re-points the same
-      // way. With no other coach the row still goes: coachId is a required FK to
-      // this user (keeping it needs a migration, follow-up).
+      // deleting it. Reads key on clientId; nothing reads coachId for the
+      // completion email any more (T-2060: it goes to the current coach).
       await tx.$executeRaw`
     UPDATE "ClientIntake" ci SET "coachId" = next_coach."coachId", "updatedAt" = now()
     FROM (
@@ -246,6 +274,16 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       ORDER BY cc."clientId", (ctx."id" IS NOT NULL) DESC, cc."createdAt" DESC
     ) next_coach
     WHERE ci."coachId" = ${userId} AND ci."clientId" = next_coach."clientId"
+  `;
+      // T-2060 (decision 6): with no other coach, a COMPLETED intake still
+      // holds the client's own answers ("you'll still have access to your own
+      // data"), so it stays with coachId NULL. Unfinished (PENDING/IN_PROGRESS)
+      // intakes and this user's own self row are still deleted, so a coachless
+      // client is never asked to finish a questionnaire for a coach who no
+      // longer exists. A later purge of the client deletes the row by clientId.
+      await tx.$executeRaw`
+    UPDATE "ClientIntake" SET "coachId" = NULL, "updatedAt" = now()
+     WHERE "coachId" = ${userId} AND "clientId" <> ${userId} AND "status" = 'COMPLETED'
   `;
       await tx.$executeRaw`DELETE FROM "ClientIntake" WHERE "coachId" = ${userId}`;
       // T-987: mismatchEmail is a *second* user's address stored on a *coach's*

@@ -75,6 +75,9 @@ const target: MealPlanPublishTarget = {
   status: "DRAFT",
 };
 
+// T-2060 — the author is required on every publish.
+const opts = { publishedByCoachId: "coach-1" };
+
 describe("publishMealPlanTarget — transaction failure mapping", () => {
   beforeEach(() => {
     // resetAllMocks, not clearAllMocks: the zero-row-flip case below installs a
@@ -96,7 +99,7 @@ describe("publishMealPlanTarget — transaction failure mapping", () => {
       adapterUniqueViolation(PUBLISHED_MEAL_PLAN_INDEX, ["clientId", "weekOf"])
     );
 
-    const result = await publishMealPlanTarget(target);
+    const result = await publishMealPlanTarget(target, opts);
 
     // The catch branch was genuinely exercised — not short-circuited before the
     // transaction by the NOT_DRAFT guard.
@@ -114,7 +117,7 @@ describe("publishMealPlanTarget — transaction failure mapping", () => {
 
     // Must surface as a 500 so it stays visible; reporting it as a lost race
     // would tell the coach to "refresh and try again" forever.
-    await expect(publishMealPlanTarget(target)).rejects.toBe(err);
+    await expect(publishMealPlanTarget(target, opts)).rejects.toBe(err);
     expect(mocks.transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -122,7 +125,7 @@ describe("publishMealPlanTarget — transaction failure mapping", () => {
     const err = new Error("connection reset");
     mocks.transaction.mockRejectedValue(err);
 
-    await expect(publishMealPlanTarget(target)).rejects.toBe(err);
+    await expect(publishMealPlanTarget(target, opts)).rejects.toBe(err);
   });
 
   /**
@@ -144,7 +147,7 @@ describe("publishMealPlanTarget — transaction failure mapping", () => {
       .mockResolvedValueOnce({ count: 1 })
       // 2. flip — the target is no longer DRAFT, so we lost the race
       .mockResolvedValueOnce({ count: 0 });
-    const tx = { mealPlan: { updateMany } };
+    const tx = { $queryRaw: vi.fn().mockResolvedValue([{ id: "link-1" }]), mealPlan: { updateMany } };
 
     mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
       try {
@@ -158,12 +161,59 @@ describe("publishMealPlanTarget — transaction failure mapping", () => {
       }
     });
 
-    const result = await publishMealPlanTarget(target);
+    const result = await publishMealPlanTarget(target, opts);
 
     expect(result).toEqual({ ok: false, code: "RACE_LOST" });
     // The load-bearing assertion: a callback that returned normally here would
     // have committed the supersede (this is exactly the pre-T-745 bug).
     expect(callbackThrew).toBe(true);
     expect(updateMany).toHaveBeenCalledTimes(2);
+  });
+
+  // T-2060 — the DRAFT->PUBLISHED flip stamps the author; the supersede does not.
+  it("the flip data carries publishedByCoachId and the supersede data does not", async () => {
+    const updateMany = vi
+      .fn()
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+    const tx = { $queryRaw: vi.fn().mockResolvedValue([{ id: "link-1" }]), mealPlan: { updateMany } };
+    mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => callback(tx));
+    const now = new Date("2026-10-16T00:00:00.000Z");
+
+    const result = await publishMealPlanTarget(target, { publishedByCoachId: "coach-1", now });
+
+    expect(result).toMatchObject({ ok: true, supersededCount: 1 });
+    expect(updateMany.mock.calls[0][0].data).toEqual({ status: "SUPERSEDED" });
+    expect(updateMany.mock.calls[1][0]).toEqual({
+      where: { id: target.id, status: "DRAFT" },
+      data: { status: "PUBLISHED", publishedAt: now, publishedByCoachId: "coach-1" },
+    });
+  });
+
+  // T-2060 r1 — the author's CoachClient row is checked inside the transaction.
+  it("returns NOT_ASSIGNED and writes nothing when the author no longer coaches the client", async () => {
+    const updateMany = vi.fn();
+    const queryRaw = vi.fn().mockResolvedValue([]);
+    const tx = { $queryRaw: queryRaw, mealPlan: { updateMany } };
+    let callbackThrew = false;
+    mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
+      try {
+        return await callback(tx);
+      } catch (err) {
+        callbackThrew = true;
+        throw err;
+      }
+    });
+
+    const result = await publishMealPlanTarget(target, { publishedByCoachId: "coach-removed" });
+
+    expect(result).toEqual({ ok: false, code: "NOT_ASSIGNED" });
+    // Thrown out of the callback (rolls back), and checked BEFORE the supersede.
+    expect(callbackThrew).toBe(true);
+    expect(updateMany).not.toHaveBeenCalled();
+    const sql = (queryRaw.mock.calls[0][0] as string[]).join("?");
+    expect(sql).toMatch(/FROM "CoachClient"/);
+    expect(sql).toMatch(/FOR SHARE/);
+    expect(queryRaw.mock.calls[0].slice(1)).toEqual(["coach-removed", target.clientId]);
   });
 });

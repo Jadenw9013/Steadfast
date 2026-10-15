@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import {
   allergenDeclarationsSchema,
+  dietaryPatternSchema,
   intakeV2ConfirmObjectSchema,
   intakeV2ConfirmSchema,
   type AllergenDeclaration,
   type AllergenDeclarations,
+  type DietaryPattern,
   type IntakeV2ConfirmAnswers,
 } from "@/lib/ai-coach/intake-contract";
 import { button, inputStyle, primary } from "./controls";
@@ -24,7 +26,17 @@ type Answers = Record<string, unknown>;
 type GoalChoice = "FAT_LOSS" | "BUILD_MUSCLE" | "STRENGTH" | "GENERAL_FITNESS";
 type ExperienceChoice = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 type EquipmentChoice = "BODYWEIGHT" | "HOME_DUMBBELLS" | "FULL_GYM";
-type SessionLengthChoice = "MIN_30_45" | "MIN_45_60" | "MIN_60_PLUS";
+type SessionLengthChoice = "UNDER_30" | "MIN_30_45" | "MIN_45_60" | "MIN_60_PLUS";
+/** Exactly the contract enum for `resistanceTrainingContext`; no other category exists. */
+type CurrentTrainingChoice = NonNullable<IntakeV2ConfirmAnswers["resistanceTrainingContext"]>;
+/**
+ * T-2055 — the `goalPaceClass` values offered for Fat Loss / Build Muscle.
+ * MAINTAIN is not offered: LOSE/GAIN + MAINTAIN has no bundle parameter.
+ */
+type GoalPaceChoice = Extract<
+  NonNullable<IntakeV2ConfirmAnswers["goalPaceClass"]>,
+  "GRADUAL" | "MODERATE" | "UNDECIDED"
+>;
 type DietaryStyleChoice = "BALANCED" | "HIGH_PROTEIN" | "PLANT_BASED" | "LOW_CARB";
 type TrackingStyleChoice = "PORTIONS" | "EXACT_MACROS";
 type FoodBudgetChoice = "LOW" | "MODERATE" | "FLEXIBLE";
@@ -45,10 +57,27 @@ export type SafetyAnswers = Partial<Record<SafetyKey, SafetyAnswer>>;
 
 export interface IntakeSelections {
   goal?: GoalChoice;
+  /**
+   * T-2055 — the client's own answer to "Preferred pace" (Fat Loss / Build
+   * Muscle only). Seeded only from a stored CONFIRMED goal; never defaulted.
+   */
+  goalPace?: GoalPaceChoice;
   experience?: ExperienceChoice;
   trainingDaysPerWeek?: number;
   equipment?: EquipmentChoice;
   sessionLength?: SessionLengthChoice;
+  /**
+   * T-2055 — a stored band the three standard pills cannot show exactly
+   * (UNDER_30, OVER_90), kept so an untouched re-save writes it back unchanged.
+   */
+  storedSessionLengthBand?: "UNDER_30" | "OVER_90";
+  /**
+   * T-2028 r3 (r2 finding 2, lead decision A) — the client's own answer to the
+   * current-training question on step 2. Seeded only from a stored CONFIRMED
+   * answer; never inferred from the experience pill. The jointly governed
+   * pair (this + session length) is CONFIRMED only when both are answered.
+   */
+  currentTraining?: CurrentTrainingChoice;
   dietaryStyle?: DietaryStyleChoice;
   trackingStyle?: TrackingStyleChoice;
   foodBudgetLevel?: FoodBudgetChoice;
@@ -58,6 +87,36 @@ export interface IntakeSelections {
   weightKg?: number;
   ageYears?: number;
   weightMeasuredOn: string;
+  /**
+   * T-2028 r2 (finding 1) — what is already on file and cannot be expressed
+   * by the six chips. Carried through unchanged, shown read-only, and only
+   * dropped by an explicit Remove. Never re-derived from the chips.
+   */
+  allergenSource?: AllergenDeclarations;
+  retainedAllergenItems?: AllergenDeclaration[];
+  /**
+   * A stored dietary pattern the four chips cannot show: every mandatory
+   * pattern (a hard exclusion), and since r3 (r2 NIT 6) any CONFIRMED
+   * preference no chip maps to. Carried verbatim until explicitly removed.
+   */
+  retainedDietaryPattern?: DietaryPattern;
+  /**
+   * T-2028 r3 (r2 finding 1, lead decision B) — v1 free-text
+   * `dietaryRestrictions` still waiting for the client to keep or remove each
+   * one. Step 3 cannot be completed while any remain, so none is dropped
+   * without an explicit choice.
+   */
+  legacyDietaryRestrictions?: string[];
+  /**
+   * v1 free-text allergy tokens that cannot be carried as an OTHER declaration
+   * whose specificity is the identical token (blank, padded or over the
+   * contract's 80 characters). Shown, and step 3 is blocked until each is
+   * explicitly removed.
+   */
+  unsavableLegacyAllergies?: string[];
+  /** Finding 8b — values entered elsewhere (iOS / T-2024) that this flow does not ask. */
+  dislikes?: IntakeV2ConfirmAnswers["dislikes"];
+  cuisinePreferences?: IntakeV2ConfirmAnswers["cuisinePreferences"];
 }
 
 const STAGES = ["Goal", "Training setup", "Nutrition & tracking", "Body stats & confirm"];
@@ -72,6 +131,18 @@ const SAFETY_FIELDS: { key: SafetyKey; label: string }[] = [
   { key: "eatingDisorderHistoryOrConcern", label: "An eating-disorder history or concern" },
   { key: "type1Diabetes", label: "Type 1 diabetes" },
 ];
+
+const CURRENT_TRAINING_OPTIONS = [
+  { value: "NONE", label: "None" },
+  { value: "OCCASIONAL", label: "Occasional" },
+  { value: "REGULAR", label: "Regular" },
+] satisfies { value: CurrentTrainingChoice; label: string }[];
+
+const GOAL_PACE_OPTIONS = [
+  { value: "GRADUAL", label: "Gradual" },
+  { value: "MODERATE", label: "Moderate" },
+  { value: "UNDECIDED", label: "Undecided" },
+] satisfies { value: GoalPaceChoice; label: string }[];
 
 const EMPTY_ALLERGEN_DECLARATIONS: AllergenDeclarations = {
   status: "UNKNOWN",
@@ -261,6 +332,7 @@ function equipmentFromSeed(seed: Answers): EquipmentChoice | undefined {
 }
 
 function sessionLengthFromSeed(seed: Answers): SessionLengthChoice | undefined {
+  if (seed.sessionLengthBand === "UNDER_30") return "UNDER_30";
   if (seed.sessionLengthBand === "MIN_30_45") return "MIN_30_45";
   if (seed.sessionLengthBand === "MIN_45_60") return "MIN_45_60";
   if (seed.sessionLengthBand === "MIN_60_90" || seed.sessionLengthBand === "OVER_90")
@@ -268,8 +340,25 @@ function sessionLengthFromSeed(seed: Answers): SessionLengthChoice | undefined {
   return undefined;
 }
 
+function goalPaceFromSeed(seed: Answers): GoalPaceChoice | undefined {
+  const goal = goalFromSeed(seed);
+  if (seed.goalStatus !== "CONFIRMED" || (goal !== "FAT_LOSS" && goal !== "BUILD_MUSCLE"))
+    return undefined;
+  if (
+    seed.goalPaceClass === "GRADUAL" ||
+    seed.goalPaceClass === "MODERATE" ||
+    seed.goalPaceClass === "UNDECIDED"
+  )
+    return seed.goalPaceClass;
+  return undefined;
+}
+
 function dietaryStyleFromSeed(seed: Answers): DietaryStyleChoice | undefined {
   const pattern = record(seed.dietaryPattern);
+  // Only a pattern this flow itself could have written maps back to a chip.
+  // Anything stricter (mandatory, medical/religious) is retained instead,
+  // so choosing a chip can never quietly downgrade it to a preference.
+  if (pattern.pattern !== "OTHER" || pattern.mandatory !== false) return undefined;
   const label = typeof pattern.otherLabel === "string" ? pattern.otherLabel.toLowerCase() : "";
   if (label === "balanced") return "BALANCED";
   if (label === "high protein") return "HIGH_PROTEIN";
@@ -278,7 +367,9 @@ function dietaryStyleFromSeed(seed: Answers): DietaryStyleChoice | undefined {
   return undefined;
 }
 
-function allergenChoiceFor(item: AllergenDeclaration): AllergenChoice | undefined {
+function allergenChoiceFor(
+  item: AllergenDeclaration
+): Exclude<AllergenChoice, "NONE"> | undefined {
   if (item.category === "MILK") return "DAIRY";
   if (item.category === "TREE_NUT") return "TREE_NUTS";
   if (item.category === "PEANUT") return "PEANUTS";
@@ -295,18 +386,140 @@ function allergensFromSeed(declarations?: AllergenDeclarations): AllergenChoice[
   ] as AllergenChoice[];
 }
 
+function unmappedAllergenItems(declarations?: AllergenDeclarations): AllergenDeclaration[] {
+  if (!declarations || declarations.status !== "CONFIRMED") return [];
+  return declarations.items.filter((item) => allergenChoiceFor(item) === undefined);
+}
+
+function retainedDietaryPatternFromSeed(seed: Answers): DietaryPattern | undefined {
+  const parsed = dietaryPatternSchema.safeParse(seed.dietaryPattern);
+  if (!parsed.success) return undefined;
+  // A mandatory pattern is a hard exclusion (`deriveLegacyDietaryRestrictions`
+  // only emits tokens for mandatory patterns). The chips are preferences
+  // only, so a mandatory pattern is kept verbatim until explicitly removed.
+  if (parsed.data.mandatory) return parsed.data;
+  // r2 NIT 6: a confirmed preference no chip can show (e.g. PESCATARIAN
+  // written by T-2024 or iOS) is carried, not blanked into a forced re-pick.
+  if (parsed.data.status === "CONFIRMED" && dietaryStyleFromSeed(seed) === undefined)
+    return parsed.data;
+  return undefined;
+}
+
+/**
+ * T-2028 r3 (r2 finding 1, lead decision B) — v1 free-text allergies.
+ *
+ * Only read when the seed has no v2 `allergenDeclarations` (on a v2 row the
+ * `allergies` array is the server's derived projection, not an answer). Each
+ * token becomes `{category: OTHER, specificity: <token>}`, and
+ * `deriveLegacyAllergyTokens` maps OTHER straight back to its specificity, so
+ * the legacy exclusion list is the identical token set. Kind ALLERGY and
+ * cross-contact UNSURE assert nothing the client did not say. A token the
+ * contract cannot hold verbatim is returned separately, never altered.
+ */
+function legacyAllergiesFromSeed(seed: Answers): {
+  declarations?: AllergenDeclarations;
+  unsavable: string[];
+} {
+  if (seed.allergenDeclarations !== undefined || !Array.isArray(seed.allergies))
+    return { unsavable: [] };
+  const items: AllergenDeclaration[] = [];
+  const unsavable: string[] = [];
+  for (const token of new Set(seed.allergies.filter((t): t is string => typeof t === "string"))) {
+    const parsed = allergenDeclarationsSchema.safeParse({
+      status: "CONFIRMED",
+      noKnownAllergens: false,
+      items: [
+        {
+          category: "OTHER",
+          specificity: token,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "UNSURE",
+        },
+      ],
+    });
+    if (parsed.success && parsed.data.items[0].specificity === token)
+      items.push(parsed.data.items[0]);
+    else unsavable.push(token);
+  }
+  return {
+    declarations:
+      items.length > 0 ? { status: "CONFIRMED", noKnownAllergens: false, items } : undefined,
+    unsavable,
+  };
+}
+
+/** v1 free-text dietary restrictions, read only when no v2 `dietaryPattern` exists. */
+function legacyDietaryRestrictionsFromSeed(seed: Answers): string[] {
+  if (seed.dietaryPattern !== undefined || !Array.isArray(seed.dietaryRestrictions)) return [];
+  return [
+    ...new Set(
+      seed.dietaryRestrictions.filter(
+        (token): token is string => typeof token === "string" && token.trim().length > 0
+      )
+    ),
+  ];
+}
+
+/**
+ * The v2 mandatory pattern that re-derives the same enforced legacy tag
+ * (`deriveLegacyDietaryRestrictions`) as a v1 restriction token, under the
+ * composer's own normalization (`composition-feasibility.ts`
+ * `normalizeFreeText`). Only VEGAN and VEGETARIAN have one; every other v1
+ * token has no v2 representation and can only be removed.
+ */
+export function mandatoryPatternForLegacyRestriction(token: string): DietaryPattern | undefined {
+  const normalized = token.trim().toUpperCase().replace(/[\s-]+/g, "_");
+  const pattern =
+    normalized === "VEGAN"
+      ? "VEGAN"
+      : normalized === "VEGETARIAN"
+        ? "LACTO_OVO_VEGETARIAN"
+        : undefined;
+  if (!pattern) return undefined;
+  return { pattern, otherLabel: null, mandatory: true, reason: "NOT_STATED", status: "CONFIRMED" };
+}
+
+function seededList<K extends "dislikes" | "cuisinePreferences">(
+  seed: Answers,
+  key: K
+): IntakeV2ConfirmAnswers[K] | undefined {
+  const parsed = intakeV2ConfirmObjectSchema.shape[key].safeParse(seed[key]);
+  return parsed.success ? (parsed.data as IntakeV2ConfirmAnswers[K]) : undefined;
+}
+
 export function createIntakeSelections(seed: Answers, today = localDateString()): IntakeSelections {
   const parsedDeclarations = allergenDeclarationsSchema.safeParse(seed.allergenDeclarations);
+  const legacyAllergies = legacyAllergiesFromSeed(seed);
   const sourceAllergenDeclarations = parsedDeclarations.success
     ? parsedDeclarations.data
-    : undefined;
+    : legacyAllergies.declarations;
+  const currentTraining =
+    seed.trainingContextStatus === "CONFIRMED" &&
+    (seed.resistanceTrainingContext === "NONE" ||
+      seed.resistanceTrainingContext === "OCCASIONAL" ||
+      seed.resistanceTrainingContext === "REGULAR")
+      ? seed.resistanceTrainingContext
+      : undefined;
   return {
+    allergenSource: sourceAllergenDeclarations,
+    retainedAllergenItems: unmappedAllergenItems(sourceAllergenDeclarations),
+    retainedDietaryPattern: retainedDietaryPatternFromSeed(seed),
+    legacyDietaryRestrictions: legacyDietaryRestrictionsFromSeed(seed),
+    unsavableLegacyAllergies: legacyAllergies.unsavable,
+    currentTraining,
+    dislikes: seededList(seed, "dislikes"),
+    cuisinePreferences: seededList(seed, "cuisinePreferences"),
     goal: goalFromSeed(seed),
+    goalPace: goalPaceFromSeed(seed),
     experience: experienceFromSeed(seed),
     trainingDaysPerWeek:
       typeof seed.trainingDaysPerWeek === "number" ? seed.trainingDaysPerWeek : undefined,
     equipment: equipmentFromSeed(seed),
     sessionLength: sessionLengthFromSeed(seed),
+    storedSessionLengthBand:
+      seed.sessionLengthBand === "UNDER_30" || seed.sessionLengthBand === "OVER_90"
+        ? seed.sessionLengthBand
+        : undefined,
     dietaryStyle: dietaryStyleFromSeed(seed),
     trackingStyle:
       seed.trackingPreference === "PORTIONS_ONLY"
@@ -337,26 +550,29 @@ function mappedGoal(choice?: GoalChoice): IntakeV2ConfirmAnswers["goal"] | undef
 }
 
 function mappedGoalDetails(
-  choice?: GoalChoice
+  choice?: GoalChoice,
+  pace?: GoalPaceChoice
 ):
   | Pick<
       IntakeV2ConfirmAnswers,
       "goalStatus" | "bodyWeightIntent" | "goalPaceClass" | "weightNeutralAccepted"
     >
   | { goalStatus: "UNKNOWN" } {
-  if (choice === "FAT_LOSS") {
+  // T-2055: a pace is written only from the client's explicit answer; a
+  // Fat Loss / Build Muscle choice without one fails closed to UNKNOWN.
+  if (choice === "FAT_LOSS" && pace) {
     return {
       goalStatus: "CONFIRMED",
       bodyWeightIntent: "LOSE",
-      goalPaceClass: "UNDECIDED",
+      goalPaceClass: pace,
       weightNeutralAccepted: false,
     };
   }
-  if (choice === "BUILD_MUSCLE") {
+  if (choice === "BUILD_MUSCLE" && pace) {
     return {
       goalStatus: "CONFIRMED",
       bodyWeightIntent: "GAIN",
-      goalPaceClass: "UNDECIDED",
+      goalPaceClass: pace,
       weightNeutralAccepted: false,
     };
   }
@@ -381,26 +597,21 @@ function mappedEquipment(
   return undefined;
 }
 
-function mappedResistanceContext(
-  choice?: ExperienceChoice
-): IntakeV2ConfirmAnswers["resistanceTrainingContext"] | undefined {
-  // Conservative compatibility mapping for the jointly-governed legacy pair.
-  if (choice === "BEGINNER") return "NONE";
-  if (choice === "INTERMEDIATE") return "OCCASIONAL";
-  if (choice === "ADVANCED") return "REGULAR";
-  return undefined;
-}
-
 function mappedSessionLength(
-  choice?: SessionLengthChoice
+  choice?: SessionLengthChoice,
+  stored?: IntakeSelections["storedSessionLengthBand"]
 ): IntakeV2ConfirmAnswers["sessionLengthBand"] | undefined {
-  if (choice === "MIN_60_PLUS") return "MIN_60_90";
+  if (choice === "UNDER_30") return "UNDER_30";
+  // T-2055: a stored OVER_90 shown as "60m+" round-trips unchanged.
+  if (choice === "MIN_60_PLUS") return stored === "OVER_90" ? "OVER_90" : "MIN_60_90";
   return choice;
 }
 
 function mappedDietaryPattern(
-  choice?: DietaryStyleChoice
+  choice?: DietaryStyleChoice,
+  retained?: DietaryPattern
 ): IntakeV2ConfirmAnswers["dietaryPattern"] {
+  if (retained) return retained;
   const label: Record<DietaryStyleChoice, string> = {
     BALANCED: "Balanced",
     HIGH_PROTEIN: "High protein",
@@ -437,18 +648,42 @@ function declarationForChoice(choice: Exclude<AllergenChoice, "NONE">): Allergen
   return { category: "OTHER", specificity: "gluten", ...common };
 }
 
+/**
+ * T-2028 r2 finding 1. The chips are a view over what is on file, never a
+ * replacement for it:
+ *  - a chip whose category is already on file re-emits those stored items
+ *    byte-for-byte (species, kind and cross-contact answer included);
+ *  - items no chip can express (Egg, Fish, Soy, Wheat, Sesame, other) are
+ *    carried through until the client explicitly removes them;
+ *  - only a newly selected chip produces a new item.
+ * So an untouched pass re-sends exactly the stored declarations, which the
+ * server's canonical hash treats as no new concern (no pause, no RESTRICTED).
+ */
 export function buildAllergenDeclarations(selections: IntakeSelections): AllergenDeclarations {
-  if (selections.allergens.includes("NONE"))
+  const retained = selections.retainedAllergenItems ?? [];
+  // Fail closed: "None" never erases items still on file. Step validation
+  // refuses that combination; if it reaches here anyway the items win.
+  if (selections.allergens.includes("NONE") && retained.length === 0)
     return { status: "CONFIRMED", noKnownAllergens: true, items: [] };
-  if (selections.allergens.length === 0) return EMPTY_ALLERGEN_DECLARATIONS;
+  if (selections.allergens.length === 0 && retained.length === 0)
+    return EMPTY_ALLERGEN_DECLARATIONS;
 
   const selected = selections.allergens.filter(
     (choice): choice is Exclude<AllergenChoice, "NONE"> => choice !== "NONE"
   );
-  // The compact flow only re-confirms what its visible tags can express.
-  // It deliberately does not copy hidden species, kind, or cross-contact
-  // detail from an older intake into a new user confirmation.
-  const items = selected.map(declarationForChoice);
+  const source =
+    selections.allergenSource?.status === "CONFIRMED" ? selections.allergenSource.items : [];
+  const items: AllergenDeclaration[] = [];
+  for (const item of source) {
+    const choice = allergenChoiceFor(item);
+    if (choice === undefined ? retained.includes(item) : selected.includes(choice))
+      items.push(item);
+  }
+  for (const item of retained) if (!items.includes(item)) items.push(item);
+  for (const choice of selected) {
+    if (!source.some((item) => allergenChoiceFor(item) === choice))
+      items.push(declarationForChoice(choice));
+  }
   return allergenDeclarationsSchema.parse({
     status: "CONFIRMED",
     noKnownAllergens: false,
@@ -456,13 +691,51 @@ export function buildAllergenDeclarations(selections: IntakeSelections): Allerge
   });
 }
 
+const ALLERGEN_CATEGORY_LABELS: Record<AllergenDeclaration["category"], string> = {
+  MILK: "Dairy",
+  EGG: "Egg",
+  FISH: "Fish",
+  CRUSTACEAN_SHELLFISH: "Shellfish",
+  TREE_NUT: "Tree Nuts",
+  PEANUT: "Peanuts",
+  WHEAT: "Wheat",
+  SOYBEAN: "Soy",
+  SESAME: "Sesame",
+  OTHER: "Other",
+};
+
+/** Read-only label for an item on file, e.g. "Fish (salmon)". */
+export function describeAllergenItem(item: AllergenDeclaration): string {
+  const base =
+    item.category === "OTHER" && item.specificity
+      ? item.specificity
+      : item.specificity
+        ? `${ALLERGEN_CATEGORY_LABELS[item.category]} (${item.specificity})`
+        : ALLERGEN_CATEGORY_LABELS[item.category];
+  return item.kind === "INTOLERANCE_OR_SENSITIVITY" ? `${base}, intolerance` : base;
+}
+
+const DIETARY_PATTERN_LABELS: Record<DietaryPattern["pattern"], string> = {
+  OMNIVORE: "Omnivore",
+  LACTO_OVO_VEGETARIAN: "Vegetarian (eggs and dairy)",
+  VEGAN: "Vegan",
+  PESCATARIAN: "Pescatarian",
+  OTHER: "Other",
+  NONE_DECLARED: "None declared",
+};
+
 export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
   const goal = mappedGoal(selections.goal);
   const experienceLevel = mappedExperience(selections.experience);
   const equipmentAccess = mappedEquipment(selections.equipment);
-  const resistanceTrainingContext = mappedResistanceContext(selections.experience);
-  const sessionLengthBand = mappedSessionLength(selections.sessionLength);
-  const goalDetails = mappedGoalDetails(selections.goal);
+  // Finding 2 / lead decision A: only the client's own answer to the
+  // current-training question, never inferred from the experience pill.
+  const resistanceTrainingContext = selections.currentTraining;
+  const sessionLengthBand = mappedSessionLength(
+    selections.sessionLength,
+    selections.storedSessionLengthBand
+  );
+  const goalDetails = mappedGoalDetails(selections.goal, selections.goalPace);
   const hasBodyMeasurements =
     selections.heightCm !== undefined &&
     selections.weightKg !== undefined &&
@@ -488,6 +761,8 @@ export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
     unitsPreference: selections.unitSystem,
     ageStatus: selections.ageYears === undefined ? "UNKNOWN" : "CONFIRMED",
     ...(selections.ageYears === undefined ? {} : { ageYears: selections.ageYears }),
+    // T-2055 spec: population and activity stay UNKNOWN; their client-facing
+    // wording is human gate G01's deliverable (open question Q1, T-2066).
     energyMethodPopulationCategoryStatus: "UNKNOWN",
     physicalActivityCategoryStatus: "UNKNOWN",
     bodyMeasurementStatus: hasBodyMeasurements ? "CONFIRMED" : "UNKNOWN",
@@ -500,17 +775,21 @@ export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
       : {}),
     ...goalDetails,
     trainingContextStatus: hasTrainingContext ? "CONFIRMED" : "UNKNOWN",
-    ...(hasTrainingContext ? { resistanceTrainingContext, sessionLengthBand } : {}),
+    ...(hasTrainingContext ? { resistanceTrainingContext } : {}),
+    // The draft keeps the chosen session length so the step resumes; the
+    // confirm payload drops it unless its jointly governed pair is CONFIRMED.
+    ...(sessionLengthBand ? { sessionLengthBand } : {}),
     cookingAccessStatus: "UNKNOWN",
-    dislikes: [],
-    cuisinePreferences: [],
+    dislikes: selections.dislikes ?? [],
+    cuisinePreferences: selections.cuisinePreferences ?? [],
     allergenDeclarations: buildAllergenDeclarations(selections),
-    dietaryPattern: mappedDietaryPattern(selections.dietaryStyle),
+    dietaryPattern: mappedDietaryPattern(selections.dietaryStyle, selections.retainedDietaryPattern),
   };
 }
 
 export function buildConfirmPayload(selections: IntakeSelections): IntakeV2ConfirmAnswers {
   const mapped = mapSelectionsToAnswers(selections);
+  if (mapped.trainingContextStatus !== "CONFIRMED") delete mapped.sessionLengthBand;
   const payload = Object.fromEntries(
     Object.entries(mapped).filter(
       ([key, value]) => CONFIRM_KEYS.includes(key) && value !== undefined
@@ -545,18 +824,33 @@ export function intakeStepIssues(
   const issues: string[] = [];
   if (stage === 0) {
     if (!selections.goal) issues.push("Choose your main goal.");
+    if (
+      (selections.goal === "FAT_LOSS" || selections.goal === "BUILD_MUSCLE") &&
+      !selections.goalPace
+    )
+      issues.push("Choose a preferred pace, or Undecided.");
     if (!selections.experience) issues.push("Choose your experience level.");
   }
   if (stage === 1) {
     if (!selections.trainingDaysPerWeek) issues.push("Choose your training days.");
     if (!selections.equipment) issues.push("Choose your equipment setup.");
+    if (!selections.currentTraining) issues.push("Choose your current strength training.");
     if (!selections.sessionLength) issues.push("Choose a session length.");
   }
   if (stage === 2) {
-    if (!selections.dietaryStyle) issues.push("Choose a dietary style.");
+    if (!selections.dietaryStyle && !selections.retainedDietaryPattern)
+      issues.push("Choose a dietary style.");
     if (!selections.trackingStyle) issues.push("Choose a tracking style.");
     if (!selections.foodBudgetLevel) issues.push("Choose a food budget preference.");
-    if (selections.allergens.length === 0) issues.push("Choose any allergens, or choose None.");
+    const retainedAllergens = selections.retainedAllergenItems?.length ?? 0;
+    if (selections.allergens.length === 0 && retainedAllergens === 0)
+      issues.push("Choose any allergens, or choose None.");
+    if (selections.allergens.includes("NONE") && retainedAllergens > 0)
+      issues.push("Remove the other allergens on file before choosing None.");
+    if ((selections.legacyDietaryRestrictions?.length ?? 0) > 0)
+      issues.push("Keep or remove each dietary restriction from your earlier answers.");
+    if ((selections.unsavableLegacyAllergies?.length ?? 0) > 0)
+      issues.push("Remove each earlier allergy entry that cannot be saved as written.");
   }
   if (stage === 3) {
     if (
@@ -806,9 +1100,24 @@ export function IntakeWizard({
   // run, and only an authorized reviewer can lift it. Say so before the
   // client changes anything rather than after.
   const intakeAlreadyConfirmed = view.confirmedIntake !== null;
+  // The server compares a v2 ALLERGIES send against the confirmed
+  // `allergenDeclarations`, or EMPTY when the confirmed intake predates them,
+  // so for such a client even an unchanged answer is recorded as new.
+  const allergiesInEarlierFormat =
+    intakeAlreadyConfirmed && record(view.confirmedIntake).allergenDeclarations === undefined;
 
   const update = (patch: Partial<IntakeSelections>) =>
     setSelections((current) => ({ ...current, ...patch }));
+  // Finding 9c: inches typed before feet are held here instead of discarded.
+  const [pendingInches, setPendingInches] = useState<number | undefined>(undefined);
+  // Stored species/type detail behind a selected chip, e.g. "cashew".
+  const chipDetail = (choice: AllergenChoice): string | undefined => {
+    if (choice === "GLUTEN" || selections.allergenSource?.status !== "CONFIRMED") return undefined;
+    const details = selections.allergenSource.items
+      .filter((item) => allergenChoiceFor(item) === choice && item.specificity)
+      .map((item) => item.specificity);
+    return details.length > 0 ? details.join(", ") : undefined;
+  };
 
   const saveFields = (keys: string[]) => {
     const mapped = mapSelectionsToAnswers(selections);
@@ -908,7 +1217,12 @@ export function IntakeWizard({
                           ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/[0.06]"
                           : "border-white/[0.08] bg-zinc-950/40 hover:border-blue-500/30 hover:bg-zinc-900/80"
                       }`}
-                      onClick={() => update({ goal: option.value })}
+                      onClick={() =>
+                        update({
+                          goal: option.value,
+                          ...(option.value !== selections.goal ? { goalPace: undefined } : {}),
+                        })
+                      }
                     >
                       <span className="flex items-start gap-3">
                         <span
@@ -940,6 +1254,16 @@ export function IntakeWizard({
                 })}
               </div>
             </fieldset>
+
+            {(selections.goal === "FAT_LOSS" || selections.goal === "BUILD_MUSCLE") && (
+              <ChoicePills
+                label="Preferred pace"
+                hint="How quickly you would like to work toward this goal. The reviewed preparation rules set the actual targets, and you can change this later."
+                value={selections.goalPace}
+                options={GOAL_PACE_OPTIONS}
+                onChange={(value) => update({ goalPace: value as GoalPaceChoice })}
+              />
+            )}
 
             <ChoicePills
               label="Experience level"
@@ -1034,10 +1358,29 @@ export function IntakeWizard({
             </fieldset>
 
             <ChoicePills
+              label="Current strength training"
+              hint="How much resistance or strength training you do at the moment."
+              value={selections.currentTraining}
+              options={CURRENT_TRAINING_OPTIONS}
+              onChange={(value) => update({ currentTraining: value as CurrentTrainingChoice })}
+            />
+
+            <ChoicePills
               label="Typical session length"
               hint="Total workout duration including warm-up."
               value={selections.sessionLength}
-              options={SESSION_OPTIONS}
+              options={
+                selections.storedSessionLengthBand === "UNDER_30"
+                  ? [
+                      {
+                        value: "UNDER_30",
+                        label: "Under 30m",
+                        description: "From your earlier answers",
+                      },
+                      ...SESSION_OPTIONS,
+                    ]
+                  : SESSION_OPTIONS
+              }
               onChange={(value) => update({ sessionLength: value as SessionLengthChoice })}
             />
 
@@ -1082,13 +1425,104 @@ export function IntakeWizard({
               </p>
             </div>
 
-            <ChoicePills
-              label="Dietary style"
-              hint="Select the pattern you prefer. This is a preference, not a promise that a plan is available."
-              value={selections.dietaryStyle}
-              options={DIETARY_OPTIONS}
-              onChange={(value) => update({ dietaryStyle: value as DietaryStyleChoice })}
-            />
+            {(selections.legacyDietaryRestrictions?.length ?? 0) > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-zinc-200">
+                  Dietary restrictions from your earlier answers
+                </p>
+                <p className="text-xs text-zinc-400">
+                  Keep or remove each one before continuing. Nothing here is changed for you.
+                </p>
+                <ul className="space-y-2">
+                  {selections.legacyDietaryRestrictions?.map((token) => {
+                    const keepAs = mandatoryPatternForLegacyRestriction(token);
+                    const resolve = (patch: Partial<IntakeSelections> = {}) =>
+                      update({
+                        ...patch,
+                        legacyDietaryRestrictions: selections.legacyDietaryRestrictions?.filter(
+                          (pending) => pending !== token
+                        ),
+                      });
+                    return (
+                      <li
+                        key={token}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                      >
+                        <span>
+                          <strong>{token}</strong>
+                          {!keepAs && (
+                            <span className="mt-1 block text-xs text-zinc-400">
+                              This earlier entry cannot be kept as written. If it still applies,
+                              choose the matching option on this step.
+                            </span>
+                          )}
+                        </span>
+                        <span className="flex flex-wrap gap-2">
+                          {keepAs && !selections.retainedDietaryPattern && (
+                            <button
+                              type="button"
+                              className={`${button} cursor-pointer`}
+                              onClick={() => resolve({ retainedDietaryPattern: keepAs })}
+                            >
+                              Keep as a requirement: {DIETARY_PATTERN_LABELS[keepAs.pattern]}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={`${button} cursor-pointer`}
+                            aria-label={`Remove ${token}`}
+                            onClick={() => resolve()}
+                          >
+                            Remove
+                          </button>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            {selections.retainedDietaryPattern ? (
+              <div className="space-y-2.5">
+                <p className="text-sm font-semibold text-zinc-200">Dietary style</p>
+                <div
+                  role="note"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                >
+                  <p>
+                    {selections.retainedDietaryPattern.mandatory
+                      ? "On file as a requirement: "
+                      : "On file as a preference: "}
+                    <strong>
+                      {selections.retainedDietaryPattern.pattern === "OTHER"
+                        ? selections.retainedDietaryPattern.otherLabel
+                        : DIETARY_PATTERN_LABELS[selections.retainedDietaryPattern.pattern]}
+                    </strong>
+                    {selections.retainedDietaryPattern.mandatory
+                      ? ". It stays in place unless you remove it."
+                      : ". It stays in place unless you choose a different style."}
+                  </p>
+                  <button
+                    type="button"
+                    className={`${button} cursor-pointer`}
+                    onClick={() => update({ retainedDietaryPattern: undefined })}
+                  >
+                    {selections.retainedDietaryPattern.mandatory
+                      ? "Remove requirement"
+                      : "Choose a different style"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <ChoicePills
+                label="Dietary style"
+                hint="Select the pattern you prefer. This is a preference, not a promise that a plan is available."
+                value={selections.dietaryStyle}
+                options={DIETARY_OPTIONS}
+                onChange={(value) => update({ dietaryStyle: value as DietaryStyleChoice })}
+              />
+            )}
 
             <ChoicePills
               label="Food budget"
@@ -1162,10 +1596,12 @@ export function IntakeWizard({
                   role="note"
                   className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-relaxed text-amber-100/90"
                 >
-                  Your intake is already confirmed. If you change these answers, that counts as new
-                  safety information: nutrition recommendations are paused and any plan being
-                  prepared is cancelled, until an authorized Steadfast reviewer reviews the change.
-                  You cannot lift that pause yourself.
+                  {allergiesInEarlierFormat
+                    ? "Your intake is already confirmed, and your allergy answers were saved in an earlier format. Saving them on this step counts as new safety information even if nothing changed: "
+                    : "Your intake is already confirmed. If you change these answers, that counts as new safety information: "}
+                  nutrition recommendations are paused and any plan being prepared is cancelled,
+                  until an authorized Steadfast reviewer reviews the change. You cannot lift that
+                  pause yourself.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -1189,10 +1625,83 @@ export function IntakeWizard({
                     >
                       {selected && <CheckIcon />}
                       {option.label}
+                      {selected && chipDetail(option.value) && (
+                        <span className="text-xs opacity-75">({chipDetail(option.value)})</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+              {(selections.retainedAllergenItems?.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-zinc-200">Also on file</p>
+                  <p className="text-xs text-zinc-400">
+                    These stay excluded unless you remove them.
+                  </p>
+                  <ul className="space-y-2">
+                    {selections.retainedAllergenItems?.map((item, index) => (
+                      <li
+                        key={`${item.category}-${item.specificity ?? ""}-${index}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                      >
+                        <span>{describeAllergenItem(item)}</span>
+                        <button
+                          type="button"
+                          className={`${button} cursor-pointer`}
+                          aria-label={`Remove ${describeAllergenItem(item)}`}
+                          onClick={() =>
+                            update({
+                              retainedAllergenItems: selections.retainedAllergenItems?.filter(
+                                (kept) => kept !== item
+                              ),
+                            })
+                          }
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(selections.unsavableLegacyAllergies?.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-zinc-200">
+                    Earlier entries that cannot be saved as written
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    These earlier allergy entries cannot be carried into the new format exactly as
+                    written, and no option on this step matches them. We will not shorten or change
+                    them for you. If one still applies, contact support before you remove it.
+                  </p>
+                  <ul className="space-y-2">
+                    {selections.unsavableLegacyAllergies?.map((token, index) => (
+                      <li
+                        key={`${token}-${index}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                      >
+                        <span className="break-all">
+                          {token.trim().length > 0 ? token : "(blank entry)"}
+                        </span>
+                        <button
+                          type="button"
+                          className={`${button} cursor-pointer`}
+                          aria-label={`Remove earlier entry ${token.trim() || "(blank entry)"}`}
+                          onClick={() =>
+                            update({
+                              unsavableLegacyAllergies: selections.unsavableLegacyAllergies?.filter(
+                                (kept) => kept !== token
+                              ),
+                            })
+                          }
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </fieldset>
 
             <IssueList issues={visibleIssues} />
@@ -1271,11 +1780,14 @@ export function IntakeWizard({
                         onChange={(event) => {
                           const feet =
                             event.target.value === "" ? undefined : Number(event.target.value);
+                          const inches = imperialHeight.inches ?? pendingInches ?? 0;
+                          if (feet === undefined) setPendingInches(imperialHeight.inches);
+                          else setPendingInches(undefined);
                           update({
                             heightCm:
                               feet === undefined
                                 ? undefined
-                                : feetAndInchesToCentimeters(feet, imperialHeight.inches ?? 0),
+                                : feetAndInchesToCentimeters(feet, inches),
                           });
                         }}
                       />
@@ -1290,10 +1802,14 @@ export function IntakeWizard({
                         max={11}
                         className={INPUT_CLASS}
                         style={inputStyle}
-                        value={imperialHeight.inches ?? ""}
+                        value={imperialHeight.inches ?? pendingInches ?? ""}
                         onChange={(event) => {
                           const inches =
                             event.target.value === "" ? undefined : Number(event.target.value);
+                          if (imperialHeight.feet === undefined) {
+                            setPendingInches(inches);
+                            return;
+                          }
                           update({
                             heightCm:
                               inches === undefined || imperialHeight.feet === undefined
@@ -1384,14 +1900,27 @@ export function IntakeWizard({
                 <div>
                   <h3 className="font-semibold text-zinc-100">Quick safety check</h3>
                   <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-                    These answers tell the server whether preparation can continue or must pause. If
-                    none apply, choose &ldquo;None of these apply&rdquo;; otherwise open the
-                    questions and answer each one.
+                    These answers tell the server whether preparation can continue or must pause.
+                    Do any of the following apply to you?
+                  </p>
+                  {/* Finding 4: every condition is visible before a one-tap No can be recorded. */}
+                  <ul
+                    id="intake-safety-conditions"
+                    className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-200"
+                  >
+                    {SAFETY_FIELDS.map(({ key, label }) => (
+                      <li key={key}>{label}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                    If none of them apply, choose &ldquo;None of these apply&rdquo;; otherwise open
+                    the questions and answer each one.
                   </p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
+                    aria-describedby="intake-safety-conditions"
                     aria-pressed={
                       safetyAnswersComplete(safetyAnswers) &&
                       Object.values(safetyAnswers).every((answer) => answer === "NO")
@@ -1480,6 +2009,22 @@ export function IntakeWizard({
                 </p>
               </div>
             </div>
+
+            {intakeAlreadyConfirmed && (
+              // Finding 5: resume lands a confirmed client here, past step 3's warning.
+              <p
+                role="note"
+                className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-relaxed text-amber-100/90"
+              >
+                Your intake is already confirmed. Confirming again cancels any plan being
+                prepared, even if nothing changed.{" "}
+                {allergiesInEarlierFormat
+                  ? "Because your allergy answers were saved in an earlier format, they are also recorded as new safety information: "
+                  : "If you changed your allergy answers, that is also new safety information: "}
+                nutrition recommendations are paused until an authorized Steadfast reviewer
+                reviews the change. You cannot lift that pause yourself.
+              </p>
+            )}
 
             <IssueList issues={visibleIssues} />
             <div className="space-y-3">

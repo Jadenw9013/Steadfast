@@ -17,6 +17,7 @@ const completeSelections: IntakeSelections = {
   experience: "BEGINNER",
   trainingDaysPerWeek: 3,
   equipment: "BODYWEIGHT",
+  currentTraining: "OCCASIONAL",
   sessionLength: "MIN_30_45",
   dietaryStyle: "BALANCED",
   trackingStyle: "PORTIONS",
@@ -55,6 +56,8 @@ describe("T-2028 four-step validation", () => {
     expect(intakeStepIssues(1, empty, {}, true)).toEqual([
       "Choose your training days.",
       "Choose your equipment setup.",
+      // T-2028 r3 (lead decision A): the current-training question is required.
+      "Choose your current strength training.",
       "Choose a session length.",
     ]);
     expect(intakeStepIssues(2, empty, {}, true)).toEqual([
@@ -120,6 +123,7 @@ describe("T-2008/S-33 resume at the first incomplete stage", () => {
       experience: "BEGINNER",
       trainingDaysPerWeek: 3,
       equipment: "BODYWEIGHT",
+      currentTraining: "NONE",
       sessionLength: "MIN_30_45",
     };
     // Stage 2 is still incomplete: no dietary style, tracking style, food
@@ -205,5 +209,33 @@ describe("T-2028 confirm workflow", () => {
       })
     ).rejects.toThrow("schema rejected");
     expect(redirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("T-2055 item 1 — preferred pace is required on step 1 for Fat Loss / Build Muscle", () => {
+  it("asks for a pace only when the goal needs one", () => {
+    expect(
+      intakeStepIssues(0, { ...completeSelections, goal: "FAT_LOSS", experience: "BEGINNER" }, {}, false)
+    ).toEqual(["Choose a preferred pace, or Undecided."]);
+    expect(
+      intakeStepIssues(
+        0,
+        { ...completeSelections, goal: "FAT_LOSS", experience: "BEGINNER", goalPace: "GRADUAL" },
+        {},
+        false
+      )
+    ).toEqual([]);
+    expect(
+      intakeStepIssues(
+        0,
+        { ...completeSelections, goal: "GENERAL_FITNESS", experience: "BEGINNER" },
+        {},
+        false
+      )
+    ).toEqual([]);
+  });
+
+  it("resumes on step 1 for a Fat Loss selection missing its pace", () => {
+    expect(firstIncompleteIntakeStage({ ...completeSelections, goal: "FAT_LOSS" }, true)).toBe(0);
   });
 });

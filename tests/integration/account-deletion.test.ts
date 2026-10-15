@@ -215,6 +215,68 @@ suite("account deletion with real PostgreSQL constraints", () => {
     expect(after.status).toBe("ACCEPTED");
     expect(after.coachId).toBe(other.id);
   });
+  it("T-2060: purge backfills, deletes, closes and anonymises CoachClientEpisode rows and replaces plan authorship with the purged sentinel (one case per line)", async () => {
+    const { user, other } = await fixture(true);
+    const mkClient = async () => {
+      const id = randomUUID();
+      return db.user.create({ data: { clerkId: id, email: `${id}@example.test`, isClient: true } });
+    };
+    const noEpisode = await mkClient();
+    const openEpisode = await mkClient();
+    const closedEpisode = await mkClient();
+    // Line 1: a row the old code created, with no episode at all.
+    const noEpisodeRow = await db.coachClient.create({ data: { coachId: user.id, clientId: noEpisode.id } });
+    // Line 3 (open): a live row with its open LIVE episode.
+    const openRow = await db.coachClient.create({ data: { coachId: user.id, clientId: openEpisode.id } });
+    await db.coachClientEpisode.create({
+      data: { coachId: user.id, clientId: openEpisode.id, coachClientId: openRow.id, startedAt: openRow.createdAt },
+    });
+    // Line 3 (closed): an earlier relationship already ended; its end is kept.
+    const endedAt = new Date("2026-03-01T00:00:00Z");
+    await db.coachClientEpisode.create({
+      data: {
+        coachId: user.id, clientId: closedEpisode.id, coachClientId: randomUUID(),
+        startedAt: new Date("2026-01-01T00:00:00Z"), endedAt, endReason: "COACH_REMOVED",
+      },
+    });
+    // Line 2: the purged user's own client history (with `other` as coach).
+    const ownRow = await db.coachClient.create({ data: { coachId: other.id, clientId: user.id } });
+    await db.coachClientEpisode.create({
+      data: { coachId: other.id, clientId: user.id, coachClientId: ownRow.id, startedAt: ownRow.createdAt },
+    });
+    // Lines 4/5: plans this user published for a client, plus a control by another coach.
+    const week = new Date("2026-05-04T00:00:00Z");
+    const meal = await db.mealPlan.create({
+      data: { clientId: noEpisode.id, weekOf: week, status: "PUBLISHED", publishedAt: new Date(), publishedByCoachId: user.id },
+    });
+    const program = await db.trainingProgram.create({
+      data: { clientId: noEpisode.id, weekOf: week, status: "PUBLISHED", publishedAt: new Date(), publishedByCoachId: user.id },
+    });
+    const control = await db.mealPlan.create({
+      data: { clientId: openEpisode.id, weekOf: week, status: "PUBLISHED", publishedAt: new Date(), publishedByCoachId: other.id },
+    });
+
+    await purgeUserAccount(user.id);
+
+    const backfilled = await db.coachClientEpisode.findMany({ where: { clientId: noEpisode.id } });
+    expect(backfilled).toHaveLength(1);
+    expect(backfilled[0]).toMatchObject({
+      coachId: null, coachClientId: noEpisodeRow.id, source: "BACKFILL", endReason: "COACH_ACCOUNT_DELETED",
+    });
+    expect(backfilled[0].startedAt.getTime()).toBe(noEpisodeRow.createdAt.getTime());
+    expect(backfilled[0].endedAt).toBeInstanceOf(Date);
+    expect(await db.coachClientEpisode.count({ where: { clientId: user.id } })).toBe(0);
+    expect(await db.coachClientEpisode.findMany({ where: { clientId: openEpisode.id } })).toMatchObject([
+      { coachId: null, source: "LIVE", endReason: "COACH_ACCOUNT_DELETED" },
+    ]);
+    const closed = await db.coachClientEpisode.findMany({ where: { clientId: closedEpisode.id } });
+    expect(closed).toMatchObject([{ coachId: null, endReason: "COACH_REMOVED" }]);
+    expect(closed[0].endedAt?.getTime()).toBe(endedAt.getTime());
+    expect(await db.mealPlan.findUniqueOrThrow({ where: { id: meal.id } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: "purged" });
+    expect(await db.trainingProgram.findUniqueOrThrow({ where: { id: program.id } })).toMatchObject({ status: "PUBLISHED", publishedByCoachId: "purged" });
+    expect(await db.mealPlan.findUniqueOrThrow({ where: { id: control.id } })).toMatchObject({ publishedByCoachId: other.id });
+  });
+
   it("purges AI Coach records (A02/A03) on account deletion", async () => {
     const { user, other } = await fixture();
     await db.clientCoachingContext.create({ data: { clientId: user.id, mode: "AI", revision: 1 } });

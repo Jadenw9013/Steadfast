@@ -60,6 +60,7 @@ import {
   publishTrainingProgramTarget,
 } from "@/lib/training-programs/publish";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
+import { getTrainingSaveTarget, saveTrainingProgramContent } from "@/lib/training-programs/drafts";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
@@ -254,7 +255,7 @@ suite("training-program publish parity (action vs REST vs workout import) with r
     // delete — a post-commit `flipped === 0` check would report RACE_LOST while
     // the already-committed supersede had demoted the client's live program,
     // leaving the client with NOTHING published.
-    const { client } = await fixture();
+    const { coach, client } = await fixture();
 
     const p1 = await draft(client.id, weeksAgo(1));
     expect(await publishTrainingProgram({ programId: p1 })).toEqual({ success: true });
@@ -268,7 +269,7 @@ suite("training-program publish parity (action vs REST vs workout import) with r
       id: vanished,
       clientId: client.id,
       status: "DRAFT",
-    });
+    }, { publishedByCoachId: coach.id });
 
     expect(result).toEqual({ ok: false, code: "RACE_LOST" });
     expect(await statusOf(p1)).toBe("PUBLISHED");
@@ -713,5 +714,53 @@ suite("training-program publish parity (action vs REST vs workout import) with r
 
     expect(await statusOf(programId)).toBe("PUBLISHED");
     expect(await publishedCount(client.id)).toBe(1);
+  });
+
+  // ── T-2060: the publish stamps the author ─────────────────────────────────
+
+  const authorOf = async (id: string) =>
+    (await db.trainingProgram.findUniqueOrThrow({ where: { id } })).publishedByCoachId;
+
+  it("T-2060: web action, iOS route and OCR import each stamp publishedByCoachId; supersede leaves the old author", async () => {
+    const { coach, client } = await fixture();
+
+    const viaAction = await draft(client.id, weeksAgo(3));
+    expect(await authorOf(viaAction)).toBeNull();
+    expect(await publishTrainingProgram({ programId: viaAction })).toEqual({ success: true });
+    expect(await authorOf(viaAction)).toBe(coach.id);
+
+    const viaRest = await draft(client.id, weeksAgo(2));
+    expect((await publishViaRest(client.id, { programId: viaRest })).status).toBe(200);
+    expect(await authorOf(viaRest)).toBe(coach.id);
+    // Superseded by the REST publish: status moves, the author does not.
+    expect(await statusOf(viaAction)).toBe("SUPERSEDED");
+    expect(await authorOf(viaAction)).toBe(coach.id);
+
+    const { draft: importDraft } = await workoutFixture(coach.id, client.id);
+    const response = await importWorkout({
+      draftId: importDraft.id, parsedJson: doc(), saveAsTemplate: false, clientId: client.id, publish: true,
+    });
+    expect(response.status).toBe(200);
+    const { programId: viaImport } = await response.json();
+    expect(await authorOf(viaImport)).toBe(coach.id);
+    expect(await statusOf(viaRest)).toBe("SUPERSEDED");
+    expect(await authorOf(viaRest)).toBe(coach.id);
+  });
+
+  it("T-2060: a fork of a published program is a DRAFT with no author", async () => {
+    const { coach, client } = await fixture();
+    const published = await draft(client.id, CURRENT_WEEK_STR);
+    await publishTrainingProgram({ programId: published });
+    expect(await authorOf(published)).toBe(coach.id);
+
+    const target = await getTrainingSaveTarget(published);
+    const { forkedNewProgramId } = await saveTrainingProgramContent(target!, {
+      days: [{ dayName: "Day 1", blocks: [{ type: "EXERCISE", title: "Bench", content: "3x5" }] }],
+      metadata: {},
+    });
+    expect(forkedNewProgramId).toEqual(expect.any(String));
+    const fork = await db.trainingProgram.findUniqueOrThrow({ where: { id: forkedNewProgramId! } });
+    expect(fork).toMatchObject({ status: "DRAFT", publishedByCoachId: null, publishedAt: null });
+    expect(await authorOf(published)).toBe(coach.id);
   });
 });
