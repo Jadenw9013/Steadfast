@@ -13,12 +13,21 @@ async function getCoachProfileId(userId: string): Promise<string> {
     return profile.id;
 }
 
-/** Resolve prospect email with 3-step fallback + backfill. */
+/**
+ * Resolve the prospect's email by exact identity only, else null (fail closed:
+ * the caller sends nothing and writes nothing).
+ *
+ * T-980: there is deliberately no phone tier. A phone-number substring match
+ * is not proof of identity — it emailed the coach's intake packet to any
+ * account whose number shared the last ten digits and backfilled that
+ * stranger's address into the lead. CB01
+ * (e654a4c) removed the same matcher from lib/activation.ts and
+ * coaching-requests.ts for the same reason.
+ */
 async function resolveProspectEmail(request: {
     id: string;
     prospectEmailAddr: string | null;
     prospectId: string | null;
-    prospectPhone: string | null;
     prospectEmail: string;
 }): Promise<string | null> {
     // 1. Direct field
@@ -27,25 +36,13 @@ async function resolveProspectEmail(request: {
 
     let email: string | null = null;
 
-    // 2. Linked User record
+    // 2. Linked User record (exact id)
     if (request.prospectId) {
         const user = await db.user.findUnique({ where: { id: request.prospectId }, select: { email: true } });
         if (user?.email) email = user.email;
     }
 
-    // 3. Phone lookup fallback
-    if (!email) {
-        const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
-        if (phone.length >= 10) {
-            const user = await db.user.findFirst({
-                where: { phoneNumber: { contains: phone.slice(-10) } },
-                select: { email: true },
-            });
-            if (user?.email) email = user.email;
-        }
-    }
-
-    // Backfill so future sends skip the lookup
+    // Backfill so future sends skip the lookup (exact-id tier only)
     if (email) {
         await db.coachingRequest.update({ where: { id: request.id }, data: { prospectEmailAddr: email } });
     }
