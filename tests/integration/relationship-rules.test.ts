@@ -72,7 +72,7 @@ import { GET as trainingRoute } from "@/app/api/client/training/current/route";
 import { POST as clerkWebhook } from "@/app/api/webhooks/clerk/route";
 import { purgeUserAccount } from "@/lib/account-deletion/purge";
 import { POST as importPlanRoute } from "@/app/api/mealplans/import-plan/route";
-import { publishMealPlan } from "@/app/actions/meal-plans";
+import { POST as workoutImportRoute } from "@/app/api/workout-import/import/route";
 import { endCoachClientRelationship } from "@/lib/coach-client/end-relationship";
 import { getMealPlanPublishTarget, publishMealPlanTarget } from "@/lib/meal-plans/publish";
 import { publishTrainingProgramTarget } from "@/lib/training-programs/publish";
@@ -663,35 +663,42 @@ suite("T-2058 relationship rules", () => {
       await expectSeesOnly(k, pa);
     });
 
-    it("race: B's web publish authorizes, then B is removed, K links A and A publishes before B's write -> B refused, A's plan stays PUBLISHED and visible", async () => {
+    it("race: B's workout import passes its assignment check, then B is removed, K links A and A publishes before B's write -> B refused (403), A's program stays PUBLISHED and visible", async () => {
       const a = await mk("coach"); const b = await mk("coach"); const k = await mk("client");
       await link(b, k);
-      const bDraft = await db.mealPlan.create({
-        data: { clientId: k.id, weekOf: WEEK, version: 1, status: "DRAFT", items: { create: [{ mealName: "B meal", foodName: "B food", quantity: "1", unit: "cup" }] } },
-      });
+      const workoutImport = await db.workoutImport.create({ data: { coachId: b.id, clientId: k.id, storagePath: `meal-plan-uploads/${randomUUID()}.pdf`, status: "NEEDS_REVIEW" } });
+      const doc = { name: "B program", notes: "B", days: [{ dayName: "B day", blocks: [{ type: "EXERCISE", title: "B lift", content: "3x5" }] }] };
+      const wDraft = await db.workoutImportDraft.create({ data: { importId: workoutImport.id, parsedJson: doc } });
       let pa: Awaited<ReturnType<typeof publishAs>> | null = null;
-      // The service's content read runs after the action's access check and
-      // before the transaction: the exact window between check and write.
-      const realFindUnique = db.mealPlan.findUnique.bind(db.mealPlan);
-      const spy = vi.spyOn(db.mealPlan, "findUnique");
-      spy.mockImplementationOnce(((args: Parameters<typeof realFindUnique>[0]) =>
+      // The route's program create runs after its CoachClient check and before
+      // the publish: the exact window between check and write. D5 would delete
+      // a draft that already existed at removal time, so the race is placed
+      // where the route creates its draft AFTER the removal.
+      const realCreate = db.trainingProgram.create.bind(db.trainingProgram);
+      const spy = vi.spyOn(db.trainingProgram, "create");
+      spy.mockImplementationOnce(((args: Parameters<typeof realCreate>[0]) =>
         (async () => {
-          const content = await realFindUnique(args);
           const row = await db.coachClient.findUniqueOrThrow({ where: { coachId_clientId: { coachId: b.id, clientId: k.id } }, select: { id: true } });
           await endCoachClientRelationship({ coachClientId: row.id, coachId: b.id, clientId: k.id, endedBy: "COACH" });
           await link(a, k);
           pa = await publishAs(a, k);
-          return content;
-        })()) as unknown as typeof db.mealPlan.findUnique);
+          return realCreate(args);
+        })()) as unknown as typeof db.trainingProgram.create);
+      let resStatus = 0;
       try {
-        auth.user = { ...b, activeRole: "COACH", isCoach: true };
-        await expect(publishMealPlan({ mealPlanId: bDraft.id, notifyClient: false })).rejects.toThrow("Not assigned to this client");
+        clerk.userId = b.clerkId;
+        const res = await workoutImportRoute(new NextRequest("https://example.test/api/workout-import/import", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draftId: wDraft.id, parsedJson: doc, saveAsTemplate: false, clientId: k.id, publish: true }),
+        }));
+        resStatus = res.status;
       } finally {
         spy.mockRestore();
       }
       expect(pa).not.toBeNull();
-      expect(await status(pa!.meal.id)).toBe("PUBLISHED");
-      expect(await db.mealPlan.count({ where: { clientId: k.id, publishedByCoachId: b.id } })).toBe(0);
+      expect(resStatus).toBe(403);
+      expect((await db.trainingProgram.findUniqueOrThrow({ where: { id: pa!.program.id } })).status).toBe("PUBLISHED");
+      expect(await db.trainingProgram.count({ where: { clientId: k.id, publishedByCoachId: b.id } })).toBe(0);
       await expectSeesOnly(k, pa!);
     });
   });
