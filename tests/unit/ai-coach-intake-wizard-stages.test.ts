@@ -1,7 +1,13 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import { createIntakeSelections, IntakeWizard } from "@/components/ai-coach/intake-wizard";
+import { describe, expect, it, vi } from "vitest";
+import {
+  confirmAndRedirect,
+  createIntakeSelections,
+  IntakeWizard,
+} from "@/components/ai-coach/intake-wizard";
+import { canonicalDeclarations } from "@/lib/ai-coach/intake-allergens";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
 
 const noopAct = async (work: () => Promise<unknown>) => {
   await work();
@@ -198,6 +204,170 @@ describe("T-2028 four-step intake wizard rendering", () => {
     expect(confirmStep).not.toContain("Building your plan");
     expect(confirmStep).toContain("Confirm my answers");
     expect(confirmStep).toContain("review the AI coaching disclosure and give consent");
+  });
+});
+
+describe("T-2028 r2 review fixes — rendering", () => {
+  // Restores the regression deleted in 4135539 ("does not present missing
+  // safety answers as No"), rewritten for the four-step flow (finding 4).
+  it("does not present missing safety answers as No", () => {
+    const html = renderStage(null, 3, null, false);
+    const labels = [
+      "Chest pain during exercise",
+      "Dizziness or fainting",
+      "A known heart condition",
+      "Pregnant or postpartum",
+      "A recent injury or surgery",
+      "An age-related eligibility concern",
+      "An eating-disorder history or concern",
+      "Type 1 diabetes",
+    ];
+    const oneTap = html.indexOf("None of these apply</span>");
+    expect(oneTap).toBeGreaterThan(-1);
+    // Every condition is visible text before the one-tap No can be pressed.
+    for (const label of labels) {
+      const at = html.indexOf(label);
+      expect(at, label).toBeGreaterThan(-1);
+      expect(at, label).toBeLessThan(oneTap);
+    }
+    // Nothing is pre-answered: no safety control starts pressed.
+    const safetySection = html.slice(html.indexOf("Quick safety check"));
+    expect(safetySection).not.toContain('aria-pressed="true"');
+    expect(html).toMatch(/aria-describedby="intake-safety-conditions" aria-pressed="false"/);
+  });
+
+  it("finding 1: shows stored allergens no chip can express, read-only with an explicit Remove", () => {
+    const seed = {
+      ...fullV2ConfirmedIntake,
+      allergenDeclarations: {
+        status: "CONFIRMED",
+        noKnownAllergens: false,
+        items: [
+          {
+            category: "FISH",
+            specificity: "salmon",
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "YES",
+          },
+          {
+            category: "EGG",
+            specificity: null,
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "YES",
+          },
+          {
+            category: "TREE_NUT",
+            specificity: "cashew",
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "YES",
+          },
+        ],
+      },
+    };
+    const html = renderStage(seed, 2);
+    expect(html).toContain("Also on file");
+    expect(html).toContain("Fish (salmon)");
+    expect(html).toContain('aria-label="Remove Fish (salmon)"');
+    expect(html).toContain('aria-label="Remove Egg"');
+    // The mapped chip keeps its stored detail visible.
+    expect(html).toContain("(cashew)");
+  });
+
+  it("finding 1: shows a stored mandatory dietary pattern as a requirement, not a blank choice", () => {
+    const html = renderStage(
+      {
+        ...fullV2ConfirmedIntake,
+        dietaryPattern: {
+          pattern: "VEGAN",
+          otherLabel: null,
+          mandatory: true,
+          reason: "RELIGIOUS_OR_ETHICAL",
+          status: "CONFIRMED",
+        },
+      },
+      2
+    );
+    expect(html).toContain("On file as a requirement:");
+    expect(html).toContain("<strong>Vegan</strong>");
+    expect(html).toContain("Remove requirement");
+  });
+
+  it("finding 5: repeats the pause warning on step 4 for a confirmed intake, not on a first pass", () => {
+    const resumed = renderStage(fullV2ConfirmedIntake, 3);
+    expect(resumed).toContain("Your intake is already confirmed.");
+    expect(resumed).toContain("nutrition recommendations are paused");
+    expect(renderStage(null, 3)).not.toContain("Your intake is already confirmed.");
+  });
+});
+
+describe("T-2028 r2 finding 1/5 — an untouched re-confirm re-sends what is stored", () => {
+  it("sends ALLERGIES and CONFIRM_INTAKE with declarations hash-equal to the confirmed ones", async () => {
+    const stored = {
+      status: "CONFIRMED",
+      noKnownAllergens: false,
+      items: [
+        {
+          category: "EGG",
+          specificity: null,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "MILK",
+          specificity: null,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "FISH",
+          specificity: "salmon",
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "NO",
+        },
+      ],
+    };
+    const dietaryPattern = {
+      pattern: "LACTO_OVO_VEGETARIAN",
+      otherLabel: null,
+      mandatory: true,
+      reason: "MEDICAL_OR_CLINICIAN_DIRECTED",
+      status: "CONFIRMED",
+    };
+    const selections = createIntakeSelections({
+      ...fullV2ConfirmedIntake,
+      allergenDeclarations: stored,
+      dietaryPattern,
+    });
+    const command = vi.fn(async (input: Record<string, unknown>) => {
+      void input;
+      return {};
+    });
+
+    await confirmAndRedirect({
+      selections,
+      safetyAnswers: {},
+      needsSafetyDisclosure: false,
+      command,
+      redirect: vi.fn(),
+    });
+
+    const [allergies, confirm] = command.mock.calls.map(([input]) => input);
+    // The server's `newConcern` is exactly this comparison (client-commands.ts).
+    expect(contentHash(canonicalDeclarations(allergies.allergenDeclarations))).toBe(
+      contentHash(canonicalDeclarations(stored))
+    );
+    const answers = confirm.answers as Record<string, unknown>;
+    expect(contentHash(canonicalDeclarations(answers.allergenDeclarations))).toBe(
+      contentHash(canonicalDeclarations(stored))
+    );
+    expect(answers.dietaryPattern).toEqual(dietaryPattern);
+    expect(answers.dislikes).toEqual(fullV2ConfirmedIntake.dislikes);
+    expect(answers.cuisinePreferences).toEqual(fullV2ConfirmedIntake.cuisinePreferences);
+    expect(answers).toMatchObject({
+      trainingContextStatus: "CONFIRMED",
+      resistanceTrainingContext: "REGULAR",
+      sessionLengthBand: "MIN_45_60",
+    });
   });
 });
 

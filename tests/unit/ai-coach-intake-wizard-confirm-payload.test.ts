@@ -3,10 +3,14 @@ import {
   buildAllergenDeclarations,
   buildConfirmPayload,
   createIntakeSelections,
+  describeAllergenItem,
+  intakeStepIssues,
   mapSelectionsToAnswers,
   type IntakeSelections,
 } from "@/components/ai-coach/intake-wizard";
-import { intakeV2ConfirmSchema } from "@/lib/ai-coach/intake-contract";
+import { intakeDraftSchema, intakeV2ConfirmSchema } from "@/lib/ai-coach/intake-contract";
+import { canonicalDeclarations } from "@/lib/ai-coach/intake-allergens";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
 
 function completeSelections(patch: Partial<IntakeSelections> = {}): IntakeSelections {
   return {
@@ -26,6 +30,13 @@ function completeSelections(patch: Partial<IntakeSelections> = {}): IntakeSelect
     weightMeasuredOn: "2026-09-27",
     ...patch,
   };
+}
+
+/** Stored-state fields from `createIntakeSelections`, minus the unanswered (undefined) ones. */
+function stored(selections: IntakeSelections): Partial<IntakeSelections> {
+  return Object.fromEntries(
+    Object.entries(selections).filter(([, value]) => value !== undefined)
+  ) as Partial<IntakeSelections>;
 }
 
 describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () => {
@@ -51,9 +62,9 @@ describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () 
       goalPaceClass: "UNDECIDED",
       weightNeutralAccepted: false,
       cookingAccessStatus: "UNKNOWN",
-      trainingContextStatus: "CONFIRMED",
-      resistanceTrainingContext: "OCCASIONAL",
-      sessionLengthBand: "MIN_45_60",
+      // T-2028 r2 finding 2: no current-training answer was given, so the
+      // jointly governed pair stays UNKNOWN and both values stay absent.
+      trainingContextStatus: "UNKNOWN",
       dietaryPattern: {
         pattern: "OTHER",
         otherLabel: "High protein",
@@ -72,6 +83,8 @@ describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () 
     expect(payload).not.toHaveProperty("energyMethodPopulationCategory");
     expect(payload).not.toHaveProperty("physicalActivityCategory");
     expect(payload).not.toHaveProperty("cookingAccess");
+    expect(payload).not.toHaveProperty("resistanceTrainingContext");
+    expect(payload).not.toHaveProperty("sessionLengthBand");
   });
 
   it("does not silently default the food budget", () => {
@@ -99,17 +112,46 @@ describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () 
   });
 
   it.each([
-    ["BEGINNER", "NEW", "NONE"],
-    ["INTERMEDIATE", "RETURNING", "OCCASIONAL"],
-    ["ADVANCED", "EXPERIENCED", "REGULAR"],
+    ["BEGINNER", "NEW"],
+    ["INTERMEDIATE", "RETURNING"],
+    ["ADVANCED", "EXPERIENCED"],
   ] as const)(
-    "maps experience %s without inventing a clinical category",
-    (experience, level, context) => {
+    "maps experience %s without inventing a current-training context (r2 finding 2)",
+    (experience, level) => {
       const payload = buildConfirmPayload(completeSelections({ experience }));
       expect(payload.experienceLevel).toBe(level);
-      expect(payload.resistanceTrainingContext).toBe(context);
+      expect(payload.trainingContextStatus).toBe("UNKNOWN");
+      expect(payload).not.toHaveProperty("resistanceTrainingContext");
+      expect(payload).not.toHaveProperty("sessionLengthBand");
     }
   );
+
+  it("keeps a previously confirmed current-training answer and pairs it with the chosen session length", () => {
+    const selections = createIntakeSelections({
+      trainingContextStatus: "CONFIRMED",
+      resistanceTrainingContext: "REGULAR",
+      sessionLengthBand: "MIN_30_45",
+    });
+    const payload = buildConfirmPayload(
+      completeSelections({
+        retainedResistanceTrainingContext: selections.retainedResistanceTrainingContext,
+        sessionLength: "MIN_60_PLUS",
+      })
+    );
+    expect(payload).toMatchObject({
+      trainingContextStatus: "CONFIRMED",
+      resistanceTrainingContext: "REGULAR",
+      sessionLengthBand: "MIN_60_90",
+    });
+  });
+
+  it("saves the chosen session length to the draft so step 2 resumes, without claiming a context", () => {
+    const answers = mapSelectionsToAnswers(completeSelections());
+    expect(answers.sessionLengthBand).toBe("MIN_45_60");
+    expect(answers.trainingContextStatus).toBe("UNKNOWN");
+    expect(answers).not.toHaveProperty("resistanceTrainingContext");
+    expect(intakeDraftSchema.safeParse(answers).success).toBe(true);
+  });
 
   it("maps quick allergen tags conservatively and keeps gluten broader than wheat", () => {
     const declarations = buildAllergenDeclarations(
@@ -132,41 +174,196 @@ describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () 
     ).toBe(true);
   });
 
-  it("does not silently re-assert hidden legacy allergen detail", () => {
+  it("r2 finding 1: keeps a stored allergen no chip can show when the client adds a chip", () => {
+    const fish = {
+      category: "FISH",
+      specificity: "salmon",
+      kind: "ALLERGY",
+      crossContactAvoidanceRequired: "YES",
+    } as const;
     const selections = createIntakeSelections({
-      allergenDeclarations: {
-        status: "CONFIRMED",
-        noKnownAllergens: false,
-        items: [
-          {
-            category: "FISH",
-            specificity: "salmon",
-            kind: "ALLERGY",
-            crossContactAvoidanceRequired: "YES",
-          },
-        ],
-      },
+      allergenDeclarations: { status: "CONFIRMED", noKnownAllergens: false, items: [fish] },
     });
 
+    // Nothing is pre-selected, but the item is retained for read-only display.
     expect(selections.allergens).toEqual([]);
+    expect(selections.retainedAllergenItems).toEqual([fish]);
+    expect(describeAllergenItem(selections.retainedAllergenItems![0])).toBe("Fish (salmon)");
+
     selections.allergens = ["DAIRY"];
-    expect(buildAllergenDeclarations(selections).items).toEqual([
+    const declarations = buildAllergenDeclarations(selections);
+    expect(declarations.items).toEqual([
+      fish,
       expect.objectContaining({ category: "MILK", specificity: null }),
     ]);
+    // ...and it reaches CONFIRM_INTAKE unchanged.
+    expect(
+      buildConfirmPayload(completeSelections(stored(selections))).allergenDeclarations
+    ).toEqual(declarations);
   });
 
-  it("does not silently loosen a mandatory legacy dietary pattern", () => {
+  it("r2 finding 1: an untouched pass re-sends exactly the stored declarations (server hash equal, so no pause)", () => {
+    const onFile = {
+      status: "CONFIRMED",
+      noKnownAllergens: false,
+      items: [
+        {
+          category: "EGG",
+          specificity: null,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "FISH",
+          specificity: "salmon",
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "SOYBEAN",
+          specificity: null,
+          kind: "INTOLERANCE_OR_SENSITIVITY",
+          crossContactAvoidanceRequired: "NO",
+        },
+        {
+          category: "WHEAT",
+          specificity: null,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "UNSURE",
+        },
+        {
+          category: "SESAME",
+          specificity: null,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "OTHER",
+          specificity: "kiwi",
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "NO",
+        },
+        {
+          category: "TREE_NUT",
+          specificity: "cashew",
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "MILK",
+          specificity: null,
+          kind: "INTOLERANCE_OR_SENSITIVITY",
+          crossContactAvoidanceRequired: "NO",
+        },
+        {
+          category: "OTHER",
+          specificity: "gluten",
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+      ],
+    } as const;
+    const selections = createIntakeSelections({ allergenDeclarations: onFile });
+    expect(selections.allergens.sort()).toEqual(["DAIRY", "GLUTEN", "TREE_NUTS"]);
+
+    const rebuilt = buildAllergenDeclarations(selections);
+    expect(contentHash(canonicalDeclarations(rebuilt))).toBe(
+      contentHash(canonicalDeclarations(onFile))
+    );
+  });
+
+  it("r2 finding 1: dropping a stored item takes an explicit Remove, and None cannot erase it", () => {
+    const egg = {
+      category: "EGG",
+      specificity: null,
+      kind: "ALLERGY",
+      crossContactAvoidanceRequired: "YES",
+    } as const;
     const selections = createIntakeSelections({
-      dietaryPattern: {
-        pattern: "VEGAN",
-        otherLabel: null,
-        mandatory: true,
-        reason: "RELIGIOUS_OR_ETHICAL",
-        status: "CONFIRMED",
-      },
+      allergenDeclarations: { status: "CONFIRMED", noKnownAllergens: false, items: [egg] },
     });
 
+    // An empty chip row is not "no allergens" while an item is on file.
+    expect(
+      intakeStepIssues(2, completeSelections({ ...stored(selections), allergens: [] }), {}, false)
+    ).toEqual([]);
+    expect(buildAllergenDeclarations({ ...selections, allergens: [] }).items).toEqual([egg]);
+
+    // None alongside an item on file is refused, and the builder fails closed.
+    const withNone = completeSelections({ ...stored(selections), allergens: ["NONE"] });
+    expect(intakeStepIssues(2, withNone, {}, false)).toContain(
+      "Remove the other allergens on file before choosing None."
+    );
+    expect(buildAllergenDeclarations(withNone)).toEqual({
+      status: "CONFIRMED",
+      noKnownAllergens: false,
+      items: [egg],
+    });
+
+    // Explicit removal, then None, is a real declaration of no allergens.
+    const removed = completeSelections({
+      ...stored(selections),
+      retainedAllergenItems: [],
+      allergens: ["NONE"],
+    });
+    expect(intakeStepIssues(2, removed, {}, false)).toEqual([]);
+    expect(buildAllergenDeclarations(removed)).toEqual({
+      status: "CONFIRMED",
+      noKnownAllergens: true,
+      items: [],
+    });
+  });
+
+  it("r2 finding 1: keeps a stored mandatory dietary pattern verbatim instead of a chip preference", () => {
+    const vegan = {
+      pattern: "VEGAN",
+      otherLabel: null,
+      mandatory: true,
+      reason: "RELIGIOUS_OR_ETHICAL",
+      status: "CONFIRMED",
+    } as const;
+    const selections = createIntakeSelections({ dietaryPattern: vegan });
+
     expect(selections.dietaryStyle).toBeUndefined();
+    expect(selections.retainedDietaryPattern).toEqual(vegan);
+    const merged = completeSelections({
+      ...stored(selections),
+      dietaryStyle: undefined,
+      allergens: ["NONE"],
+    });
+    expect(intakeStepIssues(2, merged, {}, false)).toEqual([]);
+    expect(buildConfirmPayload(merged).dietaryPattern).toEqual(vegan);
+
+    // A mandatory pattern this flow's own labels could describe is still not downgraded.
+    const plantBased = {
+      ...vegan,
+      pattern: "OTHER",
+      otherLabel: "Plant-based",
+      reason: "MEDICAL_OR_CLINICIAN_DIRECTED",
+    } as const;
+    const fromOther = createIntakeSelections({ dietaryPattern: plantBased });
+    expect(fromOther.dietaryStyle).toBeUndefined();
+    expect(
+      buildConfirmPayload(
+        completeSelections({ ...stored(fromOther), dietaryStyle: undefined, allergens: ["NONE"] })
+      ).dietaryPattern
+    ).toEqual(plantBased);
+  });
+
+  it("r2 MINOR 8b: carries stored dislikes and cuisine preferences instead of wiping them", () => {
+    const selections = createIntakeSelections({
+      dislikes: [{ label: "cilantro", canonicalFoodId: null }],
+      cuisinePreferences: ["Thai"],
+    });
+    const answers = mapSelectionsToAnswers(
+      completeSelections({ ...stored(selections), allergens: ["NONE"] })
+    );
+    expect(answers.dislikes).toEqual([{ label: "cilantro", canonicalFoodId: null }]);
+    expect(answers.cuisinePreferences).toEqual(["Thai"]);
+    expect(
+      buildConfirmPayload(completeSelections({ ...stored(selections), allergens: ["NONE"] }))
+        .dislikes
+    ).toEqual([{ label: "cilantro", canonicalFoodId: null }]);
   });
 
   it("never leaks server-owned compatibility keys into CONFIRM_INTAKE", () => {

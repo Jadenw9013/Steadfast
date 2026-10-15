@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import {
   allergenDeclarationsSchema,
+  dietaryPatternSchema,
   intakeV2ConfirmObjectSchema,
   intakeV2ConfirmSchema,
   type AllergenDeclaration,
   type AllergenDeclarations,
+  type DietaryPattern,
   type IntakeV2ConfirmAnswers,
 } from "@/lib/ai-coach/intake-contract";
 import { button, inputStyle, primary } from "./controls";
@@ -58,6 +60,19 @@ export interface IntakeSelections {
   weightKg?: number;
   ageYears?: number;
   weightMeasuredOn: string;
+  /**
+   * T-2028 r2 (finding 1) — what is already on file and cannot be expressed
+   * by the six chips. Carried through unchanged, shown read-only, and only
+   * dropped by an explicit Remove. Never re-derived from the chips.
+   */
+  allergenSource?: AllergenDeclarations;
+  retainedAllergenItems?: AllergenDeclaration[];
+  retainedDietaryPattern?: DietaryPattern;
+  /** Finding 2 — only a previously stated current-training answer, never inferred. */
+  retainedResistanceTrainingContext?: IntakeV2ConfirmAnswers["resistanceTrainingContext"];
+  /** Finding 8b — values entered elsewhere (iOS / T-2024) that this flow does not ask. */
+  dislikes?: IntakeV2ConfirmAnswers["dislikes"];
+  cuisinePreferences?: IntakeV2ConfirmAnswers["cuisinePreferences"];
 }
 
 const STAGES = ["Goal", "Training setup", "Nutrition & tracking", "Body stats & confirm"];
@@ -270,6 +285,10 @@ function sessionLengthFromSeed(seed: Answers): SessionLengthChoice | undefined {
 
 function dietaryStyleFromSeed(seed: Answers): DietaryStyleChoice | undefined {
   const pattern = record(seed.dietaryPattern);
+  // Only a pattern this flow itself could have written maps back to a chip.
+  // Anything stricter (mandatory, medical/religious) is retained instead,
+  // so choosing a chip can never quietly downgrade it to a preference.
+  if (pattern.pattern !== "OTHER" || pattern.mandatory !== false) return undefined;
   const label = typeof pattern.otherLabel === "string" ? pattern.otherLabel.toLowerCase() : "";
   if (label === "balanced") return "BALANCED";
   if (label === "high protein") return "HIGH_PROTEIN";
@@ -278,7 +297,9 @@ function dietaryStyleFromSeed(seed: Answers): DietaryStyleChoice | undefined {
   return undefined;
 }
 
-function allergenChoiceFor(item: AllergenDeclaration): AllergenChoice | undefined {
+function allergenChoiceFor(
+  item: AllergenDeclaration
+): Exclude<AllergenChoice, "NONE"> | undefined {
   if (item.category === "MILK") return "DAIRY";
   if (item.category === "TREE_NUT") return "TREE_NUTS";
   if (item.category === "PEANUT") return "PEANUTS";
@@ -295,12 +316,46 @@ function allergensFromSeed(declarations?: AllergenDeclarations): AllergenChoice[
   ] as AllergenChoice[];
 }
 
+function unmappedAllergenItems(declarations?: AllergenDeclarations): AllergenDeclaration[] {
+  if (!declarations || declarations.status !== "CONFIRMED") return [];
+  return declarations.items.filter((item) => allergenChoiceFor(item) === undefined);
+}
+
+function retainedDietaryPatternFromSeed(seed: Answers): DietaryPattern | undefined {
+  const parsed = dietaryPatternSchema.safeParse(seed.dietaryPattern);
+  // A mandatory pattern is a hard exclusion (`deriveLegacyDietaryRestrictions`
+  // only emits tokens for mandatory patterns). The chips are preferences
+  // only, so a mandatory pattern is kept verbatim until explicitly removed.
+  return parsed.success && parsed.data.mandatory ? parsed.data : undefined;
+}
+
+function seededList<K extends "dislikes" | "cuisinePreferences">(
+  seed: Answers,
+  key: K
+): IntakeV2ConfirmAnswers[K] | undefined {
+  const parsed = intakeV2ConfirmObjectSchema.shape[key].safeParse(seed[key]);
+  return parsed.success ? (parsed.data as IntakeV2ConfirmAnswers[K]) : undefined;
+}
+
 export function createIntakeSelections(seed: Answers, today = localDateString()): IntakeSelections {
   const parsedDeclarations = allergenDeclarationsSchema.safeParse(seed.allergenDeclarations);
   const sourceAllergenDeclarations = parsedDeclarations.success
     ? parsedDeclarations.data
     : undefined;
+  const retainedContext =
+    seed.trainingContextStatus === "CONFIRMED" &&
+    (seed.resistanceTrainingContext === "NONE" ||
+      seed.resistanceTrainingContext === "OCCASIONAL" ||
+      seed.resistanceTrainingContext === "REGULAR")
+      ? seed.resistanceTrainingContext
+      : undefined;
   return {
+    allergenSource: sourceAllergenDeclarations,
+    retainedAllergenItems: unmappedAllergenItems(sourceAllergenDeclarations),
+    retainedDietaryPattern: retainedDietaryPatternFromSeed(seed),
+    retainedResistanceTrainingContext: retainedContext,
+    dislikes: seededList(seed, "dislikes"),
+    cuisinePreferences: seededList(seed, "cuisinePreferences"),
     goal: goalFromSeed(seed),
     experience: experienceFromSeed(seed),
     trainingDaysPerWeek:
@@ -381,16 +436,6 @@ function mappedEquipment(
   return undefined;
 }
 
-function mappedResistanceContext(
-  choice?: ExperienceChoice
-): IntakeV2ConfirmAnswers["resistanceTrainingContext"] | undefined {
-  // Conservative compatibility mapping for the jointly-governed legacy pair.
-  if (choice === "BEGINNER") return "NONE";
-  if (choice === "INTERMEDIATE") return "OCCASIONAL";
-  if (choice === "ADVANCED") return "REGULAR";
-  return undefined;
-}
-
 function mappedSessionLength(
   choice?: SessionLengthChoice
 ): IntakeV2ConfirmAnswers["sessionLengthBand"] | undefined {
@@ -399,8 +444,10 @@ function mappedSessionLength(
 }
 
 function mappedDietaryPattern(
-  choice?: DietaryStyleChoice
+  choice?: DietaryStyleChoice,
+  retained?: DietaryPattern
 ): IntakeV2ConfirmAnswers["dietaryPattern"] {
+  if (retained) return retained;
   const label: Record<DietaryStyleChoice, string> = {
     BALANCED: "Balanced",
     HIGH_PROTEIN: "High protein",
@@ -437,18 +484,42 @@ function declarationForChoice(choice: Exclude<AllergenChoice, "NONE">): Allergen
   return { category: "OTHER", specificity: "gluten", ...common };
 }
 
+/**
+ * T-2028 r2 finding 1. The chips are a view over what is on file, never a
+ * replacement for it:
+ *  - a chip whose category is already on file re-emits those stored items
+ *    byte-for-byte (species, kind and cross-contact answer included);
+ *  - items no chip can express (Egg, Fish, Soy, Wheat, Sesame, other) are
+ *    carried through until the client explicitly removes them;
+ *  - only a newly selected chip produces a new item.
+ * So an untouched pass re-sends exactly the stored declarations, which the
+ * server's canonical hash treats as no new concern (no pause, no RESTRICTED).
+ */
 export function buildAllergenDeclarations(selections: IntakeSelections): AllergenDeclarations {
-  if (selections.allergens.includes("NONE"))
+  const retained = selections.retainedAllergenItems ?? [];
+  // Fail closed: "None" never erases items still on file. Step validation
+  // refuses that combination; if it reaches here anyway the items win.
+  if (selections.allergens.includes("NONE") && retained.length === 0)
     return { status: "CONFIRMED", noKnownAllergens: true, items: [] };
-  if (selections.allergens.length === 0) return EMPTY_ALLERGEN_DECLARATIONS;
+  if (selections.allergens.length === 0 && retained.length === 0)
+    return EMPTY_ALLERGEN_DECLARATIONS;
 
   const selected = selections.allergens.filter(
     (choice): choice is Exclude<AllergenChoice, "NONE"> => choice !== "NONE"
   );
-  // The compact flow only re-confirms what its visible tags can express.
-  // It deliberately does not copy hidden species, kind, or cross-contact
-  // detail from an older intake into a new user confirmation.
-  const items = selected.map(declarationForChoice);
+  const source =
+    selections.allergenSource?.status === "CONFIRMED" ? selections.allergenSource.items : [];
+  const items: AllergenDeclaration[] = [];
+  for (const item of source) {
+    const choice = allergenChoiceFor(item);
+    if (choice === undefined ? retained.includes(item) : selected.includes(choice))
+      items.push(item);
+  }
+  for (const item of retained) if (!items.includes(item)) items.push(item);
+  for (const choice of selected) {
+    if (!source.some((item) => allergenChoiceFor(item) === choice))
+      items.push(declarationForChoice(choice));
+  }
   return allergenDeclarationsSchema.parse({
     status: "CONFIRMED",
     noKnownAllergens: false,
@@ -456,11 +527,46 @@ export function buildAllergenDeclarations(selections: IntakeSelections): Allerge
   });
 }
 
+const ALLERGEN_CATEGORY_LABELS: Record<AllergenDeclaration["category"], string> = {
+  MILK: "Dairy",
+  EGG: "Egg",
+  FISH: "Fish",
+  CRUSTACEAN_SHELLFISH: "Shellfish",
+  TREE_NUT: "Tree Nuts",
+  PEANUT: "Peanuts",
+  WHEAT: "Wheat",
+  SOYBEAN: "Soy",
+  SESAME: "Sesame",
+  OTHER: "Other",
+};
+
+/** Read-only label for an item on file, e.g. "Fish (salmon)". */
+export function describeAllergenItem(item: AllergenDeclaration): string {
+  const base =
+    item.category === "OTHER" && item.specificity
+      ? item.specificity
+      : item.specificity
+        ? `${ALLERGEN_CATEGORY_LABELS[item.category]} (${item.specificity})`
+        : ALLERGEN_CATEGORY_LABELS[item.category];
+  return item.kind === "INTOLERANCE_OR_SENSITIVITY" ? `${base}, intolerance` : base;
+}
+
+const DIETARY_PATTERN_LABELS: Record<DietaryPattern["pattern"], string> = {
+  OMNIVORE: "Omnivore",
+  LACTO_OVO_VEGETARIAN: "Vegetarian (eggs and dairy)",
+  VEGAN: "Vegan",
+  PESCATARIAN: "Pescatarian",
+  OTHER: "Other",
+  NONE_DECLARED: "None declared",
+};
+
 export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
   const goal = mappedGoal(selections.goal);
   const experienceLevel = mappedExperience(selections.experience);
   const equipmentAccess = mappedEquipment(selections.equipment);
-  const resistanceTrainingContext = mappedResistanceContext(selections.experience);
+  // Finding 2: the experience pill is not a current-training answer. Only a
+  // previously confirmed answer is carried; otherwise the pair stays UNKNOWN.
+  const resistanceTrainingContext = selections.retainedResistanceTrainingContext;
   const sessionLengthBand = mappedSessionLength(selections.sessionLength);
   const goalDetails = mappedGoalDetails(selections.goal);
   const hasBodyMeasurements =
@@ -500,17 +606,21 @@ export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
       : {}),
     ...goalDetails,
     trainingContextStatus: hasTrainingContext ? "CONFIRMED" : "UNKNOWN",
-    ...(hasTrainingContext ? { resistanceTrainingContext, sessionLengthBand } : {}),
+    ...(hasTrainingContext ? { resistanceTrainingContext } : {}),
+    // The draft keeps the chosen session length so the step resumes; the
+    // confirm payload drops it unless its jointly governed pair is CONFIRMED.
+    ...(sessionLengthBand ? { sessionLengthBand } : {}),
     cookingAccessStatus: "UNKNOWN",
-    dislikes: [],
-    cuisinePreferences: [],
+    dislikes: selections.dislikes ?? [],
+    cuisinePreferences: selections.cuisinePreferences ?? [],
     allergenDeclarations: buildAllergenDeclarations(selections),
-    dietaryPattern: mappedDietaryPattern(selections.dietaryStyle),
+    dietaryPattern: mappedDietaryPattern(selections.dietaryStyle, selections.retainedDietaryPattern),
   };
 }
 
 export function buildConfirmPayload(selections: IntakeSelections): IntakeV2ConfirmAnswers {
   const mapped = mapSelectionsToAnswers(selections);
+  if (mapped.trainingContextStatus !== "CONFIRMED") delete mapped.sessionLengthBand;
   const payload = Object.fromEntries(
     Object.entries(mapped).filter(
       ([key, value]) => CONFIRM_KEYS.includes(key) && value !== undefined
@@ -553,10 +663,15 @@ export function intakeStepIssues(
     if (!selections.sessionLength) issues.push("Choose a session length.");
   }
   if (stage === 2) {
-    if (!selections.dietaryStyle) issues.push("Choose a dietary style.");
+    if (!selections.dietaryStyle && !selections.retainedDietaryPattern)
+      issues.push("Choose a dietary style.");
     if (!selections.trackingStyle) issues.push("Choose a tracking style.");
     if (!selections.foodBudgetLevel) issues.push("Choose a food budget preference.");
-    if (selections.allergens.length === 0) issues.push("Choose any allergens, or choose None.");
+    const retainedAllergens = selections.retainedAllergenItems?.length ?? 0;
+    if (selections.allergens.length === 0 && retainedAllergens === 0)
+      issues.push("Choose any allergens, or choose None.");
+    if (selections.allergens.includes("NONE") && retainedAllergens > 0)
+      issues.push("Remove the other allergens on file before choosing None.");
   }
   if (stage === 3) {
     if (
@@ -809,6 +924,16 @@ export function IntakeWizard({
 
   const update = (patch: Partial<IntakeSelections>) =>
     setSelections((current) => ({ ...current, ...patch }));
+  // Finding 9c: inches typed before feet are held here instead of discarded.
+  const [pendingInches, setPendingInches] = useState<number | undefined>(undefined);
+  // Stored species/type detail behind a selected chip, e.g. "cashew".
+  const chipDetail = (choice: AllergenChoice): string | undefined => {
+    if (choice === "GLUTEN" || selections.allergenSource?.status !== "CONFIRMED") return undefined;
+    const details = selections.allergenSource.items
+      .filter((item) => allergenChoiceFor(item) === choice && item.specificity)
+      .map((item) => item.specificity);
+    return details.length > 0 ? details.join(", ") : undefined;
+  };
 
   const saveFields = (keys: string[]) => {
     const mapped = mapSelectionsToAnswers(selections);
@@ -1082,13 +1207,40 @@ export function IntakeWizard({
               </p>
             </div>
 
-            <ChoicePills
-              label="Dietary style"
-              hint="Select the pattern you prefer. This is a preference, not a promise that a plan is available."
-              value={selections.dietaryStyle}
-              options={DIETARY_OPTIONS}
-              onChange={(value) => update({ dietaryStyle: value as DietaryStyleChoice })}
-            />
+            {selections.retainedDietaryPattern ? (
+              <div className="space-y-2.5">
+                <p className="text-sm font-semibold text-zinc-200">Dietary style</p>
+                <div
+                  role="note"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                >
+                  <p>
+                    On file as a requirement:{" "}
+                    <strong>
+                      {selections.retainedDietaryPattern.pattern === "OTHER"
+                        ? selections.retainedDietaryPattern.otherLabel
+                        : DIETARY_PATTERN_LABELS[selections.retainedDietaryPattern.pattern]}
+                    </strong>
+                    . It stays in place unless you remove it.
+                  </p>
+                  <button
+                    type="button"
+                    className={`${button} cursor-pointer`}
+                    onClick={() => update({ retainedDietaryPattern: undefined })}
+                  >
+                    Remove requirement
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <ChoicePills
+                label="Dietary style"
+                hint="Select the pattern you prefer. This is a preference, not a promise that a plan is available."
+                value={selections.dietaryStyle}
+                options={DIETARY_OPTIONS}
+                onChange={(value) => update({ dietaryStyle: value as DietaryStyleChoice })}
+              />
+            )}
 
             <ChoicePills
               label="Food budget"
@@ -1189,10 +1341,45 @@ export function IntakeWizard({
                     >
                       {selected && <CheckIcon />}
                       {option.label}
+                      {selected && chipDetail(option.value) && (
+                        <span className="text-xs opacity-75">({chipDetail(option.value)})</span>
+                      )}
                     </button>
                   );
                 })}
               </div>
+              {(selections.retainedAllergenItems?.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-zinc-200">Also on file</p>
+                  <p className="text-xs text-zinc-400">
+                    These stay excluded unless you remove them.
+                  </p>
+                  <ul className="space-y-2">
+                    {selections.retainedAllergenItems?.map((item, index) => (
+                      <li
+                        key={`${item.category}-${item.specificity ?? ""}-${index}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                      >
+                        <span>{describeAllergenItem(item)}</span>
+                        <button
+                          type="button"
+                          className={`${button} cursor-pointer`}
+                          aria-label={`Remove ${describeAllergenItem(item)}`}
+                          onClick={() =>
+                            update({
+                              retainedAllergenItems: selections.retainedAllergenItems?.filter(
+                                (kept) => kept !== item
+                              ),
+                            })
+                          }
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </fieldset>
 
             <IssueList issues={visibleIssues} />
@@ -1271,11 +1458,14 @@ export function IntakeWizard({
                         onChange={(event) => {
                           const feet =
                             event.target.value === "" ? undefined : Number(event.target.value);
+                          const inches = imperialHeight.inches ?? pendingInches ?? 0;
+                          if (feet === undefined) setPendingInches(imperialHeight.inches);
+                          else setPendingInches(undefined);
                           update({
                             heightCm:
                               feet === undefined
                                 ? undefined
-                                : feetAndInchesToCentimeters(feet, imperialHeight.inches ?? 0),
+                                : feetAndInchesToCentimeters(feet, inches),
                           });
                         }}
                       />
@@ -1290,10 +1480,14 @@ export function IntakeWizard({
                         max={11}
                         className={INPUT_CLASS}
                         style={inputStyle}
-                        value={imperialHeight.inches ?? ""}
+                        value={imperialHeight.inches ?? pendingInches ?? ""}
                         onChange={(event) => {
                           const inches =
                             event.target.value === "" ? undefined : Number(event.target.value);
+                          if (imperialHeight.feet === undefined) {
+                            setPendingInches(inches);
+                            return;
+                          }
                           update({
                             heightCm:
                               inches === undefined || imperialHeight.feet === undefined
@@ -1384,14 +1578,27 @@ export function IntakeWizard({
                 <div>
                   <h3 className="font-semibold text-zinc-100">Quick safety check</h3>
                   <p className="mt-1 text-sm leading-relaxed text-zinc-400">
-                    These answers tell the server whether preparation can continue or must pause. If
-                    none apply, choose &ldquo;None of these apply&rdquo;; otherwise open the
-                    questions and answer each one.
+                    These answers tell the server whether preparation can continue or must pause.
+                    Do any of the following apply to you?
+                  </p>
+                  {/* Finding 4: every condition is visible before a one-tap No can be recorded. */}
+                  <ul
+                    id="intake-safety-conditions"
+                    className="mt-3 list-disc space-y-1 pl-5 text-sm text-zinc-200"
+                  >
+                    {SAFETY_FIELDS.map(({ key, label }) => (
+                      <li key={key}>{label}</li>
+                    ))}
+                  </ul>
+                  <p className="mt-3 text-sm leading-relaxed text-zinc-400">
+                    If none of them apply, choose &ldquo;None of these apply&rdquo;; otherwise open
+                    the questions and answer each one.
                   </p>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
+                    aria-describedby="intake-safety-conditions"
                     aria-pressed={
                       safetyAnswersComplete(safetyAnswers) &&
                       Object.values(safetyAnswers).every((answer) => answer === "NO")
@@ -1480,6 +1687,20 @@ export function IntakeWizard({
                 </p>
               </div>
             </div>
+
+            {intakeAlreadyConfirmed && (
+              // Finding 5: resume lands a confirmed client here, past step 3's warning.
+              <p
+                role="note"
+                className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-relaxed text-amber-100/90"
+              >
+                Your intake is already confirmed. If you changed your allergy answers,
+                confirming counts as new safety information: nutrition
+                recommendations are paused and any plan being prepared is cancelled, until an
+                authorized Steadfast reviewer reviews the change. You cannot lift that pause
+                yourself. Allergy answers you left unchanged do not trigger this.
+              </p>
+            )}
 
             <IssueList issues={visibleIssues} />
             <div className="space-y-3">
