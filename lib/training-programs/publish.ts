@@ -7,7 +7,11 @@ import type { TrainingProgramStatus } from "@/app/generated/prisma/client";
  * `publishTrainingProgram` server action, the iOS-facing
  * `/api/coach/clients/[clientId]/training/publish` route (CB05), and the OCR
  * import path `app/api/workout-import/import/route.ts`. This is the only place
- * in the codebase that sets `TrainingProgram.status = "PUBLISHED"`.
+ * in the codebase that sets `TrainingProgram.status = "PUBLISHED"`, and (T-2060) the
+ * only writer of `TrainingProgram.publishedByCoachId`: the flip stamps the
+ * authenticated coach every caller passes in `opts.publishedByCoachId`
+ * (required, so a new caller that forgets it is a type error). The reader is
+ * `lib/coach-client/plan-visibility.ts#publishedPlanVisibilityWhere`.
  * Every transport MUST call it instead of re-implementing the supersede
  * transaction: the import route used to do a bare `create` with
  * `status: "PUBLISHED"` and no supersede at all, which left two PUBLISHED rows
@@ -145,13 +149,13 @@ class RaceLost extends Error {
  */
 export async function publishTrainingProgramTarget(
   target: TrainingProgramPublishTarget,
-  opts?: { now?: Date }
+  opts: { publishedByCoachId: string; now?: Date }
 ): Promise<PublishTrainingProgramResult> {
   if (target.status !== "DRAFT") {
     return { ok: false, code: "NOT_DRAFT", status: target.status };
   }
 
-  const publishedAt = opts?.now ?? new Date();
+  const publishedAt = opts.now ?? new Date();
 
   let supersededCount: number;
   try {
@@ -173,7 +177,8 @@ export async function publishTrainingProgramTarget(
       // above, so throw rather than returning the count (see the file header).
       const flipped = await tx.trainingProgram.updateMany({
         where: { id: target.id, status: "DRAFT" },
-        data: { status: "PUBLISHED", publishedAt },
+        // T-2060: the flip also stamps the author; supersede rows keep theirs.
+        data: { status: "PUBLISHED", publishedAt, publishedByCoachId: opts.publishedByCoachId },
       });
       if (flipped.count === 0) throw new RaceLost();
       return superseded.count;

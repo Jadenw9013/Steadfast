@@ -81,6 +81,9 @@ try {
   await pool.query(`DELETE FROM "Message" WHERE "senderId" = $1`, [userId]);
   await pool.query(`DELETE FROM "NotificationLog" WHERE "clientId" = $1`, [userId]);
   await pool.query(`DELETE FROM "Testimonial" WHERE "coachId" = $1 OR "clientId" = $1`, [userId]);
+  // T-2060: close this coach's open relationship episodes; the FKs
+  // (coachId SET NULL, clientId CASCADE) handle the rest at the User delete.
+  await pool.query(`UPDATE "CoachClientEpisode" SET "endedAt" = now(), "endReason" = 'COACH_ACCOUNT_DELETED' WHERE "coachId" = $1 AND "endedAt" IS NULL`, [userId]);
   await pool.query(`DELETE FROM "CoachClient" WHERE "coachId" = $1 OR "clientId" = $1`, [userId]);
   // T-987: mismatchEmail is a second user's address stored on a coach's
   // ClientInvite row (mirrors lib/account-deletion/purge.ts's scrub).

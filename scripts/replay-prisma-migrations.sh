@@ -119,10 +119,16 @@ DO $$
 BEGIN
   IF to_regclass('public."MealPlan_one_published_per_client_week"') IS NULL
     OR to_regclass('public."TrainingProgram_one_published_per_client"') IS NULL
+    OR to_regclass('public."CoachClientEpisode_one_open_per_row"') IS NULL
     OR NOT EXISTS (
       SELECT 1
         FROM pg_constraint
        WHERE conname = 'AiWorkoutSession_modality_check'
+    )
+    OR NOT EXISTS (
+      SELECT 1
+        FROM pg_constraint
+       WHERE conname = 'CoachClientEpisode_end_pairing_check'
     )
   THEN
     RAISE EXCEPTION 'Legacy raw-SQL invariant is missing';

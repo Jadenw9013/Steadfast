@@ -123,11 +123,11 @@ export async function publishMealPlan(input: unknown) {
   const target = await getMealPlanPublishTarget(parsed.data.mealPlanId);
   if (!target) throw new Error("Meal plan not found");
 
-  await verifyCoachAccessToClient(target.clientId);
+  const coach = await verifyCoachAccessToClient(target.clientId);
 
   // CB04 — publishing lives entirely in lib/meal-plans/publish.ts so this
   // action and the iOS-facing REST route can't diverge again.
-  const result = await publishMealPlanTarget(target);
+  const result = await publishMealPlanTarget(target, { publishedByCoachId: coach.id });
   if (!result.ok) {
     if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
     // T-102b — the wording lives in lib/meal-plans/publish.ts so this action,

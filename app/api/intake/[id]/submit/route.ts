@@ -265,10 +265,10 @@ export async function POST(
 
     // Fire-and-forget coach notification email
     try {
-      const coach = await db.user.findUnique({
-        where: { id: clientIntake.coachId },
-        select: { email: true },
-      });
+      // T-2060: coachId is nullable (a sole-coach purge keeps the intake).
+      const coach = clientIntake.coachId
+        ? await db.user.findUnique({ where: { id: clientIntake.coachId }, select: { email: true } })
+        : null;
       if (coach) {
         const clientName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
         const { sendEmail } = await import("@/lib/email/sendEmail");

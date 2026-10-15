@@ -122,7 +122,10 @@ export async function POST(req: NextRequest) {
       // writes MealPlan.status, and the flip itself is gated in the database
       // (`updateMany where status: "DRAFT"`), so any staleness degrades to
       // RACE_LOST rather than a wrong publish.
-      const result = await publishMealPlanTarget({ id: mealPlanId, clientId, weekOf, status: "DRAFT" });
+      const result = await publishMealPlanTarget(
+        { id: mealPlanId, clientId, weekOf, status: "DRAFT" },
+        { publishedByCoachId: coach.id },
+      );
       if (!result.ok) {
         // Return BEFORE the bookkeeping writes. Marking the upload IMPORTED on a
         // failed publish would trip the "Already imported" 400 on the coach's

@@ -89,14 +89,14 @@ export async function publishTrainingProgram(input: unknown) {
   const target = await getTrainingProgramPublishTarget(parsed.data.programId);
   if (!target) throw new Error("Training program not found");
 
-  await verifyCoachAccessToClient(target.clientId);
+  const coach = await verifyCoachAccessToClient(target.clientId);
 
   // CB05 supersede + race guard live in lib/training-programs/publish.ts, the
   // only writer of TrainingProgram.status = "PUBLISHED" (T-739). The
   // status !== "DRAFT" check now runs inside the service, i.e. AFTER the
   // access check rather than before it — intentional, and identical to the
   // ordering T-660 established for meal plans.
-  const result = await publishTrainingProgramTarget(target);
+  const result = await publishTrainingProgramTarget(target, { publishedByCoachId: coach.id });
   if (!result.ok) {
     if (result.code === "NOT_DRAFT") throw new Error("Can only publish drafts");
     throw new Error("This program was already published or changed by someone else — refresh and try again.");

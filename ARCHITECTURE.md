@@ -307,7 +307,8 @@ Steadfast/
 │   │   ├── intake.ts                  # Intake packet queries
 │   │   └── ... (12 more)
 │   ├── coach-client/
-│   │   └── end-relationship.ts        # T-2058: the one CoachClient teardown (removeClient, leaveCoach, DELETE /api/coach/clients/[clientId])
+│   │   ├── end-relationship.ts        # T-2058: the one CoachClient teardown (removeClient, leaveCoach, DELETE /api/coach/clients/[clientId])
+│   │   └── episodes.ts                # T-2060: open/close the CoachClientEpisode in the caller's CoachClient create/delete transaction
 │   ├── intake/
 │   │   └── completion.ts              # Shared intake answer merge + completeness rule (REST + action)
 │   ├── ocr/
@@ -524,7 +525,8 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | Model | Purpose |
 |---|---|
 | `User` | All users (coaches + clients). Contains role flags, notification preferences, APNs token |
-| `CoachClient` | Many-to-many coach↔client assignment. Carries per-client overrides (cadence, adherence, notes) |
+| `CoachClient` | Many-to-many coach↔client assignment. Carries per-client overrides (cadence, adherence, notes). Hard-deleted on removal; unique per (coach, client) |
+| `CoachClientEpisode` | T-2060: the recorded history of each `CoachClient` row (`coachClientId` is a plain id, no FK). Opened in the same transaction as every `CoachClient` create (`lib/activation.ts`) and closed in the same transaction as every delete (`lib/coach-client/end-relationship.ts`, `COACH_REMOVED`/`CLIENT_LEFT`), via `lib/coach-client/episodes.ts`; `startedAt` is copied from `CoachClient.createdAt`. Account purge closes and anonymises the coach's episodes (`coachId` NULL, `COACH_ACCOUNT_DELETED`) and deletes the purged user's own client episodes. Raw SQL adds a partial unique index (one open episode per `coachClientId`) and a CHECK that `endedAt`/`endReason` are both set or both null. `tests/unit/coach-client-writers.test.ts` pins the three CoachClient writers. Backfill (migration + `scripts/sql/T-2060-episode-reconcile.sql`) is facts only: an open `BACKFILL` episode per live row |
 
 ### Check-Ins & Progress
 
@@ -543,7 +545,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 
 | Model | Purpose |
 |---|---|
-| `MealPlan` | Week-scoped plan with DRAFT/PUBLISHED status + planExtras (JSON) |
+| `MealPlan` | Week-scoped plan with DRAFT/PUBLISHED status + planExtras (JSON). `publishedByCoachId` (T-2060, nullable, `ON DELETE SET NULL`) is stamped only by the DRAFT→PUBLISHED flip in `lib/meal-plans/publish.ts`; NULL means unknown author (every pre-T-2060 plan, drafts and forks, or a purged coach) |
 | `MealPlanItem` | Individual food items within a plan (name, quantity, macros) |
 | `MealPlanUpload` | File upload tracking for OCR import pipeline |
 | `MealPlanDraft` | AI-parsed draft (extracted text + structured JSON) |
@@ -554,7 +556,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 
 | Model | Purpose |
 |---|---|
-| `TrainingProgram` | Client-specific, week-scoped program (DRAFT/PUBLISHED) |
+| `TrainingProgram` | Client-specific, week-scoped program (DRAFT/PUBLISHED). `publishedByCoachId` as on `MealPlan`, stamped only by `lib/training-programs/publish.ts` |
 | `TrainingDay` | Named day within a program |
 | `TrainingExercise` | Exercise within a day (sets, reps, intensity, notes) |
 | `TrainingProgramBlock` | Structured block (EXERCISE, ACTIVATION, SUPERSET, CARDIO, etc.) |
@@ -666,6 +668,15 @@ does serve.
 Every model above with a `User` foreign key has a purge line in
 `lib/account-deletion/purge.ts` and a case in
 `tests/integration/account-deletion.test.ts`, including the two that also cascade.
+
+**T-2060 purge lines.** In the purge transaction, before the `CoachClient` delete: any of the purged coach's own
+rows still without an open episode gets its `BACKFILL` episode; the purged user's own client episodes are deleted;
+every episode they coached is closed (`COACH_ACCOUNT_DELETED`, keeping an earlier end and reason) and anonymised
+(`coachId` NULL), so the client keeps the fact that another provider existed; and `MealPlan`/`TrainingProgram`
+`publishedByCoachId` pointing at them is set to NULL (the plans are the client's and stay).
+`scripts/purge-now.mjs` closes the coach's open episodes before its `CoachClient` delete and leaves the rest to the
+FKs (`CoachClientEpisode.coachId` SET NULL, `clientId` CASCADE; both `publishedByCoachId` SET NULL). Cases live in
+`tests/integration/coach-client-episodes.test.ts`.
 
 **T-2041 (2026-09-27), no migration:** `AiCoachRun.inputSnapshot` (JSON) gains one **optional** key, `runtimeBinding` — the runtime artifact set the run was prepared against: `mode`, `engineVersion`, `synthetic`, `contentKind`, `modelConfiguration`, `policyVersion`, `catalogVersions` and the five exact `artifactRefs` (`id`/`artifactKey`/`version`/`kind`/`digest`, one per artifact kind, sorted by kind). `POST /api/client/ai-coach/runs` (`requestAiRun`) resolves and freezes it before its transaction opens; the executor re-loads those exact references under its lock, and `plans/[id]/finalize` compares them against the set it loads for the account. The key is never defaulted, so a snapshot written before this change parses — and content-hashes — exactly as before. No column, no table, no purge line; the REST contract is unchanged.
 
@@ -788,8 +799,16 @@ run throws `relation "AiCoachAccessGrantEvent" does not exist`, which
 `PENDING` and incrementing `retryCount` — every pending deletion, web- and
 iOS-initiated alike, silently stalls with the statutory clock still running.
 `GET /api/health` surfaces the mismatch (`migrationsApplied` must equal
-`migrationsExpected`, currently **75** — `lib/health/expected-migrations.ts`)
+`migrationsExpected`, currently **81** — `lib/health/expected-migrations.ts`)
 before any purge cron run confirms it the hard way.
+
+**T-2060 adds the same constraint for `CoachClientEpisode`.** `purge.ts`, `lib/activation.ts` and
+`lib/coach-client/end-relationship.ts` now write that table, so **migration
+`20261016000000_coach_client_episodes_and_plan_authorship` must be applied before the T-2060 code is promoted**, and
+`scripts/sql/T-2060-episode-reconcile.sql` run immediately after promotion (it opens episodes for rows the old code
+created in between and closes the ones whose row it deleted; idempotent). The migration is additive or relaxing
+(`ClientIntake.coachId` DROP NOT NULL); every new FK is CASCADE or SET NULL, so the previously deployed purge keeps
+working against the migrated schema.
 
 **Feature-flag scope (`lib/flags/ai-coach.ts`, `FEATURE_AI_COACH_ENROLLMENT/
 GENERATION/PUBLICATION`, all default OFF) — read this precisely, it is what an
@@ -872,7 +891,7 @@ release gate is off.
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | `/api/coach/clients` | Client roster |
-| GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove. DELETE calls `lib/coach-client/end-relationship.ts#endCoachClientRelationship`, the single teardown shared with the `removeClient` and `leaveCoach` Server Actions (T-2058). One transaction deletes the `CoachClient` row, deletes the client's unpublished `DRAFT` meal plans and training programs when no relationship remains (published history is kept), reconciles `ClientCoachingContext` and moves the coach's `ACTIVE` lead for that `prospectId` to `CONSULTATION_DONE` (status untouched, so the coach can re-activate it). A client leaving via `leaveCoach` sets the lead to `DECLINED`. Response unchanged: `{ success: true }`. |
+| GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove. DELETE calls `lib/coach-client/end-relationship.ts#endCoachClientRelationship`, the single teardown shared with the `removeClient` and `leaveCoach` Server Actions (T-2058). One transaction deletes the `CoachClient` row, deletes the client's unpublished `DRAFT` meal plans and training programs when no relationship remains (published history is kept), reconciles `ClientCoachingContext` and moves the coach's `ACTIVE` lead for that `prospectId` to `CONSULTATION_DONE` (status untouched, so the coach can re-activate it). A client leaving via `leaveCoach` sets the lead to `DECLINED`. T-2060: right after the row delete the same transaction closes the row's `CoachClientEpisode` (`COACH_REMOVED`, or `CLIENT_LEFT` for `leaveCoach`; a row with no open episode gets a closed `BACKFILL` one). Lock order: User → CoachClient → CoachClientEpisode → MealPlan/TrainingProgram → ClientCoachingContext → CoachingRequest. Response unchanged: `{ success: true }`. |
 | GET/POST/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. Auth + zod wrapper only — `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork, shared with the `createDraftMealPlan` / `saveDraftMealPlan` Server Actions and with `/api/mealplans/import-plan`. GET also returns `clientPlanMode` (the `CoachClient.planMode` default) and `editorMode` (which editor the coach must render), both resolved by `lib/meal-plans/plan-mode.ts` — the single source of truth for coach editor-mode resolution, shared with the web query `getEffectiveMealPlanForReview`. Neither is `mealPlan.planMode`, which stays the published/draft row's own snapshot that clients read. |
 | POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Auth + zod wrapper only — `lib/meal-plans/publish.ts` is the single source of truth for the DRAFT→PUBLISHED transition, shared with the `publishMealPlan` Server Action and with `/api/mealplans/import-plan`. Rejections are `409` with `code` `PLAN_NOT_DRAFT`, `PUBLISH_RACE_LOST`, or `PLAN_EMPTY` (the plan has no content for its own `planMode`); `error` carries the user-facing sentence the Server Action throws verbatim. |
 | GET | `/api/coach/clients/[clientId]/meal-plan/history` | T-801 — paginated version history, `lib/meal-plans/history.ts` is the single source of truth, shared with the two routes below and the `restoreMealPlanVersion` Server Action. History is `PUBLISHED` + `SUPERSEDED` only (never `DRAFT` — an unpublished draft is work in progress, not a version the client ever saw); ordered `weekOf desc, publishedAt desc NULLS LAST, createdAt desc, version desc` so a legacy `SUPERSEDED` row from the pre-supersede-backfill era with a null `publishedAt` never floats above the week's live plan. Retention: kept forever, no pruning — rows are small and `lib/account-deletion/purge.ts` already deletes them by `clientId` with no status filter. |

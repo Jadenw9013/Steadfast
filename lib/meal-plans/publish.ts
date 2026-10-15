@@ -9,7 +9,11 @@ import { MEALPLAN_MODE_DISAGREEMENT } from "@/lib/observability/events";
  * `publishMealPlan` server action, the iOS-facing
  * `/api/coach/clients/[clientId]/meal-plan/publish` route (CB04), and the OCR
  * import path `app/api/mealplans/import-plan/route.ts`. This is the only place
- * in the codebase that sets `MealPlan.status = "PUBLISHED"`.
+ * in the codebase that sets `MealPlan.status = "PUBLISHED"`, and (T-2060) the
+ * only writer of `MealPlan.publishedByCoachId`: the flip stamps the
+ * authenticated coach every caller passes in `opts.publishedByCoachId`
+ * (required, so a new caller that forgets it is a type error). The reader is
+ * `lib/coach-client/plan-visibility.ts#publishedPlanVisibilityWhere`.
  * Every transport MUST call it instead of re-implementing the supersede
  * transaction: the route used to do a bare single-row `update`, which left two
  * PUBLISHED rows for one week (and, once the partial unique index shipped,
@@ -194,7 +198,7 @@ class RaceLost extends Error {
  */
 export async function publishMealPlanTarget(
   target: MealPlanPublishTarget,
-  opts?: { now?: Date }
+  opts: { publishedByCoachId: string; now?: Date }
 ): Promise<PublishMealPlanResult> {
   if (target.status !== "DRAFT") {
     return { ok: false, code: "NOT_DRAFT", status: target.status };
@@ -230,7 +234,7 @@ export async function publishMealPlanTarget(
     return { ok: false, code: "EMPTY_PLAN", planMode: content.planMode };
   }
 
-  const publishedAt = opts?.now ?? new Date();
+  const publishedAt = opts.now ?? new Date();
 
   let supersededCount: number;
   try {
@@ -253,7 +257,8 @@ export async function publishMealPlanTarget(
       // above, so throw rather than returning the count (see the file header).
       const flipped = await tx.mealPlan.updateMany({
         where: { id: target.id, status: "DRAFT" },
-        data: { status: "PUBLISHED", publishedAt },
+        // T-2060: the flip also stamps the author; supersede rows keep theirs.
+        data: { status: "PUBLISHED", publishedAt, publishedByCoachId: opts.publishedByCoachId },
       });
       if (flipped.count === 0) throw new RaceLost();
       return superseded.count;

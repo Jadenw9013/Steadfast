@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { reconcileCoachingContextForClient } from "@/lib/activation";
+import { closeCoachClientEpisode, COACH_CLIENT_ROW_FACTS_SELECT } from "@/lib/coach-client/episodes";
 
 /** Who ended the relationship. Decides only what happens to the coach's lead. */
 export type RelationshipEndedBy = "COACH" | "CLIENT";
@@ -10,10 +11,11 @@ export type RelationshipEndedBy = "COACH" | "CLIENT";
  * `DELETE /api/coach/clients/[clientId]` route (standing rule 1). Account
  * deletion (`lib/account-deletion/purge.ts`) is a separate path.
  *
- * One transaction, lock order User -> CoachClient -> MealPlan/TrainingProgram
- * -> ClientCoachingContext -> CoachingRequest (the funnel-wide User-first
- * order in lib/leads/activate-lead.ts):
- *  1. delete the row;
+ * One transaction, lock order User -> CoachClient -> CoachClientEpisode ->
+ * MealPlan/TrainingProgram -> ClientCoachingContext -> CoachingRequest (the
+ * funnel-wide User-first order in lib/leads/activate-lead.ts):
+ *  1. delete the row and close its CoachClientEpisode (T-2060,
+ *     lib/coach-client/episodes.ts; COACH_REMOVED or CLIENT_LEFT);
  *  2. D5: if the client has no relationship left, delete their unpublished
  *     DRAFT meal plans and training programs so the next coach never opens
  *     or publishes them. Drafts were never shown to the client and CB04
@@ -46,7 +48,11 @@ export async function endCoachClientRelationship(input: {
     // Defensive (T-2058 review r1 finding 7): a caller passing a coachId or
     // clientId that does not belong to this row gets P2025, never a teardown
     // of someone else's lead.
-    await tx.coachClient.delete({ where: { id: coachClientId, coachId, clientId } });
+    const deleted = await tx.coachClient.delete({
+      where: { id: coachClientId, coachId, clientId },
+      select: COACH_CLIENT_ROW_FACTS_SELECT,
+    });
+    await closeCoachClientEpisode(tx, deleted, endedBy === "COACH" ? "COACH_REMOVED" : "CLIENT_LEFT");
 
     let deletedDraftMealPlans = 0;
     let deletedDraftTrainingPrograms = 0;

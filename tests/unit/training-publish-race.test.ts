@@ -68,6 +68,9 @@ const target: TrainingProgramPublishTarget = {
   status: "DRAFT",
 };
 
+// T-2060 — the author is required on every publish.
+const opts = { publishedByCoachId: "coach-1" };
+
 describe("publishTrainingProgramTarget — transaction failure mapping", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,7 +81,7 @@ describe("publishTrainingProgramTarget — transaction failure mapping", () => {
       adapterUniqueViolation(PUBLISHED_TRAINING_PROGRAM_INDEX, ["clientId"])
     );
 
-    const result = await publishTrainingProgramTarget(target);
+    const result = await publishTrainingProgramTarget(target, opts);
 
     // The catch branch was genuinely exercised — not short-circuited before the
     // transaction by the NOT_DRAFT guard.
@@ -92,7 +95,7 @@ describe("publishTrainingProgramTarget — transaction failure mapping", () => {
 
     // Must surface as a 500 so it stays visible; reporting it as a lost race
     // would tell the coach to "refresh and try again" forever.
-    await expect(publishTrainingProgramTarget(target)).rejects.toBe(err);
+    await expect(publishTrainingProgramTarget(target, opts)).rejects.toBe(err);
     expect(mocks.transaction).toHaveBeenCalledTimes(1);
   });
 
@@ -100,13 +103,33 @@ describe("publishTrainingProgramTarget — transaction failure mapping", () => {
     const err = new Error("connection reset");
     mocks.transaction.mockRejectedValue(err);
 
-    await expect(publishTrainingProgramTarget(target)).rejects.toBe(err);
+    await expect(publishTrainingProgramTarget(target, opts)).rejects.toBe(err);
   });
 
   it("returns NOT_DRAFT without opening a transaction when the target is already PUBLISHED", async () => {
-    const result = await publishTrainingProgramTarget({ ...target, status: "PUBLISHED" });
+    const result = await publishTrainingProgramTarget({ ...target, status: "PUBLISHED" }, opts);
 
     expect(result).toEqual({ ok: false, code: "NOT_DRAFT", status: "PUBLISHED" });
     expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+
+  // T-2060 — the DRAFT->PUBLISHED flip stamps the author; the supersede does not.
+  it("the flip data carries publishedByCoachId and the supersede data does not", async () => {
+    const updateMany = vi
+      .fn()
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 1 });
+    const tx = { trainingProgram: { updateMany } };
+    mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => callback(tx));
+    const now = new Date("2026-10-16T00:00:00.000Z");
+
+    const result = await publishTrainingProgramTarget(target, { publishedByCoachId: "coach-1", now });
+
+    expect(result).toMatchObject({ ok: true, supersededCount: 1 });
+    expect(updateMany.mock.calls[0][0].data).toEqual({ status: "SUPERSEDED" });
+    expect(updateMany.mock.calls[1][0]).toEqual({
+      where: { id: target.id, status: "DRAFT" },
+      data: { status: "PUBLISHED", publishedAt: now, publishedByCoachId: "coach-1" },
+    });
   });
 });

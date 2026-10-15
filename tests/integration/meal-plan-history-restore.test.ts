@@ -158,10 +158,10 @@ suite("meal plan version history + restore (T-801)", () => {
   }
 
   /** Publishes an existing DRAFT via the shared publish service (no auth). */
-  async function publish(mealPlanId: string) {
+  async function publish(mealPlanId: string, coachId: string) {
     const target = await getMealPlanPublishTarget(mealPlanId);
     if (!target) throw new Error("fixture: target not found");
-    const result = await publishMealPlanTarget(target);
+    const result = await publishMealPlanTarget(target, { publishedByCoachId: coachId });
     if (!result.ok) throw new Error(`fixture: publish failed (${result.code})`);
     return result;
   }
@@ -174,7 +174,7 @@ suite("meal plan version history + restore (T-801)", () => {
     opts: Parameters<typeof createDraft>[3] = {}
   ) {
     const draftId = await createDraft(clientId, coachId, weekStartDate, opts);
-    await publish(draftId);
+    await publish(draftId, coachId);
     return draftId;
   }
 
@@ -330,7 +330,7 @@ suite("meal plan version history + restore (T-801)", () => {
     let page = await listMealPlanHistory({ clientId: client.id });
     expect(page.items.find((i) => i.id === published)?.weekHasDraft).toBe(true);
 
-    await publish(draftId);
+    await publish(draftId, coach.id);
     page = await listMealPlanHistory({ clientId: client.id });
     // Both PUBLISHED (superseded original) and the newly-PUBLISHED row exist now.
     expect(page.items.every((i) => i.weekHasDraft === false)).toBe(true);
@@ -396,7 +396,7 @@ suite("meal plan version history + restore (T-801)", () => {
     await db.mealPlanItem.createMany({
       data: ITEMS.map((i) => ({ ...i, mealPlanId: macrosId })),
     });
-    await publish(macrosId);
+    await publish(macrosId, coach.id);
 
     const detailRes = await getVersionDetail(client.id, macrosId);
     expect(detailRes.status).toBe(200);
@@ -443,7 +443,7 @@ suite("meal plan version history + restore (T-801)", () => {
     let res = await getVersionDetail(client.id, published);
     expect((await res.json()).weekHasDraft).toBe(true);
 
-    await publish(draftId);
+    await publish(draftId, coach.id);
     res = await getVersionDetail(client.id, published);
     expect((await res.json()).weekHasDraft).toBe(false);
   });
@@ -597,7 +597,7 @@ suite("meal plan version history + restore (T-801)", () => {
 
     // Publish the "existing draft" first — it is no longer a DRAFT by the
     // time restore would try to replace it.
-    await publish(existingDraftId);
+    await publish(existingDraftId, coach.id);
     const publishedSnapshot = comparableContent(await planWithContent(existingDraftId));
 
     const detail = await getMealPlanVersionDetail(sourceId);
@@ -735,7 +735,7 @@ suite("meal plan version history + restore (T-801)", () => {
 
     // Publishing the restored draft supersedes the previous published row and
     // leaves exactly one PUBLISHED row for the week.
-    await publish(restoreBody.draftMealPlanId);
+    await publish(restoreBody.draftMealPlanId, coach.id);
     const publishedRows = await db.mealPlan.findMany({ where: { clientId: client.id, weekOf: asDate(WEEK_A), status: "PUBLISHED" } });
     expect(publishedRows).toHaveLength(1);
     expect(publishedRows[0].id).toBe(restoreBody.draftMealPlanId);

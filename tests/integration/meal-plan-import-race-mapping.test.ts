@@ -135,7 +135,7 @@ suite("import-plan publish-failure mapping", () => {
   });
 
   it("calls publishMealPlanTarget with the freshly created draft, this client and this week", async () => {
-    const { client, draft } = await fixture();
+    const { coach, client, draft } = await fixture();
     mocks.publishTarget.mockImplementation(async (target: { id: string }) => ({
       ok: true,
       mealPlanId: target.id,
@@ -155,7 +155,7 @@ suite("import-plan publish-failure mapping", () => {
       clientId: client.id,
       weekOf: WEEK_OF,
       status: "DRAFT",
-    });
+    }, { publishedByCoachId: coach.id }); // T-2060: the importing coach is the author
   });
 
   it("never calls the publish service when the request did not ask to publish", async () => {

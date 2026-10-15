@@ -221,6 +221,33 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       // client as HUMAN with no relationship, which getClientProvider reads as
       // resolutionRequired (409 on every client plan route). Collect the
       // clients first, then re-derive each context in this same transaction.
+      // T-2060: relationship history (CoachClientEpisode) and plan authorship.
+      // 1. Any of this coach's own rows still without an open episode (created
+      //    by pre-T-2060 code before the reconcile ran) gets its BACKFILL
+      //    episode first, so step 3 can close and anonymise it.
+      await tx.$executeRaw`
+    INSERT INTO "CoachClientEpisode" ("id","coachId","clientId","coachClientId","startedAt","source","createdAt")
+    SELECT gen_random_uuid()::text, cc."coachId", cc."clientId", cc."id", cc."createdAt",
+           'BACKFILL'::"CoachClientEpisodeSource", now()
+    FROM "CoachClient" cc
+    WHERE cc."coachId" = ${userId} AND cc."clientId" <> ${userId}
+      AND NOT EXISTS (SELECT 1 FROM "CoachClientEpisode" e WHERE e."coachClientId" = cc."id" AND e."endedAt" IS NULL)
+  `;
+      // 2. This user's own client history goes with them.
+      await tx.$executeRaw`DELETE FROM "CoachClientEpisode" WHERE "clientId" = ${userId}`;
+      // 3. Close and anonymise the episodes this user coached. The client keeps
+      //    the fact that another provider existed (coachId NULL still counts as
+      //    "another provider" in lib/coach-client/plan-visibility.ts).
+      await tx.$executeRaw`
+    UPDATE "CoachClientEpisode"
+       SET "endedAt" = COALESCE("endedAt", now()),
+           "endReason" = COALESCE("endReason", 'COACH_ACCOUNT_DELETED'::"CoachClientEpisodeEndReason"),
+           "coachId" = NULL
+     WHERE "coachId" = ${userId}
+  `;
+      // 4. The plans stay (they are the client's); only the author is forgotten.
+      await tx.$executeRaw`UPDATE "MealPlan" SET "publishedByCoachId" = NULL WHERE "publishedByCoachId" = ${userId}`;
+      await tx.$executeRaw`UPDATE "TrainingProgram" SET "publishedByCoachId" = NULL WHERE "publishedByCoachId" = ${userId}`;
       const coachedClients = await tx.coachClient.findMany({
         where: { coachId: userId, clientId: { not: userId } },
         select: { clientId: true },

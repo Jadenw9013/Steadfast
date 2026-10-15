@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // CB04 — publishing (supersede + race guard) lives entirely in
     // lib/meal-plans/publish.ts, shared with the publishMealPlan server action.
-    const result = await publishMealPlanTarget(target);
+    const result = await publishMealPlanTarget(target, { publishedByCoachId: user.id });
     if (!result.ok) {
       if (result.code === "NOT_DRAFT") {
         return NextResponse.json(

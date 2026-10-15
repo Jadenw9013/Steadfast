@@ -164,7 +164,7 @@ export async function POST(req: NextRequest) {
           id: trainingProgram.id,
           clientId: targetClientId,
           status: "DRAFT",
-        });
+        }, { publishedByCoachId: coach.id });
         if (!result.ok) {
           // Return BEFORE the bookkeeping writes. Marking the import IMPORTED
           // on a failed publish would trip the "Already imported" 400 on the
