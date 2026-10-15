@@ -10,10 +10,13 @@ import { SimpleMealPlan } from "@/components/client/simple-meal-plan";
 import { TrainingProgram } from "@/components/client/training-program";
 import { PlanTab } from "@/components/client/plan-tab";
 import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 export default async function ClientPlanPage() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
+  // T-2060: the recorded-facts plan visibility rule (null for non-HUMAN).
+  const visibility = await getPlanVisibility(user.id, provider);
   if (provider.resolutionRequired) return <ProviderResolution />;
   if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={["plan"]} />;
   if (provider.origin === "NONE") return <div className="sf-surface-card p-6"><h1 className="text-xl font-semibold">No current plan</h1><p className="mt-2 text-zinc-400">Connect with a coach to receive a new plan.</p></div>;
@@ -22,8 +25,8 @@ export default async function ClientPlanPage() {
   const weekOf = normalizeToMonday(new Date());
 
   const [mealPlan, trainingProgram, todayAdherence, currentResults, previousResults] = await Promise.all([
-    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
-    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
+    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, visibility) : Promise.resolve(null),
+    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, visibility) : Promise.resolve(null),
     getTodayAdherence(user.id, todayDate),
     getExerciseResultsForWeek(user.id, weekOf),
     getPreviousExerciseResults(user.id, weekOf),

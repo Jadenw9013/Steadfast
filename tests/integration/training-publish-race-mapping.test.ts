@@ -214,7 +214,7 @@ suite("training publish failure mapping", () => {
   });
 
   it("calls publishTrainingProgramTarget with the freshly created program, this client and a constructed DRAFT status", async () => {
-    const { client, draft } = await fixture();
+    const { coach, client, draft } = await fixture();
     mocks.publishTarget.mockImplementation(async (target: { id: string; clientId: string }) => ({
       ok: true,
       programId: target.id,
@@ -233,7 +233,7 @@ suite("training publish failure mapping", () => {
       id: programId,
       clientId: client.id,
       status: "DRAFT",
-    });
+    }, { publishedByCoachId: coach.id }); // T-2060: the importing coach is the author
   });
 
   it("never calls the publish service when the request did not ask to publish", async () => {

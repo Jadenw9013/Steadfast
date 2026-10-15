@@ -72,6 +72,7 @@ import { buildFoodsDraftInput, buildMacroDraftInput } from "@/lib/meal-plans/edi
 import { groupItemsToMeals, macroTargetsToEditable } from "@/types/meal-plan";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibilityFor } from "../helpers/plan-visibility";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
 if (enabled) requireLocalTestDb();
@@ -118,7 +119,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
     const client = await db.user.create({ data: { clerkId: clientClerkId, email: `client-${clientClerkId}@example.test`, isClient: true, activeRole: "CLIENT" } });
     const link = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
     mocks.authUserId = coach.clerkId;
-    // T-105: `link` is returned so tests can pass `link.createdAt` as the
+    // T-105: `link` is returned so tests can pass `await visibilityFor(client.id)` as the
     // provider gate (`publishedAfter`), which `getActiveMealNames` requires.
     return { coach, client, link };
   }
@@ -481,7 +482,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       );
 
     it("keeps a published MEAL_PLAN week foods-gated after the coach toggles to MACROS", async () => {
-      const { coach, client, link } = await fixture();
+      const { coach, client } = await fixture();
       const { mealPlanId } = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -508,15 +509,15 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       expect(rendered.foodItems.map((i) => i.foodName)).toEqual(["Oats", "Chicken breast"]);
 
       // (b) adherence meal checklist — finding 2.
-      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([
         { mealName: "Breakfast", order: 0 },
         { mealName: "Lunch", order: 1 },
       ]);
 
       // (c) client dashboard nutrition card — review r2 finding 1 (same source).
       const [dashPlan, dashMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id, link.createdAt),
-        getActiveMealNames(client.id, link.createdAt),
+        getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id)),
+        getActiveMealNames(client.id, await visibilityFor(client.id)),
       ]);
       expect(dashPlan!.planMode).toBe("MEAL_PLAN");
       expect(dashMeals.length).toBe(2);
@@ -528,7 +529,7 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
     });
 
     it("keeps a published MACROS week macro-gated after the coach toggles to MEAL_PLAN (mirror)", async () => {
-      const { coach, client, link } = await fixture();
+      const { coach, client } = await fixture();
       const { mealPlanId } = await createDraftMealPlan({
         clientId: client.id,
         weekStartDate: WEEK_A,
@@ -550,14 +551,14 @@ suite("plan mode single source of truth (coach editorMode / clientPlanMode)", ()
       expect(rendered.foodItems).toEqual([]);
       expect(rendered.macroTargets.map((t) => t.mealName)).toEqual(["Meal 1", "Meal 2"]);
 
-      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([
         { mealName: "Meal 1", order: 0 },
         { mealName: "Meal 2", order: 1 },
       ]);
 
       const [dashPlan, dashMeals] = await Promise.all([
-        getCurrentPublishedMealPlan(client.id, link.createdAt),
-        getActiveMealNames(client.id, link.createdAt),
+        getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id)),
+        getActiveMealNames(client.id, await visibilityFor(client.id)),
       ]);
       expect(dashPlan!.planMode).toBe("MACROS");
       expect(dashMeals.map((m) => m.mealName)).toEqual(["Meal 1", "Meal 2"]);

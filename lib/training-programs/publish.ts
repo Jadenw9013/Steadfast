@@ -7,7 +7,11 @@ import type { TrainingProgramStatus } from "@/app/generated/prisma/client";
  * `publishTrainingProgram` server action, the iOS-facing
  * `/api/coach/clients/[clientId]/training/publish` route (CB05), and the OCR
  * import path `app/api/workout-import/import/route.ts`. This is the only place
- * in the codebase that sets `TrainingProgram.status = "PUBLISHED"`.
+ * in the codebase that sets `TrainingProgram.status = "PUBLISHED"`, and (T-2060) the
+ * only writer of `TrainingProgram.publishedByCoachId`: the flip stamps the
+ * authenticated coach every caller passes in `opts.publishedByCoachId`
+ * (required, so a new caller that forgets it is a type error). The reader is
+ * `lib/coach-client/plan-visibility.ts#publishedPlanVisibilityWhere`.
  * Every transport MUST call it instead of re-implementing the supersede
  * transaction: the import route used to do a bare `create` with
  * `status: "PUBLISHED"` and no supersede at all, which left two PUBLISHED rows
@@ -72,7 +76,10 @@ export type PublishTrainingProgramResult =
       supersededCount: number;
     }
   | { ok: false; code: "NOT_DRAFT"; status: TrainingProgramStatus }
-  | { ok: false; code: "RACE_LOST" };
+  | { ok: false; code: "RACE_LOST" }
+  /** T-2060 r1 — see the meal twin: the author has no CoachClient row for the
+   *  client at write time. Nothing was written. */
+  | { ok: false; code: "NOT_ASSIGNED" };
 
 /**
  * Reads the row every surface needs before its own authorization check.
@@ -140,22 +147,47 @@ class RaceLost extends Error {
 }
 
 /**
+ * T-2060 r1 BLOCKER: thrown inside the publish transaction when the author has
+ * no CoachClient row for this client, so nothing (not even the supersede)
+ * commits. Private; mapped to `NOT_ASSIGNED`.
+ */
+class NotAssigned extends Error {
+  constructor() {
+    super("publishing coach is not assigned to this client");
+    this.name = "NotAssigned";
+  }
+}
+
+/**
  * CB05 — the only place `TrainingProgram.status` becomes `"PUBLISHED"`. Callers
  * MUST have authorized coach access to target.clientId first.
  */
 export async function publishTrainingProgramTarget(
   target: TrainingProgramPublishTarget,
-  opts?: { now?: Date }
+  opts: { publishedByCoachId: string; now?: Date }
 ): Promise<PublishTrainingProgramResult> {
   if (target.status !== "DRAFT") {
     return { ok: false, code: "NOT_DRAFT", status: target.status };
   }
 
-  const publishedAt = opts?.now ?? new Date();
+  const publishedAt = opts.now ?? new Date();
 
   let supersededCount: number;
   try {
     supersededCount = await db.$transaction(async (tx) => {
+      // T-2060 r1: the author must still coach this client, checked and
+      // locked inside the same transaction as the flip. FOR SHARE conflicts
+      // with the row lock a CoachClient DELETE takes, so a concurrent removal
+      // either commits first (no row: NOT_ASSIGNED, nothing published) or
+      // waits for this publish to commit (the plan lands inside the author's
+      // open episode, before it closes). Concurrent publishes are not
+      // serialized by it. Every caller has authorized already; this closes the
+      // gap between that check and the write (and covers every transport).
+      const link = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "CoachClient"
+         WHERE "coachId" = ${opts.publishedByCoachId} AND "clientId" = ${target.clientId}
+         FOR SHARE`;
+      if (link.length === 0) throw new NotAssigned();
       // Exclude the target itself: a losing racer in a concurrent
       // double-publish must never demote the row the winner just published.
       // There is deliberately NO `weekOf` filter here (see the file header) and
@@ -173,13 +205,15 @@ export async function publishTrainingProgramTarget(
       // above, so throw rather than returning the count (see the file header).
       const flipped = await tx.trainingProgram.updateMany({
         where: { id: target.id, status: "DRAFT" },
-        data: { status: "PUBLISHED", publishedAt },
+        // T-2060: the flip also stamps the author; supersede rows keep theirs.
+        data: { status: "PUBLISHED", publishedAt, publishedByCoachId: opts.publishedByCoachId },
       });
       if (flipped.count === 0) throw new RaceLost();
       return superseded.count;
     });
   } catch (err) {
     if (err instanceof RaceLost) return { ok: false, code: "RACE_LOST" };
+    if (err instanceof NotAssigned) return { ok: false, code: "NOT_ASSIGNED" };
     if (isDuplicatePublishedProgramError(err)) return { ok: false, code: "RACE_LOST" };
     // Any other failure — including a P2002 from a different constraint — must
     // still surface as a 500 so it stays visible, never silently swallowed.

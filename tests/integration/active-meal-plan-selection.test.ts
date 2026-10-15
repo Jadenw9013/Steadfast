@@ -54,6 +54,7 @@ import { PUBLISHED_MEAL_PLAN_INDEX } from "@/lib/meal-plans/publish";
 import { formatDateUTC, getCurrentWeekMonday } from "@/lib/utils/date";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibilityFor, visibleSince } from "../helpers/plan-visibility";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
 if (enabled) requireLocalTestDb();
@@ -101,8 +102,9 @@ suite("active meal plan selection (T-105)", () => {
   });
   afterAll(async () => { await db.$disconnect(); });
 
-  /** Returns the `CoachClient` row too: `link.createdAt` is the `publishedAfter`
-   *  provider gate that `getActiveMealNames` now requires. */
+  /** Returns the `CoachClient` row too. T-2060: the provider gate that
+   *  `getActiveMealNames` requires is now `await visibilityFor(client.id)`
+   *  (the real `getPlanVisibility` rule), no longer `link.createdAt`. */
   async function fixture() {
     const coachClerkId = randomUUID();
     const coach = await db.user.create({ data: { clerkId: coachClerkId, email: `coach-${coachClerkId}@example.test`, isCoach: true, activeRole: "COACH" } });
@@ -139,7 +141,7 @@ suite("active meal plan selection (T-105)", () => {
 
   describe("the ordering bug", () => {
     it("keeps this week's plan active after a correction is published to last week", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
 
       const prevId = await publishFoods(client.id, WEEK_PREV, PREV_ITEMS);
       const currentId = await publishFoods(client.id, WEEK_CURRENT, CURRENT_ITEMS);
@@ -157,9 +159,9 @@ suite("active meal plan selection (T-105)", () => {
       expect(corrected.publishedAt!.getTime()).toBeGreaterThan(current.publishedAt!.getTime());
 
       // Pre-fix, EVERY ONE of the four assertions below returned week W-1.
-      expect(await resolveActiveMealPlanId(client.id, link.createdAt)).toBe(currentId);
-      expect((await getCurrentPublishedMealPlan(client.id, link.createdAt))!.id).toBe(currentId);
-      expect((await getActiveMealNames(client.id, link.createdAt)).map((m) => m.mealName)).toEqual([
+      expect(await resolveActiveMealPlanId(client.id, await visibilityFor(client.id))).toBe(currentId);
+      expect((await getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id)))!.id).toBe(currentId);
+      expect((await getActiveMealNames(client.id, await visibilityFor(client.id))).map((m) => m.mealName)).toEqual([
         "AM Meal",
         "PM Meal",
       ]);
@@ -174,15 +176,15 @@ suite("active meal plan selection (T-105)", () => {
 
   describe("all client-facing readers agree on one plan id", () => {
     it("resolves the same plan and the same meal names across every reader", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       await publishFoods(client.id, WEEK_PREV, PREV_ITEMS);
       const currentId = await publishFoods(client.id, WEEK_CURRENT, CURRENT_ITEMS);
       await publishCorrection(currentId, CURRENT_ITEMS);
 
-      const activeId = await resolveActiveMealPlanId(client.id, link.createdAt);
-      const names = (await getActiveMealNames(client.id, link.createdAt)).map((m) => m.mealName);
+      const activeId = await resolveActiveMealPlanId(client.id, await visibilityFor(client.id));
+      const names = (await getActiveMealNames(client.id, await visibilityFor(client.id))).map((m) => m.mealName);
 
-      expect((await getCurrentPublishedMealPlan(client.id, link.createdAt))!.id).toBe(activeId);
+      expect((await getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id)))!.id).toBe(activeId);
 
       asClient(client.clerkId);
       const home = await (await clientHome()).json();
@@ -205,12 +207,12 @@ suite("active meal plan selection (T-105)", () => {
       // future week's plan right away, the same as the pre-T-105 behavior — it
       // is NOT held back until that week starts. Under a pure `weekOf desc`
       // sort that falls out for free: the new week carries the highest `weekOf`.
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       const currentId = await publishFoods(client.id, WEEK_CURRENT, CURRENT_ITEMS);
       const nextId = await publishFoods(client.id, WEEK_NEXT, PREV_ITEMS);
 
-      expect(await resolveActiveMealPlanId(client.id, link.createdAt)).toBe(nextId);
-      expect((await getActiveMealNames(client.id, link.createdAt)).map((m) => m.mealName)).toEqual([
+      expect(await resolveActiveMealPlanId(client.id, await visibilityFor(client.id))).toBe(nextId);
+      expect((await getActiveMealNames(client.id, await visibilityFor(client.id))).map((m) => m.mealName)).toEqual([
         "Breakfast",
         "Lunch",
       ]);
@@ -223,8 +225,8 @@ suite("active meal plan selection (T-105)", () => {
       // clock-dependent ceiling without reopening the product decision.
       await publishCorrection(currentId, CURRENT_ITEMS);
 
-      expect(await resolveActiveMealPlanId(client.id, link.createdAt)).toBe(nextId);
-      expect((await getActiveMealNames(client.id, link.createdAt)).map((m) => m.mealName)).toEqual([
+      expect(await resolveActiveMealPlanId(client.id, await visibilityFor(client.id))).toBe(nextId);
+      expect((await getActiveMealNames(client.id, await visibilityFor(client.id))).map((m) => m.mealName)).toEqual([
         "Breakfast",
         "Lunch",
       ]);
@@ -233,11 +235,11 @@ suite("active meal plan selection (T-105)", () => {
     it("still shows a future-only plan", async () => {
       // No client is ever left planless: a coach who has only built next month's
       // week must not leave the client staring at "No meal plan yet".
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       const futureId = await publishFoods(client.id, WEEK_AFTER_NEXT, PREV_ITEMS);
 
-      expect(await resolveActiveMealPlanId(client.id, link.createdAt)).toBe(futureId);
-      expect((await getActiveMealNames(client.id, link.createdAt)).map((m) => m.mealName)).toEqual([
+      expect(await resolveActiveMealPlanId(client.id, await visibilityFor(client.id))).toBe(futureId);
+      expect((await getActiveMealNames(client.id, await visibilityFor(client.id))).map((m) => m.mealName)).toEqual([
         "Breakfast",
         "Lunch",
       ]);
@@ -249,7 +251,7 @@ suite("active meal plan selection (T-105)", () => {
       // carry a mid-week timestamp. There is no `weekOf` bound in the query at
       // all, so no row can ever be excluded by week: strictly safer than any
       // bound, which is why the ceiling this case used to guard is gone.
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       const midWeek = await db.mealPlan.create({
         data: {
           clientId: client.id,
@@ -261,8 +263,8 @@ suite("active meal plan selection (T-105)", () => {
         },
       });
 
-      expect(await resolveActiveMealPlanId(client.id, link.createdAt)).toBe(midWeek.id);
-      expect((await getActiveMealNames(client.id, link.createdAt)).map((m) => m.mealName)).toEqual([
+      expect(await resolveActiveMealPlanId(client.id, await visibilityFor(client.id))).toBe(midWeek.id);
+      expect((await getActiveMealNames(client.id, await visibilityFor(client.id))).map((m) => m.mealName)).toEqual([
         "AM Meal",
         "PM Meal",
       ]);
@@ -279,20 +281,20 @@ suite("active meal plan selection (T-105)", () => {
 
       // Simulate a coach switch: the relationship now starts AFTER the plan was
       // published, so that plan belongs to the previous coach.
-      const movedLink = await db.coachClient.update({
+      await db.coachClient.update({
         where: { id: link.id },
         data: { createdAt: new Date(plan.publishedAt!.getTime() + 60_000) },
         select: { createdAt: true },
       });
 
-      expect(await getActiveMealNames(client.id, movedLink.createdAt)).toEqual([]);
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([]);
       expect(
-        (await getActiveMealNames(client.id, new Date(plan.publishedAt!.getTime() - 60_000))).map((m) => m.mealName)
+        (await getActiveMealNames(client.id, visibleSince(new Date(plan.publishedAt!.getTime() - 60_000), link.coachId))).map((m) => m.mealName)
       ).toEqual(["AM Meal", "PM Meal"]);
     });
 
     it("returns [] for `publishedAfter: null` without falling back to an unfiltered read", async () => {
-      const { client } = await fixture();
+      const { client, coach } = await fixture();
       await publishFoods(client.id, WEEK_CURRENT, CURRENT_ITEMS);
 
       // The client HAS a published plan. `null` means "no active human
@@ -305,7 +307,7 @@ suite("active meal plan selection (T-105)", () => {
       // now carries the case's precondition: the client really does have a
       // published plan, so the `null` short-circuit above is what produced the
       // empty result, not an absence of data.
-      expect(await resolveActiveMealPlanId(client.id, new Date(0))).not.toBeNull();
+      expect(await resolveActiveMealPlanId(client.id, visibleSince(new Date(0), coach.id))).not.toBeNull();
     });
   });
 
@@ -356,13 +358,13 @@ suite("active meal plan selection (T-105)", () => {
 
   describe("de-dup survives the move", () => {
     it("returns each meal name once and writes exactly one checkoff row per name", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
       await publishFoods(client.id, WEEK_CURRENT, [
         ...CURRENT_ITEMS,
         { mealName: "AM Meal", sortOrder: 2, foodName: "Berries", quantity: "100", unit: "g", calories: 57, protein: 1, carbs: 14, fats: 0 },
       ]);
 
-      const names = await getActiveMealNames(client.id, link.createdAt);
+      const names = await getActiveMealNames(client.id, await visibilityFor(client.id));
       expect(names.map((n) => n.mealName)).toEqual(["AM Meal", "PM Meal"]);
       expect(new Set(names.map((n) => n.mealName)).size).toBe(names.length);
 
@@ -419,11 +421,11 @@ suite("active meal plan selection (T-105)", () => {
 
   describe("empty states", () => {
     it("returns nothing everywhere when the client has no published plan", async () => {
-      const { client, link } = await fixture();
+      const { client } = await fixture();
 
-      expect(await resolveActiveMealPlanId(client.id, link.createdAt)).toBeNull();
-      expect(await getActiveMealNames(client.id, link.createdAt)).toEqual([]);
-      expect(await getCurrentPublishedMealPlan(client.id, link.createdAt)).toBeNull();
+      expect(await resolveActiveMealPlanId(client.id, await visibilityFor(client.id))).toBeNull();
+      expect(await getActiveMealNames(client.id, await visibilityFor(client.id))).toEqual([]);
+      expect(await getCurrentPublishedMealPlan(client.id, await visibilityFor(client.id))).toBeNull();
 
       asClient(client.clerkId);
       const body = await (await clientCurrentMealPlan()).json();

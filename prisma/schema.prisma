@@ -166,6 +166,10 @@ model User {
   aiCoachProviderTransitions     AiCoachProviderTransitionReceipt[]
   aiCoachAccessGrantEventsAsActor   AiCoachAccessGrantEvent[] @relation("AiCoachAccessGrantEventActor")
   aiCoachAccessGrantEventsAsSubject AiCoachAccessGrantEvent[] @relation("AiCoachAccessGrantEventSubject")
+
+  // T-2060: recorded relationship history and plan authorship.
+  coachEpisodes             CoachClientEpisode[] @relation("CoachEpisodes")
+  clientEpisodes            CoachClientEpisode[] @relation("ClientEpisodes")
 }
 
 enum CoachingMode {
@@ -1202,6 +1206,43 @@ model CoachClient {
   @@index([clientId])
 }
 
+// T-2060: one row per CoachClient row's lifetime. Opened in the same
+// transaction as every CoachClient create (lib/activation.ts) and closed in the
+// same transaction as every delete (lib/coach-client/end-relationship.ts,
+// lib/account-deletion/purge.ts), via lib/coach-client/episodes.ts. Read only by
+// lib/coach-client/plan-visibility.ts. Raw SQL in the migration adds a partial
+// unique index (one open episode per coachClientId) and an end-pairing CHECK.
+enum CoachClientEpisodeSource {
+  LIVE
+  BACKFILL
+}
+
+enum CoachClientEpisodeEndReason {
+  COACH_REMOVED
+  CLIENT_LEFT
+  COACH_ACCOUNT_DELETED
+  RECONCILED
+}
+
+model CoachClientEpisode {
+  id            String                       @id @default(cuid())
+  coachId       String? // NULL only after the coach's account was purged (anonymised other-provider period)
+  clientId      String
+  coachClientId String // the CoachClient row this episode mirrors; plain id, no FK (rows are hard-deleted)
+  startedAt     DateTime // == CoachClient.createdAt of that row, copied
+  endedAt       DateTime?
+  endReason     CoachClientEpisodeEndReason?
+  source        CoachClientEpisodeSource     @default(LIVE)
+  createdAt     DateTime                     @default(now())
+
+  coach  User? @relation("CoachEpisodes", fields: [coachId], references: [id], onDelete: SetNull)
+  client User  @relation("ClientEpisodes", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, startedAt])
+  @@index([coachId])
+  @@index([coachClientId])
+}
+
 // ── Teams ────────────────────────────────────────────────────────────────────
 
 model Team {
@@ -1323,6 +1364,12 @@ model MealPlan {
   supportContent String?        @db.Text
   planExtras     Json? // PlanExtras object (see types/meal-plan-extras.ts)
   publishedAt    DateTime?
+  // T-2060: the coach whose publish flipped this row to PUBLISHED. Written only
+  // by lib/meal-plans/publish.ts. Plain id, NO foreign key (review r1): a purge
+  // must never turn an authored plan into an unknown-author one, so purge
+  // rewrites it to the "purged" sentinel instead of NULL. NULL = unknown author:
+  // every pre-T-2060 plan, drafts and forks.
+  publishedByCoachId String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -1333,6 +1380,7 @@ model MealPlan {
   @@unique([clientId, weekOf, version])
   @@index([clientId, weekOf])
   @@index([clientId, status])
+  @@index([publishedByCoachId])
 }
 
 model MealPlanItem {
@@ -1667,6 +1715,10 @@ model TrainingProgram {
   weekOf           DateTime
   status           TrainingProgramStatus @default(DRAFT)
   publishedAt      DateTime?
+  // T-2060: see MealPlan.publishedByCoachId (plain id, no FK, "purged" sentinel
+  // after the author's account purge). Written only by
+  // lib/training-programs/publish.ts.
+  publishedByCoachId String?
   templateSourceId String?
   weeklyFrequency  Int?
   clientNotes      String?               @db.Text
@@ -1682,6 +1734,7 @@ model TrainingProgram {
 
   @@index([clientId, weekOf])
   @@index([clientId, status])
+  @@index([publishedByCoachId])
 }
 
 model TrainingProgramCardio {
@@ -2059,7 +2112,9 @@ model OnboardingResponse {
 
 model ClientIntake {
   id          String       @id @default(cuid())
-  coachId     String
+  // T-2060: NULL only after a sole-coach purge kept the client's COMPLETED
+  // intake (lib/account-deletion/purge.ts). Reads key on clientId.
+  coachId     String?
   clientId    String       @unique // one active intake per client
   status      IntakeStatus @default(PENDING)
   sentAt      DateTime     @default(now())
@@ -2084,8 +2139,8 @@ model ClientIntake {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  coach  User @relation("CoachIntakes", fields: [coachId], references: [id])
-  client User @relation("ClientIntakes", fields: [clientId], references: [id])
+  coach  User? @relation("CoachIntakes", fields: [coachId], references: [id], onDelete: Restrict)
+  client User  @relation("ClientIntakes", fields: [clientId], references: [id])
 
   @@index([coachId])
   @@index([clientId])

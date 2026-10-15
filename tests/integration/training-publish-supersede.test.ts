@@ -24,6 +24,7 @@ import { GET as exportTrainingProgram } from "@/app/api/training-programs/[progr
 import { POST as importWorkout } from "@/app/api/workout-import/import/route";
 import { db } from "@/lib/db";
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibleSince } from "../helpers/plan-visibility";
 import {
   getLatestPublishedTrainingProgramForCoach,
   getPublishedTrainingProgram,
@@ -396,7 +397,7 @@ suite("T-952b training-program publish supersede", () => {
 
   it("T-803 review and carry-over queries choose the current published program", async () => {
     const replacementWeek = new Date("2026-10-12T00:00:00.000Z");
-    const { client, replacement } = await supersededFixture({ replacementWeek });
+    const { coach, client, replacement } = await supersededFixture({ replacementWeek });
 
     const sameWeek = await getTrainingProgramForReview(client.id, replacementWeek);
     expect(sameWeek.source).toBe("published");
@@ -414,7 +415,7 @@ suite("T-952b training-program publish supersede", () => {
       id: replacement.id,
       status: "PUBLISHED",
     });
-    await expect(getPublishedTrainingProgram(client.id, new Date(0))).resolves.toMatchObject({
+    await expect(getPublishedTrainingProgram(client.id, visibleSince(new Date(0), coach.id))).resolves.toMatchObject({
       id: replacement.id,
       status: "PUBLISHED",
     });

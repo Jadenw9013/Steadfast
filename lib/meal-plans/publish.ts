@@ -9,7 +9,11 @@ import { MEALPLAN_MODE_DISAGREEMENT } from "@/lib/observability/events";
  * `publishMealPlan` server action, the iOS-facing
  * `/api/coach/clients/[clientId]/meal-plan/publish` route (CB04), and the OCR
  * import path `app/api/mealplans/import-plan/route.ts`. This is the only place
- * in the codebase that sets `MealPlan.status = "PUBLISHED"`.
+ * in the codebase that sets `MealPlan.status = "PUBLISHED"`, and (T-2060) the
+ * only writer of `MealPlan.publishedByCoachId`: the flip stamps the
+ * authenticated coach every caller passes in `opts.publishedByCoachId`
+ * (required, so a new caller that forgets it is a type error). The reader is
+ * `lib/coach-client/plan-visibility.ts#publishedPlanVisibilityWhere`.
  * Every transport MUST call it instead of re-implementing the supersede
  * transaction: the route used to do a bare single-row `update`, which left two
  * PUBLISHED rows for one week (and, once the partial unique index shipped,
@@ -93,7 +97,11 @@ export type PublishMealPlanResult =
   | { ok: false; code: "NOT_DRAFT"; status: MealPlanStatus }
   | { ok: false; code: "RACE_LOST" }
   /** T-102b — the plan has no content for its own planMode. */
-  | { ok: false; code: "EMPTY_PLAN"; planMode: PlanMode };
+  | { ok: false; code: "EMPTY_PLAN"; planMode: PlanMode }
+  /** T-2060 r1 — `opts.publishedByCoachId` has no CoachClient row for the client
+   *  at write time (removed since the caller authorized). Callers map it to
+   *  their existing not-authorized shape. Nothing was written. */
+  | { ok: false; code: "NOT_ASSIGNED" };
 
 /**
  * The single definition of "empty for this mode". Pure; exported for unit test.
@@ -189,12 +197,24 @@ class RaceLost extends Error {
 }
 
 /**
+ * T-2060 r1 BLOCKER: thrown inside the publish transaction when the author has
+ * no CoachClient row for this client, so nothing (not even the supersede)
+ * commits. Private; mapped to `NOT_ASSIGNED`.
+ */
+class NotAssigned extends Error {
+  constructor() {
+    super("publishing coach is not assigned to this client");
+    this.name = "NotAssigned";
+  }
+}
+
+/**
  * CB04 — the only place `MealPlan.status` becomes `"PUBLISHED"`. Callers MUST
  * have authorized coach access to target.clientId first.
  */
 export async function publishMealPlanTarget(
   target: MealPlanPublishTarget,
-  opts?: { now?: Date }
+  opts: { publishedByCoachId: string; now?: Date }
 ): Promise<PublishMealPlanResult> {
   if (target.status !== "DRAFT") {
     return { ok: false, code: "NOT_DRAFT", status: target.status };
@@ -230,11 +250,24 @@ export async function publishMealPlanTarget(
     return { ok: false, code: "EMPTY_PLAN", planMode: content.planMode };
   }
 
-  const publishedAt = opts?.now ?? new Date();
+  const publishedAt = opts.now ?? new Date();
 
   let supersededCount: number;
   try {
     supersededCount = await db.$transaction(async (tx) => {
+      // T-2060 r1: the author must still coach this client, checked and
+      // locked inside the same transaction as the flip. FOR SHARE conflicts
+      // with the row lock a CoachClient DELETE takes, so a concurrent removal
+      // either commits first (no row: NOT_ASSIGNED, nothing published) or
+      // waits for this publish to commit (the plan lands inside the author's
+      // open episode, before it closes). Concurrent publishes are not
+      // serialized by it. Every caller has authorized already; this closes the
+      // gap between that check and the write (and covers every transport).
+      const link = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "CoachClient"
+         WHERE "coachId" = ${opts.publishedByCoachId} AND "clientId" = ${target.clientId}
+         FOR SHARE`;
+      if (link.length === 0) throw new NotAssigned();
       // Exclude the target itself: a losing racer in a concurrent
       // double-publish must never demote the row the winner just published.
       // The `weekOf` filter and the `id: { not }` exclusion are both
@@ -253,13 +286,15 @@ export async function publishMealPlanTarget(
       // above, so throw rather than returning the count (see the file header).
       const flipped = await tx.mealPlan.updateMany({
         where: { id: target.id, status: "DRAFT" },
-        data: { status: "PUBLISHED", publishedAt },
+        // T-2060: the flip also stamps the author; supersede rows keep theirs.
+        data: { status: "PUBLISHED", publishedAt, publishedByCoachId: opts.publishedByCoachId },
       });
       if (flipped.count === 0) throw new RaceLost();
       return superseded.count;
     });
   } catch (err) {
     if (err instanceof RaceLost) return { ok: false, code: "RACE_LOST" };
+    if (err instanceof NotAssigned) return { ok: false, code: "NOT_ASSIGNED" };
     if (isDuplicatePublishedPlanError(err)) return { ok: false, code: "RACE_LOST" };
     // Any other failure — including a P2002 from a different constraint — must
     // still surface as a 500 so it stays visible, never silently swallowed.

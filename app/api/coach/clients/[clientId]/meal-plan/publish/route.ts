@@ -65,8 +65,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     // CB04 — publishing (supersede + race guard) lives entirely in
     // lib/meal-plans/publish.ts, shared with the publishMealPlan server action.
-    const result = await publishMealPlanTarget(target);
+    const result = await publishMealPlanTarget(target, { publishedByCoachId: user.id });
     if (!result.ok) {
+      // T-2060 r1: the assignment was removed after the check above; the
+      // route's existing not-authorized response.
+      if (result.code === "NOT_ASSIGNED") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       if (result.code === "NOT_DRAFT") {
         return NextResponse.json(
           { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },

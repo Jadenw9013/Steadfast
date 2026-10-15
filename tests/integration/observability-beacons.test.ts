@@ -105,6 +105,13 @@ suite("observability beacons (T-920) — the three production incidents as code"
     });
   }
 
+  async function makeCoach() {
+    const clerkId = randomUUID();
+    return db.user.create({
+      data: { clerkId, email: `coach-${clerkId}@example.test`, isCoach: true, activeRole: "COACH" },
+    });
+  }
+
   // ── Training beacon (T-803) ────────────────────────────────────────────────
 
   describe("sf.training.week_empty_with_history", () => {
@@ -142,6 +149,10 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
     it("creates a genuine SUPERSEDED row through the real publish path, and does not fire for a past week whose only programs are superseded", async () => {
       const client = await makeClient();
+      // T-2060: the publish service requires an author (an FK to User).
+      const coach = await makeCoach();
+      // T-2060 r1: the publish service requires the author's CoachClient row.
+      await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
 
       // WEEK_A publishes first...
       const draftA = await db.trainingProgram.create({
@@ -151,7 +162,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
         id: draftA.id,
         clientId: client.id,
         status: "DRAFT",
-      });
+      }, { publishedByCoachId: coach.id });
       expect(publishA.ok).toBe(true);
 
       // ...then WEEK_B publishes, which (via the real, unfiltered-by-weekOf
@@ -164,7 +175,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
         id: draftB.id,
         clientId: client.id,
         status: "DRAFT",
-      });
+      }, { publishedByCoachId: coach.id });
       expect(publishB.ok).toBe(true);
 
       const supersededA = await db.trainingProgram.findUniqueOrThrow({ where: { id: draftA.id } });
@@ -278,7 +289,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
       });
 
       const target = await getMealPlanPublishTarget(plan.id);
-      const result = await publishMealPlanTarget(target!);
+      const result = await publishMealPlanTarget(target!, { publishedByCoachId: "unused-empty-plan-returns-before-flip" });
 
       expect(result).toEqual({ ok: false, code: "EMPTY_PLAN", planMode: "MACROS" });
 
@@ -301,7 +312,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
       });
 
       const target = await getMealPlanPublishTarget(plan.id);
-      const result = await publishMealPlanTarget(target!);
+      const result = await publishMealPlanTarget(target!, { publishedByCoachId: "unused-empty-plan-returns-before-flip" });
 
       expect(result).toEqual({ ok: false, code: "EMPTY_PLAN", planMode: "MEAL_PLAN" });
       expect(eventsNamed(MEALPLAN_MODE_DISAGREEMENT.evt)).toHaveLength(0);

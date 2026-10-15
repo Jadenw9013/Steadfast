@@ -8,6 +8,7 @@ import {
   type LeadIdentity,
 } from "@/lib/leads/activate-lead";
 import { accountOwnsEmail, normalizeEmailForMatch, maskEmail } from "@/lib/auth/invite-email-match";
+import { COACH_CLIENT_ROW_FACTS_SELECT, openCoachClientEpisode } from "@/lib/coach-client/episodes";
 
 type DbClient = typeof db | Prisma.TransactionClient;
 
@@ -391,9 +392,13 @@ export async function acceptClientInviteForUser(
       const coachNotes = owns
         ? "Joined via invite."
         : `Joined via invite (confirmed from ${owner.email}; invite was addressed to ${current.email}).`;
-      await tx.coachClient.create({
+      // T-2060: the episode opens in this same transaction, from the row's own
+      // facts (explicit select on CoachClient, ARCHITECTURE.md).
+      const created = await tx.coachClient.create({
         data: { coachId: current.coachId, clientId: user.id, coachNotes },
+        select: COACH_CLIENT_ROW_FACTS_SELECT,
       });
+      await openCoachClientEpisode(tx, created);
     }
     await reconcileCoachingContextForClient(tx, user.id);
     if (!owns) {

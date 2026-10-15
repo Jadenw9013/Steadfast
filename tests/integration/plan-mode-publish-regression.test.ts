@@ -24,6 +24,7 @@ import { resolveClientPlanView } from "@/lib/meal-plans/client-plan-view";
 import type { MealGroup } from "@/types/meal-plan";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibleSince } from "../helpers/plan-visibility";
 /**
  * T-800 regression suite. Run through the local test DB:
  *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
@@ -170,7 +171,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     // Assert the invariant too, not just the mechanism, so this still passes
     // after team/sprint-1 merges (where the draft may be stamped MEAL_PLAN
     // instead of being refused).
-    const current = await getCurrentPublishedMealPlan(client.id, new Date(0));
+    const current = await getCurrentPublishedMealPlan(client.id, visibleSince(new Date(0), coach.id));
     expect(current).not.toBeNull();
     expect(current!.items.length).toBeGreaterThan(0);
     expect(current!.planMode === "MEAL_PLAN" || current!.macroTargets.length > 0).toBe(true);
@@ -219,7 +220,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
 
     await publishMealPlan({ mealPlanId });
 
-    const current = await getCurrentPublishedMealPlan(client.id, new Date(0));
+    const current = await getCurrentPublishedMealPlan(client.id, visibleSince(new Date(0), coach.id));
     expect(current?.planMode).toBe("MEAL_PLAN");
     expect(current?.items.map((i) => i.foodName)).toEqual(["Oats"]);
 
@@ -324,7 +325,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     const foodsPlan = await db.mealPlan.findUniqueOrThrow({ where: { id: foodsId } });
     expect(foodsPlan.status).toBe("PUBLISHED");
     expect(foodsPlan.publishedAt).not.toBeNull();
-    expect((await getCurrentPublishedMealPlan(client.id, new Date(0)))?.id).toBe(foodsId);
+    expect((await getCurrentPublishedMealPlan(client.id, visibleSince(new Date(0), coach.id)))?.id).toBe(foodsId);
 
     await expect(publishMealPlan({ mealPlanId: foodsId })).rejects.toThrow(
       "Can only publish drafts"
@@ -350,7 +351,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     const macroPlan = await db.mealPlan.findUniqueOrThrow({ where: { id: macroId } });
     expect(macroPlan.status).toBe("PUBLISHED");
     expect(macroPlan.publishedAt).not.toBeNull();
-    expect((await getCurrentPublishedMealPlan(client.id, new Date(0)))?.id).toBe(macroId);
+    expect((await getCurrentPublishedMealPlan(client.id, visibleSince(new Date(0), coach.id)))?.id).toBe(macroId);
 
     const rePublishResponse = await publishRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan/publish`, {

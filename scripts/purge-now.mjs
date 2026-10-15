@@ -81,7 +81,30 @@ try {
   await pool.query(`DELETE FROM "Message" WHERE "senderId" = $1`, [userId]);
   await pool.query(`DELETE FROM "NotificationLog" WHERE "clientId" = $1`, [userId]);
   await pool.query(`DELETE FROM "Testimonial" WHERE "coachId" = $1 OR "clientId" = $1`, [userId]);
-  await pool.query(`DELETE FROM "CoachClient" WHERE "coachId" = $1 OR "clientId" = $1`, [userId]);
+  // T-2060: relationship history and plan authorship, in ONE transaction with
+  // the CoachClient delete (mirrors lib/account-deletion/purge.ts steps 1, 3, 4):
+  //  1. backfill an episode for any of this coach's rows that has none;
+  //  2. close this coach's open episodes (the FKs, coachId SET NULL and
+  //     clientId CASCADE, anonymise / delete them at the User delete);
+  //  3. replace this coach's authorship with the 'purged' sentinel, never NULL
+  //     (PURGED_PUBLISHER_ID in lib/coach-client/plan-visibility.ts): NULL is the
+  //     unknown-author arm and would expose this coach's plans to the client's
+  //     next coach's view (T-2060 review r1).
+  const tx = await pool.connect();
+  try {
+    await tx.query("BEGIN");
+    await tx.query(`INSERT INTO "CoachClientEpisode" ("id","coachId","clientId","coachClientId","startedAt","source","createdAt") SELECT gen_random_uuid()::text, cc."coachId", cc."clientId", cc."id", cc."createdAt", 'BACKFILL'::"CoachClientEpisodeSource", now() FROM "CoachClient" cc WHERE cc."coachId" = $1 AND cc."clientId" <> $1 AND NOT EXISTS (SELECT 1 FROM "CoachClientEpisode" e WHERE e."coachClientId" = cc."id" AND e."endedAt" IS NULL)`, [userId]);
+    await tx.query(`UPDATE "CoachClientEpisode" SET "endedAt" = now(), "endReason" = 'COACH_ACCOUNT_DELETED' WHERE "coachId" = $1 AND "endedAt" IS NULL`, [userId]);
+    await tx.query(`UPDATE "MealPlan" SET "publishedByCoachId" = 'purged' WHERE "publishedByCoachId" = $1`, [userId]);
+    await tx.query(`UPDATE "TrainingProgram" SET "publishedByCoachId" = 'purged' WHERE "publishedByCoachId" = $1`, [userId]);
+    await tx.query(`DELETE FROM "CoachClient" WHERE "coachId" = $1 OR "clientId" = $1`, [userId]);
+    await tx.query("COMMIT");
+  } catch (err) {
+    await tx.query("ROLLBACK");
+    throw err;
+  } finally {
+    tx.release();
+  }
   // T-987: mismatchEmail is a second user's address stored on a coach's
   // ClientInvite row (mirrors lib/account-deletion/purge.ts's scrub).
   await pool.query(`UPDATE "ClientInvite" SET "mismatchEmail" = NULL WHERE lower("mismatchEmail") = lower($1)`, [email]);
