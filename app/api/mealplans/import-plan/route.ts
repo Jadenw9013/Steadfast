@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
+import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import {
   parsedMealPlanSchema,
   splitPortion,
@@ -41,6 +42,25 @@ export async function POST(req: NextRequest) {
     };
 
     if (!draftId) return NextResponse.json({ error: "Missing draftId" }, { status: 400 });
+
+    // T-2069: authorize on the CURRENT CoachClient link before the draft
+    // content is loaded or anything is written. Owning the upload is not
+    // enough: a removed coach could otherwise publish over the new coach.
+    const owner = await db.mealPlanDraft.findUnique({
+      where: { id: draftId },
+      select: { upload: { select: { coachId: true, clientId: true } } },
+    });
+    if (!owner || owner.upload.coachId !== coach.id) {
+      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+    }
+    try {
+      await verifyCoachAccessToClient(owner.upload.clientId);
+    } catch (e) {
+      if (e instanceof Error && e.message === "Not assigned to this client") {
+        return NextResponse.json({ error: e.message }, { status: 403 });
+      }
+      throw e;
+    }
 
     // Get draft + upload
     const draft = await db.mealPlanDraft.findUnique({

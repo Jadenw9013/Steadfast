@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
+import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -13,6 +14,23 @@ export async function GET(req: NextRequest) {
 
     const uploadId = req.nextUrl.searchParams.get("uploadId");
     if (!uploadId) return NextResponse.json({ error: "Missing uploadId" }, { status: 400 });
+
+    // T-2069: ownership + CURRENT CoachClient link before the draft is read.
+    const owner = await db.mealPlanUpload.findUnique({
+      where: { id: uploadId },
+      select: { coachId: true, clientId: true },
+    });
+    if (!owner || owner.coachId !== coach.id) {
+      return NextResponse.json({ error: "Upload not found" }, { status: 404 });
+    }
+    try {
+      await verifyCoachAccessToClient(owner.clientId);
+    } catch (e) {
+      if (e instanceof Error && e.message === "Not assigned to this client") {
+        return NextResponse.json({ error: e.message }, { status: 403 });
+      }
+      throw e;
+    }
 
     // Verify ownership
     const upload = await db.mealPlanUpload.findUnique({

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
+import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { downloadWorkoutFile } from "@/lib/supabase/workout-storage";
 import { extractText } from "@/lib/ocr/google-vision";
 import { parseWorkoutPlanTextToJson } from "@/lib/llm/parse-workout-plan";
@@ -23,6 +24,17 @@ export async function POST(req: NextRequest) {
     const workoutImport = await db.workoutImport.findUnique({ where: { id: importId } });
     if (!workoutImport || workoutImport.coachId !== coach.id) {
       return NextResponse.json({ error: "Import not found" }, { status: 404 });
+    }
+    // T-2069: the coach must still coach this client before we OCR or write.
+    if (workoutImport.clientId) {
+      try {
+        await verifyCoachAccessToClient(workoutImport.clientId);
+      } catch (e) {
+        if (e instanceof Error && e.message === "Not assigned to this client") {
+          return NextResponse.json({ error: e.message }, { status: 403 });
+        }
+        throw e;
+      }
     }
 
     if (workoutImport.status !== "UPLOADED" && workoutImport.status !== "FAILED") {

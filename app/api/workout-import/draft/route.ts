@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
+import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -13,6 +14,26 @@ export async function GET(req: NextRequest) {
 
     const importId = req.nextUrl.searchParams.get("importId");
     if (!importId) return NextResponse.json({ error: "Missing importId" }, { status: 400 });
+
+    // T-2069: ownership + CURRENT CoachClient link (when the import targets a
+    // client) before the draft is read.
+    const owner = await db.workoutImport.findUnique({
+      where: { id: importId },
+      select: { coachId: true, clientId: true },
+    });
+    if (!owner || owner.coachId !== coach.id) {
+      return NextResponse.json({ error: "Import not found" }, { status: 404 });
+    }
+    if (owner.clientId) {
+      try {
+        await verifyCoachAccessToClient(owner.clientId);
+      } catch (e) {
+        if (e instanceof Error && e.message === "Not assigned to this client") {
+          return NextResponse.json({ error: e.message }, { status: 403 });
+        }
+        throw e;
+      }
+    }
 
     const workoutImport = await db.workoutImport.findUnique({
       where: { id: importId },

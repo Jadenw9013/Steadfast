@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
+import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { downloadMealPlanFile } from "@/lib/supabase/meal-plan-storage";
 import { extractText } from "@/lib/ocr/google-vision";
 import { parseMealPlanTextToJson } from "@/lib/llm/parse-meal-plan";
@@ -24,6 +25,15 @@ export async function POST(req: NextRequest) {
     const upload = await db.mealPlanUpload.findUnique({ where: { id: uploadId } });
     if (!upload || upload.coachId !== coach.id) {
       return NextResponse.json({ error: "Upload not found" }, { status: 404 });
+    }
+    // T-2069: the coach must still coach this client before we OCR or write.
+    try {
+      await verifyCoachAccessToClient(upload.clientId);
+    } catch (e) {
+      if (e instanceof Error && e.message === "Not assigned to this client") {
+        return NextResponse.json({ error: e.message }, { status: 403 });
+      }
+      throw e;
     }
 
     if (upload.status !== "UPLOADED" && upload.status !== "FAILED") {

@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
+import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
 import { parsedWorkoutProgramSchema } from "@/lib/validations/workout-import";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
 import { publishTrainingProgramTarget } from "@/lib/training-programs/publish";
@@ -34,6 +35,26 @@ export async function POST(req: NextRequest) {
     }
 
     const { draftId, parsedJson, saveAsTemplate, clientId, publish } = bodyParsed.data;
+
+    // T-2069: ownership + CURRENT CoachClient link for the import's client
+    // before the draft is read or anything (program or template) is written.
+    const owner = await db.workoutImportDraft.findUnique({
+      where: { id: draftId },
+      select: { workoutImport: { select: { coachId: true, clientId: true } } },
+    });
+    if (!owner || owner.workoutImport.coachId !== coach.id) {
+      return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+    }
+    if (owner.workoutImport.clientId) {
+      try {
+        await verifyCoachAccessToClient(owner.workoutImport.clientId);
+      } catch (e) {
+        if (e instanceof Error && e.message === "Not assigned to this client") {
+          return NextResponse.json({ error: e.message }, { status: 403 });
+        }
+        throw e;
+      }
+    }
 
     // Get draft + import record
     const draft = await db.workoutImportDraft.findUnique({
