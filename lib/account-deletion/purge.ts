@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { createServiceClient } from "@/lib/supabase/server";
 import { enqueueStorageCleanup } from "@/lib/storage/cleanup-outbox";
 import { stopAccountBilling } from "./billing";
+import { reconcileCoachingContextForClient } from "@/lib/activation";
 
 /** External cleanup is retryable; all database deletes commit together. */
 export async function purgeUserAccount(userId: string): Promise<void> {
@@ -207,14 +208,46 @@ export async function purgeUserAccount(userId: string): Promise<void> {
 
         await tx.$executeRaw`DELETE FROM "OnboardingForm" WHERE "coachId" = ${userId}`;
         await tx.$executeRaw`DELETE FROM "ClientInvite" WHERE "coachId" = ${userId}`;
-        await tx.$executeRaw`DELETE FROM "ClientIntake" WHERE "coachId" = ${userId}`;
+        // ClientIntake rows this user sent as a coach are handled after the
+        // CoachClient delete below (T-2056 / D6): they are the client's answers.
       }
 
       // --- Shared models (both roles) ---
       await tx.$executeRaw`DELETE FROM "Message" WHERE "senderId" = ${userId} OR "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "NotificationLog" WHERE "clientId" = ${userId}`;
       await tx.$executeRaw`DELETE FROM "Testimonial" WHERE "coachId" = ${userId} OR "clientId" = ${userId}`;
+      // T-2056 (G3/D4): ClientCoachingContext.activeCoachClientId is ON DELETE
+      // SET NULL, so deleting this coach's relationships alone strands each
+      // client as HUMAN with no relationship, which getClientProvider reads as
+      // resolutionRequired (409 on every client plan route). Collect the
+      // clients first, then re-derive each context in this same transaction.
+      const coachedClients = await tx.coachClient.findMany({
+        where: { coachId: userId, clientId: { not: userId } },
+        select: { clientId: true },
+      });
       await tx.$executeRaw`DELETE FROM "CoachClient" WHERE "coachId" = ${userId} OR "clientId" = ${userId}`;
+      for (const { clientId } of coachedClients) {
+        await reconcileCoachingContextForClient(tx, clientId);
+      }
+      // T-2056 (D6): an intake this user sent as a coach holds the client's own
+      // answers. If the client has another coach, re-home the row to that coach
+      // (the reconciled active one first, else the most recent) instead of
+      // deleting it. Reads key on clientId; coachId only addresses the
+      // completion email, which resendClientIntake already re-points the same
+      // way. With no other coach the row still goes: coachId is a required FK to
+      // this user (keeping it needs a migration, follow-up).
+      await tx.$executeRaw`
+    UPDATE "ClientIntake" ci SET "coachId" = next_coach."coachId", "updatedAt" = now()
+    FROM (
+      SELECT DISTINCT ON (cc."clientId") cc."clientId", cc."coachId"
+      FROM "CoachClient" cc
+      LEFT JOIN "ClientCoachingContext" ctx ON ctx."activeCoachClientId" = cc."id"
+      WHERE cc."clientId" IN (SELECT "clientId" FROM "ClientIntake" WHERE "coachId" = ${userId})
+      ORDER BY cc."clientId", (ctx."id" IS NOT NULL) DESC, cc."createdAt" DESC
+    ) next_coach
+    WHERE ci."coachId" = ${userId} AND ci."clientId" = next_coach."clientId"
+  `;
+      await tx.$executeRaw`DELETE FROM "ClientIntake" WHERE "coachId" = ${userId}`;
       // T-987: mismatchEmail is a *second* user's address stored on a *coach's*
       // ClientInvite row (the coach-side delete above already removes the whole
       // row when the coach leaves); scrub the departing client's address here.
