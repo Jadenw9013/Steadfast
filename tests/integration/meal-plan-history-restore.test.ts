@@ -59,6 +59,7 @@ import {
 import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibleSince } from "../helpers/plan-visibility";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
 if (enabled) requireLocalTestDb();
@@ -511,7 +512,7 @@ suite("meal plan version history + restore (T-801)", () => {
     expect(afterRow.status).toBe("PUBLISHED");
     expect(afterRow.publishedAt?.toISOString()).toBe(beforeRow.publishedAt?.toISOString());
 
-    const activeId = await resolveActiveMealPlanId(client.id, new Date(0));
+    const activeId = await resolveActiveMealPlanId(client.id, visibleSince(new Date(0), coach.id));
     expect(activeId).toBe(publishedId);
 
     mocks.authUserId = client.clerkId;

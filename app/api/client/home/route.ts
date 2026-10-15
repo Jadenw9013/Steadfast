@@ -26,6 +26,7 @@ import {
   formatDateUTC,
   getLocalDate,
 } from "@/lib/utils/date";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 function getIntervalMs(config: CadenceConfig): number {
   switch (config.type) {
@@ -55,6 +56,8 @@ export async function GET() {
 
   try {
     const provider = await getClientProvider(user.id);
+    // T-2060: the recorded-facts plan visibility rule (null for non-HUMAN).
+    const visibility = await getPlanVisibility(user.id, provider);
     if (provider.resolutionRequired || provider.origin === "AI") return NextResponse.json({ error: provider.resolutionRequired ? "Your coaching provider needs resolution." : "Update Steadfast to use the AI Coach workspace." }, { status: 409, headers: { "Cache-Control": "private, no-store" } });
     // ── Coach assignment (explicit select — P2022 safety) ─────────────────
     const coachAssignment = await db.coachClient.findFirst({
@@ -95,14 +98,14 @@ export async function GET() {
       legacyOnboarding,
     ] = await Promise.all([
       getClientCheckInsLight(user.id),
-      provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
-      provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
+      provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, visibility) : Promise.resolve(null),
+      provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, visibility) : Promise.resolve(null),
       getMyIntake(user.id),
       getAdherenceEnabled(user.id),
       getTodayAdherence(user.id, todayDate),
-      // `relationshipStartedAt` is already null for every non-HUMAN provider,
-      // so no `origin === "HUMAN"` ternary is needed here (T-105).
-      getActiveMealNames(user.id, provider.relationshipStartedAt),
+      // `visibility` is already null for every non-HUMAN provider, so no
+      // `origin === "HUMAN"` ternary is needed here (T-105, T-2060).
+      getActiveMealNames(user.id, visibility),
       db.message.findFirst({
         where: { clientId: user.id, weekOf },
         orderBy: { createdAt: "desc" },

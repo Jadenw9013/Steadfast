@@ -308,7 +308,8 @@ Steadfast/
 │   │   └── ... (12 more)
 │   ├── coach-client/
 │   │   ├── end-relationship.ts        # T-2058: the one CoachClient teardown (removeClient, leaveCoach, DELETE /api/coach/clients/[clientId])
-│   │   └── episodes.ts                # T-2060: open/close the CoachClientEpisode in the caller's CoachClient create/delete transaction
+│   │   ├── episodes.ts                # T-2060: open/close the CoachClientEpisode in the caller's CoachClient create/delete transaction
+│   │   └── plan-visibility.ts         # T-2060: the client plan visibility rule (episodes + authorship) and its shared where-fragment
 │   ├── intake/
 │   │   └── completion.ts              # Shared intake answer merge + completeness rule (REST + action)
 │   ├── ocr/
@@ -422,12 +423,26 @@ the first match wins.
 | 6 | HUMAN assigned | `provider.origin === "HUMAN"` | today's client dashboard | the plan/training/meal-plan/check-in content |
 | 7 | No provider / offer, or ineligible/gates-closed (indistinguishable by design) | `origin === "NONE"`, `aiDiscovery === null`, `aiPreviewAvailable === false` | "Find Your Coach" | each tab's existing NONE branch |
 
-**`relationshipStartedAt` (strict bound).** For a HUMAN provider, client plan reads (web pages, `/api/client/home`,
-`/api/client/meal-plan/current`, `/api/client/training/current`, `/api/client/plan/current`, the daily checklist)
-show only publications at or after the current `CoachClient.createdAt`. A previous coach's plan therefore never
-surfaces. The cost is that a client removed and re-added by the **same** coach sees no plan until that coach
-publishes again. T-2058 tried widening the bound from evidence ("Rule R") and withdrew it, because ordinary coach
-actions could defeat it. The exact fix, relationship episode history plus plan authorship, is T-2060.
+**Client plan visibility (T-2060, `lib/coach-client/plan-visibility.ts`).** For a HUMAN provider, every client plan
+read (web pages, `/api/client/home`, `/api/client/meal-plan/current`, `/api/client/training/current`,
+`/api/client/plan/current`, the daily checklist) computes `getPlanVisibility(clientId, provider)` once, after
+`getClientProvider`, and filters with `publishedPlanVisibilityWhere`. The rule reads only recorded facts:
+`CoachClientEpisode` rows, `MealPlan`/`TrainingProgram.publishedByCoachId`, the latest
+`AiCoachProviderTransitionReceipt.createdAt` and `AiCoachProfile.consentedAt` (three indexed reads). Let C be the
+current coach and S the current `CoachClient.createdAt` (`relationshipStartedAt`, unchanged and still on the wire via
+`/api/client/coaching-context`).
+- **Unknown author** (`publishedByCoachId` NULL: every plan published before T-2060, or by a purged coach): visible
+  from S, narrowed past the end of any other provider's episode that overlapped the current link (an open one counts
+  to now). Decision 4: a legacy unknown-author plan published while another coach's row overlapped is hidden.
+- **Authored by C:** visible from the start of C's uninterrupted recorded run of episodes. Any other coach's episode,
+  an anonymised (purged) one, an AI transition receipt or an AI consent ends the run, so A->B->A and A->AI->A stay
+  strict (decision 2). If the current link has no matching open episode (an un-backfilled row), the bound is S.
+- **Authored by anyone else:** never visible (decision 3), even if published after the current link.
+
+Invariant: `sameCoachSince <= S <= unknownAuthorSince`, so the only widening admits plans C published, and every
+inconsistency falls back to S. A same-coach re-link (remove, re-add) therefore keeps the coach's authored plan; a
+pre-T-2060 plan still needs one republish (no authorship is backfilled, decision 1). Rollback is a revert of the
+reader commit, which restores the strict S bound. T-2058's evidence-based "Rule R" was withdrawn in favour of this.
 
 A live discovery *offer* (row 4/5) is never a provider switch — only rows 2
 and 3 replace the client shell. `getGenerationDeliveryState()`

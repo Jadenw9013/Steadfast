@@ -16,6 +16,7 @@ import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
 import { db } from "@/lib/db";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibleSince } from "../helpers/plan-visibility";
 /**
  * T-880 regression suite. Run through the local test DB:
  *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
@@ -284,7 +285,7 @@ suite(
       expect(originalRow.publishedAt?.toISOString()).toBe(published.publishedAt?.toISOString());
       expect(await dayNames(published.id)).toEqual(["Old A"]);
 
-      const stillPublished = await getPublishedTrainingProgram(client.id, new Date(0));
+      const stillPublished = await getPublishedTrainingProgram(client.id, visibleSince(new Date(0), coach.id));
       expect(stillPublished?.id).toBe(published.id);
 
       const newRow = await db.trainingProgram.findUniqueOrThrow({ where: { id: newProgramId } });
@@ -432,7 +433,7 @@ suite(
 
       await publishTrainingProgram({ programId: forkId });
 
-      const nowPublished = await getPublishedTrainingProgram(client.id, new Date(0));
+      const nowPublished = await getPublishedTrainingProgram(client.id, visibleSince(new Date(0), coach.id));
       expect(nowPublished?.id).toBe(forkId);
 
       const rows = await db.trainingProgram.findMany({

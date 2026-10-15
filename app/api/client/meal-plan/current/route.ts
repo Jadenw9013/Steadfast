@@ -6,6 +6,7 @@ import { getMacroTarget } from "@/lib/queries/macro-targets";
 import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
 import { parsePlanExtras } from "@/types/meal-plan-extras";
 import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -22,6 +23,8 @@ export async function GET() {
 
   try {
     const provider = await getClientProvider(user.id);
+    // T-2060: the recorded-facts plan visibility rule (null for non-HUMAN).
+    const visibility = await getPlanVisibility(user.id, provider);
     if (provider.resolutionRequired || provider.origin === "AI")
       return NextResponse.json(
         {
@@ -37,9 +40,9 @@ export async function GET() {
         { headers: { "Cache-Control": "private, no-store" } }
       );
     // ── Active published plan — one shared rule (T-105), explicit select ──
-    // `!` is safe: AI / resolutionRequired returned above, and so did NONE, so
-    // `origin` is HUMAN here and `relationshipStartedAt` is non-null.
-    const planId = await resolveActiveMealPlanId(user.id, provider.relationshipStartedAt!);
+    // AI / resolutionRequired returned above, and so did NONE, so `origin` is
+    // HUMAN here; a null `visibility` (T-2060) still reads as no plan.
+    const planId = await resolveActiveMealPlanId(user.id, visibility);
     const plan = planId
       ? await db.mealPlan.findUnique({
           where: { id: planId },

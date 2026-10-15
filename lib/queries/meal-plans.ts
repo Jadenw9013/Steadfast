@@ -2,17 +2,18 @@ import { db } from "@/lib/db";
 import { parsePlanExtras, type PlanExtras } from "@/types/meal-plan-extras";
 import { resolveDefaultPlanMode, resolveEditorPlanMode } from "@/lib/meal-plans/plan-mode";
 import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
+import type { PlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 /**
  * Return shape deliberately unchanged (T-105): selection is delegated to
  * `lib/meal-plans/active-plan.ts` so `/client/plan` and `/client/meal-plan` —
  * the screens that write `DailyMealCheckoff` rows — agree with the checkoff
- * list without being edited. `publishedAfter` is REQUIRED (T-665) — `Date |
- * null`, never optional — so every caller has resolved a provider first;
- * `null` means "no active human provider → no plan".
+ * list without being edited. `visibility` is REQUIRED (T-665, T-2060) —
+ * `PlanVisibility | null`, never optional — so every caller has resolved a
+ * provider first; `null` means "no active human provider → no plan".
  */
-export async function getCurrentPublishedMealPlan(clientId: string, publishedAfter: Date | null) {
-  const id = await resolveActiveMealPlanId(clientId, publishedAfter);
+export async function getCurrentPublishedMealPlan(clientId: string, visibility: PlanVisibility | null) {
+  const id = await resolveActiveMealPlanId(clientId, visibility);
   if (!id) return null;
   return db.mealPlan.findUnique({
     where: { id },

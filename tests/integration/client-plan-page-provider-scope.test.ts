@@ -41,6 +41,8 @@ import { GET as mealCurrentRoute } from "@/app/api/client/meal-plan/current/rout
 import { GET as trainingCurrentRoute } from "@/app/api/client/training/current/route";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { visibleSince } from "../helpers/plan-visibility";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
@@ -93,12 +95,12 @@ suite("client meal-plan and training pages are provider-aware (T-665)", () => {
   }
 
   it("case 1 — headline regression: a switched-coach client never sees the previous coach's plan (must fail against sprint-1 code)", async () => {
-    const { client, plan } = await switchedCoachMealPlanFixture();
+    const { client, coachA, plan } = await switchedCoachMealPlanFixture();
     auth.user = { ...client, isClient: true };
 
     // Precondition: the stale plan really is on disk, and an unfiltered read
     // (the pre-fix behavior) still finds it.
-    expect(await resolveActiveMealPlanId(client.id, new Date(0))).toBe(plan.id);
+    expect(await resolveActiveMealPlanId(client.id, visibleSince(new Date(0), coachA.id))).toBe(plan.id);
 
     const tree = await ClientMealPlanPage();
     // Asserting the prop, not node absence: T-802a (merges first) always
@@ -121,7 +123,7 @@ suite("client meal-plan and training pages are provider-aware (T-665)", () => {
     // they are compared here by data expression rather than rendered output
     // because they would need PlanTab/StatusCard/chart stubs for zero extra
     // coverage of this ticket's defect.
-    const sharedExpression = (await getCurrentPublishedMealPlan(client.id, provider.relationshipStartedAt))?.id ?? null;
+    const sharedExpression = (await getCurrentPublishedMealPlan(client.id, await getPlanVisibility(client.id, provider)))?.id ?? null;
     expect(rendered).toBe(sharedExpression);
 
     const res = await mealCurrentRoute();

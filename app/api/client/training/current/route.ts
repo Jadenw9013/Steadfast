@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { PUBLISHED_TRAINING_ORDER_BY } from "@/lib/queries/training-programs";
+import { getPlanVisibility, publishedPlanVisibilityWhere } from "@/lib/coach-client/plan-visibility";
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -28,18 +29,16 @@ export async function GET() {
         },
         { status: 409, headers: { "Cache-Control": "private, no-store" } }
       );
-    if (provider.origin === "NONE")
+    // T-2060: the recorded-facts plan visibility rule; null means no plan.
+    const visibility = await getPlanVisibility(user.id, provider);
+    if (provider.origin === "NONE" || !visibility)
       return NextResponse.json(
         { trainingProgram: null },
         { headers: { "Cache-Control": "private, no-store" } }
       );
     // ── Most recent published program — explicit select (no select *) ─────
     const program = await db.trainingProgram.findFirst({
-      where: {
-        clientId: user.id,
-        status: "PUBLISHED",
-        publishedAt: { gte: provider.relationshipStartedAt! },
-      },
+      where: { clientId: user.id, ...publishedPlanVisibilityWhere(visibility) },
       orderBy: PUBLISHED_TRAINING_ORDER_BY,
       select: {
         id: true,

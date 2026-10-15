@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { PlanMode, Prisma } from "@/app/generated/prisma/client";
+import { publishedPlanVisibilityWhere, type PlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 /**
  * Single source of truth for client-facing active-plan selection: "which
@@ -66,11 +67,11 @@ import type { PlanMode, Prisma } from "@/app/generated/prisma/client";
 export type MealNameEntry = { mealName: string; order: number };
 
 /** Provider gate (house rule 2). Two states:
- *    Date  → HUMAN provider: only plans published at/after it are visible
- *    null  → no active human provider (AI / NONE / resolutionRequired) → no plan
- *  T-665 deleted the legacy `undefined` (unfiltered) arm; it had exactly one
- *  caller, `app/client/meal-plan/page.tsx`, and that caller is now gated. */
-export type PublishedAfter = Date | null;
+ *    PlanVisibility → HUMAN provider: only plans the T-2060 two-arm rule
+ *                     admits are visible (lib/coach-client/plan-visibility.ts)
+ *    null           → no active human provider (AI / NONE / resolutionRequired) → no plan
+ *  T-665 deleted the legacy `undefined` (unfiltered) arm; T-2060 replaced the
+ *  `Date` bound (`relationshipStartedAt`) with the recorded-facts rule. */
 
 export const ACTIVE_MEAL_PLAN_ORDER_BY: Prisma.MealPlanOrderByWithRelationInput[] = [
   { weekOf: "desc" },
@@ -83,21 +84,16 @@ export const ACTIVE_MEAL_PLAN_ORDER_BY: Prisma.MealPlanOrderByWithRelationInput[
  *  of the client's PUBLISHED rows. */
 export async function resolveActiveMealPlanId(
   clientId: string,
-  publishedAfter: PublishedAfter
+  visibility: PlanVisibility | null
 ): Promise<string | null> {
   // `== null` (not `===`): fails closed on `undefined` too, so an untyped or
-  // `as any` caller cannot reintroduce the pre-T-665 unfiltered read — Prisma
-  // treats `gte: undefined` as no filter.
-  if (publishedAfter == null) return null;
+  // `as any` caller cannot reintroduce the pre-T-665 unfiltered read.
+  if (visibility == null) return null;
 
   // Covered by `@@index([clientId, weekOf])`: equality on `clientId`, then a
   // backward ordered scan on `weekOf`, with `status`/`publishedAt` as filters.
   const plan = await db.mealPlan.findFirst({
-    where: {
-      clientId,
-      status: "PUBLISHED",
-      publishedAt: { gte: publishedAfter },
-    },
+    where: { clientId, ...publishedPlanVisibilityWhere(visibility) },
     orderBy: ACTIVE_MEAL_PLAN_ORDER_BY,
     select: { id: true },
   });
@@ -139,13 +135,13 @@ export function deriveMealNames(plan: {
 }
 
 /** This ticket's headline helper. Replaces `getTodayMealNames`.
- *  `publishedAfter` is REQUIRED — `Date | null`, never optional, never
- *  `undefined`. Pass `provider.relationshipStartedAt` verbatim. */
+ *  `visibility` is REQUIRED — `PlanVisibility | null`, never optional, never
+ *  `undefined`. Pass `await getPlanVisibility(clientId, provider)` verbatim. */
 export async function getActiveMealNames(
   clientId: string,
-  publishedAfter: Date | null
+  visibility: PlanVisibility | null
 ): Promise<MealNameEntry[]> {
-  const id = await resolveActiveMealPlanId(clientId, publishedAfter);
+  const id = await resolveActiveMealPlanId(clientId, visibility);
   if (!id) return [];
   const plan = await db.mealPlan.findUnique({
     where: { id },

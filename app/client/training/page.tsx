@@ -8,10 +8,13 @@ import { getExerciseResultsForWeek, getPreviousExerciseResults } from "@/lib/que
 import { getLocalDate, normalizeToMonday } from "@/lib/utils/date";
 import { TrainingProgram } from "@/components/client/training-program";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 export default async function ClientTrainingPage() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
+  // T-2060: the recorded-facts plan visibility rule (null for non-HUMAN).
+  const visibility = await getPlanVisibility(user.id, provider);
   if (provider.resolutionRequired) return <ProviderResolution />;
   if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={["plan"]} />;
 
@@ -45,7 +48,7 @@ export default async function ClientTrainingPage() {
   const weekOf = normalizeToMonday(new Date());
 
   const [program, todayAdherence, currentResults, previousResults] = await Promise.all([
-    getPublishedTrainingProgram(user.id, provider.relationshipStartedAt),
+    getPublishedTrainingProgram(user.id, visibility),
     getTodayAdherence(user.id, todayDate),
     getExerciseResultsForWeek(user.id, weekOf),
     getPreviousExerciseResults(user.id, weekOf),

@@ -9,10 +9,13 @@ import { getLocalDate } from "@/lib/utils/date";
 import { SimpleMealPlan } from "@/components/client/simple-meal-plan";
 import { ExportPdfButton } from "@/components/ui/export-pdf-button";
 import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
+import { getPlanVisibility } from "@/lib/coach-client/plan-visibility";
 
 export default async function ClientMealPlanPage() {
   const user = await getCurrentDbUser();
   const provider = await getClientProvider(user.id);
+  // T-2060: the recorded-facts plan visibility rule (null for non-HUMAN).
+  const visibility = await getPlanVisibility(user.id, provider);
   if (provider.resolutionRequired) return <ProviderResolution />;
   if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={["plan"]} />;
 
@@ -45,8 +48,8 @@ export default async function ClientMealPlanPage() {
   const todayDate = getLocalDate(new Date(), tz);
 
   const [mealPlan, trainingProgram, todayAdherence] = await Promise.all([
-    getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt),
-    getPublishedTrainingProgram(user.id, provider.relationshipStartedAt),
+    getCurrentPublishedMealPlan(user.id, visibility),
+    getPublishedTrainingProgram(user.id, visibility),
     getTodayAdherence(user.id, todayDate),
   ]);
 
