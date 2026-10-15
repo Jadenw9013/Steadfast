@@ -40,11 +40,15 @@ export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}
     (clerkUser.publicMetadata?.role as string)?.toUpperCase() === "COACH";
   const activeRole = isCoach ? "COACH" : "CLIENT" as const;
 
-  // A matching email is not authorization to replace another account's Clerk identity in production,
-  // EXCEPT when the account was created as a placeholder (e.g. via bypass onboarding: "pending_...").
+  // A matching email is not authorization to replace another account's Clerk identity, EXCEPT for a
+  // "pending_" placeholder. T-2054: nothing creates those any more; this path stays only so a placeholder
+  // created by d045189 can still be claimed by the verified owner of its address.
   const existingByEmail = await db.user.findUnique({ where: { email } });
   if (existingByEmail && existingByEmail.clerkId !== userId) {
     if (existingByEmail.clerkId.startsWith("pending_")) {
+      if (existingByEmail.isDeactivated && !options.allowInactive) {
+        throw new Error("Account is pending deletion");
+      }
       const updatedUser = await db.user.update({
         where: { id: existingByEmail.id },
         data: {
