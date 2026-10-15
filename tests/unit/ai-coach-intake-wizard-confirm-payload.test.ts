@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAllergenDeclarations,
-  buildConfirmPayload,
+  buildConfirmPayload as buildConfirmPayloadUnpinned,
   createIntakeSelections,
   describeAllergenItem,
   intakeStepIssues,
@@ -17,9 +17,26 @@ import {
 } from "@/lib/ai-coach/intake-allergens";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
 
+/**
+ * T-2055: population and activity are never asked (G01 wording pending), so
+ * every confirm payload built in this file is pinned to both statuses UNKNOWN
+ * with neither value present.
+ */
+function buildConfirmPayload(selections: IntakeSelections) {
+  const payload = buildConfirmPayloadUnpinned(selections);
+  expect(payload.energyMethodPopulationCategoryStatus).toBe("UNKNOWN");
+  expect(payload.physicalActivityCategoryStatus).toBe("UNKNOWN");
+  expect(payload).not.toHaveProperty("energyMethodPopulationCategory");
+  expect(payload).not.toHaveProperty("physicalActivityCategory");
+  return payload;
+}
+
 function completeSelections(patch: Partial<IntakeSelections> = {}): IntakeSelections {
   return {
     goal: "FAT_LOSS",
+    // T-2055: an explicit "Undecided" answer, so UNDECIDED below still means
+    // the client chose it rather than a default.
+    goalPace: "UNDECIDED",
     experience: "INTERMEDIATE",
     trainingDaysPerWeek: 4,
     equipment: "HOME_DUMBBELLS",
@@ -626,5 +643,97 @@ describe("T-2028 r3 r2 NIT 6 — a stored preference the chips cannot show is ca
         },
       }).retainedDietaryPattern
     ).toBeUndefined();
+  });
+});
+
+describe("T-2055 item 1 — preferred pace for Fat Loss / Build Muscle", () => {
+  it.each([
+    ["FAT_LOSS", "GRADUAL", "LOSE"],
+    ["BUILD_MUSCLE", "MODERATE", "GAIN"],
+  ] as const)("%s + %s confirms the goal with the chosen pace", (goal, goalPace, intent) => {
+    const payload = buildConfirmPayload(completeSelections({ goal, goalPace }));
+    expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(true);
+    expect(payload).toMatchObject({
+      goal: "BODY_COMPOSITION",
+      goalStatus: "CONFIRMED",
+      bodyWeightIntent: intent,
+      goalPaceClass: goalPace,
+      weightNeutralAccepted: false,
+    });
+  });
+
+  it("fails closed to UNKNOWN when Fat Loss has no pace answer (never defaults UNDECIDED)", () => {
+    const payload = buildConfirmPayload(completeSelections({ goal: "FAT_LOSS", goalPace: undefined }));
+    expect(payload.goalStatus).toBe("UNKNOWN");
+    expect(payload).not.toHaveProperty("bodyWeightIntent");
+    expect(payload).not.toHaveProperty("goalPaceClass");
+    expect(payload).not.toHaveProperty("weightNeutralAccepted");
+  });
+
+  it("writes no pace for Strength even when a stale pace is held", () => {
+    const payload = buildConfirmPayload(completeSelections({ goal: "STRENGTH", goalPace: "GRADUAL" }));
+    expect(payload.goalStatus).toBe("UNKNOWN");
+    expect(payload).not.toHaveProperty("goalPaceClass");
+    expect(payload).not.toHaveProperty("bodyWeightIntent");
+  });
+
+  it("seeds pace only from a stored CONFIRMED Fat Loss / Build Muscle goal", () => {
+    expect(
+      createIntakeSelections({
+        goal: "BODY_COMPOSITION",
+        goalStatus: "CONFIRMED",
+        bodyWeightIntent: "LOSE",
+        goalPaceClass: "MODERATE",
+      }).goalPace
+    ).toBe("MODERATE");
+    expect(
+      createIntakeSelections({
+        goal: "BODY_COMPOSITION",
+        goalStatus: "UNKNOWN",
+        bodyWeightIntent: "LOSE",
+        goalPaceClass: "MODERATE",
+      }).goalPace
+    ).toBeUndefined();
+    expect(
+      createIntakeSelections({
+        goal: "BODY_COMPOSITION",
+        goalStatus: "CONFIRMED",
+        bodyWeightIntent: "LOSE",
+        goalPaceClass: "MAINTAIN",
+      }).goalPace
+    ).toBeUndefined();
+  });
+});
+
+describe("T-2055 item 4 — stored session bands round-trip (regression: fails on dba13a6)", () => {
+  const trainingSeed = (sessionLengthBand: string) => ({
+    trainingContextStatus: "CONFIRMED",
+    resistanceTrainingContext: "REGULAR",
+    sessionLengthBand,
+    trainingDaysPerWeek: 4,
+    equipmentAccess: ["HOME_BASIC"],
+  });
+
+  it.each(["OVER_90", "UNDER_30"] as const)("an untouched %s seed re-saves the same band", (band) => {
+    const selections = createIntakeSelections(trainingSeed(band));
+    const payload = buildConfirmPayload(completeSelections(stored(selections)));
+    expect(payload).toMatchObject({
+      trainingContextStatus: "CONFIRMED",
+      resistanceTrainingContext: "REGULAR",
+      sessionLengthBand: band,
+    });
+  });
+
+  it("an UNDER_30 seed leaves no step-2 issue", () => {
+    const selections = createIntakeSelections(trainingSeed("UNDER_30"));
+    expect(intakeStepIssues(1, selections, {}, false)).toEqual([]);
+  });
+
+  it("an OVER_90 seed where the client picks 45-60 saves MIN_45_60", () => {
+    const selections = createIntakeSelections(trainingSeed("OVER_90"));
+    const payload = buildConfirmPayload(
+      completeSelections({ ...stored(selections), sessionLength: "MIN_45_60" })
+    );
+    expect(payload.sessionLengthBand).toBe("MIN_45_60");
   });
 });
