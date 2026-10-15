@@ -133,7 +133,7 @@ export async function otherCoachEvidenceClientIds(client: DbClient): Promise<str
                      AND (lower(i.email) = lower(u.email) OR lower(i."mismatchEmail") = lower(u.email)))
        OR EXISTS (SELECT 1 FROM "CoachingRequest" r JOIN "CoachProfile" cp ON cp.id = r."coachProfileId"
                    WHERE r."prospectId" = s."clientId" AND r.status IN ('ACCEPTED', 'APPROVED') AND cp."userId" <> s."coachId")
-       OR EXISTS (SELECT 1 FROM "ClientIntake" x WHERE x."clientId" = s."clientId" AND x."coachId" <> s."coachId" AND x."sentAt" >= s."rowCreatedAt")
+       OR EXISTS (SELECT 1 FROM "ClientIntake" x WHERE x."clientId" = s."clientId" AND x."coachId" IS DISTINCT FROM s."coachId" AND x."sentAt" >= s."rowCreatedAt")
        OR EXISTS (SELECT 1 FROM "OnboardingResponse" x WHERE x."clientId" = s."clientId" AND x."coachId" <> s."coachId" AND x."createdAt" >= s."rowCreatedAt")
        OR EXISTS (SELECT 1 FROM "MealPlanUpload" x WHERE x."clientId" = s."clientId" AND x."coachId" <> s."coachId" AND x."createdAt" >= s."rowCreatedAt")
        OR EXISTS (SELECT 1 FROM "WorkoutImport" x WHERE x."clientId" = s."clientId" AND x."coachId" <> s."coachId" AND x."createdAt" >= s."rowCreatedAt")

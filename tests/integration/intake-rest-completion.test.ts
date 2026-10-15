@@ -54,6 +54,13 @@ const FULL_CI_ANSWERS: Record<string, string> = {
   currentDiet: "Three meals a day",
 };
 
+// The same answers as stored ClientIntake columns (T-2060 email tests).
+const FULL_CI_ANSWERS_FOR_DB = {
+  bodyweightLbs: 175, heightInches: 70, ageYears: 28, gender: "Male", primaryGoal: "Build muscle",
+  trainingExperience: "Beginner (0–1 year)", trainingDaysPerWeek: 4, gymAccess: "Full gym membership",
+  injuries: "None", dietaryRestrictions: "None", dietaryPreferences: "None", currentDiet: "Three meals a day",
+};
+
 // SYNTHETIC coach-authored template used for the IntakePacket branch.
 const COACH_SECTIONS = [
   {
@@ -446,7 +453,9 @@ suite("T-624 — intake REST completeness, clears and template", () => {
 
   // ── Existing behaviour unchanged ─────────────────────────────────────────
   it("still walks the happy path: section saves, then submit, one coach email", async () => {
-    const { intake, client } = await makeClientIntake();
+    const { intake, client, coach } = await makeClientIntake();
+    // T-2060: the completion email goes to the client's current human coach.
+    await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
 
     // section 1
     const s1 = await (
@@ -502,6 +511,28 @@ suite("T-624 — intake REST completeness, clears and template", () => {
     expect(current.status).toBe("COMPLETED");
     expect(current.intake.template.id).toBe("ci_default_template");
     expect(current.intake.answers).toEqual(body.answers);
+  });
+
+  it("T-2060: the completion email goes to the client's CURRENT coach (B), not the coach who sent the intake (A)", async () => {
+    const { intake, client, coach: a } = await makeClientIntake(FULL_CI_ANSWERS_FOR_DB);
+    const b = await makeUser({ isClient: false, isCoach: true });
+    await db.coachClient.create({ data: { coachId: b.id, clientId: client.id } });
+    const response = await submit(intake.id, []);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(Object.keys(body).sort()).toEqual(["answers", "completedAt", "id", "status", "template"]);
+    expect(body.status).toBe("COMPLETED");
+    expect(mail.sendEmail).toHaveBeenCalledTimes(1);
+    expect(mail.sendEmail.mock.calls[0][0].to).toBe(b.email);
+    expect(mail.sendEmail.mock.calls[0][0].to).not.toBe(a.email);
+  });
+
+  it("T-2060: a client with no provider (NONE) completes the intake and no email is sent", async () => {
+    const { intake } = await makeClientIntake(FULL_CI_ANSWERS_FOR_DB);
+    const response = await submit(intake.id, []);
+    expect(response.status).toBe(200);
+    expect((await response.json()).status).toBe("COMPLETED");
+    expect(mail.sendEmail).not.toHaveBeenCalled();
   });
 
   it("still notifies the coach exactly once on the packet branch", async () => {

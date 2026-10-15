@@ -15,6 +15,7 @@ import {
   toAnswersArray,
   unsignedDocumentIds,
 } from "@/lib/intake/completion";
+import { notifyCurrentCoachOfIntakeCompletion } from "@/lib/intake/notify-completion";
 
 // Submit carries the FULL answer set as a safety net (T-624): the client's
 // per-section saves may have been lost, so the payload is merged first and the
@@ -263,25 +264,11 @@ export async function POST(
 
     const updated = await db.clientIntake.findUnique({ where: { id } });
 
-    // Fire-and-forget coach notification email
-    try {
-      // T-2060: coachId is nullable (a sole-coach purge keeps the intake).
-      const coach = clientIntake.coachId
-        ? await db.user.findUnique({ where: { id: clientIntake.coachId }, select: { email: true } })
-        : null;
-      if (coach) {
-        const clientName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || user.email;
-        const { sendEmail } = await import("@/lib/email/sendEmail");
-        sendEmail({
-          to: coach.email,
-          subject: `${clientName} completed their intake`,
-          html: `<p><strong>${clientName}</strong> has submitted their intake questionnaire. <a href="${process.env.NEXT_PUBLIC_APP_URL}/coach/clients/${user.id}">Review it here</a>.</p>`,
-          text: `${clientName} has submitted their intake questionnaire.`,
-        }).catch(console.error);
-      }
-    } catch {
-      // Notification failure must not break the response
-    }
+    // Fire-and-forget coach notification email. T-2060: addressed to the
+    // client's CURRENT human coach (getClientProvider), never to
+    // ClientIntake.coachId, which may be a former coach or NULL. Runs after the
+    // write, outside any transaction, and never throws.
+    await notifyCurrentCoachOfIntakeCompletion(user);
 
     // Return IntakePacketData shape for iOS. As above, the `?? ` fallbacks are
     // type-satisfying guards on `findUnique`, not reachable states.

@@ -46,6 +46,7 @@ import { getClientProvider } from "@/lib/queries/client-provider";
 import { GET as clientHome } from "@/app/api/client/home/route";
 import { GET as clientMealPlan } from "@/app/api/client/meal-plan/current/route";
 import { GET as clientTraining } from "@/app/api/client/training/current/route";
+import { GET as intakeCurrent } from "@/app/api/intake/current/route";
 
 import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
@@ -201,10 +202,60 @@ suite("coach account purge reconciles each client's provider (T-2056)", () => {
       primaryGoal: "Keep this answer",
       bodyweightLbs: 170,
     });
-    // No other coach to re-home to: ClientIntake.coachId is a required FK to
-    // the deleted user, so the row still goes with the coach (needs a
-    // migration to keep; follow-up, see T-2056 Decisions).
-    expect(await db.clientIntake.findUnique({ where: { clientId: solo.id } })).toBeNull();
+    // T-2060 (decision 6): no other coach to re-home to, so the COMPLETED
+    // intake stays with the client, coachId NULL (it used to be deleted).
+    expect(await db.clientIntake.findUnique({ where: { clientId: solo.id } })).toMatchObject({
+      coachId: null,
+      status: "COMPLETED",
+      primaryGoal: "Solo",
+    });
     expect(await db.user.findUnique({ where: { id: coachA.id } })).toBeNull();
+  });
+
+  it("T-2060: sole-coach purge keeps a COMPLETED intake (coachId NULL), deletes unfinished and self intakes; the client still reads it; a later client purge removes it", async () => {
+    const coachA = await user({ coach: true, client: true, deactivated: true });
+    const completed = await user({ client: true });
+    const pending = await user({ client: true });
+    const inProgress = await user({ client: true });
+    await db.clientIntake.create({
+      data: { coachId: coachA.id, clientId: completed.id, status: "COMPLETED", completedAt: new Date(), primaryGoal: "Keep mine", bodyweightLbs: 160 },
+    });
+    await db.clientIntake.create({ data: { coachId: coachA.id, clientId: pending.id, status: "PENDING" } });
+    await db.clientIntake.create({ data: { coachId: coachA.id, clientId: inProgress.id, status: "IN_PROGRESS", startedAt: new Date() } });
+    // The coach's own self row (a dual-role coach who sent themself an intake).
+    await db.clientIntake.create({ data: { coachId: coachA.id, clientId: coachA.id, status: "COMPLETED" } });
+    for (const c of [completed, pending, inProgress]) {
+      await db.coachClient.create({ data: { coachId: coachA.id, clientId: c.id } });
+      await reconcileCoachingContextForClient(db, c.id);
+    }
+
+    await db.accountDeletionRequest.create({
+      data: { userId: coachA.id, roleAtRequest: "BOTH", status: "PURGING", purgeStartedAt: new Date(), scheduledPurgeAt: new Date(0) },
+    });
+    await purgeUserAccount(coachA.id);
+
+    expect(await db.clientIntake.findUnique({ where: { clientId: completed.id } })).toMatchObject({
+      coachId: null, status: "COMPLETED", primaryGoal: "Keep mine", bodyweightLbs: 160,
+    });
+    expect(await db.clientIntake.findUnique({ where: { clientId: pending.id } })).toBeNull();
+    expect(await db.clientIntake.findUnique({ where: { clientId: inProgress.id } })).toBeNull();
+    expect(await db.clientIntake.count({ where: { clientId: coachA.id } })).toBe(0);
+
+    // The coachless client still reads their own answers, and is not prompted.
+    mocks.authUserId = completed.clerkId;
+    const current = await intakeCurrent();
+    expect(current.status).toBe(200);
+    expect(await current.json()).toMatchObject({ status: "COMPLETED" });
+    const home = await clientHome();
+    expect(home.status).toBe(200);
+    expect((await home.json()).intakeStatus).toBe("COMPLETED");
+
+    // A later purge of that client removes the orphaned intake.
+    await db.user.update({ where: { id: completed.id }, data: { isDeactivated: true } });
+    await db.accountDeletionRequest.create({
+      data: { userId: completed.id, roleAtRequest: "CLIENT", status: "PURGING", purgeStartedAt: new Date(), scheduledPurgeAt: new Date(0) },
+    });
+    await purgeUserAccount(completed.id);
+    expect(await db.clientIntake.count({ where: { clientId: completed.id } })).toBe(0);
   });
 });

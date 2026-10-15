@@ -259,10 +259,8 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       // T-2056 (D6): an intake this user sent as a coach holds the client's own
       // answers. If the client has another coach, re-home the row to that coach
       // (the reconciled active one first, else the most recent) instead of
-      // deleting it. Reads key on clientId; coachId only addresses the
-      // completion email, which resendClientIntake already re-points the same
-      // way. With no other coach the row still goes: coachId is a required FK to
-      // this user (keeping it needs a migration, follow-up).
+      // deleting it. Reads key on clientId; nothing reads coachId for the
+      // completion email any more (T-2060: it goes to the current coach).
       await tx.$executeRaw`
     UPDATE "ClientIntake" ci SET "coachId" = next_coach."coachId", "updatedAt" = now()
     FROM (
@@ -273,6 +271,16 @@ export async function purgeUserAccount(userId: string): Promise<void> {
       ORDER BY cc."clientId", (ctx."id" IS NOT NULL) DESC, cc."createdAt" DESC
     ) next_coach
     WHERE ci."coachId" = ${userId} AND ci."clientId" = next_coach."clientId"
+  `;
+      // T-2060 (decision 6): with no other coach, a COMPLETED intake still
+      // holds the client's own answers ("you'll still have access to your own
+      // data"), so it stays with coachId NULL. Unfinished (PENDING/IN_PROGRESS)
+      // intakes and this user's own self row are still deleted, so a coachless
+      // client is never asked to finish a questionnaire for a coach who no
+      // longer exists. A later purge of the client deletes the row by clientId.
+      await tx.$executeRaw`
+    UPDATE "ClientIntake" SET "coachId" = NULL, "updatedAt" = now()
+     WHERE "coachId" = ${userId} AND "clientId" <> ${userId} AND "status" = 'COMPLETED'
   `;
       await tx.$executeRaw`DELETE FROM "ClientIntake" WHERE "coachId" = ${userId}`;
       // T-987: mismatchEmail is a *second* user's address stored on a *coach's*

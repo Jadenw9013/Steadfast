@@ -311,7 +311,8 @@ Steadfast/
 │   │   ├── episodes.ts                # T-2060: open/close the CoachClientEpisode in the caller's CoachClient create/delete transaction
 │   │   └── plan-visibility.ts         # T-2060: the client plan visibility rule (episodes + authorship) and its shared where-fragment
 │   ├── intake/
-│   │   └── completion.ts              # Shared intake answer merge + completeness rule (REST + action)
+│   │   ├── completion.ts              # Shared intake answer merge + completeness rule (REST + action)
+│   │   └── notify-completion.ts       # T-2060: intake completion email to the client's current human coach
 │   ├── ocr/
 │   │   └── google-vision.ts           # Google Cloud Vision OCR extraction
 │   ├── llm/
@@ -621,7 +622,7 @@ column existed (under `7ce26a4`) read `acceptedWithMismatch = false`; that means
 |---|---|
 | `OnboardingForm` | Coach-defined onboarding questionnaire (JSON questions) |
 | `OnboardingResponse` | Client's answers to onboarding form |
-| `ClientIntake` | Structured health/fitness intake (specific fields, not JSON) |
+| `ClientIntake` | Structured health/fitness intake (specific fields, not JSON). `coachId` is nullable since T-2060, and NULL only after a sole-coach account purge kept the client's COMPLETED answers; every read keys on `clientId`. The completion email goes to the client's current human coach (`lib/intake/notify-completion.ts`), never to `coachId` |
 | `IntakeFormTemplate` | Customizable intake form template per coach |
 | `IntakePacket` | Token-gated intake bundle (form + documents for leads). `formAnswers` can hold answers from two surfaces at once (flat keys from the app's REST saves, the nested `sections` shape from the web token form), so every writer merges through `mergePacketSubmission` / `mergePacketAnswers` in `lib/intake/completion.ts` rather than replacing it, and `/onboarding/intake/[token]` prefills from it. |
 | `IntakePacketDocument` | Documents included in an intake packet |
@@ -688,7 +689,10 @@ Every model above with a `User` foreign key has a purge line in
 rows still without an open episode gets its `BACKFILL` episode; the purged user's own client episodes are deleted;
 every episode they coached is closed (`COACH_ACCOUNT_DELETED`, keeping an earlier end and reason) and anonymised
 (`coachId` NULL), so the client keeps the fact that another provider existed; and `MealPlan`/`TrainingProgram`
-`publishedByCoachId` pointing at them is set to NULL (the plans are the client's and stay).
+`publishedByCoachId` pointing at them is set to NULL (the plans are the client's and stay). Intakes the purged coach
+sent: re-homed to the client's other coach when there is one (T-2056); otherwise a COMPLETED intake is kept with
+`coachId` NULL (decision 6) and PENDING/IN_PROGRESS rows and the coach's own self row are deleted. A later purge of
+that client deletes the orphaned intake by `clientId`.
 `scripts/purge-now.mjs` closes the coach's open episodes before its `CoachClient` delete and leaves the rest to the
 FKs (`CoachClientEpisode.coachId` SET NULL, `clientId` CASCADE; both `publishedByCoachId` SET NULL). Cases live in
 `tests/integration/coach-client-episodes.test.ts`.
@@ -899,7 +903,7 @@ release gate is off.
 | POST | `/api/client/connect-coach` | Redeem a `ClientInvite` by `coachCode` (its `inviteToken`), through the shared `acceptClientInviteForUser` service. Body: `{ coachCode: string, confirmDifferentEmail?: boolean }` (the second field is additive/optional). `200 { success: true }` on acceptance; `409 { success: false, error: "confirmation_required", message, invitedEmailHint, signedInAs, coachName }` when the invite was sent to an address not verified on the signed-in account and the caller has not yet confirmed it (T-987) — `invitedEmailHint` is masked (`maskEmail`), never the raw invited address; `409 { error: "already_connected" }`, `410 { error: "expired" }`, `403 { error: "invalid_code" }` (all other refusals), `404 { error: "invalid_code" }` (unknown token) unchanged. No live caller on the currently shipped iOS build (`connectCoach(code:)` is dead code as of T-987/T-964). |
 | GET | `/api/intake/current` | The client's current intake (IntakePacket first, then ClientIntake) with its template and answers. `intake.template` is never null. |
 | PUT | `/api/intake/[id]/answers` | Save one section's answers. Accepts `{ answers: [{ questionId, answer }] }` (the legacy `{ answers: { qid: value } }` object form still works); an `answer` that is empty or whitespace-only is an explicit clear — it deletes the key from `IntakePacket.formAnswers` and nulls the `ClientIntake` column, numeric columns included. A reserved `questionId` (`sections`, anything starting with `_`) is refused on write. On the `ClientIntake` branch a value that cannot be stored in its column (a non-numeric or out-of-range number) is refused with 422 `{ code: "ANSWER_UNSTORABLE", refusedQuestionIds }` before any write, for the whole request — dropping it and answering 200 read as a successful save whenever the column already held an older value. Returns the full `IntakePacketData` with a real `template`. |
-| POST | `/api/intake/[id]/submit` | Submit the intake. The optional body carries the full answer set (`{ answers: [{ questionId, answer }] }`) as a safety net; it is merged before any write. Returns 422 `{ code: "INTAKE_INCOMPLETE", missingQuestionIds }` if a required question is still empty **or** a value cannot be stored in its column (e.g. a non-numeric bodyweight, or a number outside the range its column can hold), 422 `{ code: "DOCUMENTS_UNSIGNED" }` if the packet still has an unsigned document attached (the same rule the web token submit applies, worded to send the client to the emailed intake link, since the app has no signing UI), and 409 if already submitted (race-safe conditional update). On the packet branch it also advances the lead's `consultationStage` to `INTAKE_SUBMITTED`, as the web token submit does, but only from a stage that is not already `ACTIVE` or `DECLINED`. `lib/intake/completion.ts` is the single source of truth for answer normalisation, merging and completeness, shared with the two routes above and with the `submitClientIntake` Server Action. |
+| POST | `/api/intake/[id]/submit` | Submit the intake. The optional body carries the full answer set (`{ answers: [{ questionId, answer }] }`) as a safety net; it is merged before any write. Returns 422 `{ code: "INTAKE_INCOMPLETE", missingQuestionIds }` if a required question is still empty **or** a value cannot be stored in its column (e.g. a non-numeric bodyweight, or a number outside the range its column can hold), 422 `{ code: "DOCUMENTS_UNSIGNED" }` if the packet still has an unsigned document attached (the same rule the web token submit applies, worded to send the client to the emailed intake link, since the app has no signing UI), and 409 if already submitted (race-safe conditional update). On the packet branch it also advances the lead's `consultationStage` to `INTAKE_SUBMITTED`, as the web token submit does, but only from a stage that is not already `ACTIVE` or `DECLINED`. `lib/intake/completion.ts` is the single source of truth for answer normalisation, merging and completeness, shared with the two routes above and with the `submitClientIntake` Server Action. On the ClientIntake branch the completion email goes to the client's current human coach from `getClientProvider` (`lib/intake/notify-completion.ts`, T-2060), after the write and outside any transaction; no email when the client has no human coach. The response is unchanged. |
 
 ### Coach-facing (`/api/coach/`)
 
