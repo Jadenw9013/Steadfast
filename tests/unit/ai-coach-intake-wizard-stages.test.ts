@@ -1,7 +1,13 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
-import { createIntakeSelections, IntakeWizard } from "@/components/ai-coach/intake-wizard";
+import { describe, expect, it, vi } from "vitest";
+import {
+  confirmAndRedirect,
+  createIntakeSelections,
+  IntakeWizard,
+} from "@/components/ai-coach/intake-wizard";
+import { canonicalDeclarations } from "@/lib/ai-coach/intake-allergens";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
 
 const noopAct = async (work: () => Promise<unknown>) => {
   await work();
@@ -201,6 +207,170 @@ describe("T-2028 four-step intake wizard rendering", () => {
   });
 });
 
+describe("T-2028 r2 review fixes — rendering", () => {
+  // Restores the regression deleted in 4135539 ("does not present missing
+  // safety answers as No"), rewritten for the four-step flow (finding 4).
+  it("does not present missing safety answers as No", () => {
+    const html = renderStage(null, 3, null, false);
+    const labels = [
+      "Chest pain during exercise",
+      "Dizziness or fainting",
+      "A known heart condition",
+      "Pregnant or postpartum",
+      "A recent injury or surgery",
+      "An age-related eligibility concern",
+      "An eating-disorder history or concern",
+      "Type 1 diabetes",
+    ];
+    const oneTap = html.indexOf("None of these apply</span>");
+    expect(oneTap).toBeGreaterThan(-1);
+    // Every condition is visible text before the one-tap No can be pressed.
+    for (const label of labels) {
+      const at = html.indexOf(label);
+      expect(at, label).toBeGreaterThan(-1);
+      expect(at, label).toBeLessThan(oneTap);
+    }
+    // Nothing is pre-answered: no safety control starts pressed.
+    const safetySection = html.slice(html.indexOf("Quick safety check"));
+    expect(safetySection).not.toContain('aria-pressed="true"');
+    expect(html).toMatch(/aria-describedby="intake-safety-conditions" aria-pressed="false"/);
+  });
+
+  it("finding 1: shows stored allergens no chip can express, read-only with an explicit Remove", () => {
+    const seed = {
+      ...fullV2ConfirmedIntake,
+      allergenDeclarations: {
+        status: "CONFIRMED",
+        noKnownAllergens: false,
+        items: [
+          {
+            category: "FISH",
+            specificity: "salmon",
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "YES",
+          },
+          {
+            category: "EGG",
+            specificity: null,
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "YES",
+          },
+          {
+            category: "TREE_NUT",
+            specificity: "cashew",
+            kind: "ALLERGY",
+            crossContactAvoidanceRequired: "YES",
+          },
+        ],
+      },
+    };
+    const html = renderStage(seed, 2);
+    expect(html).toContain("Also on file");
+    expect(html).toContain("Fish (salmon)");
+    expect(html).toContain('aria-label="Remove Fish (salmon)"');
+    expect(html).toContain('aria-label="Remove Egg"');
+    // The mapped chip keeps its stored detail visible.
+    expect(html).toContain("(cashew)");
+  });
+
+  it("finding 1: shows a stored mandatory dietary pattern as a requirement, not a blank choice", () => {
+    const html = renderStage(
+      {
+        ...fullV2ConfirmedIntake,
+        dietaryPattern: {
+          pattern: "VEGAN",
+          otherLabel: null,
+          mandatory: true,
+          reason: "RELIGIOUS_OR_ETHICAL",
+          status: "CONFIRMED",
+        },
+      },
+      2
+    );
+    expect(html).toContain("On file as a requirement:");
+    expect(html).toContain("<strong>Vegan</strong>");
+    expect(html).toContain("Remove requirement");
+  });
+
+  it("finding 5: repeats the pause warning on step 4 for a confirmed intake, not on a first pass", () => {
+    const resumed = renderStage(fullV2ConfirmedIntake, 3);
+    expect(resumed).toContain("Your intake is already confirmed.");
+    expect(resumed).toContain("nutrition recommendations are paused");
+    expect(renderStage(null, 3)).not.toContain("Your intake is already confirmed.");
+  });
+});
+
+describe("T-2028 r2 finding 1/5 — an untouched re-confirm re-sends what is stored", () => {
+  it("sends ALLERGIES and CONFIRM_INTAKE with declarations hash-equal to the confirmed ones", async () => {
+    const stored = {
+      status: "CONFIRMED",
+      noKnownAllergens: false,
+      items: [
+        {
+          category: "EGG",
+          specificity: null,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "MILK",
+          specificity: null,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "YES",
+        },
+        {
+          category: "FISH",
+          specificity: "salmon",
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "NO",
+        },
+      ],
+    };
+    const dietaryPattern = {
+      pattern: "LACTO_OVO_VEGETARIAN",
+      otherLabel: null,
+      mandatory: true,
+      reason: "MEDICAL_OR_CLINICIAN_DIRECTED",
+      status: "CONFIRMED",
+    };
+    const selections = createIntakeSelections({
+      ...fullV2ConfirmedIntake,
+      allergenDeclarations: stored,
+      dietaryPattern,
+    });
+    const command = vi.fn(async (input: Record<string, unknown>) => {
+      void input;
+      return {};
+    });
+
+    await confirmAndRedirect({
+      selections,
+      safetyAnswers: {},
+      needsSafetyDisclosure: false,
+      command,
+      redirect: vi.fn(),
+    });
+
+    const [allergies, confirm] = command.mock.calls.map(([input]) => input);
+    // The server's `newConcern` is exactly this comparison (client-commands.ts).
+    expect(contentHash(canonicalDeclarations(allergies.allergenDeclarations))).toBe(
+      contentHash(canonicalDeclarations(stored))
+    );
+    const answers = confirm.answers as Record<string, unknown>;
+    expect(contentHash(canonicalDeclarations(answers.allergenDeclarations))).toBe(
+      contentHash(canonicalDeclarations(stored))
+    );
+    expect(answers.dietaryPattern).toEqual(dietaryPattern);
+    expect(answers.dislikes).toEqual(fullV2ConfirmedIntake.dislikes);
+    expect(answers.cuisinePreferences).toEqual(fullV2ConfirmedIntake.cuisinePreferences);
+    expect(answers).toMatchObject({
+      trainingContextStatus: "CONFIRMED",
+      resistanceTrainingContext: "REGULAR",
+      sessionLengthBand: "MIN_45_60",
+    });
+  });
+});
+
 describe("T-2028 hydration preserves prior answers underneath a partial draft", () => {
   it("layers draft changes over the confirmed intake without emptying other steps", () => {
     const selections = createIntakeSelections({
@@ -260,5 +430,79 @@ describe("T-2008/S-33 the wizard resumes at the first incomplete stage by defaul
     const html = renderDefault(fullV2ConfirmedIntake);
     expect(html).toContain(STAGE_HEADINGS[3]);
     expect(html).toContain("4 / 4");
+  });
+});
+
+describe("T-2028 r3 — rendering", () => {
+  it("lead decision A: step 2 asks current strength training with exactly the contract options, none pre-selected", () => {
+    const html = renderStage(null, 1);
+    expect(html).toContain("Current strength training");
+    const section = html.slice(
+      html.indexOf("Current strength training"),
+      html.indexOf("Typical session length")
+    );
+    for (const label of ["None", "Occasional", "Regular"]) expect(section).toContain(label);
+    expect(section.match(/aria-pressed=/g)).toHaveLength(3);
+    expect(section).not.toContain('aria-pressed="true"');
+    // A stored CONFIRMED answer shows as selected.
+    const resumed = renderStage(fullV2ConfirmedIntake, 1);
+    const resumedSection = resumed.slice(
+      resumed.indexOf("Current strength training"),
+      resumed.indexOf("Typical session length")
+    );
+    expect(resumedSection.match(/aria-pressed="true"/g)).toHaveLength(1);
+  });
+
+  it("lead decision B: a v1 seed shows its allergy tokens under Also on file and its restrictions to keep or remove", () => {
+    const seed = {
+      ...v1ConfirmedIntake,
+      allergies: ["kiwi", "Gluten"],
+      dietaryRestrictions: ["vegan", "halal"],
+    };
+    const html = renderStage(seed, 2);
+    expect(html).toContain("Also on file");
+    expect(html).toContain('aria-label="Remove kiwi"');
+    expect(html).toContain("Dietary restrictions from your earlier answers");
+    expect(html).toContain("Keep as a requirement: Vegan");
+    expect(html).toContain('aria-label="Remove vegan"');
+    expect(html).toContain('aria-label="Remove halal"');
+    expect(html).toContain("cannot be kept as written");
+    // A confirmed v1 client is told that even an unchanged answer is recorded as new.
+    expect(html).toContain("saved in an earlier format");
+    expect(html).toContain("even if nothing changed");
+  });
+
+  it("lead decision B: a v1 token the contract cannot hold verbatim is shown with its own Remove", () => {
+    const html = renderStage({ ...v1ConfirmedIntake, allergies: [" padded "] }, 2);
+    expect(html).toContain("Earlier entries that cannot be saved as written");
+    expect(html).toContain('aria-label="Remove earlier entry padded"');
+  });
+
+  it("lead decision C: step 4 says every confirm cancels a plan being prepared, and no longer that unchanged answers avoid it", () => {
+    const html = renderStage(fullV2ConfirmedIntake, 3);
+    expect(html).toContain("Confirming again cancels any plan being");
+    expect(html).toContain("even if nothing changed");
+    expect(html).toContain("If you changed your allergy answers");
+    expect(html).not.toContain("do not trigger this");
+    expect(renderStage(v1ConfirmedIntake, 3)).toContain("saved in an earlier format");
+  });
+
+  it("r2 NIT 6: shows a stored preference the chips cannot express as on file, with a way to change it", () => {
+    const html = renderStage(
+      {
+        ...fullV2ConfirmedIntake,
+        dietaryPattern: {
+          pattern: "PESCATARIAN",
+          otherLabel: null,
+          mandatory: false,
+          reason: "PREFERENCE",
+          status: "CONFIRMED",
+        },
+      },
+      2
+    );
+    expect(html).toContain("On file as a preference: <strong>Pescatarian</strong>");
+    expect(html).toContain("Choose a different style");
+    expect(html).not.toContain("Remove requirement");
   });
 });
