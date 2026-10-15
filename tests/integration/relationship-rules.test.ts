@@ -1,0 +1,579 @@
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { randomUUID } from "node:crypto";
+import { NextRequest } from "next/server";
+
+/**
+ * T-2058 — relationship rules from RELATIONSHIP-AUDIT-2026-10-15-web.md.
+ *
+ *  - relationshipStartedAt is the strict current CoachClient.createdAt
+ *    (Rule R was withdrawn; T-2060 is the exact fix): a same-coach re-add does
+ *    not see pre-relink plans until the coach republishes, and a previous
+ *    coach's plan never surfaces (S3, A->B->A, A->AI->A, review probes P1-P7).
+ *  - D5: every removal path deletes the client's unpublished DRAFT meal
+ *    plans and training programs in the removal transaction.
+ *  - D7: coach-initiated removal moves an ACTIVE lead to the same stage on
+ *    web and iOS; the unread check is scoped to the asking coach.
+ *  - D8: the Clerk webhook never claims a deactivated pending_ placeholder.
+ */
+
+const auth = vi.hoisted(() => ({ user: null as unknown }));
+vi.mock("@/lib/auth/roles", () => ({
+  getCurrentDbUser: async () => {
+    if (!auth.user) throw new Error("Unauthorized");
+    return auth.user;
+  },
+}));
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: async () => ({ userId: null }),
+  currentUser: vi.fn(),
+  clerkClient: async () => ({ users: { deleteUser: async () => ({}) } }),
+}));
+// Account purge (review r1 P1-P3) runs for real; only its network edges are stubbed.
+vi.mock("@/lib/supabase/server", () => ({ createServiceClient: () => ({ storage: { from: () => ({ remove: async () => ({ error: null }) }) } }) }));
+vi.mock("@/lib/account-deletion/billing", () => ({ stopAccountBilling: async () => undefined }));
+vi.mock("@/lib/email/sendEmail", () => ({ sendEmail: vi.fn().mockResolvedValue({ success: true }) }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), unstable_cache: (fn: unknown) => fn }));
+const hook = vi.hoisted(() => ({ evt: null as unknown }));
+vi.mock("@clerk/nextjs/webhooks", () => ({ verifyWebhook: async () => hook.evt }));
+// Lets one test make the removal transaction fail after the drafts were
+// deleted, to prove the deletion rolls back with it.
+const fail = vi.hoisted(() => ({ reconcile: false }));
+vi.mock("@/lib/activation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/activation")>();
+  return {
+    ...actual,
+    reconcileCoachingContextForClient: async (...args: Parameters<typeof actual.reconcileCoachingContextForClient>) => {
+      if (fail.reconcile) throw new Error("T-2058 injected failure");
+      return actual.reconcileCoachingContextForClient(...args);
+    },
+  };
+});
+
+import { db } from "@/lib/db";
+import { acceptClientInviteForUser } from "@/lib/activation";
+import { removeClient, leaveCoach } from "@/app/actions/coach-client";
+import { DELETE as deleteClientRoute } from "@/app/api/coach/clients/[clientId]/route";
+import { getClientProvider } from "@/lib/queries/client-provider";
+import { getCurrentClientPlan } from "@/lib/queries/current-client-plan";
+import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
+import { getEffectiveMealPlanForReview } from "@/lib/queries/meal-plans";
+import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
+import { hasUnreadMessages } from "@/lib/queries/messages";
+import { activateLead } from "@/lib/leads/activate-lead";
+import { declineRequest, markContacted } from "@/app/actions/coaching-requests";
+import { GET as mealRoute } from "@/app/api/client/meal-plan/current/route";
+import { GET as trainingRoute } from "@/app/api/client/training/current/route";
+import { POST as clerkWebhook } from "@/app/api/webhooks/clerk/route";
+import { purgeUserAccount } from "@/lib/account-deletion/purge";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
+
+const enabled = process.env.SECURITY_INTEGRATION === "1";
+if (enabled) requireLocalTestDb();
+const suite = enabled ? describe : describe.skip;
+
+const DAY = 86_400_000;
+const ago = (days: number) => new Date(Date.now() - days * DAY);
+const WEEK = new Date("2026-05-04T00:00:00Z");
+
+type U = { id: string; email: string; clerkId: string };
+
+async function mk(kind: "coach" | "client"): Promise<U> {
+  const id = randomUUID();
+  return db.user.create({
+    data: {
+      clerkId: id,
+      email: `${kind}-${id}@example.test`,
+      isCoach: kind === "coach",
+      isClient: kind === "client",
+      activeRole: kind === "coach" ? "COACH" : "CLIENT",
+      firstName: kind,
+    },
+  });
+}
+
+async function invite(coachId: string, email: string, createdAt?: Date) {
+  return db.clientInvite.create({
+    data: { coachId, email, name: "c", expiresAt: new Date(Date.now() + 7 * DAY), ...(createdAt ? { createdAt } : {}) },
+  });
+}
+
+/** Real consent path: the client accepts the coach's invite. */
+async function link(coach: U, client: U, inviteCreatedAt?: Date) {
+  const inv = await invite(coach.id, client.email, inviteCreatedAt);
+  const r = await acceptClientInviteForUser(inv, client);
+  expect(r.success).toBe(true);
+  return inv;
+}
+
+/** Real web Server Action, signed in as the coach. */
+async function coachRemoves(coach: U, client: U) {
+  auth.user = { ...coach, activeRole: "COACH", isCoach: true };
+  await removeClient({ clientId: client.id });
+}
+
+async function publish(clientId: string, publishedAt: Date, version = 1) {
+  // One PUBLISHED row per client/week (meal) and per client (training): a
+  // later publication supersedes, as lib/meal-plans/publish.ts does.
+  await db.mealPlan.updateMany({ where: { clientId, status: "PUBLISHED" }, data: { status: "SUPERSEDED" } });
+  await db.trainingProgram.updateMany({ where: { clientId, status: "PUBLISHED" }, data: { status: "SUPERSEDED" } });
+  const meal = await db.mealPlan.create({
+    data: {
+      clientId, weekOf: WEEK, version, status: "PUBLISHED", publishedAt,
+      items: { create: [{ mealName: "Breakfast", foodName: "Oats", quantity: "1", unit: "cup" }] },
+    },
+  });
+  const program = await db.trainingProgram.create({ data: { clientId, weekOf: WEEK, status: "PUBLISHED", publishedAt } });
+  return { meal, program };
+}
+
+async function message(clientId: string, senderId: string, coachId: string | null, createdAt: Date) {
+  return db.message.create({ data: { clientId, senderId, coachId, weekOf: WEEK, body: "hi", createdAt } });
+}
+
+/** Everything the client can see on web and iOS: none of it may be `exclude`'s. */
+async function clientSees(client: U) {
+  auth.user = { ...client, isClient: true };
+  const provider = await getClientProvider(client.id);
+  // HUMAN origin: currentPlan is the { mealPlan, trainingProgram } pair.
+  const plan = (await getCurrentClientPlan(client.id)).currentPlan as
+    | { mealPlan: { id: string } | null; trainingProgram: { id: string } | null }
+    | null;
+  const meal = (await (await mealRoute()).json()) as { mealPlan: { id: string } | null };
+  const training = (await (await trainingRoute()).json()) as { trainingProgram: { id: string } | null };
+  const mealNames = (await getActiveMealNames(client.id, provider.relationshipStartedAt)).map((m) => m.mealName);
+  return {
+    provider,
+    webMealId: plan?.mealPlan?.id ?? null,
+    webProgramId: plan?.trainingProgram?.id ?? null,
+    iosMealId: meal.mealPlan?.id ?? null,
+    iosProgramId: training.trainingProgram?.id ?? null,
+    mealNames,
+  };
+}
+
+async function expectSeesNothing(client: U) {
+  const seen = await clientSees(client);
+  expect(seen.provider.origin).toBe("HUMAN");
+  expect({
+    webMealId: seen.webMealId, webProgramId: seen.webProgramId,
+    iosMealId: seen.iosMealId, iosProgramId: seen.iosProgramId, mealNames: seen.mealNames,
+  }).toEqual({ webMealId: null, webProgramId: null, iosMealId: null, iosProgramId: null, mealNames: [] });
+  return seen;
+}
+
+suite("T-2058 relationship rules", () => {
+  beforeEach(() => {
+    auth.user = null;
+    fail.reconcile = false;
+  });
+  afterAll(() => db.$disconnect());
+
+  // ── relationshipStartedAt: the strict CoachClient.createdAt bound ────────
+  // T-2058 withdrew Rule R (evidence-based widening) after review r2: it can be
+  // defeated by ordinary coach actions. The exact fix (relationship episode
+  // history + plan authorship) is T-2060. Until then the bound is the current
+  // CoachClient.createdAt, and these tests pin both sides of that rule.
+
+  describe("strict bound: same coach again (documented behaviour until T-2060)", () => {
+    it("S2: same coach removes then re-adds the client -> pre-relink plans stay hidden; republishing makes the plan visible", async () => {
+      const coach = await mk("coach"); const client = await mk("client");
+      await link(coach, client, ago(3));
+      await publish(client.id, ago(2));
+      await coachRemoves(coach, client);
+      await link(coach, client);
+
+      const seen = await expectSeesNothing(client);
+      const row = await db.coachClient.findUniqueOrThrow({ where: { coachId_clientId: { coachId: coach.id, clientId: client.id } } });
+      expect(seen.provider).toMatchObject({ coachId: coach.id, resolutionRequired: false });
+      expect(seen.provider.relationshipStartedAt?.getTime()).toBe(row.createdAt.getTime());
+
+      const { meal, program } = await publish(client.id, new Date(), 2);
+      expect(await clientSees(client)).toMatchObject({
+        webMealId: meal.id, webProgramId: program.id, iosMealId: meal.id, iosProgramId: program.id, mealNames: ["Breakfast"],
+      });
+    });
+
+    it("S10/C4 shape: legacy re-link (no context row) after a main-era coach message -> earlier plan hidden; republishing makes it visible", async () => {
+      const coach = await mk("coach"); const client = await mk("client");
+      await message(client.id, coach.id, null, ago(10));
+      await publish(client.id, ago(5));
+      const row = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+
+      const seen = await expectSeesNothing(client);
+      expect(seen.provider.relationshipStartedAt?.getTime()).toBe(row.createdAt.getTime());
+      const { meal, program } = await publish(client.id, new Date(), 2);
+      expect(await clientSees(client)).toMatchObject({ webMealId: meal.id, webProgramId: program.id, iosMealId: meal.id, iosProgramId: program.id });
+    });
+
+    it("single coach, never re-linked: a publication from before the relationship stays hidden", async () => {
+      const coach = await mk("coach"); const client = await mk("client");
+      await publish(client.id, ago(5));
+      await link(coach, client);
+      await expectSeesNothing(client);
+    });
+  });
+
+  describe("privacy: a previous coach's plan never surfaces (audit and review r1/r2 probes)", () => {
+    async function purgeCoach(coach: U) {
+      await db.user.update({ where: { id: coach.id }, data: { isDeactivated: true } });
+      const req = await db.accountDeletionRequest.create({ data: { userId: coach.id, roleAtRequest: "COACH", status: "PURGING", purgeStartedAt: new Date(), scheduledPurgeAt: new Date(0) } });
+      await purgeUserAccount(coach.id);
+      expect(await db.accountDeletionRequest.findUniqueOrThrow({ where: { id: req.id } })).toMatchObject({ status: "COMPLETED" });
+    }
+    async function leadFor(b: U, email: string, prospectId: string | null) {
+      const profile = await db.coachProfile.create({ data: { userId: b.id, slug: `t2058-${randomUUID()}` } });
+      return db.coachingRequest.create({ data: { coachProfileId: profile.id, prospectName: "P", prospectEmail: email, prospectEmailAddr: email, intakeAnswers: {}, status: "PENDING", consultationStage: "FORMS_SIGNED", prospectId } });
+    }
+    async function eraOneWithA(a: U, c: U) {
+      await link(a, c, ago(60));
+      await message(c.id, a.id, a.id, ago(59));
+      await coachRemoves(a, c);
+    }
+    const asCoach = (u: U) => { auth.user = { ...u, activeRole: "COACH", isCoach: true }; };
+
+    it("S3: client moves from A to B", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const client = await mk("client");
+      await link(a, client, ago(10));
+      await message(client.id, a.id, a.id, ago(9));
+      await publish(client.id, ago(5));
+      await coachRemoves(a, client);
+      await link(b, client);
+      expect((await expectSeesNothing(client)).provider.coachId).toBe(b.id);
+    });
+
+    it("S3: B invited while the client was still with A, A published after that invite", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const client = await mk("client");
+      await link(a, client, ago(10));
+      const bInvite = await invite(b.id, client.email, ago(6));
+      await publish(client.id, ago(3));
+      await coachRemoves(a, client);
+      expect((await acceptClientInviteForUser(bInvite, client)).success).toBe(true);
+      expect((await expectSeesNothing(client)).provider.coachId).toBe(b.id);
+    });
+
+    it("A -> B -> A, B linked by invite", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const client = await mk("client");
+      await link(a, client, ago(20));
+      await message(client.id, a.id, a.id, ago(19));
+      await publish(client.id, ago(18), 1);
+      await coachRemoves(a, client);
+      await link(b, client, ago(15));
+      await publish(client.id, ago(12), 2);
+      await coachRemoves(b, client);
+      await link(a, client);
+      expect((await expectSeesNothing(client)).provider.coachId).toBe(a.id);
+    });
+
+    it("A -> B -> A, B known only from a main-era message (coachId NULL)", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const client = await mk("client");
+      await message(client.id, a.id, null, ago(20));
+      await publish(client.id, ago(18), 1);
+      await message(client.id, b.id, null, ago(14));
+      await publish(client.id, ago(12), 2);
+      await db.coachClient.create({ data: { coachId: a.id, clientId: client.id } });
+      await expectSeesNothing(client);
+    });
+
+    it("A -> AI -> A", async () => {
+      const a = await mk("coach"); const client = await mk("client");
+      await link(a, client, ago(20));
+      await message(client.id, a.id, a.id, ago(19));
+      await publish(client.id, ago(18));
+      await coachRemoves(a, client);
+      await db.aiCoachProviderTransitionReceipt.create({
+        data: {
+          clientId: client.id, fromMode: "NONE", fromContextRevision: 1, toMode: "AI", toContextRevision: 2,
+          releaseId: "t2058", runtimeConfigurationDigest: "a".repeat(64), discoveryConfigurationId: "c",
+          discoveryConfigurationVersion: 1, privacyNoticeVersion: "v", consentTextDigest: "b".repeat(64), createdAt: ago(10),
+        },
+      });
+      await link(a, client);
+      await expectSeesNothing(client);
+    });
+
+    it("P1: A -> B -> A, B purges their account", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      await link(a, c, ago(40));
+      await message(c.id, a.id, a.id, ago(39));
+      await coachRemoves(a, c);
+      await link(b, c);
+      await publish(c.id, new Date(Date.now() - 1000));
+      await message(c.id, c.id, b.id, new Date(Date.now() - 900));
+      await coachRemoves(b, c);
+      await purgeCoach(b);
+      await link(a, c);
+      await expectSeesNothing(c);
+    });
+
+    it("P2: B -> A, A's invite issued while the client was with B, B purges", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      await link(b, c, ago(30));
+      await message(c.id, b.id, b.id, ago(29));
+      const early = await invite(a.id, c.email, ago(20));
+      await publish(c.id, ago(10));
+      await coachRemoves(b, c);
+      await purgeCoach(b);
+      expect((await acceptClientInviteForUser(early, c)).success).toBe(true);
+      await expectSeesNothing(c);
+    });
+
+    it("P3: T-2056 re-homed intake (coachId = A, sentAt from B's era), B purged", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      await link(b, c, ago(30));
+      await publish(c.id, ago(10));
+      await coachRemoves(b, c);
+      await link(a, c);
+      await db.clientIntake.create({ data: { clientId: c.id, coachId: a.id, sentAt: ago(25) } });
+      await purgeCoach(b);
+      await expectSeesNothing(c);
+    });
+
+    it("P3b: the same re-homed intake, no purge", async () => {
+      const a = await mk("coach"); const c = await mk("client");
+      await publish(c.id, ago(10));
+      await link(a, c);
+      await db.clientIntake.create({ data: { clientId: c.id, coachId: a.id, sentAt: ago(25) } });
+      await expectSeesNothing(c);
+    });
+
+    it("P4: B's only footprint is an old ACCEPTED lead and its in-place reissued invite", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      const profile = await db.coachProfile.create({ data: { userId: b.id, slug: `t2058-${randomUUID()}` } });
+      const lead = await db.coachingRequest.create({ data: { coachProfileId: profile.id, prospectName: "P", prospectEmail: c.email, prospectEmailAddr: c.email, intakeAnswers: {}, status: "ACCEPTED", consultationStage: "ACTIVE", prospectId: c.id, createdAt: ago(90) } });
+      await eraOneWithA(a, c);
+      const binv = await db.clientInvite.create({ data: { coachId: b.id, email: c.email, name: "c", requestId: lead.id, expiresAt: new Date(Date.now() + 7 * DAY), createdAt: ago(90) } });
+      expect((await acceptClientInviteForUser(binv, c)).success).toBe(true);
+      await publish(c.id, new Date(Date.now() - 1000));
+      await coachRemoves(b, c);
+      await link(a, c);
+      await expectSeesNothing(c);
+    });
+
+    it("P4 variant: lead-linked invite, lead later declined, client changed email", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      const lead = await leadFor(b, c.email, c.id);
+      await eraOneWithA(a, c);
+      const binv = await db.clientInvite.create({ data: { coachId: b.id, email: c.email, name: "c", requestId: lead.id, expiresAt: new Date(Date.now() + 7 * DAY), createdAt: ago(90) } });
+      expect((await acceptClientInviteForUser(binv, c)).success).toBe(true);
+      await db.coachingRequest.update({ where: { id: lead.id }, data: { status: "DECLINED" } });
+      await publish(c.id, new Date(Date.now() - 1000));
+      await coachRemoves(b, c);
+      const moved = await db.user.update({ where: { id: c.id }, data: { email: `moved-${randomUUID()}@example.test` } });
+      await link(a, moved);
+      await expectSeesNothing(moved);
+    });
+
+    it("P5: B re-activates its lead (invite reissued PENDING) then declines it", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      await eraOneWithA(a, c);
+      const lead = await leadFor(b, c.email, null);
+      expect((await activateLead({ requestId: lead.id, coachUserId: b.id, mode: "PIPELINE" })).ok).toBe(true);
+      const inv = await db.clientInvite.findUniqueOrThrow({ where: { requestId: lead.id } });
+      expect((await acceptClientInviteForUser(inv, c)).success).toBe(true);
+      await publish(c.id, new Date(Date.now() - 1000));
+      await coachRemoves(b, c);
+      expect((await activateLead({ requestId: lead.id, coachUserId: b.id, mode: "BYPASS" })).ok).toBe(true);
+      asCoach(b); await declineRequest(lead.id);
+      await link(a, c);
+      await expectSeesNothing(c);
+    });
+
+    it("P5b: same as P5 with markContacted instead of declineRequest", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      await eraOneWithA(a, c);
+      const lead = await leadFor(b, c.email, c.id);
+      expect((await activateLead({ requestId: lead.id, coachUserId: b.id, mode: "PIPELINE" })).ok).toBe(true);
+      const inv = await db.clientInvite.findUniqueOrThrow({ where: { requestId: lead.id } });
+      expect((await acceptClientInviteForUser(inv, c)).success).toBe(true);
+      await publish(c.id, new Date(Date.now() - 1000));
+      await coachRemoves(b, c);
+      expect((await activateLead({ requestId: lead.id, coachUserId: b.id, mode: "BYPASS" })).ok).toBe(true);
+      asCoach(b); await markContacted(lead.id);
+      await link(a, c);
+      await expectSeesNothing(c);
+    });
+
+    it("P6: mismatch-accepted lead invite, B reissues it (mismatchEmail cleared)", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      await eraOneWithA(a, c);
+      const lead = await leadFor(b, `work-${randomUUID()}@example.test`, null);
+      expect((await activateLead({ requestId: lead.id, coachUserId: b.id, mode: "PIPELINE" })).ok).toBe(true);
+      const inv = await db.clientInvite.findUniqueOrThrow({ where: { requestId: lead.id } });
+      expect((await acceptClientInviteForUser(inv, c, { confirmDifferentEmail: true })).success).toBe(true);
+      await publish(c.id, new Date(Date.now() - 1000));
+      await coachRemoves(b, c);
+      asCoach(b); await markContacted(lead.id);
+      expect((await activateLead({ requestId: lead.id, coachUserId: b.id, mode: "BYPASS" })).ok).toBe(true);
+      await link(a, c);
+      await expectSeesNothing(c);
+    });
+
+    it("P7: direct invite, then the client changes email", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const c = await mk("client");
+      await eraOneWithA(a, c);
+      await link(b, c);
+      await publish(c.id, new Date(Date.now() - 1000));
+      await coachRemoves(b, c);
+      const moved = await db.user.update({ where: { id: c.id }, data: { email: `changed-${randomUUID()}@example.test` } });
+      await link(a, moved);
+      await expectSeesNothing(moved);
+    });
+  });
+
+  // ── D5: drafts die with the relationship ─────────────────────────────────
+
+  describe("D5: removal deletes the client's unpublished drafts", () => {
+    async function withDrafts() {
+      const a = await mk("coach"); const client = await mk("client");
+      await link(a, client);
+      const draftWeek = new Date("2026-10-12T00:00:00Z");
+      const mealDraft = await db.mealPlan.create({ data: { clientId: client.id, weekOf: draftWeek, status: "DRAFT", supportContent: "A private notes" } });
+      const programDraft = await db.trainingProgram.create({
+        data: { clientId: client.id, weekOf: draftWeek, status: "DRAFT", days: { create: [{ dayName: "A day" }] } },
+      });
+      const published = await publish(client.id, new Date());
+      return { a, client, draftWeek, mealDraft, programDraft, published };
+    }
+
+    async function expectDraftsGoneHistoryKept(s: Awaited<ReturnType<typeof withDrafts>>) {
+      expect(await db.mealPlan.count({ where: { clientId: s.client.id, status: "DRAFT" } })).toBe(0);
+      expect(await db.trainingProgram.count({ where: { clientId: s.client.id, status: "DRAFT" } })).toBe(0);
+      expect(await db.mealPlan.findUnique({ where: { id: s.published.meal.id } })).toMatchObject({ status: "PUBLISHED" });
+      expect(await db.trainingProgram.findUnique({ where: { id: s.published.program.id } })).toMatchObject({ status: "PUBLISHED" });
+      // The next coach's workspaces open nothing of A's unpublished work.
+      const b = await mk("coach");
+      await link(b, s.client);
+      const meal = await getEffectiveMealPlanForReview({ coachId: b.id, clientId: s.client.id, weekOf: s.draftWeek });
+      expect(meal.source).not.toBe("draft");
+      expect(meal).not.toMatchObject({ supportContent: "A private notes" });
+      expect((await getTrainingProgramForReview(s.client.id, s.draftWeek))?.source).not.toBe("draft");
+    }
+
+    it("web removeClient (coach)", async () => {
+      const s = await withDrafts();
+      await coachRemoves(s.a, s.client);
+      await expectDraftsGoneHistoryKept(s);
+    });
+
+    it("iOS DELETE /api/coach/clients/[clientId] (coach)", async () => {
+      const s = await withDrafts();
+      auth.user = { ...s.a, activeRole: "COACH", isCoach: true };
+      const res = await deleteClientRoute(new NextRequest("http://localhost/api/coach/clients/x", { method: "DELETE" }), { params: Promise.resolve({ clientId: s.client.id }) });
+      expect(res.status).toBe(200);
+      await expectDraftsGoneHistoryKept(s);
+    });
+
+    it("web leaveCoach (client)", async () => {
+      const s = await withDrafts();
+      const row = await db.coachClient.findUniqueOrThrow({ where: { coachId_clientId: { coachId: s.a.id, clientId: s.client.id } } });
+      auth.user = { ...s.client, activeRole: "CLIENT", isClient: true };
+      await leaveCoach({ coachClientId: row.id });
+      await expectDraftsGoneHistoryKept(s);
+    });
+
+    it("rolls back with the removal: a failure later in the same transaction leaves the row and both drafts in place", async () => {
+      const s = await withDrafts();
+      fail.reconcile = true;
+      auth.user = { ...s.a, activeRole: "COACH", isCoach: true };
+      const res = await deleteClientRoute(new NextRequest("http://localhost/api/coach/clients/x", { method: "DELETE" }), { params: Promise.resolve({ clientId: s.client.id }) });
+      expect(res.status).toBe(500);
+      fail.reconcile = false;
+      expect(await db.coachClient.count({ where: { coachId: s.a.id, clientId: s.client.id } })).toBe(1);
+      expect(await db.mealPlan.findUnique({ where: { id: s.mealDraft.id } })).not.toBeNull();
+      expect(await db.trainingProgram.findUnique({ where: { id: s.programDraft.id } })).not.toBeNull();
+    });
+
+    it("a client still holding another relationship keeps their drafts (no authorship to tell whose they are)", async () => {
+      const s = await withDrafts();
+      const b = await mk("coach");
+      await db.coachClient.create({ data: { coachId: b.id, clientId: s.client.id } }); // legacy two-row shape
+      await coachRemoves(s.a, s.client);
+      expect(await db.mealPlan.findUnique({ where: { id: s.mealDraft.id } })).not.toBeNull();
+      expect(await db.trainingProgram.findUnique({ where: { id: s.programDraft.id } })).not.toBeNull();
+    });
+  });
+
+  // ── D7: lead stage parity, unread scope ──────────────────────────────────
+
+  describe("D7", () => {
+    async function activeLead() {
+      const coach = await mk("coach"); const client = await mk("client");
+      const profile = await db.coachProfile.create({ data: { userId: coach.id, slug: `t2058-${randomUUID()}` } });
+      await link(coach, client);
+      const lead = await db.coachingRequest.create({
+        data: {
+          coachProfileId: profile.id, prospectName: "P", prospectEmail: client.email, prospectEmailAddr: client.email,
+          intakeAnswers: {}, status: "ACCEPTED", consultationStage: "ACTIVE", prospectId: client.id,
+        },
+      });
+      return { coach, client, lead };
+    }
+    const leadRow = (id: string) => db.coachingRequest.findUniqueOrThrow({ where: { id }, select: { consultationStage: true, status: true } });
+
+    it("web removeClient and iOS DELETE leave the lead in the same state, and the coach can activate it again", async () => {
+      const web = await activeLead();
+      await coachRemoves(web.coach, web.client);
+      const ios = await activeLead();
+      auth.user = { ...ios.coach, activeRole: "COACH", isCoach: true };
+      const res = await deleteClientRoute(new NextRequest("http://localhost/api/coach/clients/x", { method: "DELETE" }), { params: Promise.resolve({ clientId: ios.client.id }) });
+      expect(res.status).toBe(200);
+
+      expect(await leadRow(web.lead.id)).toEqual({ consultationStage: "CONSULTATION_DONE", status: "ACCEPTED" });
+      expect(await leadRow(ios.lead.id)).toEqual(await leadRow(web.lead.id));
+      // "same coach again": the lead is not terminal, so the coach can re-activate it.
+      const again = await activateLead({ requestId: web.lead.id, coachUserId: web.coach.id, mode: "BYPASS" });
+      expect(again.ok).toBe(true);
+    });
+
+    it("client-initiated leaveCoach still declines the lead (unchanged)", async () => {
+      const s = await activeLead();
+      const row = await db.coachClient.findUniqueOrThrow({ where: { coachId_clientId: { coachId: s.coach.id, clientId: s.client.id } } });
+      auth.user = { ...s.client, activeRole: "CLIENT", isClient: true };
+      await leaveCoach({ coachClientId: row.id });
+      expect(await leadRow(s.lead.id)).toEqual({ consultationStage: "DECLINED", status: "DECLINED" });
+    });
+
+    it("hasUnreadMessages counts only the asking coach's conversation", async () => {
+      const a = await mk("coach"); const b = await mk("coach"); const client = await mk("client");
+      await message(client.id, client.id, a.id, ago(1)); // client -> A
+      expect(await hasUnreadMessages(client.id, WEEK, b.id)).toBe(false);
+      expect(await hasUnreadMessages(client.id, WEEK, a.id)).toBe(true);
+    });
+  });
+
+  // ── D8: webhook placeholder claim honours isDeactivated ──────────────────
+
+  describe("D8: Clerk webhook pending_ claim", () => {
+    async function placeholder(isDeactivated: boolean) {
+      const email = `placeholder-${randomUUID()}@example.test`;
+      return db.user.create({ data: { clerkId: `pending_${randomUUID()}`, email, isDeactivated } });
+    }
+    function created(clerkId: string, email: string) {
+      hook.evt = {
+        type: "user.created",
+        data: {
+          id: clerkId, first_name: "New", last_name: "Owner", public_metadata: {},
+          primary_email_address_id: "e1",
+          email_addresses: [{ id: "e1", email_address: email, verification: { status: "verified" } }],
+        },
+      };
+      return clerkWebhook(new NextRequest("http://localhost/api/webhooks/clerk", { method: "POST", body: "{}" }));
+    }
+
+    it("does not rebind a deactivated placeholder to the new Clerk identity", async () => {
+      const p = await placeholder(true);
+      const clerkId = `user_${randomUUID()}`;
+      await created(clerkId, p.email);
+      expect((await db.user.findUniqueOrThrow({ where: { id: p.id } })).clerkId).toBe(p.clerkId);
+      expect(await db.user.findUnique({ where: { clerkId } })).toBeNull();
+    });
+
+    it("still claims an active placeholder (regression)", async () => {
+      const p = await placeholder(false);
+      const clerkId = `user_${randomUUID()}`;
+      const res = await created(clerkId, p.email);
+      expect(res.status).toBe(200);
+      expect((await db.user.findUniqueOrThrow({ where: { id: p.id } })).clerkId).toBe(clerkId);
+    });
+  });
+});

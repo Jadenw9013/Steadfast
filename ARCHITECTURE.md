@@ -306,6 +306,8 @@ Steadfast/
 │   │   ├── adherence.ts               # Daily adherence queries
 │   │   ├── intake.ts                  # Intake packet queries
 │   │   └── ... (12 more)
+│   ├── coach-client/
+│   │   └── end-relationship.ts        # T-2058: the one CoachClient teardown (removeClient, leaveCoach, DELETE /api/coach/clients/[clientId])
 │   ├── intake/
 │   │   └── completion.ts              # Shared intake answer merge + completeness rule (REST + action)
 │   ├── ocr/
@@ -418,6 +420,13 @@ the first match wins.
 | 5 | AI offered, preparation paused | `rendersCoachingChooser` and the delivery state is not `"ENABLED"` | `<AiCoachingChooser />` with one neutral `role="status"` notice | each tab's existing NONE branch |
 | 6 | HUMAN assigned | `provider.origin === "HUMAN"` | today's client dashboard | the plan/training/meal-plan/check-in content |
 | 7 | No provider / offer, or ineligible/gates-closed (indistinguishable by design) | `origin === "NONE"`, `aiDiscovery === null`, `aiPreviewAvailable === false` | "Find Your Coach" | each tab's existing NONE branch |
+
+**`relationshipStartedAt` (strict bound).** For a HUMAN provider, client plan reads (web pages, `/api/client/home`,
+`/api/client/meal-plan/current`, `/api/client/training/current`, `/api/client/plan/current`, the daily checklist)
+show only publications at or after the current `CoachClient.createdAt`. A previous coach's plan therefore never
+surfaces. The cost is that a client removed and re-added by the **same** coach sees no plan until that coach
+publishes again. T-2058 tried widening the bound from evidence ("Rule R") and withdrew it, because ordinary coach
+actions could defeat it. The exact fix, relationship episode history plus plan authorship, is T-2060.
 
 A live discovery *offer* (row 4/5) is never a provider switch — only rows 2
 and 3 replace the client shell. `getGenerationDeliveryState()`
@@ -863,7 +872,7 @@ release gate is off.
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | `/api/coach/clients` | Client roster |
-| GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove |
+| GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove. DELETE calls `lib/coach-client/end-relationship.ts#endCoachClientRelationship`, the single teardown shared with the `removeClient` and `leaveCoach` Server Actions (T-2058). One transaction deletes the `CoachClient` row, deletes the client's unpublished `DRAFT` meal plans and training programs when no relationship remains (published history is kept), reconciles `ClientCoachingContext` and moves the coach's `ACTIVE` lead for that `prospectId` to `CONSULTATION_DONE` (status untouched, so the coach can re-activate it). A client leaving via `leaveCoach` sets the lead to `DECLINED`. Response unchanged: `{ success: true }`. |
 | GET/POST/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. Auth + zod wrapper only — `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork, shared with the `createDraftMealPlan` / `saveDraftMealPlan` Server Actions and with `/api/mealplans/import-plan`. GET also returns `clientPlanMode` (the `CoachClient.planMode` default) and `editorMode` (which editor the coach must render), both resolved by `lib/meal-plans/plan-mode.ts` — the single source of truth for coach editor-mode resolution, shared with the web query `getEffectiveMealPlanForReview`. Neither is `mealPlan.planMode`, which stays the published/draft row's own snapshot that clients read. |
 | POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Auth + zod wrapper only — `lib/meal-plans/publish.ts` is the single source of truth for the DRAFT→PUBLISHED transition, shared with the `publishMealPlan` Server Action and with `/api/mealplans/import-plan`. Rejections are `409` with `code` `PLAN_NOT_DRAFT`, `PUBLISH_RACE_LOST`, or `PLAN_EMPTY` (the plan has no content for its own `planMode`); `error` carries the user-facing sentence the Server Action throws verbatim. |
 | GET | `/api/coach/clients/[clientId]/meal-plan/history` | T-801 — paginated version history, `lib/meal-plans/history.ts` is the single source of truth, shared with the two routes below and the `restoreMealPlanVersion` Server Action. History is `PUBLISHED` + `SUPERSEDED` only (never `DRAFT` — an unpublished draft is work in progress, not a version the client ever saw); ordered `weekOf desc, publishedAt desc NULLS LAST, createdAt desc, version desc` so a legacy `SUPERSEDED` row from the pre-supersede-backfill era with a null `publishedAt` never floats above the week's live plan. Retention: kept forever, no pruning — rows are small and `lib/account-deletion/purge.ts` already deletes them by `clientId` with no status filter. |
