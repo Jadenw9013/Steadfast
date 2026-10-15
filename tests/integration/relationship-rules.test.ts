@@ -687,6 +687,10 @@ suite("T-2058 relationship rules", () => {
       let resStatus = 0;
       try {
         clerk.userId = b.clerkId;
+        // T-2069 added verifyCoachAccessToClient (mocked getCurrentDbUser) to
+        // this route; B is still linked at that point, so the race window
+        // still opens after both of the route's own checks.
+        auth.user = { ...b, activeRole: "COACH", isCoach: true };
         const res = await workoutImportRoute(new NextRequest("https://example.test/api/workout-import/import", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ draftId: wDraft.id, parsedJson: doc, saveAsTemplate: false, clientId: k.id, publish: true }),
