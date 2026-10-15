@@ -144,4 +144,16 @@ describe("activation helper contract", () => {
         expect(getActivationMessage("Test", linkedResult))
             .not.toBe(getActivationMessage("Test", inviteResult));
     });
+
+    it("linkOrInviteProspect accepts bypass options parameter", async () => {
+        const mod = await import("@/lib/activation");
+        expect(mod.linkOrInviteProspect.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it("produces correct roster message for bypass linked result", () => {
+        const bypassResult = { linked: true as const, clientId: "user_bypass", email: "client@test.com" };
+        const msg = getActivationMessage("Manuel", bypassResult);
+        expect(msg).toBe("Manuel has been activated and added to your roster.");
+    });
 });
+

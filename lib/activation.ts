@@ -40,6 +40,7 @@ export async function linkOrInviteProspect(
     requestId: string,
     /** Note to store on the CoachClient row (e.g. "Activated via pipeline bypass.") */
     coachNote: string = "Activated from coaching request.",
+    options?: { bypass?: boolean; intakeAnswers?: Record<string, string> | null },
 ): Promise<LinkResult> {
     const email = prospect.prospectEmailAddr ?? null;
     const phone = (prospect.prospectPhone ?? prospect.prospectEmail ?? "").replace(/\D/g, "");
@@ -117,6 +118,95 @@ export async function linkOrInviteProspect(
             expiresAt,
         },
     });
+
+    // If bypass is requested, also immediately establish the client User and CoachClient roster connection
+    // so the client is added directly to the active roster without waiting for invite redemption.
+    const isBypass = options?.bypass || coachNote.toLowerCase().includes("pipeline bypass");
+    if (isBypass) {
+        let clientUser = await db.user.findUnique({
+            where: { email: prospectEmail },
+            select: { id: true, email: true, firstName: true },
+        });
+
+        if (!clientUser) {
+            const nameParts = prospect.prospectName.trim().split(/\s+/);
+            const firstName = nameParts[0] || "Client";
+            const lastName = nameParts.slice(1).join(" ") || "";
+
+            clientUser = await db.user.create({
+                data: {
+                    email: prospectEmail,
+                    clerkId: `pending_${requestId}`,
+                    firstName,
+                    lastName,
+                    isClient: true,
+                    isCoach: false,
+                    activeRole: "CLIENT",
+                },
+                select: { id: true, email: true, firstName: true },
+            });
+        }
+
+        const existingConn = await db.coachClient.findUnique({
+            where: { coachId_clientId: { coachId: coach.coachId, clientId: clientUser.id } },
+        });
+        if (!existingConn) {
+            await db.coachClient.create({
+                data: {
+                    coachId: coach.coachId,
+                    clientId: clientUser.id,
+                    coachNotes: coachNote,
+                },
+            });
+        }
+
+        // Populate intake answers if available
+        let intakeData = options?.intakeAnswers;
+        if (!intakeData) {
+            const req = await db.coachingRequest.findUnique({
+                where: { id: requestId },
+                select: { intakeAnswers: true },
+            });
+            intakeData = (req?.intakeAnswers as Record<string, string>) || null;
+        }
+        if (intakeData && (intakeData.goals || intakeData.injuries || intakeData.experience)) {
+            await db.clientIntake.upsert({
+                where: { clientId: clientUser.id },
+                update: {
+                    status: "COMPLETED",
+                    completedAt: new Date(),
+                    primaryGoal: intakeData.goals || undefined,
+                    injuries: intakeData.injuries || undefined,
+                    trainingExperience: intakeData.experience || undefined,
+                },
+                create: {
+                    coachId: coach.coachId,
+                    clientId: clientUser.id,
+                    status: "COMPLETED",
+                    completedAt: new Date(),
+                    primaryGoal: intakeData.goals || undefined,
+                    injuries: intakeData.injuries || undefined,
+                    trainingExperience: intakeData.experience || undefined,
+                },
+            });
+        }
+
+        // Update coaching request with prospect link
+        await db.coachingRequest.update({
+            where: { id: requestId },
+            data: { prospectId: clientUser.id },
+        });
+
+        // Send invite email (fire-and-forget)
+        try {
+            const { clientActivatedInviteEmail } = await import("@/lib/email/templates");
+            const inviteUrl = `${appUrl}/invite/${invite.inviteToken}`;
+            const emailContent = clientActivatedInviteEmail(prospect.prospectName, coachName, inviteUrl);
+            await sendEmail({ to: prospectEmail, ...emailContent });
+        } catch { /* email must never block activation */ }
+
+        return { linked: true, clientId: clientUser.id, email: prospectEmail };
+    }
 
     // Send invite email (fire-and-forget)
     try {

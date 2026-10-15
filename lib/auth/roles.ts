@@ -40,9 +40,21 @@ export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}
     (clerkUser.publicMetadata?.role as string)?.toUpperCase() === "COACH";
   const activeRole = isCoach ? "COACH" : "CLIENT" as const;
 
-  // A matching email is not authorization to replace another account's Clerk identity.
+  // A matching email is not authorization to replace another account's Clerk identity in production,
+  // EXCEPT when the account was created as a placeholder (e.g. via bypass onboarding: "pending_...").
   const existingByEmail = await db.user.findUnique({ where: { email } });
   if (existingByEmail && existingByEmail.clerkId !== userId) {
+    if (existingByEmail.clerkId.startsWith("pending_")) {
+      const updatedUser = await db.user.update({
+        where: { id: existingByEmail.id },
+        data: {
+          clerkId: userId,
+          firstName: clerkUser.firstName ?? existingByEmail.firstName,
+          lastName: clerkUser.lastName ?? existingByEmail.lastName,
+        },
+      });
+      return updatedUser;
+    }
     throw new Error("An account with this email already exists. Sign in to that account or contact support.");
   }
 
