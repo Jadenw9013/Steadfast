@@ -432,3 +432,77 @@ describe("T-2008/S-33 the wizard resumes at the first incomplete stage by defaul
     expect(html).toContain("4 / 4");
   });
 });
+
+describe("T-2028 r3 — rendering", () => {
+  it("lead decision A: step 2 asks current strength training with exactly the contract options, none pre-selected", () => {
+    const html = renderStage(null, 1);
+    expect(html).toContain("Current strength training");
+    const section = html.slice(
+      html.indexOf("Current strength training"),
+      html.indexOf("Typical session length")
+    );
+    for (const label of ["None", "Occasional", "Regular"]) expect(section).toContain(label);
+    expect(section.match(/aria-pressed=/g)).toHaveLength(3);
+    expect(section).not.toContain('aria-pressed="true"');
+    // A stored CONFIRMED answer shows as selected.
+    const resumed = renderStage(fullV2ConfirmedIntake, 1);
+    const resumedSection = resumed.slice(
+      resumed.indexOf("Current strength training"),
+      resumed.indexOf("Typical session length")
+    );
+    expect(resumedSection.match(/aria-pressed="true"/g)).toHaveLength(1);
+  });
+
+  it("lead decision B: a v1 seed shows its allergy tokens under Also on file and its restrictions to keep or remove", () => {
+    const seed = {
+      ...v1ConfirmedIntake,
+      allergies: ["kiwi", "Gluten"],
+      dietaryRestrictions: ["vegan", "halal"],
+    };
+    const html = renderStage(seed, 2);
+    expect(html).toContain("Also on file");
+    expect(html).toContain('aria-label="Remove kiwi"');
+    expect(html).toContain("Dietary restrictions from your earlier answers");
+    expect(html).toContain("Keep as a requirement: Vegan");
+    expect(html).toContain('aria-label="Remove vegan"');
+    expect(html).toContain('aria-label="Remove halal"');
+    expect(html).toContain("cannot be kept as written");
+    // A confirmed v1 client is told that even an unchanged answer is recorded as new.
+    expect(html).toContain("saved in an earlier format");
+    expect(html).toContain("even if nothing changed");
+  });
+
+  it("lead decision B: a v1 token the contract cannot hold verbatim is shown with its own Remove", () => {
+    const html = renderStage({ ...v1ConfirmedIntake, allergies: [" padded "] }, 2);
+    expect(html).toContain("Earlier entries that cannot be saved as written");
+    expect(html).toContain('aria-label="Remove earlier entry padded"');
+  });
+
+  it("lead decision C: step 4 says every confirm cancels a plan being prepared, and no longer that unchanged answers avoid it", () => {
+    const html = renderStage(fullV2ConfirmedIntake, 3);
+    expect(html).toContain("Confirming again cancels any plan being");
+    expect(html).toContain("even if nothing changed");
+    expect(html).toContain("If you changed your allergy answers");
+    expect(html).not.toContain("do not trigger this");
+    expect(renderStage(v1ConfirmedIntake, 3)).toContain("saved in an earlier format");
+  });
+
+  it("r2 NIT 6: shows a stored preference the chips cannot express as on file, with a way to change it", () => {
+    const html = renderStage(
+      {
+        ...fullV2ConfirmedIntake,
+        dietaryPattern: {
+          pattern: "PESCATARIAN",
+          otherLabel: null,
+          mandatory: false,
+          reason: "PREFERENCE",
+          status: "CONFIRMED",
+        },
+      },
+      2
+    );
+    expect(html).toContain("On file as a preference: <strong>Pescatarian</strong>");
+    expect(html).toContain("Choose a different style");
+    expect(html).not.toContain("Remove requirement");
+  });
+});

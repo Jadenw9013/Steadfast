@@ -5,11 +5,16 @@ import {
   createIntakeSelections,
   describeAllergenItem,
   intakeStepIssues,
+  mandatoryPatternForLegacyRestriction,
   mapSelectionsToAnswers,
   type IntakeSelections,
 } from "@/components/ai-coach/intake-wizard";
 import { intakeDraftSchema, intakeV2ConfirmSchema } from "@/lib/ai-coach/intake-contract";
-import { canonicalDeclarations } from "@/lib/ai-coach/intake-allergens";
+import {
+  canonicalDeclarations,
+  deriveLegacyAllergyTokens,
+  deriveLegacyDietaryRestrictions,
+} from "@/lib/ai-coach/intake-allergens";
 import { contentHash } from "@/lib/ai-coach/canonical-json";
 
 function completeSelections(patch: Partial<IntakeSelections> = {}): IntakeSelections {
@@ -134,7 +139,7 @@ describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () 
     });
     const payload = buildConfirmPayload(
       completeSelections({
-        retainedResistanceTrainingContext: selections.retainedResistanceTrainingContext,
+        currentTraining: selections.currentTraining,
         sessionLength: "MIN_60_PLUS",
       })
     );
@@ -394,5 +399,232 @@ describe("T-2028 intuitive choices map into the frozen v2 confirm contract", () 
     expect(payload).not.toHaveProperty("dietaryRestrictions");
     expect(payload).not.toHaveProperty("capturedAt");
     expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(true);
+  });
+});
+
+describe("T-2028 r3 lead decision A — current-training question on step 2", () => {
+  it.each(["NONE", "OCCASIONAL", "REGULAR"] as const)(
+    "an answered %s makes the jointly governed pair CONFIRMED with the chosen session length",
+    (currentTraining) => {
+      const payload = buildConfirmPayload(completeSelections({ currentTraining }));
+      expect(payload).toMatchObject({
+        trainingContextStatus: "CONFIRMED",
+        resistanceTrainingContext: currentTraining,
+        sessionLengthBand: "MIN_45_60",
+      });
+      expect(intakeV2ConfirmSchema.safeParse(payload).success).toBe(true);
+    }
+  );
+
+  it("is required on step 2 and never inferred from the experience pill", () => {
+    expect(intakeStepIssues(1, completeSelections(), {}, false)).toEqual([
+      "Choose your current strength training.",
+    ]);
+    expect(intakeStepIssues(1, completeSelections({ currentTraining: "NONE" }), {}, false)).toEqual(
+      []
+    );
+    for (const experience of ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const)
+      expect(buildConfirmPayload(completeSelections({ experience })).trainingContextStatus).toBe(
+        "UNKNOWN"
+      );
+  });
+
+  it("seeds only a stored CONFIRMED answer", () => {
+    expect(
+      createIntakeSelections({ trainingContextStatus: "CONFIRMED", resistanceTrainingContext: "NONE" })
+        .currentTraining
+    ).toBe("NONE");
+    expect(
+      createIntakeSelections({ trainingContextStatus: "UNKNOWN", resistanceTrainingContext: "NONE" })
+        .currentTraining
+    ).toBeUndefined();
+  });
+});
+
+describe("T-2028 r3 lead decision B — v1-shaped intakes keep what the wizard cannot ask", () => {
+  const v1Seed = {
+    goal: "GENERAL_FITNESS",
+    experienceLevel: "NEW",
+    trainingDaysPerWeek: 3,
+    equipmentAccess: ["NONE"],
+    foodBudgetLevel: "LOW",
+    trackingPreference: "NUMBERS_VISIBLE",
+    unitsPreference: "METRIC",
+    allergies: ["kiwi", "peanut", "Gluten", "kiwi"],
+    dietaryRestrictions: ["vegan", "halal"],
+  };
+
+  it("carries every v1 allergy token as OTHER whose specificity is the identical token", () => {
+    const selections = createIntakeSelections(v1Seed);
+    // "Gluten" is the Gluten chip's own OTHER item, so it shows as that chip.
+    expect(selections.allergens).toEqual(["GLUTEN"]);
+    expect(selections.retainedAllergenItems).toEqual([
+      { category: "OTHER", specificity: "kiwi", kind: "ALLERGY", crossContactAvoidanceRequired: "UNSURE" },
+      { category: "OTHER", specificity: "peanut", kind: "ALLERGY", crossContactAvoidanceRequired: "UNSURE" },
+    ]);
+    expect(selections.unsavableLegacyAllergies).toEqual([]);
+
+    const declarations = buildAllergenDeclarations(selections);
+    // The legacy exclusion list the server derives is the identical v1 token set.
+    expect(deriveLegacyAllergyTokens(declarations)).toEqual(
+      [...new Set(v1Seed.allergies)].sort()
+    );
+  });
+
+  it("does not let None or an untouched pass drop a v1 allergy", () => {
+    const selections = createIntakeSelections(v1Seed);
+    const withNone = completeSelections({
+      ...stored(selections),
+      legacyDietaryRestrictions: [],
+      allergens: ["NONE"],
+    });
+    expect(intakeStepIssues(2, withNone, {}, false)).toContain(
+      "Remove the other allergens on file before choosing None."
+    );
+    expect(deriveLegacyAllergyTokens(buildAllergenDeclarations(withNone))).toEqual([
+      "kiwi",
+      "peanut",
+    ]);
+  });
+
+  it("holds a v1 token the contract cannot store verbatim apart, and blocks step 3 until it is removed", () => {
+    const tooLong = "x".repeat(81);
+    const selections = createIntakeSelections({
+      ...v1Seed,
+      allergies: ["kiwi", " padded ", tooLong, ""],
+      dietaryRestrictions: [],
+    });
+    expect(selections.unsavableLegacyAllergies).toEqual([" padded ", tooLong, ""]);
+    expect(deriveLegacyAllergyTokens(buildAllergenDeclarations(selections))).toEqual(["kiwi"]);
+    const merged = completeSelections({ ...stored(selections), allergens: [] });
+    expect(intakeStepIssues(2, merged, {}, false)).toEqual([
+      "Remove each earlier allergy entry that cannot be saved as written.",
+    ]);
+    expect(
+      intakeStepIssues(2, { ...merged, unsavableLegacyAllergies: [] }, {}, false)
+    ).toEqual([]);
+  });
+
+  it("never re-reads the derived allergies projection on a v2 row", () => {
+    const selections = createIntakeSelections({
+      allergies: ["UNVERIFIABLE_ALLERGEN_STATUS_NOT_CONFIRMED"],
+      allergenDeclarations: { status: "UNKNOWN", noKnownAllergens: false, items: [] },
+      dietaryRestrictions: ["VEGAN"],
+      dietaryPattern: {
+        pattern: "NONE_DECLARED",
+        otherLabel: null,
+        mandatory: false,
+        reason: "NOT_STATED",
+        status: "UNKNOWN",
+      },
+    });
+    expect(selections.retainedAllergenItems).toEqual([]);
+    expect(selections.unsavableLegacyAllergies).toEqual([]);
+    expect(selections.legacyDietaryRestrictions).toEqual([]);
+  });
+
+  it("shows v1 dietary restrictions until each is kept or removed, never defaulting one away", () => {
+    const selections = createIntakeSelections(v1Seed);
+    expect(selections.legacyDietaryRestrictions).toEqual(["vegan", "halal"]);
+    expect(selections.retainedDietaryPattern).toBeUndefined();
+
+    const untouched = completeSelections({ ...stored(selections), allergens: ["GLUTEN"] });
+    expect(intakeStepIssues(2, untouched, {}, false)).toEqual([
+      "Keep or remove each dietary restriction from your earlier answers.",
+    ]);
+
+    // Keep "vegan" as a requirement, remove "halal": both explicit.
+    const kept = mandatoryPatternForLegacyRestriction("vegan");
+    const resolved = completeSelections({
+      ...stored(selections),
+      allergens: ["GLUTEN"],
+      dietaryStyle: undefined,
+      retainedDietaryPattern: kept,
+      legacyDietaryRestrictions: [],
+    });
+    expect(intakeStepIssues(2, resolved, {}, false)).toEqual([]);
+    const payload = buildConfirmPayload(resolved);
+    expect(payload.dietaryPattern).toEqual({
+      pattern: "VEGAN",
+      otherLabel: null,
+      mandatory: true,
+      reason: "NOT_STATED",
+      status: "CONFIRMED",
+    });
+    expect(deriveLegacyAllergyTokens(payload.allergenDeclarations)).toEqual([
+      "Gluten",
+      "kiwi",
+      "peanut",
+    ]);
+  });
+
+  it.each([
+    ["vegan", "VEGAN"],
+    ["Vegan", "VEGAN"],
+    ["vegetarian", "VEGETARIAN"],
+    [" Vegetarian ", "VEGETARIAN"],
+  ])(
+    "keeping v1 restriction %j re-derives the same enforced legacy tag %s",
+    (token, tag) => {
+      const pattern = mandatoryPatternForLegacyRestriction(token);
+      expect(pattern?.mandatory).toBe(true);
+      // Same normalization the composer applies to the v1 token (composition-feasibility.ts).
+      expect(token.trim().toUpperCase().replace(/[\s-]+/g, "_")).toBe(tag);
+      expect(deriveLegacyDietaryRestrictions(pattern!)).toEqual([tag]);
+    }
+  );
+
+  it.each(["halal", "gluten-free", "dairy free", "pescatarian"])(
+    "offers no keep for v1 restriction %j, which has no v2 mandatory form",
+    (token) => {
+      expect(mandatoryPatternForLegacyRestriction(token)).toBeUndefined();
+    }
+  );
+});
+
+describe("T-2028 r3 r2 NIT 6 — a stored preference the chips cannot show is carried", () => {
+  it("keeps a non-mandatory PESCATARIAN pattern verbatim instead of forcing a re-pick", () => {
+    const pescatarian = {
+      pattern: "PESCATARIAN",
+      otherLabel: null,
+      mandatory: false,
+      reason: "PREFERENCE",
+      status: "CONFIRMED",
+    } as const;
+    const selections = createIntakeSelections({ dietaryPattern: pescatarian });
+    expect(selections.dietaryStyle).toBeUndefined();
+    expect(selections.retainedDietaryPattern).toEqual(pescatarian);
+    const merged = completeSelections({
+      ...stored(selections),
+      dietaryStyle: undefined,
+      allergens: ["NONE"],
+    });
+    expect(intakeStepIssues(2, merged, {}, false)).toEqual([]);
+    expect(buildConfirmPayload(merged).dietaryPattern).toEqual(pescatarian);
+  });
+
+  it("still maps a chip-shaped preference to its chip, and carries no unanswered pattern", () => {
+    expect(
+      createIntakeSelections({
+        dietaryPattern: {
+          pattern: "OTHER",
+          otherLabel: "Low carb",
+          mandatory: false,
+          reason: "PREFERENCE",
+          status: "CONFIRMED",
+        },
+      })
+    ).toMatchObject({ dietaryStyle: "LOW_CARB", retainedDietaryPattern: undefined });
+    expect(
+      createIntakeSelections({
+        dietaryPattern: {
+          pattern: "NONE_DECLARED",
+          otherLabel: null,
+          mandatory: false,
+          reason: "NOT_STATED",
+          status: "UNKNOWN",
+        },
+      }).retainedDietaryPattern
+    ).toBeUndefined();
   });
 });

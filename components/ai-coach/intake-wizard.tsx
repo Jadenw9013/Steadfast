@@ -27,6 +27,8 @@ type GoalChoice = "FAT_LOSS" | "BUILD_MUSCLE" | "STRENGTH" | "GENERAL_FITNESS";
 type ExperienceChoice = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 type EquipmentChoice = "BODYWEIGHT" | "HOME_DUMBBELLS" | "FULL_GYM";
 type SessionLengthChoice = "MIN_30_45" | "MIN_45_60" | "MIN_60_PLUS";
+/** Exactly the contract enum for `resistanceTrainingContext`; no other category exists. */
+type CurrentTrainingChoice = NonNullable<IntakeV2ConfirmAnswers["resistanceTrainingContext"]>;
 type DietaryStyleChoice = "BALANCED" | "HIGH_PROTEIN" | "PLANT_BASED" | "LOW_CARB";
 type TrackingStyleChoice = "PORTIONS" | "EXACT_MACROS";
 type FoodBudgetChoice = "LOW" | "MODERATE" | "FLEXIBLE";
@@ -51,6 +53,13 @@ export interface IntakeSelections {
   trainingDaysPerWeek?: number;
   equipment?: EquipmentChoice;
   sessionLength?: SessionLengthChoice;
+  /**
+   * T-2028 r3 (r2 finding 2, lead decision A) — the client's own answer to the
+   * current-training question on step 2. Seeded only from a stored CONFIRMED
+   * answer; never inferred from the experience pill. The jointly governed
+   * pair (this + session length) is CONFIRMED only when both are answered.
+   */
+  currentTraining?: CurrentTrainingChoice;
   dietaryStyle?: DietaryStyleChoice;
   trackingStyle?: TrackingStyleChoice;
   foodBudgetLevel?: FoodBudgetChoice;
@@ -67,9 +76,26 @@ export interface IntakeSelections {
    */
   allergenSource?: AllergenDeclarations;
   retainedAllergenItems?: AllergenDeclaration[];
+  /**
+   * A stored dietary pattern the four chips cannot show: every mandatory
+   * pattern (a hard exclusion), and since r3 (r2 NIT 6) any CONFIRMED
+   * preference no chip maps to. Carried verbatim until explicitly removed.
+   */
   retainedDietaryPattern?: DietaryPattern;
-  /** Finding 2 — only a previously stated current-training answer, never inferred. */
-  retainedResistanceTrainingContext?: IntakeV2ConfirmAnswers["resistanceTrainingContext"];
+  /**
+   * T-2028 r3 (r2 finding 1, lead decision B) — v1 free-text
+   * `dietaryRestrictions` still waiting for the client to keep or remove each
+   * one. Step 3 cannot be completed while any remain, so none is dropped
+   * without an explicit choice.
+   */
+  legacyDietaryRestrictions?: string[];
+  /**
+   * v1 free-text allergy tokens that cannot be carried as an OTHER declaration
+   * whose specificity is the identical token (blank, padded or over the
+   * contract's 80 characters). Shown, and step 3 is blocked until each is
+   * explicitly removed.
+   */
+  unsavableLegacyAllergies?: string[];
   /** Finding 8b — values entered elsewhere (iOS / T-2024) that this flow does not ask. */
   dislikes?: IntakeV2ConfirmAnswers["dislikes"];
   cuisinePreferences?: IntakeV2ConfirmAnswers["cuisinePreferences"];
@@ -87,6 +113,12 @@ const SAFETY_FIELDS: { key: SafetyKey; label: string }[] = [
   { key: "eatingDisorderHistoryOrConcern", label: "An eating-disorder history or concern" },
   { key: "type1Diabetes", label: "Type 1 diabetes" },
 ];
+
+const CURRENT_TRAINING_OPTIONS = [
+  { value: "NONE", label: "None" },
+  { value: "OCCASIONAL", label: "Occasional" },
+  { value: "REGULAR", label: "Regular" },
+] satisfies { value: CurrentTrainingChoice; label: string }[];
 
 const EMPTY_ALLERGEN_DECLARATIONS: AllergenDeclarations = {
   status: "UNKNOWN",
@@ -323,10 +355,90 @@ function unmappedAllergenItems(declarations?: AllergenDeclarations): AllergenDec
 
 function retainedDietaryPatternFromSeed(seed: Answers): DietaryPattern | undefined {
   const parsed = dietaryPatternSchema.safeParse(seed.dietaryPattern);
+  if (!parsed.success) return undefined;
   // A mandatory pattern is a hard exclusion (`deriveLegacyDietaryRestrictions`
   // only emits tokens for mandatory patterns). The chips are preferences
   // only, so a mandatory pattern is kept verbatim until explicitly removed.
-  return parsed.success && parsed.data.mandatory ? parsed.data : undefined;
+  if (parsed.data.mandatory) return parsed.data;
+  // r2 NIT 6: a confirmed preference no chip can show (e.g. PESCATARIAN
+  // written by T-2024 or iOS) is carried, not blanked into a forced re-pick.
+  if (parsed.data.status === "CONFIRMED" && dietaryStyleFromSeed(seed) === undefined)
+    return parsed.data;
+  return undefined;
+}
+
+/**
+ * T-2028 r3 (r2 finding 1, lead decision B) — v1 free-text allergies.
+ *
+ * Only read when the seed has no v2 `allergenDeclarations` (on a v2 row the
+ * `allergies` array is the server's derived projection, not an answer). Each
+ * token becomes `{category: OTHER, specificity: <token>}`, and
+ * `deriveLegacyAllergyTokens` maps OTHER straight back to its specificity, so
+ * the legacy exclusion list is the identical token set. Kind ALLERGY and
+ * cross-contact UNSURE assert nothing the client did not say. A token the
+ * contract cannot hold verbatim is returned separately, never altered.
+ */
+function legacyAllergiesFromSeed(seed: Answers): {
+  declarations?: AllergenDeclarations;
+  unsavable: string[];
+} {
+  if (seed.allergenDeclarations !== undefined || !Array.isArray(seed.allergies))
+    return { unsavable: [] };
+  const items: AllergenDeclaration[] = [];
+  const unsavable: string[] = [];
+  for (const token of new Set(seed.allergies.filter((t): t is string => typeof t === "string"))) {
+    const parsed = allergenDeclarationsSchema.safeParse({
+      status: "CONFIRMED",
+      noKnownAllergens: false,
+      items: [
+        {
+          category: "OTHER",
+          specificity: token,
+          kind: "ALLERGY",
+          crossContactAvoidanceRequired: "UNSURE",
+        },
+      ],
+    });
+    if (parsed.success && parsed.data.items[0].specificity === token)
+      items.push(parsed.data.items[0]);
+    else unsavable.push(token);
+  }
+  return {
+    declarations:
+      items.length > 0 ? { status: "CONFIRMED", noKnownAllergens: false, items } : undefined,
+    unsavable,
+  };
+}
+
+/** v1 free-text dietary restrictions, read only when no v2 `dietaryPattern` exists. */
+function legacyDietaryRestrictionsFromSeed(seed: Answers): string[] {
+  if (seed.dietaryPattern !== undefined || !Array.isArray(seed.dietaryRestrictions)) return [];
+  return [
+    ...new Set(
+      seed.dietaryRestrictions.filter(
+        (token): token is string => typeof token === "string" && token.trim().length > 0
+      )
+    ),
+  ];
+}
+
+/**
+ * The v2 mandatory pattern that re-derives the same enforced legacy tag
+ * (`deriveLegacyDietaryRestrictions`) as a v1 restriction token, under the
+ * composer's own normalization (`composition-feasibility.ts`
+ * `normalizeFreeText`). Only VEGAN and VEGETARIAN have one; every other v1
+ * token has no v2 representation and can only be removed.
+ */
+export function mandatoryPatternForLegacyRestriction(token: string): DietaryPattern | undefined {
+  const normalized = token.trim().toUpperCase().replace(/[\s-]+/g, "_");
+  const pattern =
+    normalized === "VEGAN"
+      ? "VEGAN"
+      : normalized === "VEGETARIAN"
+        ? "LACTO_OVO_VEGETARIAN"
+        : undefined;
+  if (!pattern) return undefined;
+  return { pattern, otherLabel: null, mandatory: true, reason: "NOT_STATED", status: "CONFIRMED" };
 }
 
 function seededList<K extends "dislikes" | "cuisinePreferences">(
@@ -339,10 +451,11 @@ function seededList<K extends "dislikes" | "cuisinePreferences">(
 
 export function createIntakeSelections(seed: Answers, today = localDateString()): IntakeSelections {
   const parsedDeclarations = allergenDeclarationsSchema.safeParse(seed.allergenDeclarations);
+  const legacyAllergies = legacyAllergiesFromSeed(seed);
   const sourceAllergenDeclarations = parsedDeclarations.success
     ? parsedDeclarations.data
-    : undefined;
-  const retainedContext =
+    : legacyAllergies.declarations;
+  const currentTraining =
     seed.trainingContextStatus === "CONFIRMED" &&
     (seed.resistanceTrainingContext === "NONE" ||
       seed.resistanceTrainingContext === "OCCASIONAL" ||
@@ -353,7 +466,9 @@ export function createIntakeSelections(seed: Answers, today = localDateString())
     allergenSource: sourceAllergenDeclarations,
     retainedAllergenItems: unmappedAllergenItems(sourceAllergenDeclarations),
     retainedDietaryPattern: retainedDietaryPatternFromSeed(seed),
-    retainedResistanceTrainingContext: retainedContext,
+    legacyDietaryRestrictions: legacyDietaryRestrictionsFromSeed(seed),
+    unsavableLegacyAllergies: legacyAllergies.unsavable,
+    currentTraining,
     dislikes: seededList(seed, "dislikes"),
     cuisinePreferences: seededList(seed, "cuisinePreferences"),
     goal: goalFromSeed(seed),
@@ -564,9 +679,9 @@ export function mapSelectionsToAnswers(selections: IntakeSelections): Answers {
   const goal = mappedGoal(selections.goal);
   const experienceLevel = mappedExperience(selections.experience);
   const equipmentAccess = mappedEquipment(selections.equipment);
-  // Finding 2: the experience pill is not a current-training answer. Only a
-  // previously confirmed answer is carried; otherwise the pair stays UNKNOWN.
-  const resistanceTrainingContext = selections.retainedResistanceTrainingContext;
+  // Finding 2 / lead decision A: only the client's own answer to the
+  // current-training question, never inferred from the experience pill.
+  const resistanceTrainingContext = selections.currentTraining;
   const sessionLengthBand = mappedSessionLength(selections.sessionLength);
   const goalDetails = mappedGoalDetails(selections.goal);
   const hasBodyMeasurements =
@@ -660,6 +775,7 @@ export function intakeStepIssues(
   if (stage === 1) {
     if (!selections.trainingDaysPerWeek) issues.push("Choose your training days.");
     if (!selections.equipment) issues.push("Choose your equipment setup.");
+    if (!selections.currentTraining) issues.push("Choose your current strength training.");
     if (!selections.sessionLength) issues.push("Choose a session length.");
   }
   if (stage === 2) {
@@ -672,6 +788,10 @@ export function intakeStepIssues(
       issues.push("Choose any allergens, or choose None.");
     if (selections.allergens.includes("NONE") && retainedAllergens > 0)
       issues.push("Remove the other allergens on file before choosing None.");
+    if ((selections.legacyDietaryRestrictions?.length ?? 0) > 0)
+      issues.push("Keep or remove each dietary restriction from your earlier answers.");
+    if ((selections.unsavableLegacyAllergies?.length ?? 0) > 0)
+      issues.push("Remove each earlier allergy entry that cannot be saved as written.");
   }
   if (stage === 3) {
     if (
@@ -921,6 +1041,11 @@ export function IntakeWizard({
   // run, and only an authorized reviewer can lift it. Say so before the
   // client changes anything rather than after.
   const intakeAlreadyConfirmed = view.confirmedIntake !== null;
+  // The server compares a v2 ALLERGIES send against the confirmed
+  // `allergenDeclarations`, or EMPTY when the confirmed intake predates them,
+  // so for such a client even an unchanged answer is recorded as new.
+  const allergiesInEarlierFormat =
+    intakeAlreadyConfirmed && record(view.confirmedIntake).allergenDeclarations === undefined;
 
   const update = (patch: Partial<IntakeSelections>) =>
     setSelections((current) => ({ ...current, ...patch }));
@@ -1159,6 +1284,14 @@ export function IntakeWizard({
             </fieldset>
 
             <ChoicePills
+              label="Current strength training"
+              hint="How much resistance or strength training you do at the moment."
+              value={selections.currentTraining}
+              options={CURRENT_TRAINING_OPTIONS}
+              onChange={(value) => update({ currentTraining: value as CurrentTrainingChoice })}
+            />
+
+            <ChoicePills
               label="Typical session length"
               hint="Total workout duration including warm-up."
               value={selections.sessionLength}
@@ -1207,6 +1340,64 @@ export function IntakeWizard({
               </p>
             </div>
 
+            {(selections.legacyDietaryRestrictions?.length ?? 0) > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-zinc-200">
+                  Dietary restrictions from your earlier answers
+                </p>
+                <p className="text-xs text-zinc-400">
+                  Keep or remove each one before continuing. Nothing here is changed for you.
+                </p>
+                <ul className="space-y-2">
+                  {selections.legacyDietaryRestrictions?.map((token) => {
+                    const keepAs = mandatoryPatternForLegacyRestriction(token);
+                    const resolve = (patch: Partial<IntakeSelections> = {}) =>
+                      update({
+                        ...patch,
+                        legacyDietaryRestrictions: selections.legacyDietaryRestrictions?.filter(
+                          (pending) => pending !== token
+                        ),
+                      });
+                    return (
+                      <li
+                        key={token}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                      >
+                        <span>
+                          <strong>{token}</strong>
+                          {!keepAs && (
+                            <span className="mt-1 block text-xs text-zinc-400">
+                              This earlier entry cannot be kept as written. If it still applies,
+                              choose the matching option on this step.
+                            </span>
+                          )}
+                        </span>
+                        <span className="flex flex-wrap gap-2">
+                          {keepAs && !selections.retainedDietaryPattern && (
+                            <button
+                              type="button"
+                              className={`${button} cursor-pointer`}
+                              onClick={() => resolve({ retainedDietaryPattern: keepAs })}
+                            >
+                              Keep as a requirement: {DIETARY_PATTERN_LABELS[keepAs.pattern]}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className={`${button} cursor-pointer`}
+                            aria-label={`Remove ${token}`}
+                            onClick={() => resolve()}
+                          >
+                            Remove
+                          </button>
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
             {selections.retainedDietaryPattern ? (
               <div className="space-y-2.5">
                 <p className="text-sm font-semibold text-zinc-200">Dietary style</p>
@@ -1215,20 +1406,26 @@ export function IntakeWizard({
                   className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
                 >
                   <p>
-                    On file as a requirement:{" "}
+                    {selections.retainedDietaryPattern.mandatory
+                      ? "On file as a requirement: "
+                      : "On file as a preference: "}
                     <strong>
                       {selections.retainedDietaryPattern.pattern === "OTHER"
                         ? selections.retainedDietaryPattern.otherLabel
                         : DIETARY_PATTERN_LABELS[selections.retainedDietaryPattern.pattern]}
                     </strong>
-                    . It stays in place unless you remove it.
+                    {selections.retainedDietaryPattern.mandatory
+                      ? ". It stays in place unless you remove it."
+                      : ". It stays in place unless you choose a different style."}
                   </p>
                   <button
                     type="button"
                     className={`${button} cursor-pointer`}
                     onClick={() => update({ retainedDietaryPattern: undefined })}
                   >
-                    Remove requirement
+                    {selections.retainedDietaryPattern.mandatory
+                      ? "Remove requirement"
+                      : "Choose a different style"}
                   </button>
                 </div>
               </div>
@@ -1314,10 +1511,12 @@ export function IntakeWizard({
                   role="note"
                   className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-relaxed text-amber-100/90"
                 >
-                  Your intake is already confirmed. If you change these answers, that counts as new
-                  safety information: nutrition recommendations are paused and any plan being
-                  prepared is cancelled, until an authorized Steadfast reviewer reviews the change.
-                  You cannot lift that pause yourself.
+                  {allergiesInEarlierFormat
+                    ? "Your intake is already confirmed, and your allergy answers were saved in an earlier format. Saving them on this step counts as new safety information even if nothing changed: "
+                    : "Your intake is already confirmed. If you change these answers, that counts as new safety information: "}
+                  nutrition recommendations are paused and any plan being prepared is cancelled,
+                  until an authorized Steadfast reviewer reviews the change. You cannot lift that
+                  pause yourself.
                 </p>
               )}
               <div className="flex flex-wrap gap-2">
@@ -1369,6 +1568,43 @@ export function IntakeWizard({
                             update({
                               retainedAllergenItems: selections.retainedAllergenItems?.filter(
                                 (kept) => kept !== item
+                              ),
+                            })
+                          }
+                        >
+                          Remove
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {(selections.unsavableLegacyAllergies?.length ?? 0) > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-zinc-200">
+                    Earlier entries that cannot be saved as written
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    Remove each one before continuing. If it still applies, choose the matching
+                    option above.
+                  </p>
+                  <ul className="space-y-2">
+                    {selections.unsavableLegacyAllergies?.map((token, index) => (
+                      <li
+                        key={`${token}-${index}`}
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/[0.1] bg-zinc-900/60 p-3 text-sm text-zinc-200"
+                      >
+                        <span className="break-all">
+                          {token.trim().length > 0 ? token : "(blank entry)"}
+                        </span>
+                        <button
+                          type="button"
+                          className={`${button} cursor-pointer`}
+                          aria-label={`Remove earlier entry ${token.trim() || "(blank entry)"}`}
+                          onClick={() =>
+                            update({
+                              unsavableLegacyAllergies: selections.unsavableLegacyAllergies?.filter(
+                                (kept) => kept !== token
                               ),
                             })
                           }
@@ -1694,11 +1930,13 @@ export function IntakeWizard({
                 role="note"
                 className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-sm leading-relaxed text-amber-100/90"
               >
-                Your intake is already confirmed. If you changed your allergy answers,
-                confirming counts as new safety information: nutrition
-                recommendations are paused and any plan being prepared is cancelled, until an
-                authorized Steadfast reviewer reviews the change. You cannot lift that pause
-                yourself. Allergy answers you left unchanged do not trigger this.
+                Your intake is already confirmed. Confirming again cancels any plan being
+                prepared, even if nothing changed.{" "}
+                {allergiesInEarlierFormat
+                  ? "Because your allergy answers were saved in an earlier format, they are also recorded as new safety information: "
+                  : "If you changed your allergy answers, that is also new safety information: "}
+                nutrition recommendations are paused until an authorized Steadfast reviewer
+                reviews the change. You cannot lift that pause yourself.
               </p>
             )}
 
