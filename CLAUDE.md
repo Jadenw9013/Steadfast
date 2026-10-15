@@ -9,9 +9,15 @@ Before ANY UI changes:
 2. Fall back to `design-system/steadfast/MASTER.md`
 Page overrides take priority over MASTER.
 
-The design system is the source of truth for colors, spacing,
+`design-system/steadfast/MASTER.md` is the single source of truth (an earlier duplicate at `docs/design-system/MASTER.md` was removed — nothing referenced it and it had drifted). The design system is the source of truth for colors, spacing,
 typography, component patterns, and page-specific layout rules.
-Never deviate from it without explicit instruction.
+Never deviate from it without explicit instruction. Page overrides must describe this app's actual pages — `intake.md` and `client-dashboard.md` previously contained unrelated auto-generated marketing/lead-gen page content and have been corrected.
+
+## AI Coach
+
+The 14-document AI Coach company review and implementation pack lives at `docs/ai-coach/` (`00-Start-Here.md` reading order). It is the authoritative feature brief for the AI coaching product — read it before touching `lib/ai-coach/`, `lib/coaching/`, or any `/client/ai-coach/*` route. It supersedes any older `Steadfast-AI-Coach-*.md` plans. `design-system/steadfast/pages/ai-coach.md` holds the AI Coach route/page design overrides; the existing "hide macros" rule in the human coaching view does not apply to AI macro mode, which must show its targets.
+
+**Before doing any AI Coach work, read `docs/ai-coach/14-Handoff-Status.md` first.** It's a living status snapshot (not part of the original 00-13 pack) recording the latest built/verified work across web and iOS, historical checkpoints, unfinished release gates, and the standing conventions/gotchas to keep following. The current V01–V20 evidence matrix is `docs/ai-coach/evidence/2026-09-14-engineering-release-status.md`; synthetic test passes are not live clinical or App Store approval. Update it whenever a slice lands or the plan changes.
 
 ## Skills Available
 - **steadfast-patterns** — READ THIS for every Steadfast task (imports, auth, CoachClient, server actions, styling rules)
@@ -50,6 +56,19 @@ Run: npx playwright test
 - Do not use prisma db push — always use prisma migrate dev
 - font-size: max(1rem, 16px) on all inputs
 - Minimum 48px tap targets
+- Every branch that knowingly degrades — an empty render where a row exists, a mode/content disagreement, a
+  merge that drops keys — calls `reportAnomaly` from `lib/observability`. Never `console.error` a new one by
+  hand.
+- A route that catches and returns a 5xx also calls `reportServerError`; `console.error` alone is not monitoring.
+- **T-978, two standing rules from the onboarding funnel post-mortem** (full write-up:
+  `docs/onboarding-funnel.md`):
+  1. A screen may never assert that a relationship exists from a proxy field (`prospectId`, an email match,
+     a phone match). It reads the relationship table (`CoachClient`).
+  2. A state that implies a relationship (e.g. `CoachingRequest.consultationStage = 'ACTIVE'`) is written in
+     the **same transaction** as the relationship or the invite that stands in for it — not immediately
+     after.
+  Reviewer rule: a diff that writes `consultationStage = 'ACTIVE'` outside
+  `lib/leads/activate-lead.ts` is an automatic CHANGES.
 
 ## Project Overview
 
@@ -68,36 +87,46 @@ Cross-platform web + PWA coaching platform (MVP). Clients submit weekly check-in
 ## Commands
 
 ```bash
-npm run dev              # Start dev server (http://localhost:3000)
-npm run build            # Production build (Turbopack)
-npm run lint             # Run ESLint
-npx prisma migrate dev   # Run DB migrations (reads .env.local via prisma.config.ts)
-npx prisma generate      # Regenerate Prisma client (after schema changes)
-npx prisma studio        # Visual DB browser
-npx prisma db seed       # Seed coach-client relationships
+pnpm dev                 # Start dev server (http://localhost:3000)
+pnpm build               # Production build (Turbopack)
+pnpm lint                # Run ESLint
+pnpm exec prisma studio  # Visual DB browser
+pnpm exec prisma db seed # Seed coach-client relationships
+pnpm test                # Vitest unit + smoke tests (tests/unit/, tests/smoke/)
+pnpm exec playwright test # Playwright end-to-end tests (tests/e2e/)
+pnpm ai-coach:sweep         # S-27: dev-only, one-shot AI Coach executor sweep (runs do not self-advance in `next dev` otherwise; never runs in production)
+pnpm ai-coach:seed-fixtures # S-27: dev-only, publishes the synthetic AI Coach runtime artifact set with a long expiry (requires --yes; never runs in production)
 ```
 
-No test runner is configured yet.
+pnpm is the only supported package manager (`package.json` pins it via `packageManager`). Never run `npm install`, `npm run *`, or `yarn *` in this repo — a stray `npm install` previously committed a `package-lock.json` alongside `pnpm-lock.yaml`; that file is now gitignored and must not return.
+
+Vitest (25+ unit-test files under `tests/unit/`, a smoke suite under `tests/smoke/`) and two Postgres-backed integration tests under `tests/integration/` (opt-in via `SECURITY_INTEGRATION=1`, require an isolated local database) are already configured — do not claim no test runner exists. Playwright is configured for `tests/e2e/` but currently has minimal coverage (unauthenticated smoke checks only); it is not a substitute for the missing unit/integration coverage on a change. Every `tests/integration/*` file's fail-closed local-database check calls the shared `requireLocalTestDb()` from `tests/helpers/require-local-test-db.ts` (T-991) — never hand-copy the inline hostname/pathname check into a new file.
+
+Vitest runs test **files** in parallel against one Postgres, so an integration file that touches AI Coach state which is global to the whole database — the sole `ACTIVE` `AiCoachLiveActivation` row, the `AiCoachOperationalControl` kill switches, a deliberately unscoped `deleteMany()`/`count()`, or a database-wide sweep like `runExecutorSweep`/`drainAcceptanceNotifications` — must declare how it uses it by calling `lockGlobalAiCoachState("exclusive" | "shared")` from `tests/helpers/global-ai-coach-state.ts` next to its `SECURITY_INTEGRATION` gate (T-2014). `"exclusive"` runs the file alone; `"shared"` files still run in parallel with each other. The lock only orders access — it deletes nothing and relaxes no assertion, so a genuine conflict still fails in the same place with the same message. `tests/unit/integration-global-ai-coach-state.test.ts` derives the required set and mode from the test sources and fails if a new file forgets or misdeclares.
 
 ### Schema change workflow
 
+Migration files under `prisma/migrations/` plus the migration ledger (`_prisma_migrations` table) are the release source of truth. Do not use `prisma db push` or hand-run ad-hoc SQL against a real environment as the normal workflow.
+
+`prisma migrate dev` needs a working shadow database and has known issues against this project's Neon setup — prefer the diff workflow below for schema changes made against this codebase:
+
 ```bash
 # 1. Edit prisma/schema.prisma
-# 2. Generate migration SQL from live DB diff (avoids shadow DB issues):
-npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
-# 3. Create migration dir + SQL file manually under prisma/migrations/
-# 4. Apply:
-npx prisma migrate deploy
-npx prisma generate
+# 2. Generate migration SQL from a live DB diff (avoids the Neon shadow-DB issue):
+pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script
+# 3. Review the generated SQL, then create prisma/migrations/<timestamp>_<name>/migration.sql with it
+# 4. Apply against an isolated dev/test datasource first, then the target environment:
+pnpm exec prisma migrate deploy
+pnpm exec prisma generate
 ```
 
-`prisma migrate dev` may fail due to shadow database issues with Neon. Use the diff approach above instead.
+`prisma migrate dev` remains fine for a fresh local database with no Neon shadow-DB constraint (e.g. a disposable local Postgres used only for `SECURITY_INTEGRATION=1` tests). Never run migration commands against a real/production datasource outside the recorded deployment workflow, and never guess or backfill ambiguous data as part of a migration — see `docs/ai-coach/04-Architecture-and-Data.md` §7 for the backfill/consent constraints that apply to the AI Coach work specifically.
 
 ## Architecture
 
 ### Routing & Auth
 
-- **Auth middleware:** `proxy.ts` at project root (Next.js 16 convention, replaces `middleware.ts`). Uses `clerkMiddleware()` — protects all routes except `/`, `/sign-in`, `/sign-up`, `/api/webhooks`.
+- **Auth middleware:** `proxy.ts` at project root (Next.js 16 convention, replaces `middleware.ts`). Uses `clerkMiddleware()` — protects all routes except `/`, `/sign-in`, `/sign-up`, `/api/webhooks`, and the bounded `/api/health` liveness response.
 - **Role gating:** Not in middleware. Each route's Server Component calls `getCurrentDbUser()` and checks `activeRole`. Coach layout redirects non-coaches to `/client`; client pages verify client role.
 - **Roles:** Clerk `publicMetadata.role` synced via webhook → DB `User.activeRole`. Users can have both `isCoach` + `isClient` flags and switch via `setActiveRole()` action.
 - **Path alias:** `@/*` maps to the project root.
@@ -120,9 +149,9 @@ All data is scoped by `weekOf` (DateTime), canonicalized to Monday midnight UTC 
 
 **Coach review workspace** (`/coach/clients/[clientId]/review/[weekStartDate]`): Server Component fetches check-in, macros, draft/published meal plans, messages, and food library in parallel. Renders 2-column layout — left: check-in summary + macro editor + messages; right: meal plan editor.
 
-**Meal plan editor (V2):** `MealPlanEditorV2` owns state as `MealGroup[]` (grouped by meal name). On save, `flattenMeals()` converts back to flat items array for the existing `saveDraftMealPlan` action. Macros are coach-only (toggle hidden by default).
+**Meal plan editor (V2):** `MealPlanEditorV2` owns state as `MealGroup[]` (grouped by meal name). On save, `flattenMeals()` converts back to flat items array for the existing `saveDraftMealPlan` action. Macros are coach-only (toggle hidden by default). Which of the two editors (foods vs. macros-only) renders is `editorMode`, and `lib/meal-plans/plan-mode.ts` is the single source of truth for resolving it (`draft?.planMode ?? CoachClient.planMode`) — shared by the web query `getEffectiveMealPlanForReview` and the iOS-facing `GET /api/coach/clients/[clientId]/meal-plan`, which returns it alongside `clientPlanMode`. Never compute an editor mode from the PUBLISHED row's `planMode`: that column is the client-facing snapshot and must not move when a coach toggles. Pure client-editor helpers (draft payloads per mode, the unsaved-content signature the plan-mode toggle warns on) live in `lib/meal-plans/editor-state.ts`. The action itself holds no lifecycle logic: `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork and `lib/meal-plans/publish.ts` for the DRAFT→PUBLISHED transition, both shared verbatim with the iOS-facing REST routes under `app/api/coach/clients/[clientId]/meal-plan/` and the OCR import path at `app/api/mealplans/import-plan/` — put changes there, never in one transport. Grep for other writers before assuming a lifecycle change is complete. On the read side, `lib/meal-plans/active-plan.ts` is the single source of truth for client-facing active-plan selection — the PUBLISHED plan with the highest `weekOf` (week first, then publish time, then version), gated on the provider relationship — so a newly published future week is visible immediately and a correction to an earlier week can never demote a later one; its four call sites are `getCurrentPublishedMealPlan` (`/client`, `/client/plan`, `/client/meal-plan`, `/api/client/home`), `getActiveMealNames` (the daily checkoff list on `/client`, `/api/client/home`, `/api/client/adherence/today`) and `GET /api/client/meal-plan/current`. The gate argument is REQUIRED (`Date | null`, never optional) on `getCurrentPublishedMealPlan`, `getPublishedTrainingProgram` and `getActiveMealNames` (T-665) — `null` means "no active human provider → no plan" — and there is no unfiltered client-facing *active-plan* read left; a future omission is a `pnpm run type-check` failure, not a silent data leak. `GET /api/client/training/current` does not call `getPublishedTrainingProgram` — it still inlines the same gated `where`/`orderBy` query directly (`app/api/client/training/current/route.ts:24-26`); T-744 extracts it into the shared helper. The by-id PDF export (`app/api/mealplans/[mealPlanId]/export/route.ts`) is a deliberate, audited exception — it is the client's own archive access by plan id, not an active-plan selection, and stays unfiltered on purpose (T-665). Never re-derive "the client's current plan" with a local `orderBy: { publishedAt: "desc" }`: that was the T-105 bug, where publishing a correction to last week demoted this week's plan and made two screens write two disjoint sets of `DailyMealCheckoff` rows. Training programs follow the same shape: `lib/training-programs/publish.ts` is the single source of truth for the training DRAFT→PUBLISHED transition, shared by the `publishTrainingProgram` action, the iOS-facing `/api/coach/clients/[clientId]/training/publish` route and the OCR path at `/api/workout-import/import`; supersede there is `clientId`-scoped, not `(clientId, weekOf)` like the meal twin, and `lib/training-programs/drafts.ts` is the single source of truth for training draft create/save/fork (CB05) on the coach draft-edit path — it owns the six-value `BlockType` enum, the day/block Zod schemas, `sortOrder` normalization (a stable sort by `(sortOrder ?? array index)`, then dense `0..n-1` by position) and the `dayName`/`title`/`content` null→`""` rule, shared verbatim by the `saveTrainingProgram` action and `POST`/`PUT /api/coach/clients/[clientId]/training`. It is NOT the only writer of program days/blocks: `app/api/workout-import/import/route.ts` (OCR/LLM import, validated by `lib/validations/workout-import.ts`, which has no length or count caps) and `app/api/coach/templates/[id]/apply/route.ts` (template → program draft, `sortOrder` copied verbatim) still create `TrainingDay`/`TrainingProgramBlock` rows directly. A block-contract change is not finished until those two are updated too — grep for `trainingProgram.create` (four sites: two here, two bypasses) before assuming it is.
 
-**Client view:** `SimpleMealPlan` shows food + portions only — no macros, no version numbers, no draft/published status.
+**Client view (T-802a):** `SimpleMealPlan` (`components/client/simple-meal-plan.tsx`) is one shell for both plan modes — foods-with-portions and macro-targets-per-meal — rendering T-802's seven frozen regions (day context, degraded notice, daily totals, progress bar, meal list, plan notes, day-override reference) around whichever stateless list component (`FoodsMealList` locally, or `MacroMealList` from `macro-plan-view.tsx`) the mode selects. `lib/meal-plans/client-plan-view.ts`'s `resolveClientPlanView` is the single source of truth for which body renders — a pure function of `(planMode, itemCount, macroTargetCount)` that also carries the two defensive arms for a mislabeled plan (macro mode with zero targets renders the foods that are actually there, and its symmetric mirror; the first is the T-800 production incident, both are logged server-side via `logDegradedPlanRender`). Its Swift twin is `MealPlanViewModel.planView` (T-802b) — the two must move together.
 
 ### Component organization
 
@@ -204,6 +233,8 @@ claude-flow daemon start                  # background workers
 > `.claude/settings.local.json` is gitignored (per-user overrides).
 
 ## graphify
+
+`APP_EVENTS_INGEST_DISABLED=true` disables the authenticated iOS diagnostics ingest route with a 204 response; it is an emergency kill switch and is intentionally absent from `.env.example`.
 
 This project has a graphify knowledge graph at graphify-out/.
 

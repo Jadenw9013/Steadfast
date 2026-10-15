@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MealCard } from "./meal-card";
 import { MealPlanActions } from "./meal-plan-actions";
 import { MacroPlanEditor } from "./macro-plan-editor";
@@ -16,6 +17,16 @@ import {
   publishMealPlan,
 } from "@/app/actions/meal-plans";
 import {
+  buildFoodsDraftInput,
+  findMealNameProblem,
+  foodsEditorSignature,
+  isNewTabOrWindowClick,
+  mealNameProblemMessage,
+  shouldProceedWithUnsavedChanges,
+  VERSION_HISTORY_LINK_HAS_NO_PENDING_SIGNAL,
+  VERSION_HISTORY_NAV_WARNING,
+} from "@/lib/meal-plans/editor-state";
+import {
   groupItemsToMeals,
   flattenMeals,
   type MealGroup,
@@ -24,8 +35,6 @@ import {
 } from "@/types/meal-plan";
 import type { PlanExtras } from "@/types/meal-plan-extras";
 import type { EffectiveMealPlan } from "@/lib/queries/meal-plans";
-import { buildFoodsDraftInput, foodsEditorSignature } from "@/lib/meal-plans/editor-state";
-import { emptyPlanMessage } from "@/lib/meal-plans/publish-messages";
 
 export function MealPlanEditorV2({
   clientId,
@@ -50,19 +59,46 @@ export function MealPlanEditorV2({
     notes: string;
   } | null;
 }) {
-  // Only one editor is mounted at a time, and the toggle above is its sibling
-  // — so the mounted editor reports its own "the coach has typed something"
-  // here and the toggle can warn before unmounting it (T-800 code-review r1,
-  // MAJOR-3; verbatim pattern from team/sprint-1's "T-102a review, finding 1").
+  // Only one editor is mounted at a time, and the toggle above is its sibling —
+  // so the mounted editor reports its own "the coach has typed something" here
+  // and the toggle can warn before unmounting it (T-102a review, finding 1).
+  // No new editor state: each editor derives this by comparing its current
+  // content against the effective plan it was seeded with.
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   return (
     <div className="space-y-4">
-      <PlanModeToggle
-        clientId={clientId}
-        initialMode={effectivePlan.editorMode}
-        hasUnsavedChanges={hasUnsavedChanges}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PlanModeToggle
+          clientId={clientId}
+          initialMode={effectivePlan.editorMode}
+          hasUnsavedChanges={hasUnsavedChanges}
+        />
+        {/* T-801 — the only web entry point into meal plan version history.
+            Editor content lives only in `useState` until an explicit Save,
+            so this navigation must be gated the same way the plan-mode
+            toggle's is (T-801 review, finding 1) — otherwise a coach with
+            unsaved edits loses them silently the instant this link unmounts
+            the editor. */}
+        <Link
+          href={`/coach/clients/${clientId}/meal-plan/history`}
+          onClick={(e) => {
+            // Cmd/ctrl/shift/alt-click and middle-click open a new tab —
+            // this tab's editor never unmounts, so let the browser handle it
+            // with no confirm and no preventDefault (T-801 review r2, MINOR 3).
+            if (isNewTabOrWindowClick(e)) return;
+            const proceed = shouldProceedWithUnsavedChanges({
+              pending: VERSION_HISTORY_LINK_HAS_NO_PENDING_SIGNAL,
+              hasUnsavedChanges,
+              confirmDiscard: () => window.confirm(VERSION_HISTORY_NAV_WARNING),
+            });
+            if (!proceed) e.preventDefault();
+          }}
+          className="inline-flex min-h-[48px] items-center rounded-xl border border-zinc-700 px-4 text-sm font-semibold text-zinc-300 transition-all hover:border-zinc-500 hover:text-zinc-100"
+        >
+          Version history
+        </Link>
+      </div>
       {effectivePlan.editorMode === "MACROS" ? (
         <MacroPlanEditor
           clientId={clientId}
@@ -125,19 +161,27 @@ function MealPlanEditorV2Body({
   const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  // T-102b — publishMealPlan throws on rejection (e.g. the server-side
+  // empty-plan guard); without this the rejection was silent and the button
+  // just reverted to "Publish". Mirrors macro-plan-editor.tsx's autofillError.
+  // Holds a fixed sentence, never the thrown message — see handlePublish.
+  // T-103 — it now also carries a locally-computed meal-name validation
+  // sentence (`mealNameProblemMessage`), produced before any server call. The
+  // *thrown* message is still never used.
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [notifyClient, setNotifyClient] = useState(coachDefaultNotify ?? true);
   const [highlightedMeals, setHighlightedMeals] = useState<Set<string>>(new Set());
-  const [publishError, setPublishError] = useState<string | null>(null);
 
   const isUnsaved = draftId === null;
   const totalItems = meals.reduce((sum, m) => sum + m.items.length, 0);
 
-  // Everything above lives only in `useState` until an explicit Save, and the
-  // plan-mode toggle unmounts this whole editor. "Unsaved" here means
-  // "differs from the effective plan this editor was seeded with" — strictly
-  // what a mode switch would destroy. After a Save + router.refresh() the
-  // seed moves forward with a new `effectivePlan` prop, so the flag clears
-  // itself (T-800 code-review r1, MAJOR-3).
+  // Everything below lives only in `useState` until an explicit Save, and the
+  // plan-mode toggle above unmounts this whole editor. "Unsaved" here means
+  // "differs from the effective plan this editor was seeded with", which is
+  // strictly what a mode switch would destroy: a published-only week rendered
+  // untouched has nothing to lose (the PUBLISHED row is still in the DB), while
+  // a single typed character in any field does. After a Save + router.refresh()
+  // the seed moves forward, so the flag clears itself.
   const baselineSignature = useMemo(
     () =>
       foodsEditorSignature(
@@ -156,17 +200,6 @@ function MealPlanEditorV2Body({
     // flag before the other editor mounts and reports its own.
     return () => onUnsavedChange?.(false);
   }, [hasUnsavedChanges, onUnsavedChange]);
-
-  // NIT: clear the stale publish-refusal sentence as soon as the coach adds
-  // the content it was complaining about, rather than leaving it on screen
-  // until the next publish attempt (T-800 code-review r1, NIT-1). Adjusted
-  // during render, not in an effect — same pattern as plan-mode-toggle.tsx's
-  // seeded-mode reset — so this can't cascade an extra render.
-  const [lastTotalItemsForError, setLastTotalItemsForError] = useState(totalItems);
-  if (totalItems !== lastTotalItemsForError) {
-    setLastTotalItemsForError(totalItems);
-    if (totalItems > 0 && publishError) setPublishError(null);
-  }
 
   const dailyTotals = meals.reduce(
     (acc, meal) => {
@@ -230,18 +263,14 @@ function MealPlanEditorV2Body({
     setTimeout(() => setHighlightedMeals(new Set()), 3000);
   }
 
-  /** Create a DB draft (with current items) and return its ID. Always passes
-   *  an explicit planMode — see lib/meal-plans/editor-state.ts (T-800). */
+  /** Create a DB draft (with current items) and return its ID. */
   async function ensureDraft(): Promise<string | null> {
     if (draftId) return draftId;
+    // Payload shape (including the explicit `planMode: "MEAL_PLAN"`) lives in
+    // lib/meal-plans/editor-state.ts so it is covered by a unit test rather
+    // than only by a comment in a component — T-102a review, finding 2.
     const result = await createDraftMealPlan(
-      buildFoodsDraftInput({
-        clientId,
-        weekStartDate,
-        meals,
-        planExtras,
-        supportContent,
-      })
+      buildFoodsDraftInput({ clientId, weekStartDate, meals, planExtras, supportContent })
     );
     if ("mealPlanId" in result) {
       setDraftId(result.mealPlanId);
@@ -254,12 +283,19 @@ function MealPlanEditorV2Body({
     setSaving(true);
     try {
       if (draftId) {
-        await saveDraftMealPlan({
+        const result = await saveDraftMealPlan({
           mealPlanId: draftId,
           items: flattenMeals(meals),
           planExtras: planExtras ?? undefined,
           supportContent: supportContent || undefined,
         });
+        // The draft we thought we had was actually published/superseded by
+        // someone else in the meantime — the server forked a fresh draft
+        // rather than corrupting the live plan. Adopt its id so the next
+        // save/publish targets the right row.
+        if ("forkedNewDraftId" in result && result.forkedNewDraftId) {
+          setDraftId(result.forkedNewDraftId);
+        }
       } else {
         await ensureDraft();
       }
@@ -270,38 +306,57 @@ function MealPlanEditorV2Body({
   }
 
   async function handlePublish() {
-    // Local pre-check with the exact sentence: production Next redacts
-    // Server Action error messages into a minified React error, so the
-    // server-side publish guard alone would turn "plan vanishes" into
-    // "Publish button does nothing" (T-800).
-    if (totalItems === 0) {
-      setPublishError(emptyPlanMessage("MEAL_PLAN"));
+    // Before `setPublishing(true)` and before any server call — including
+    // `ensureDraft()` — so a rejected publish never creates a draft row (T-103).
+    // Only meals that will actually be sent: flattenMeals drops meals with no
+    // items, so an unnamed empty row can neither collide nor reach the DB.
+    // Keep each entry's index into the unfiltered `meals` array so the reported
+    // problem points at the same card MealCard numbers (mealIndex={i} below) —
+    // an index into the filtered list would name the wrong card whenever an
+    // earlier meal has no items yet.
+    const namedMeals = meals
+      .map((m, i) => ({ i, mealName: m.mealName }))
+      .filter(({ i }) => meals[i].items.length > 0);
+    const problem = findMealNameProblem(namedMeals.map((m) => m.mealName));
+    if (problem) {
+      setPublishError(
+        mealNameProblemMessage({ ...problem, index: namedMeals[problem.index].i })
+      );
       return;
     }
-    setPublishError(null);
     setPublishing(true);
+    setPublishError(null);
     try {
-      const id = draftId ?? (await ensureDraft());
-      if (!id) return;
+      let id = draftId ?? (await ensureDraft());
+      if (!id) {
+        setPublishError("Publish failed. Please try again.");
+        return;
+      }
       // Save latest items before publishing
-      await saveDraftMealPlan({
+      const saveResult = await saveDraftMealPlan({
         mealPlanId: id,
         items: flattenMeals(meals),
         planExtras: planExtras ?? undefined,
         supportContent: supportContent || undefined,
       });
-      const result = await publishMealPlan({ mealPlanId: id, notifyClient });
-      if (!result.success) {
-        setPublishError(result.message);
-        return;
+      if ("forkedNewDraftId" in saveResult && saveResult.forkedNewDraftId) {
+        id = saveResult.forkedNewDraftId;
       }
+      await publishMealPlan({ mealPlanId: id, notifyClient });
       // Clear stale draft ID — the plan is now PUBLISHED.
       // Next edit will create a fresh draft via ensureDraft().
       setDraftId(null);
       router.refresh();
     } catch {
-      // Never render the thrown message — production Next redacts Server
-      // Action errors into a minified React error string.
+      // Deliberately ignores the thrown error's message. In a production build
+      // Next.js redacts Server Action error messages, and React's flight client
+      // replaces them with a real Error whose message is
+      // "Minified React error #441; visit https://react.dev/errors/441 ..." —
+      // so `err.message` would render minified React text and a react.dev URL
+      // to the coach. Fixed sentence, mirroring
+      // components/coach/training/training-program-editor.tsx's publish catch.
+      // T-742 restores the mode-specific server wording by making
+      // publishMealPlan return a result instead of throwing.
       setPublishError("Publish failed. Please try again.");
     } finally {
       setPublishing(false);
@@ -600,12 +655,25 @@ function MealPlanEditorV2Body({
 
 
 
-      {/* Actions */}
+      {/* T-102b — publish rejection feedback, rendered next to the button that caused it. */}
       {publishError && (
-        <p className="text-sm font-medium text-red-400" role="alert">
-          {publishError}
-        </p>
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-400"
+        >
+          <span className="min-w-0 py-2.5">{publishError}</span>
+          <button
+            type="button"
+            onClick={() => setPublishError(null)}
+            aria-label="Dismiss"
+            className="-mr-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
       )}
+
+      {/* Actions */}
       <MealPlanActions
         saving={saving}
         publishing={publishing}

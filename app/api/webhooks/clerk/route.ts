@@ -3,12 +3,21 @@ import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { resolveRoleOnCreate, resolveRoleOnUpdate } from "@/lib/auth/clerk-webhook";
+import { WEBHOOK_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 export async function POST(req: NextRequest) {
   let evt;
   try {
     evt = await verifyWebhook(req);
   } catch (err) {
+    reportServerError(WEBHOOK_FAILED.evt, err, {
+      route: "/api/webhooks/clerk",
+      method: "POST",
+      statusCode: 400,
+      context: { provider: "clerk", phase: "signature" },
+      allow: WEBHOOK_FAILED.allow,
+    });
     console.error("Clerk webhook verification failed", err);
     return new Response("Webhook verification failed", { status: 400 });
   }
@@ -27,11 +36,16 @@ export async function POST(req: NextRequest) {
     }
 
     try {
-      const existingByEmail = await db.user.findUnique({
-        where: { email },
-        select: { id: true, clerkId: true, firstName: true, lastName: true },
-      });
+      const existingByEmail = await db.user.findUnique({ where: { email } });
       if (existingByEmail && existingByEmail.clerkId !== id && existingByEmail.clerkId.startsWith("pending_")) {
+        // T-2058/D8: same rule as getCurrentDbUser (lib/auth/roles.ts): a
+        // deactivated (pending-deletion) placeholder is never claimed. Writing
+        // nothing here also keeps the upsert below from creating a second
+        // account on that address. 200 so Clerk does not retry a state only
+        // the purge resolves.
+        if (existingByEmail.isDeactivated) {
+          return new Response("Account is pending deletion", { status: 200 });
+        }
         await db.user.update({
           where: { id: existingByEmail.id },
           data: {

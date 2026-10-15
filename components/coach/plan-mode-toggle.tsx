@@ -23,28 +23,34 @@ export function PlanModeToggle({
   clientId: string;
   initialMode: PlanMode;
   /** Reported by the editor mounted below — switching mode unmounts it and
-   *  throws away everything it holds in `useState` (T-800 code-review r1,
-   *  MAJOR-3; verbatim from team/sprint-1's "T-102a review, finding 1"). */
+   *  throws away everything it holds in `useState` (T-102a review, finding 1). */
   hasUnsavedChanges?: boolean;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<PlanMode>(initialMode);
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  // T-800: if a refresh changes the server-seeded mode (e.g. the editor's
-  // draft/client-default resolution flips), reset the pill so it can never
-  // get stuck showing a value whose button is a no-op (handleSelect
-  // early-returns when next === mode).
-  const [seededMode, setSeededMode] = useState(initialMode);
+  // The editor rendered below is server-resolved (`effectivePlan.editorMode`,
+  // T-102a) but this pill was not, so any refresh that changed the mode from
+  // somewhere else — iOS, a second tab, another save's router.refresh() — left
+  // the pill pointing at the old mode while the other editor rendered. Because
+  // `handleSelect` early-returns on `next === current`, the coach could not even
+  // click their way out: the pill said "Macros Only" and clicking it did
+  // nothing. Resetting on a prop change costs the optimistic update nothing —
+  // during the transition `initialMode` has not changed yet, and when the
+  // refresh lands it equals the value already showing. (React's documented
+  // adjust-state-during-render pattern; a `useEffect` would fight the optimistic
+  // update mid-transition and make the pill flicker back.)
+  const [seededMode, setSeededMode] = useState<PlanMode>(initialMode);
   if (seededMode !== initialMode) {
     setSeededMode(initialMode);
     setMode(initialMode);
   }
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
   const activeIndex = OPTIONS.findIndex((o) => o.value === mode);
 
   function handleSelect(next: PlanMode) {
-    // The mode switch swaps the editor below, and editor content lives only
-    // in `useState` until an explicit Save — so confirm first when there is
+    // The mode switch swaps the editor below, and editor content lives only in
+    // `useState` until an explicit Save — so confirm first when there is
     // something to lose. Cancelling must leave `mode` untouched: the editor
     // stays mounted and keeps its content.
     const proceed = shouldProceedWithModeSwitch({

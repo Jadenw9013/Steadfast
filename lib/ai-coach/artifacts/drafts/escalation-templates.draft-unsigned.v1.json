@@ -1,0 +1,593 @@
+{
+  "fileSchemaVersion": 1,
+  "reviewMetadata": {
+    "accountableOwner": {
+      "name": "Jaden Wong",
+      "role": "Accountable Owner / Founder"
+    },
+    "reviewer": {
+      "name": "Jaden Wong",
+      "reviewerType": "QUALIFIED_CONTENT_REVIEWER",
+      "qualifications": [
+        "Accountable owner and founder. Reviewed within the general fitness and wellness scope only; no clinical qualification is claimed."
+      ]
+    },
+    "reviewedAt": "2026-09-27T00:00:00.000Z",
+    "reviewRecordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+    "decision": "APPROVED",
+    "signoffScope": [
+      "Signed by the accountable owner as the sole reviewer. There is no external legal review, no independent clinical review and no second signer for this artifact set.",
+      "Reviewed within the general fitness and wellness scope only. No clinical qualification, licence, registration number or certifying body is claimed or recorded.",
+      "Sources cited by this artifact set were confirmed as supporting the rules they are bound to, within that scope. Their full texts were not independently verified by Steadfast.",
+      "Scope of this signature: the client-facing escalation copy, and the effort and nutrition-target explanation copy, carried by this artifact."
+    ],
+    "allowedScope": [
+      "GENERAL_FITNESS_PROGRAMMING",
+      "GENERAL_BEHAVIOR_NUTRITION_EDUCATION"
+    ],
+    "explicitExclusions": [
+      "DIAGNOSIS",
+      "TREATMENT_OR_REHABILITATION",
+      "CLINICAL_NUTRITION_OR_MEDICAL_NUTRITION_THERAPY",
+      "MEDICATION_OR_SUPPLEMENT_PRESCRIBING",
+      "CLINICIAN_INSTRUCTION_OVERRIDE"
+    ],
+    "jurisdictionReview": {
+      "jurisdictions": [
+        "US"
+      ],
+      "legalReviewStatus": "APPROVED",
+      "legalReviewBasis": "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION",
+      "scopeNote": "Reviewed within general fitness and wellness scope; medical advice disclaimed.",
+      "recordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+      "reviewedAt": "2026-09-27T00:00:00.000Z"
+    },
+    "publicFrameworkReferences": [],
+    "proposalProvenance": [
+      {
+        "parameterId": "ESCALATION.PLAN.READY.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.SERVICE.UNAVAILABLE.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.SCOPE.OUT_OF_SCOPE.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.SAFETY.RESTRICTED.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.INTAKE.INCOMPLETE.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.INTAKE.UNRECOGNISED.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.NUTRITION.TARGET.OUT_OF_SCOPE.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.NUTRITION.TARGET.NOT_READY.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.NUTRITION.TARGET.NEEDS_ANSWERS.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.NUTRITION.SAFETY.UNAVAILABLE.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.NUTRITION.SAFETY.HOLD.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.EVIDENCE.NEEDS_INPUT.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.EVIDENCE.HOLD.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      },
+      {
+        "parameterId": "ESCALATION.PLAN.NOT_USABLE.V1",
+        "sourceClaimId": "CLAIM.STEADFAST.ESCALATION.COPY.PROPOSAL",
+        "sourceId": "STEADFAST-ENGINEERING-DRAFT",
+        "sourceUrl": "https://example.invalid/steadfast/escalation-copy-proposal",
+        "sourceLocator": "Engineering-drafted candidate copy. No external source, no clinical authority and no legal review. A qualified professional and legal counsel must correct or replace every sentence."
+      }
+    ]
+  },
+  "reviewStates": [
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.PLAN.READY.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.SERVICE.UNAVAILABLE.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.SCOPE.OUT_OF_SCOPE.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.SAFETY.RESTRICTED.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.INTAKE.INCOMPLETE.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.INTAKE.UNRECOGNISED.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.NUTRITION.TARGET.OUT_OF_SCOPE.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.NUTRITION.TARGET.NOT_READY.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.NUTRITION.TARGET.NEEDS_ANSWERS.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.NUTRITION.SAFETY.UNAVAILABLE.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.NUTRITION.SAFETY.HOLD.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.EVIDENCE.NEEDS_INPUT.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.EVIDENCE.HOLD.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "ESCALATION.PLAN.NOT_USABLE.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "TRAINING.EFFORT.STRENGTH.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "TRAINING.EFFORT.CARDIO.V1",
+      "reviewState": "ACCEPTED"
+    },
+    {
+      "itemKind": "TEMPLATE",
+      "itemId": "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1",
+      "reviewState": "ACCEPTED"
+    }
+  ],
+  "content": {
+    "artifactKey": "escalation-templates-v1",
+    "version": 1,
+    "templates": [
+      {
+        "id": "ESCALATION.PLAN.READY.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_APPROVED"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Your plan is ready. Open it in the app and follow it as written. You can change it or stop at any time.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.SERVICE.UNAVAILABLE.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_AUTHORITY_UNAVAILABLE"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Steadfast cannot update your plan at the moment. Your current plan has not changed. Please try again later.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.SCOPE.OUT_OF_SCOPE.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_OUT_OF_SCOPE"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "This is outside what Steadfast covers. Steadfast gives general fitness and nutrition guidance only, and it does not advise on medical conditions, injuries, medicines or medical diets. Please speak with a qualified health professional about it.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.SAFETY.RESTRICTED.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_SAFETY_RESTRICTED"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Steadfast has paused changes to your plan based on the answers you gave. Your current plan has not changed. Please speak with a qualified health professional before you continue, and use the app settings if you want to stop coaching.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.INTAKE.INCOMPLETE.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_REQUIRED_INPUT_MISSING"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Steadfast needs more answers before it can update your plan. Open your intake in the app and complete the questions that are still outstanding.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.INTAKE.UNRECOGNISED.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_REQUIRED_INPUT_INVALID"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Steadfast could not read the answers it received, so your plan has not been updated. Please open your intake in the app and submit your answers again.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.NUTRITION.TARGET.OUT_OF_SCOPE.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+          "PRESCRIPTION_POPULATION_UNSUPPORTED",
+          "PRESCRIPTION_DIETARY_PATTERN_UNSUPPORTED",
+          "PRESCRIPTION_THERAPEUTIC_DIET_OUT_OF_SCOPE"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION"
+        ],
+        "nextStepText": "Steadfast cannot work out nutrition targets for your situation, so it has not updated your plan. This is outside what Steadfast covers, not something you did. Please speak with a qualified health professional about your nutrition.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.NUTRITION.TARGET.NOT_READY.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+          "PRESCRIPTION_INTAKE_VERSION_UNSUPPORTED",
+          "PRESCRIPTION_MAINTENANCE_BELOW_MINIMUM",
+          "PRESCRIPTION_MACRO_RANGES_INFEASIBLE",
+          "PRESCRIPTION_PARAMETER_MISSING",
+          "PRESCRIPTION_PARAMETER_INCOMPATIBLE",
+          "PRESCRIPTION_METHOD_UNSUPPORTED",
+          "PRESCRIPTION_EXPLANATION_TEMPLATE_UNAVAILABLE"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION"
+        ],
+        "nextStepText": "Steadfast cannot work out nutrition targets yet, so your plan has not been updated. This is a limit of the service, not something you did. Your current plan stays as it is and you can keep using it.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.NUTRITION.TARGET.NEEDS_ANSWERS.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_NUTRITION_PRESCRIPTION_UNAVAILABLE",
+          "PRESCRIPTION_INPUT_MISSING",
+          "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE",
+          "PRESCRIPTION_GOAL_PACE_UNDECIDED",
+          "PRESCRIPTION_WEIGHT_MEASUREMENT_STALE"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION"
+        ],
+        "nextStepText": "Steadfast needs more from you before it can work out nutrition targets. Open the app, confirm your current details, and then ask for an update again.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.NUTRITION.SAFETY.UNAVAILABLE.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_NUTRITION_SAFETY_UNAVAILABLE"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION"
+        ],
+        "nextStepText": "Steadfast could not finish its safety checks, so it has not updated your plan. Your current plan stays as it is. Please try again later.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_NUTRITION_SAFETY_PAUSE_REFER",
+          "SCREEN_FLAGGED",
+          "SCREEN_UNKNOWN",
+          "CONTRAINDICATION_AGE_ELIGIBILITY",
+          "CONTRAINDICATION_PREGNANCY_POSTPARTUM",
+          "CONTRAINDICATION_EATING_DISORDER",
+          "CONTRAINDICATION_TYPE_1_DIABETES",
+          "CONTRAINDICATION_CARDIAC_CONDITION"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION"
+        ],
+        "nextStepText": "Based on the answers you gave, Steadfast has stopped making nutrition changes for you, because this is outside what it can help with. Your current plan stays as it is. Please speak with a qualified health professional, such as your doctor or a registered dietitian, about your nutrition.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.NUTRITION.SAFETY.HOLD.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_NUTRITION_SAFETY_HOLD",
+          "MINIMUM_DAILY_ENERGY_LIMIT",
+          "MAXIMUM_WEEKLY_LOSS_RATE_LIMIT",
+          "CONSECUTIVE_DEFICIT_BLOCKED",
+          "RATE_INPUT_MISSING",
+          "HISTORY_UNVERIFIABLE",
+          "NUTRITION_SAFETY_PARAMETERS_PENDING"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION"
+        ],
+        "nextStepText": "Steadfast has held this nutrition change because it falls outside the limits this service must stay within. Your current plan stays as it is and you can keep using it. You can ask for an update again later.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.EVIDENCE.NEEDS_INPUT.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_EVIDENCE_MISSING"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Steadfast needs more information from you before it can update your plan. Open the app, complete what is outstanding, and then ask for an update again.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.EVIDENCE.HOLD.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_EVIDENCE_INVALID",
+          "GATE_EVIDENCE_INSUFFICIENT",
+          "GATE_EVIDENCE_STALE"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Steadfast has held this update because the information behind it is out of date or incomplete. Your current plan stays as it is and you can keep using it.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "ESCALATION.PLAN.NOT_USABLE.V1",
+        "version": 1,
+        "reasonCodes": [
+          "GATE_CANDIDATE_INVALID"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Steadfast could not produce a plan it is able to stand behind, so nothing has changed. Your current plan stays as it is. You can ask for an update again later.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "TRAINING.EFFORT.STRENGTH.V1",
+        "version": 1,
+        "reasonCodes": [
+          "NOT_AN_ESCALATION.TRAINING_EFFORT_COPY"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Choose a resistance you can lift with steady form, completing each lift with control and stopping when the movement feels challenging before your technique begins to change.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "TRAINING.EFFORT.CARDIO.V1",
+        "version": 1,
+        "reasonCodes": [
+          "NOT_AN_ESCALATION.TRAINING_EFFORT_COPY"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Maintain a smooth, conversational pace where you can comfortably speak in full sentences throughout the entire workout.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      },
+      {
+        "id": "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1",
+        "version": 1,
+        "reasonCodes": [
+          "NOT_AN_ESCALATION.PRESCRIPTION_EXPLANATION_COPY"
+        ],
+        "locale": "en-US",
+        "geographies": [
+          "US"
+        ],
+        "pausedDomains": [
+          "NUTRITION",
+          "STRENGTH",
+          "CARDIO"
+        ],
+        "nextStepText": "Your daily nutrition target is calculated from your body measurements, reported activity level, and personal goal to support steady progress.",
+        "nonMonitoringStatement": "Steadfast is not monitoring you. It does not check your account between updates, and nobody is watching for changes in your health. If you feel unwell or something does not seem right, stop and speak with a qualified health professional."
+      }
+    ]
+  }
+}

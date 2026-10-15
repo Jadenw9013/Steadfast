@@ -1,9 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ block: vi.fn(), findUser: vi.fn(), auth: vi.fn() }));
-vi.mock("@/lib/db", () => ({ db: { userBlock: { findFirst: mocks.block }, user: { findUnique: mocks.findUser } } }));
+const mocks = vi.hoisted(() => ({
+  block: vi.fn(),
+  findUser: vi.fn(),
+  auth: vi.fn(),
+  findCoachClient: vi.fn(),
+  findCheckIn: vi.fn(),
+}));
+vi.mock("@/lib/db", () => ({
+  db: {
+    userBlock: { findFirst: mocks.block },
+    user: { findUnique: mocks.findUser },
+    coachClient: { findUnique: mocks.findCoachClient },
+    checkIn: { findUnique: mocks.findCheckIn },
+  },
+}));
 vi.mock("@clerk/nextjs/server", () => ({ auth: mocks.auth, currentUser: vi.fn() }));
 import { assertMessagingAllowed } from "@/lib/messages/permissions";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { verifyCoachAccessToClient, verifyCoachAccessToCheckIn } from "@/lib/queries/check-ins";
 import { isReminderHour } from "@/lib/scheduling/reminder-time";
 import { verifiedPrimaryEmail } from "@/lib/auth/verified-email";
 import { readBoundedBody } from "@/lib/security/body";
@@ -39,6 +53,46 @@ describe("cross-client security boundaries", () => {
   });
   it.each(["clerk_b/batch/photo.jpg", "clerk_a/../photo.jpg", "clerk_a/batch/%2e%2e.jpg", "clerk_a//photo.jpg", "clerk_a/batch/x?y", "clerk_a/batch/..", "clerk_a/batch/\\evil.jpg"])("rejects foreign or ambiguous path %s", path => {
     expect(isOwnedUploadPath(path, "clerk_a")).toBe(false);
+  });
+});
+
+describe("CB02 — coach ownership helpers reject deactivated accounts", () => {
+  it("verifyCoachAccessToClient denies a deactivated coach despite a valid assignment", async () => {
+    mocks.auth.mockResolvedValue({ userId: "clerk_coach" });
+    mocks.findUser.mockResolvedValue({ id: "coach-1", isCoach: true, isDeactivated: true });
+    mocks.findCoachClient.mockResolvedValue({ id: "assignment-1" });
+    await expect(verifyCoachAccessToClient("client-1")).rejects.toThrow("pending deletion");
+    // Fencing: assignment lookup must not even be needed to deny access.
+    expect(mocks.findCoachClient).not.toHaveBeenCalled();
+  });
+
+  it("verifyCoachAccessToCheckIn denies a deactivated coach despite a valid assignment", async () => {
+    mocks.auth.mockResolvedValue({ userId: "clerk_coach" });
+    mocks.findUser.mockResolvedValue({ id: "coach-1", isCoach: true, isDeactivated: true });
+    mocks.findCheckIn.mockResolvedValue({ clientId: "client-1" });
+    mocks.findCoachClient.mockResolvedValue({ id: "assignment-1" });
+    await expect(verifyCoachAccessToCheckIn("checkin-1")).rejects.toThrow("pending deletion");
+    expect(mocks.findCheckIn).not.toHaveBeenCalled();
+  });
+
+  it("verifyCoachAccessToClient allows an active, assigned coach", async () => {
+    mocks.auth.mockResolvedValue({ userId: "clerk_coach" });
+    mocks.findUser.mockResolvedValue({ id: "coach-1", isCoach: true, isDeactivated: false });
+    mocks.findCoachClient.mockResolvedValue({ id: "assignment-1" });
+    await expect(verifyCoachAccessToClient("client-1")).resolves.toMatchObject({ id: "coach-1" });
+  });
+
+  it("verifyCoachAccessToClient denies an active coach with no assignment to this client", async () => {
+    mocks.auth.mockResolvedValue({ userId: "clerk_coach" });
+    mocks.findUser.mockResolvedValue({ id: "coach-1", isCoach: true, isDeactivated: false });
+    mocks.findCoachClient.mockResolvedValue(null);
+    await expect(verifyCoachAccessToClient("client-1")).rejects.toThrow("Not assigned");
+  });
+
+  it("verifyCoachAccessToClient denies a non-coach account", async () => {
+    mocks.auth.mockResolvedValue({ userId: "clerk_client" });
+    mocks.findUser.mockResolvedValue({ id: "client-1", isCoach: false, isDeactivated: false });
+    await expect(verifyCoachAccessToClient("client-2")).rejects.toThrow("Not a coach");
   });
 });
 

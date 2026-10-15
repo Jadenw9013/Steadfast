@@ -1,12 +1,4 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { randomUUID } from "crypto";
 
 const mocks = vi.hoisted(() => ({ authUserId: "" }));
@@ -21,10 +13,7 @@ vi.mock("next/cache", () => ({
 }));
 
 import { NextRequest } from "next/server";
-import {
-  publishTrainingProgram,
-  saveTrainingProgram,
-} from "@/app/actions/training-programs";
+import { publishTrainingProgram, saveTrainingProgram } from "@/app/actions/training-programs";
 import {
   POST as createTrainingDraft,
   PUT as updateTrainingDraft,
@@ -34,6 +23,7 @@ import { GET as getCurrentTraining } from "@/app/api/client/training/current/rou
 import { GET as exportTrainingProgram } from "@/app/api/training-programs/[programId]/export/route";
 import { POST as importWorkout } from "@/app/api/workout-import/import/route";
 import { db } from "@/lib/db";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 import {
   getLatestPublishedTrainingProgramForCoach,
   getPublishedTrainingProgram,
@@ -42,15 +32,7 @@ import {
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (
-    url.hostname !== "127.0.0.1" ||
-    url.pathname !== "/steadfast_security_test"
-  ) {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 
 const suite = enabled ? describe : describe.skip;
 
@@ -80,10 +62,7 @@ suite("T-952b training-program publish supersede", () => {
     });
     await db.coachClient.deleteMany({
       where: {
-        OR: [
-          { coachId: { in: createdUserIds } },
-          { clientId: { in: createdUserIds } },
-        ],
+        OR: [{ coachId: { in: createdUserIds } }, { clientId: { in: createdUserIds } }],
       },
     });
     await db.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -176,28 +155,23 @@ suite("T-952b training-program publish supersede", () => {
     ]);
   }
 
-  async function supersededFixture(args?: {
-    previousWeek?: Date;
-    replacementWeek?: Date;
-  }) {
+  async function supersededFixture(args?: { previousWeek?: Date; replacementWeek?: Date }) {
     const { coach, client } = await fixture();
     const previous = await createProgram({
       clientId: client.id,
-      weekOf:
-        args?.previousWeek ?? new Date("2026-10-05T00:00:00.000Z"),
+      weekOf: args?.previousWeek ?? new Date("2026-10-05T00:00:00.000Z"),
       status: "PUBLISHED",
       dayName: "Previous",
     });
     const replacement = await createProgram({
       clientId: client.id,
-      weekOf:
-        args?.replacementWeek ?? new Date("2026-10-12T00:00:00.000Z"),
+      weekOf: args?.replacementWeek ?? new Date("2026-10-12T00:00:00.000Z"),
       dayName: "Replacement",
     });
 
-    await expect(
-      publishTrainingProgram({ programId: replacement.id })
-    ).resolves.toEqual({ success: true });
+    await expect(publishTrainingProgram({ programId: replacement.id })).resolves.toEqual({
+      success: true,
+    });
     await expectPublishedState({
       clientId: client.id,
       supersededIds: [previous.id],
@@ -211,14 +185,11 @@ suite("T-952b training-program publish supersede", () => {
   });
 
   function publishRequest(clientId: string, programId: string) {
-    return new NextRequest(
-      `https://example.test/api/coach/clients/${clientId}/training/publish`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ programId }),
-      }
-    );
+    return new NextRequest(`https://example.test/api/coach/clients/${clientId}/training/publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ programId }),
+    });
   }
 
   async function createWorkoutImportDraft(coachId: string, clientId: string) {
@@ -243,11 +214,7 @@ suite("T-952b training-program publish supersede", () => {
     return workoutImport.draft.id;
   }
 
-  function importRequest(args: {
-    draftId: string;
-    clientId: string;
-    dayName: string;
-  }) {
+  function importRequest(args: { draftId: string; clientId: string; dayName: string }) {
     return new NextRequest("https://example.test/api/workout-import/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -262,9 +229,7 @@ suite("T-952b training-program publish supersede", () => {
           days: [
             {
               dayName: args.dayName,
-              blocks: [
-                { type: "EXERCISE", title: "Deadlift", content: "3x5" },
-              ],
+              blocks: [{ type: "EXERCISE", title: "Deadlift", content: "3x5" }],
             },
           ],
         },
@@ -353,12 +318,9 @@ suite("T-952b training-program publish supersede", () => {
   it("server-action save and publish-target reads accept a superseded row", async () => {
     const { client, previous } = await supersededFixture();
 
-    await expect(
-      publishTrainingProgram({ programId: previous.id })
-    ).resolves.toEqual({
-      success: false,
-      message: "Can only publish drafts",
-    });
+    await expect(publishTrainingProgram({ programId: previous.id })).rejects.toThrow(
+      "Can only publish drafts"
+    );
 
     await expect(
       saveTrainingProgram({
@@ -373,9 +335,7 @@ suite("T-952b training-program publish supersede", () => {
     const { previous } = await supersededFixture();
 
     const response = await exportTrainingProgram(
-      new NextRequest(
-        `https://example.test/api/training-programs/${previous.id}/export`
-      ),
+      new NextRequest(`https://example.test/api/training-programs/${previous.id}/export`),
       { params: Promise.resolve({ programId: previous.id }) }
     );
 
@@ -388,38 +348,33 @@ suite("T-952b training-program publish supersede", () => {
     const { client, previous } = await supersededFixture();
 
     const createResponse = await createTrainingDraft(
-      new NextRequest(
-        `https://example.test/api/coach/clients/${client.id}/training`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            weekOf: "2026-11-02",
-            copyFromPublished: true,
-          }),
-        }
-      ),
+      new NextRequest(`https://example.test/api/coach/clients/${client.id}/training`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          weekOf: "2026-11-02",
+          copyFromPublished: true,
+        }),
+      }),
       params(client.id)
     );
     expect(createResponse.status).toBe(201);
 
     const updateResponse = await updateTrainingDraft(
-      new NextRequest(
-        `https://example.test/api/coach/clients/${client.id}/training`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            programId: previous.id,
-            days: [{ dayName: "Forked", sortOrder: 0, blocks: [] }],
-          }),
-        }
-      ),
+      new NextRequest(`https://example.test/api/coach/clients/${client.id}/training`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          programId: previous.id,
+          days: [{ dayName: "Forked", sortOrder: 0, blocks: [] }],
+        }),
+      }),
       params(client.id)
     );
     expect(updateResponse.status).toBe(200);
-    expect(await updateResponse.json()).toEqual({
+    expect(await updateResponse.json()).toMatchObject({
       success: true,
+      programId: previous.id,
       forkedNewProgramId: expect.any(String),
     });
   });
@@ -443,10 +398,7 @@ suite("T-952b training-program publish supersede", () => {
     const replacementWeek = new Date("2026-10-12T00:00:00.000Z");
     const { client, replacement } = await supersededFixture({ replacementWeek });
 
-    const sameWeek = await getTrainingProgramForReview(
-      client.id,
-      replacementWeek
-    );
+    const sameWeek = await getTrainingProgramForReview(client.id, replacementWeek);
     expect(sameWeek.source).toBe("published");
     expect(sameWeek.program?.id).toBe(replacement.id);
 
@@ -458,10 +410,11 @@ suite("T-952b training-program publish supersede", () => {
     expect(carriedOver.program?.id).toBe(replacement.id);
     expect(carriedOver.carriedOverFrom).toEqual(replacementWeek);
 
-    await expect(
-      getLatestPublishedTrainingProgramForCoach(client.id)
-    ).resolves.toMatchObject({ id: replacement.id, status: "PUBLISHED" });
-    await expect(getPublishedTrainingProgram(client.id)).resolves.toMatchObject({
+    await expect(getLatestPublishedTrainingProgramForCoach(client.id)).resolves.toMatchObject({
+      id: replacement.id,
+      status: "PUBLISHED",
+    });
+    await expect(getPublishedTrainingProgram(client.id, new Date(0))).resolves.toMatchObject({
       id: replacement.id,
       status: "PUBLISHED",
     });

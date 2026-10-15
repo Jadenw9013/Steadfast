@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { currentUser } from "@clerk/nextjs/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { acceptClientInviteForUser, inviteConfirmationMessage } from "@/lib/activation";
 import { db } from "@/lib/db";
 
 // ── POST — connect client to coach via invite code ───────────────────────────
@@ -10,10 +12,18 @@ import { db } from "@/lib/db";
 //
 // Response contract (matches iOS ConnectCoachResponse):
 //   Success: { success: true }
-//   Failure: { success: false, error: string }
+//   Failure: { success: false, error: string, message?: string }
+//   T-987: 409 { success: false, error: "confirmation_required", message,
+//     invitedEmailHint, signedInAs, coachName } when the invite was sent to
+//     an address that isn't verified on this account, and the caller has not
+//     yet confirmed it's them (optional `confirmDifferentEmail` in the body).
+//   T-987 review round 2: 403/410 refusals also carry `message`, the exact
+//     service sentence (additive — `error`/status unchanged, so this is not
+//     the `reason` discriminator T-964 owns).
 
 const connectCoachSchema = z.object({
   coachCode: z.string().min(1, "Code is required").max(100),
+  confirmDifferentEmail: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -39,20 +49,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { coachCode } = parsed.data;
+    const { coachCode, confirmDifferentEmail } = parsed.data;
 
     // ── Look up invite by token ───────────────────────────────────────────
-    const invite = await db.clientInvite.findUnique({
-      where: { inviteToken: coachCode },
-      select: {
-        id: true,
-        coachId: true,
-        email: true,
-        status: true,
-        expiresAt: true,
-        coach: { select: { id: true, firstName: true, lastName: true } },
-      },
-    });
+    const invite = await db.clientInvite.findUnique({ where: { inviteToken: coachCode } });
 
     if (!invite) {
       return NextResponse.json(
@@ -61,70 +61,58 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Check invite status ───────────────────────────────────────────────
-    if (invite.status !== "PENDING") {
-      return NextResponse.json(
-        { success: false, error: "invalid_code" },
-        { status: 410 }
-      );
-    }
+    // Clerk's Backend API is network I/O; resolved here, outside
+    // acceptClientInviteForUser's transaction, and passed in as data.
+    const clerkUser = await currentUser();
 
-    // ── Check expiry (7-day TTL) ──────────────────────────────────────────
-    if (invite.expiresAt < new Date()) {
-      await db.clientInvite.update({
-        where: { id: invite.id },
-        data: { status: "EXPIRED" },
-      });
-      return NextResponse.json(
-        { success: false, error: "expired" },
-        { status: 410 }
-      );
-    }
-
-    // ── Verify email match ────────────────────────────────────────────────
-    if (invite.email.toLowerCase() !== user.email.toLowerCase()) {
-      return NextResponse.json(
-        { success: false, error: "invalid_code" },
-        { status: 403 }
-      );
-    }
-
-    // ── Check for existing assignment ─────────────────────────────────────
-    const existingAssignment = await db.coachClient.findUnique({
-      where: {
-        coachId_clientId: {
-          coachId: invite.coachId,
-          clientId: user.id,
-        },
-      },
-      select: { id: true },
+    // ── Accept via the single shared acceptance service ────────────────────
+    const result = await acceptClientInviteForUser(invite, user, {
+      accountEmailAddresses: clerkUser?.emailAddresses ?? null,
+      confirmDifferentEmail,
     });
+    if (!result.success) {
+      if (result.confirmationRequired) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "confirmation_required",
+            message: inviteConfirmationMessage({
+              invitedEmailHint: result.invitedEmailHint,
+              signedInAs: result.signedInAs,
+              coachName: result.coachName,
+            }),
+            invitedEmailHint: result.invitedEmailHint,
+            signedInAs: result.signedInAs,
+            coachName: result.coachName,
+          },
+          { status: 409 }
+        );
+      }
+      const status = result.error.includes("expired") ? 410 : 403;
+      // T-987 review round 2, MAJOR 1: additive, no contract change to
+      // `error`/status — six distinct service refusals were collapsing to
+      // two machine tokens, and iOS's userFacingErrorMessage prefers
+      // json["error"], so "already used" and "you're with another coach"
+      // both rendered the literal string "invalid_code". `message` carries
+      // the exact sentence the service produced (the same one the web page
+      // now shows via the confirmError code table), so a future caller can
+      // read it instead of hardcoding a copy of these sentences in Swift.
+      return NextResponse.json(
+        {
+          success: false,
+          error: result.error.includes("expired") ? "expired" : "invalid_code",
+          message: result.error,
+        },
+        { status }
+      );
+    }
 
-    if (existingAssignment) {
-      // Mark invite as accepted anyway (idempotent)
-      await db.clientInvite.update({
-        where: { id: invite.id },
-        data: { status: "ACCEPTED" },
-      });
+    if (result.alreadyConnected) {
       return NextResponse.json(
         { success: false, error: "already_connected" },
         { status: 409 }
       );
     }
-
-    // ── Create CoachClient + accept invite ────────────────────────────────
-    await db.coachClient.create({
-      data: {
-        coachId: invite.coachId,
-        clientId: user.id,
-        coachNotes: "Joined via invite code.",
-      },
-    });
-
-    await db.clientInvite.update({
-      where: { id: invite.id },
-      data: { status: "ACCEPTED" },
-    });
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { endCoachClientRelationship } from "@/lib/coach-client/end-relationship";
 import { revalidatePath } from "next/cache";
 
 const removeClientSchema = z.object({
@@ -24,22 +25,15 @@ export async function removeClient(input: unknown) {
 
   if (!assignment) throw new Error("Client not found in your roster");
 
-  await db.coachClient.delete({
-    where: { id: assignment.id },
+  // T-2058: one teardown shared with the iOS DELETE route — the row delete,
+  // the client's unpublished drafts, the ClientCoachingContext reconciliation
+  // and the lead stage commit atomically.
+  await endCoachClientRelationship({
+    coachClientId: assignment.id,
+    coachId: user.id,
+    clientId: assignment.clientId,
+    endedBy: "COACH",
   });
-
-  // Auto-decline any linked leads
-  const coachProfile = await db.coachProfile.findUnique({ where: { userId: user.id } });
-  if (coachProfile) {
-    await db.coachingRequest.updateMany({
-      where: {
-        coachProfileId: coachProfile.id,
-        prospectId: parsed.data.clientId,
-        consultationStage: { not: "DECLINED" },
-      },
-      data: { consultationStage: "DECLINED", status: "DECLINED" },
-    });
-  }
 
   revalidatePath("/coach", "layout");
   revalidatePath("/coach/leads");
@@ -65,22 +59,14 @@ export async function leaveCoach(input: unknown) {
     throw new Error("Coach relationship not found");
   }
 
-  await db.coachClient.delete({
-    where: { id: assignment.id },
+  // T-2058: the shared teardown (row, drafts, context, lead) in one
+  // transaction. A client leaving still declines the coach's lead.
+  await endCoachClientRelationship({
+    coachClientId: assignment.id,
+    coachId: assignment.coachId,
+    clientId: user.id,
+    endedBy: "CLIENT",
   });
-
-  // Auto-decline any linked leads
-  const coachProfile = await db.coachProfile.findUnique({ where: { userId: assignment.coachId } });
-  if (coachProfile) {
-    await db.coachingRequest.updateMany({
-      where: {
-        coachProfileId: coachProfile.id,
-        prospectId: user.id,
-        consultationStage: { not: "DECLINED" },
-      },
-      data: { consultationStage: "DECLINED", status: "DECLINED" },
-    });
-  }
 
   revalidatePath("/client", "layout");
   return { success: true };

@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
 
     const coach = await db.user.findUnique({ where: { clerkId: userId } });
     if (!coach?.isCoach) return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    if (coach.isDeactivated) return NextResponse.json({ error: "Account is pending deletion" }, { status: 403 });
 
     const rawBody = await req.json();
     const bodyParsed = bodySchema.safeParse(rawBody);
@@ -117,6 +118,7 @@ export async function POST(req: NextRequest) {
       }
 
       const weekOf = getCurrentWeekMonday();
+
       // Delete any existing draft for this week
       const existing = await db.trainingProgram.findFirst({
         where: { clientId: targetClientId, weekOf, status: "DRAFT" },
@@ -126,6 +128,9 @@ export async function POST(req: NextRequest) {
         await db.trainingProgram.delete({ where: { id: existing.id } });
       }
 
+      // Always created as a DRAFT: lib/training-programs/publish.ts is the only
+      // writer of TrainingProgram.status = "PUBLISHED" (T-739), and it owns the
+      // CB05 supersede this route used to skip entirely.
       const trainingProgram = await db.trainingProgram.create({
         data: {
           clientId: targetClientId,
@@ -151,17 +156,23 @@ export async function POST(req: NextRequest) {
       });
 
       if (publish) {
+        // `status: "DRAFT"` is constructed, not re-read: the row was created
+        // microseconds earlier with that literal, and the flip itself is gated
+        // in the database (`updateMany where status: "DRAFT"`), so any
+        // staleness degrades to RACE_LOST rather than a wrong publish.
         const result = await publishTrainingProgramTarget({
           id: trainingProgram.id,
           clientId: targetClientId,
           status: "DRAFT",
         });
         if (!result.ok) {
+          // Return BEFORE the bookkeeping writes. Marking the import IMPORTED
+          // on a failed publish would trip the "Already imported" 400 on the
+          // coach's retry and strand the import permanently.
           return NextResponse.json(
             result.code === "RACE_LOST"
               ? {
-                  error:
-                    "This program was already published or changed by someone else",
+                  error: "This program was already published or changed by someone else",
                   code: "PUBLISH_RACE_LOST",
                 }
               : { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },

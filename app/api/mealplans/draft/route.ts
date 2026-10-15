@@ -9,6 +9,7 @@ export async function GET(req: NextRequest) {
 
     const coach = await db.user.findUnique({ where: { clerkId: userId } });
     if (!coach?.isCoach) return NextResponse.json({ error: "Not a coach" }, { status: 403 });
+    if (coach.isDeactivated) return NextResponse.json({ error: "Account is pending deletion" }, { status: 403 });
 
     const uploadId = req.nextUrl.searchParams.get("uploadId");
     if (!uploadId) return NextResponse.json({ error: "Missing uploadId" }, { status: 400 });

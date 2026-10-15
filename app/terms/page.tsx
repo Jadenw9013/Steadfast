@@ -48,9 +48,15 @@ export default function TermsPage() {
                 </section>
 
                 <section>
-                    <h2 className="text-lg font-semibold text-zinc-900">5. Liability Disclaimer</h2>
+                    <h2 className="text-lg font-semibold text-zinc-900">5. Medical Disclaimer &amp; Limitation of Liability</h2>
                     <p className="mt-2">
-                        The Service is provided &quot;as is&quot; and &quot;as available&quot; without warranties of any kind, whether express or implied. Steadfast is a technology platform and does not provide medical, nutritional, or fitness advice. We are not liable for any health outcomes, injuries, or damages arising from the use of coaching services facilitated through the platform.
+                        <strong>Not Medical or Healthcare Advice:</strong> The Service, including any coaching content, automated guidance, training programs, or nutrition targets, is provided for general fitness and wellness educational purposes only. Steadfast is not a healthcare provider, does not practice medicine, does not employ licensed clinicians, and does not provide clinical nutrition therapy, medical diagnosis, or treatment.
+                    </p>
+                    <p className="mt-2">
+                        <strong>Physician Consultation Required:</strong> You agree that you must consult with your physician or another qualified healthcare provider before starting any exercise, fitness, or nutrition program, or modifying any medications or dietary habits.
+                    </p>
+                    <p className="mt-2">
+                        <strong>Assumption of Risk and Waiver:</strong> Your participation in any coaching, exercise, or nutritional guidance facilitated by Steadfast is voluntary and undertaken at your own risk. To the maximum extent permitted by applicable law, Steadfast, its founders, officers, employees, and affiliates shall not be liable for any personal injury, illness, adverse health outcome, or consequential damages arising out of or related to your use of the Service.
                     </p>
                 </section>
 

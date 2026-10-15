@@ -66,7 +66,7 @@ describe("buildFoodsDraftInput", () => {
     expect(result.items.map((i) => i.foodName)).toEqual(["Oats", "Chicken"]);
   });
 
-  it("omits supportContent when the string is empty", () => {
+  it("clears carried-forward supportContent when the string is empty", () => {
     const result = buildFoodsDraftInput({
       clientId: "client_1",
       weekStartDate: "2026-09-14",
@@ -74,7 +74,7 @@ describe("buildFoodsDraftInput", () => {
       planExtras: null,
       supportContent: "",
     });
-    expect(result.supportContent).toBeUndefined();
+    expect(result.supportContent).toBeNull();
   });
 
   it("passes supportContent through when non-empty", () => {
@@ -93,7 +93,7 @@ describe("buildFoodsDraftInput", () => {
   // coach who types only spaces would otherwise get no unsaved-changes
   // warning before the toggle discards it, yet the string would have been
   // persisted on Save.
-  it("treats a whitespace-only supportContent the same as empty", () => {
+  it("treats a whitespace-only supportContent as an explicit clear", () => {
     const result = buildFoodsDraftInput({
       clientId: "client_1",
       weekStartDate: "2026-09-14",
@@ -101,7 +101,7 @@ describe("buildFoodsDraftInput", () => {
       planExtras: null,
       supportContent: "   ",
     });
-    expect(result.supportContent).toBeUndefined();
+    expect(result.supportContent).toBeNull();
   });
 });
 
@@ -124,18 +124,27 @@ describe("shouldProceedWithModeSwitch", () => {
 
   it("asks for confirmation when there are unsaved changes, and proceeds only if confirmed", () => {
     const confirmYes = vi.fn(() => true);
-    expect(shouldProceedWithModeSwitch({ ...base, hasUnsavedChanges: true, confirmDiscard: confirmYes })).toBe(true);
+    expect(
+      shouldProceedWithModeSwitch({ ...base, hasUnsavedChanges: true, confirmDiscard: confirmYes })
+    ).toBe(true);
     expect(confirmYes).toHaveBeenCalledTimes(1);
 
     const confirmNo = vi.fn(() => false);
-    expect(shouldProceedWithModeSwitch({ ...base, hasUnsavedChanges: true, confirmDiscard: confirmNo })).toBe(false);
+    expect(
+      shouldProceedWithModeSwitch({ ...base, hasUnsavedChanges: true, confirmDiscard: confirmNo })
+    ).toBe(false);
     expect(confirmNo).toHaveBeenCalledTimes(1);
   });
 
   it("never proceeds when next === current, even with unsaved changes, and never asks", () => {
     const confirmDiscard = vi.fn(() => true);
     expect(
-      shouldProceedWithModeSwitch({ ...base, next: base.current, hasUnsavedChanges: true, confirmDiscard })
+      shouldProceedWithModeSwitch({
+        ...base,
+        next: base.current,
+        hasUnsavedChanges: true,
+        confirmDiscard,
+      })
     ).toBe(false);
     expect(confirmDiscard).not.toHaveBeenCalled();
   });
@@ -149,11 +158,62 @@ describe("shouldProceedWithModeSwitch", () => {
 
 describe("foodsEditorSignature", () => {
   it("is stable across id-only differences and changes when content changes", () => {
-    const a: MealGroup[] = [{ mealName: "Breakfast", items: [{ id: "a", foodName: "Oats", quantity: "1", unit: "cup", servingDescription: "", calories: 300, protein: 10, carbs: 50, fats: 5 }] }];
-    const b: MealGroup[] = [{ mealName: "Breakfast", items: [{ id: "different-id", foodName: "Oats", quantity: "1", unit: "cup", servingDescription: "", calories: 300, protein: 10, carbs: 50, fats: 5 }] }];
+    const a: MealGroup[] = [
+      {
+        mealName: "Breakfast",
+        items: [
+          {
+            id: "a",
+            foodName: "Oats",
+            quantity: "1",
+            unit: "cup",
+            servingDescription: "",
+            calories: 300,
+            protein: 10,
+            carbs: 50,
+            fats: 5,
+          },
+        ],
+      },
+    ];
+    const b: MealGroup[] = [
+      {
+        mealName: "Breakfast",
+        items: [
+          {
+            id: "different-id",
+            foodName: "Oats",
+            quantity: "1",
+            unit: "cup",
+            servingDescription: "",
+            calories: 300,
+            protein: 10,
+            carbs: 50,
+            fats: 5,
+          },
+        ],
+      },
+    ];
     expect(foodsEditorSignature(a, null, "")).toBe(foodsEditorSignature(b, null, ""));
 
-    const c: MealGroup[] = [{ mealName: "Breakfast", items: [{ id: "a", foodName: "Rice", quantity: "1", unit: "cup", servingDescription: "", calories: 300, protein: 10, carbs: 50, fats: 5 }] }];
+    const c: MealGroup[] = [
+      {
+        mealName: "Breakfast",
+        items: [
+          {
+            id: "a",
+            foodName: "Rice",
+            quantity: "1",
+            unit: "cup",
+            servingDescription: "",
+            calories: 300,
+            protein: 10,
+            carbs: 50,
+            fats: 5,
+          },
+        ],
+      },
+    ];
     expect(foodsEditorSignature(a, null, "")).not.toBe(foodsEditorSignature(c, null, ""));
   });
 
@@ -166,9 +226,9 @@ describe("macroEditorSignature", () => {
   it("is stable across extra id fields and changes when a target changes", () => {
     const a = [{ id: "x", mealName: "Breakfast", calories: 500, protein: 40, carbs: 50, fats: 15 }];
     const b = [{ id: "y", mealName: "Breakfast", calories: 500, protein: 40, carbs: 50, fats: 15 }];
-    expect(macroEditorSignature(a)).toBe(macroEditorSignature(b));
+    expect(macroEditorSignature(a, "")).toBe(macroEditorSignature(b, ""));
 
     const c = [{ id: "x", mealName: "Breakfast", calories: 600, protein: 40, carbs: 50, fats: 15 }];
-    expect(macroEditorSignature(a)).not.toBe(macroEditorSignature(c));
+    expect(macroEditorSignature(a, "")).not.toBe(macroEditorSignature(c, ""));
   });
 });

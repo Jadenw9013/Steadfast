@@ -15,13 +15,18 @@ import { POST as publishRest } from "@/app/api/coach/clients/[clientId]/meal-pla
 import { GET as getMealPlanRest } from "@/app/api/coach/clients/[clientId]/meal-plan/route";
 import { GET as getMealPlanCurrentRest } from "@/app/api/client/meal-plan/current/route";
 import { db } from "@/lib/db";
-import { getCurrentPublishedMealPlan, getEffectiveMealPlanForReview } from "@/lib/queries/meal-plans";
+import {
+  getCurrentPublishedMealPlan,
+  getEffectiveMealPlanForReview,
+} from "@/lib/queries/meal-plans";
 import { buildFoodsDraftInput } from "@/lib/meal-plans/editor-state";
+import { resolveClientPlanView } from "@/lib/meal-plans/client-plan-view";
 import type { MealGroup } from "@/types/meal-plan";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 /**
  * T-800 regression suite. Run through the local test DB:
- *   DATABASE_URL=postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test \
+ *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
  *   SECURITY_INTEGRATION=1 pnpm exec vitest run tests/integration/plan-mode-publish-regression.test.ts
  *
  * Case 1 ("the report") must FAIL on origin/main — see
@@ -30,10 +35,7 @@ import type { MealGroup } from "@/types/meal-plan";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("T-800: plan-mode-aware publish never blanks a client", () => {
@@ -46,9 +48,18 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
 
   async function fixture() {
     const coachId = randomUUID();
-    const coach = await db.user.create({ data: { clerkId: coachId, email: `${coachId}@example.test`, isCoach: true, activeRole: "COACH" } });
+    const coach = await db.user.create({
+      data: {
+        clerkId: coachId,
+        email: `${coachId}@example.test`,
+        isCoach: true,
+        activeRole: "COACH",
+      },
+    });
     const clientId = randomUUID();
-    const client = await db.user.create({ data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true } });
+    const client = await db.user.create({
+      data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true },
+    });
     await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
     return { coach, client };
   }
@@ -78,8 +89,28 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
         publishedAt: new Date(),
         items: {
           create: [
-            { mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 },
-            { mealName: "Meal 1", sortOrder: 1, foodName: "Rice", quantity: "1", unit: "cup", calories: 200, protein: 4, carbs: 45, fats: 0 },
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Chicken breast",
+              quantity: "6",
+              unit: "oz",
+              calories: 280,
+              protein: 52,
+              carbs: 0,
+              fats: 6,
+            },
+            {
+              mealName: "Meal 1",
+              sortOrder: 1,
+              foodName: "Rice",
+              quantity: "1",
+              unit: "cup",
+              calories: 200,
+              protein: 4,
+              carbs: 45,
+              fats: 0,
+            },
           ],
         },
       },
@@ -90,8 +121,28 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
       clientId: client.id,
       weekStartDate: "2026-09-14",
       items: [
-        { mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 },
-        { mealName: "Meal 1", sortOrder: 1, foodName: "Rice", quantity: "1", unit: "cup", calories: 200, protein: 4, carbs: 45, fats: 0 },
+        {
+          mealName: "Meal 1",
+          sortOrder: 0,
+          foodName: "Chicken breast",
+          quantity: "6",
+          unit: "oz",
+          calories: 280,
+          protein: 52,
+          carbs: 0,
+          fats: 6,
+        },
+        {
+          mealName: "Meal 1",
+          sortOrder: 1,
+          foodName: "Rice",
+          quantity: "1",
+          unit: "cup",
+          calories: 200,
+          protein: 4,
+          carbs: 45,
+          fats: 0,
+        },
       ],
     });
 
@@ -112,12 +163,14 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     await expect(publishMealPlan({ mealPlanId })).rejects.toThrow(
       "Add at least one meal with macro targets before publishing."
     );
-    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } })).status).toBe("DRAFT");
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } })).status).toBe(
+      "DRAFT"
+    );
 
     // Assert the invariant too, not just the mechanism, so this still passes
     // after team/sprint-1 merges (where the draft may be stamped MEAL_PLAN
     // instead of being refused).
-    const current = await getCurrentPublishedMealPlan(client.id);
+    const current = await getCurrentPublishedMealPlan(client.id, new Date(0));
     expect(current).not.toBeNull();
     expect(current!.items.length).toBeGreaterThan(0);
     expect(current!.planMode === "MEAL_PLAN" || current!.macroTargets.length > 0).toBe(true);
@@ -136,7 +189,17 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
       {
         mealName: "Breakfast",
         items: [
-          { id: "a", foodName: "Oats", quantity: "1", unit: "cup", servingDescription: "1 cup", calories: 300, protein: 10, carbs: 50, fats: 5 },
+          {
+            id: "a",
+            foodName: "Oats",
+            quantity: "1",
+            unit: "cup",
+            servingDescription: "1 cup",
+            calories: 300,
+            protein: 10,
+            carbs: 50,
+            fats: 5,
+          },
         ],
       },
     ];
@@ -156,7 +219,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
 
     await publishMealPlan({ mealPlanId });
 
-    const current = await getCurrentPublishedMealPlan(client.id);
+    const current = await getCurrentPublishedMealPlan(client.id, new Date(0));
     expect(current?.planMode).toBe("MEAL_PLAN");
     expect(current?.items.map((i) => i.foodName)).toEqual(["Oats"]);
 
@@ -182,7 +245,9 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     await expect(publishMealPlan({ mealPlanId: macroDraftId })).rejects.toThrow(
       "Add at least one meal with macro targets before publishing."
     );
-    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: macroDraftId } })).status).toBe("DRAFT");
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: macroDraftId } })).status).toBe(
+      "DRAFT"
+    );
 
     const macroPublishResponse = await publishRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan/publish`, {
@@ -196,7 +261,9 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     const macroBody = await macroPublishResponse.json();
     expect(macroBody.code).toBe("PLAN_EMPTY");
     expect(macroBody.error).toBe("Add at least one meal with macro targets before publishing.");
-    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: macroDraftId } })).status).toBe("DRAFT");
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: macroDraftId } })).status).toBe(
+      "DRAFT"
+    );
 
     // MEAL_PLAN draft, 0 items
     const { mealPlanId: foodsDraftId } = await createDraftMealPlan({
@@ -222,7 +289,9 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     const foodsBody = await foodsPublishResponse.json();
     expect(foodsBody.code).toBe("PLAN_EMPTY");
     expect(foodsBody.error).toBe("Add at least one food before publishing.");
-    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: foodsDraftId } })).status).toBe("DRAFT");
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: foodsDraftId } })).status).toBe(
+      "DRAFT"
+    );
 
     // Both transports return the exact same message string for the same mode.
     expect(macroBody.error).not.toBe(foodsBody.error);
@@ -236,22 +305,38 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
       clientId: client.id,
       weekStartDate: "2026-09-14",
       planMode: "MEAL_PLAN",
-      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 }],
+      items: [
+        {
+          mealName: "Meal 1",
+          sortOrder: 0,
+          foodName: "Chicken breast",
+          quantity: "6",
+          unit: "oz",
+          calories: 280,
+          protein: 52,
+          carbs: 0,
+          fats: 6,
+        },
+      ],
     });
     const publishResult = await publishMealPlan({ mealPlanId: foodsId });
     expect(publishResult).toEqual({ success: true });
     const foodsPlan = await db.mealPlan.findUniqueOrThrow({ where: { id: foodsId } });
     expect(foodsPlan.status).toBe("PUBLISHED");
     expect(foodsPlan.publishedAt).not.toBeNull();
-    expect((await getCurrentPublishedMealPlan(client.id))?.id).toBe(foodsId);
+    expect((await getCurrentPublishedMealPlan(client.id, new Date(0)))?.id).toBe(foodsId);
 
-    await expect(publishMealPlan({ mealPlanId: foodsId })).rejects.toThrow("Can only publish drafts");
+    await expect(publishMealPlan({ mealPlanId: foodsId })).rejects.toThrow(
+      "Can only publish drafts"
+    );
 
     const { mealPlanId: macroId } = await createDraftMealPlan({
       clientId: client.id,
       weekStartDate: "2026-09-21",
       planMode: "MACROS",
-      macroTargets: [{ mealName: "Breakfast", sortOrder: 0, calories: 500, protein: 40, carbs: 50, fats: 15 }],
+      macroTargets: [
+        { mealName: "Breakfast", sortOrder: 0, calories: 500, protein: 40, carbs: 50, fats: 15 },
+      ],
     });
     const macroPublishResponse = await publishRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan/publish`, {
@@ -265,7 +350,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     const macroPlan = await db.mealPlan.findUniqueOrThrow({ where: { id: macroId } });
     expect(macroPlan.status).toBe("PUBLISHED");
     expect(macroPlan.publishedAt).not.toBeNull();
-    expect((await getCurrentPublishedMealPlan(client.id))?.id).toBe(macroId);
+    expect((await getCurrentPublishedMealPlan(client.id, new Date(0)))?.id).toBe(macroId);
 
     const rePublishResponse = await publishRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan/publish`, {
@@ -281,7 +366,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     expect(rePublishBody.error).toBe("Can only publish drafts");
   });
 
-  it("case 5 — editorMode: the client default wins with no draft, full stop, and both coach-facing transports agree (T-800 code-review r1 MAJOR-1; round-3 removes the r1 MAJOR-2 content-based fallback — board/tickets/T-800.md \"## Decision\")", async () => {
+  it('case 5 — editorMode: the client default wins with no draft, full stop, and both coach-facing transports agree (T-800 code-review r1 MAJOR-1; round-3 removes the r1 MAJOR-2 content-based fallback — board/tickets/T-800.md "## Decision")', async () => {
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
@@ -299,7 +384,21 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
         status: "PUBLISHED",
         planMode: "MEAL_PLAN",
         publishedAt: new Date(),
-        items: { create: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Chicken", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 }] },
+        items: {
+          create: [
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Chicken",
+              quantity: "6",
+              unit: "oz",
+              calories: 280,
+              protein: 52,
+              carbs: 0,
+              fats: 6,
+            },
+          ],
+        },
       },
     });
 
@@ -312,7 +411,11 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     // editor and clears the stale default. A content-based fallback here
     // would make the toggle a no-op for this exact scenario (round-2
     // BLOCKER-1) — see board/tickets/T-800-code-reviewer-r2.md §2.
-    const noDraft = await getEffectiveMealPlanForReview({ coachId: coach.id, clientId: client.id, weekOf });
+    const noDraft = await getEffectiveMealPlanForReview({
+      coachId: coach.id,
+      clientId: client.id,
+      weekOf,
+    });
     expect(noDraft.editorMode).toBe("MACROS");
     expect(noDraft.clientPlanMode).toBe("MACROS");
 
@@ -320,7 +423,9 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     // identical seed — before this rework it still resolved the coach's
     // editor from `draft ?? published` and would have disagreed.
     const restNoDraft = await getMealPlanRest(
-      new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan?weekOf=2026-09-14`),
+      new NextRequest(
+        `https://example.test/api/coach/clients/${client.id}/meal-plan?weekOf=2026-09-14`
+      ),
       params(client.id)
     );
     const restNoDraftBody = await restNoDraft.json();
@@ -348,19 +453,39 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
         status: "PUBLISHED",
         planMode: "MEAL_PLAN",
         publishedAt: new Date(),
-        items: { create: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Chicken", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 }] },
+        items: {
+          create: [
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Chicken",
+              quantity: "6",
+              unit: "oz",
+              calories: 280,
+              protein: 52,
+              carbs: 0,
+              fats: 6,
+            },
+          ],
+        },
       },
     });
     await db.mealPlan.create({
       data: { clientId: client.id, weekOf, version: 2, status: "DRAFT", planMode: "MACROS" },
     });
 
-    const withDraft = await getEffectiveMealPlanForReview({ coachId: coach.id, clientId: client.id, weekOf });
+    const withDraft = await getEffectiveMealPlanForReview({
+      coachId: coach.id,
+      clientId: client.id,
+      weekOf,
+    });
     expect(withDraft.editorMode).toBe("MACROS");
     expect(withDraft.clientPlanMode).toBe("MEAL_PLAN");
 
     const restWithDraft = await getMealPlanRest(
-      new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan?weekOf=2026-09-14`),
+      new NextRequest(
+        `https://example.test/api/coach/clients/${client.id}/meal-plan?weekOf=2026-09-14`
+      ),
       params(client.id)
     );
     const restWithDraftBody = await restWithDraft.json();
@@ -388,19 +513,45 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
         publishedAt: new Date(),
         items: {
           create: [
-            { mealName: "Meal 1", sortOrder: 0, foodName: "Chicken", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 },
-            { mealName: "Meal 1", sortOrder: 1, foodName: "Rice", quantity: "1", unit: "cup", calories: 200, protein: 4, carbs: 45, fats: 0 },
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Chicken",
+              quantity: "6",
+              unit: "oz",
+              calories: 280,
+              protein: 52,
+              carbs: 0,
+              fats: 6,
+            },
+            {
+              mealName: "Meal 1",
+              sortOrder: 1,
+              foodName: "Rice",
+              quantity: "1",
+              unit: "cup",
+              calories: 200,
+              protein: 4,
+              carbs: 45,
+              fats: 0,
+            },
           ],
         },
       },
     });
 
-    const effective = await getEffectiveMealPlanForReview({ coachId: coach.id, clientId: client.id, weekOf });
+    const effective = await getEffectiveMealPlanForReview({
+      coachId: coach.id,
+      clientId: client.id,
+      weekOf,
+    });
     expect(effective.editorMode).toBe("MACROS");
     expect(effective.clientPlanMode).toBe("MACROS");
 
     const restResponse = await getMealPlanRest(
-      new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan?weekOf=2026-09-14`),
+      new NextRequest(
+        `https://example.test/api/coach/clients/${client.id}/meal-plan?weekOf=2026-09-14`
+      ),
       params(client.id)
     );
     const restBody = await restResponse.json();
@@ -418,7 +569,7 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     expect(clientBody.mealPlan.items).toHaveLength(2);
   });
 
-  it("case 6 — defensive render: a legacy mislabeled PUBLISHED row is served to the client as MEAL_PLAN with its items intact (merge-guard for team/sprint-1)", async () => {
+  it("case 6 — defensive render: a legacy mislabeled PUBLISHED row keeps its declared mode but renders foods instead of blanking (merge-guard for team/sprint-1)", async () => {
     const { client } = await fixture();
 
     await db.mealPlan.create({
@@ -431,8 +582,28 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
         publishedAt: new Date(),
         items: {
           create: [
-            { mealName: "Meal 1", sortOrder: 0, foodName: "Chicken", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 },
-            { mealName: "Meal 1", sortOrder: 1, foodName: "Rice", quantity: "1", unit: "cup", calories: 200, protein: 4, carbs: 45, fats: 0 },
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Chicken",
+              quantity: "6",
+              unit: "oz",
+              calories: 280,
+              protein: 52,
+              carbs: 0,
+              fats: 6,
+            },
+            {
+              mealName: "Meal 1",
+              sortOrder: 1,
+              foodName: "Rice",
+              quantity: "1",
+              unit: "cup",
+              calories: 200,
+              protein: 4,
+              carbs: 45,
+              fats: 0,
+            },
           ],
         },
       },
@@ -442,8 +613,18 @@ suite("T-800: plan-mode-aware publish never blanks a client", () => {
     const response = await getMealPlanCurrentRest();
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.mealPlan.planMode).toBe("MEAL_PLAN");
+    // T-802 supersedes the origin/main transport-level coercion: preserve the
+    // declared mode so clients can identify the degraded row, while the shared
+    // resolver still guarantees the foods body is rendered (never blank).
+    expect(body.mealPlan.planMode).toBe("MACROS");
     expect(body.mealPlan.items).toHaveLength(2);
     expect(body.mealPlan.macroTargets).toHaveLength(0);
+    expect(
+      resolveClientPlanView({
+        planMode: body.mealPlan.planMode,
+        itemCount: body.mealPlan.items.length,
+        macroTargetCount: body.mealPlan.macroTargets.length,
+      })
+    ).toEqual({ body: "FOODS", degradation: "MACROS_WITHOUT_TARGETS" });
   });
 });

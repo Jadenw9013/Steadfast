@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { normalizeToMonday } from "@/lib/utils/date";
+import { normalizeToMonday, getLocalDate } from "@/lib/utils/date";
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 
@@ -106,18 +106,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No coach assignment" }, { status: 403 });
     }
 
-    const weekOf = parsed.data.weekOf
-      ? normalizeToMonday(new Date(parsed.data.weekOf))
-      : normalizeToMonday(new Date());
+    // CB08: uniqueness is keyed on the actual calendar day this session
+    // happened, not the week — a program day repeated more than once in the
+    // same week must not collide with and silently overwrite an earlier
+    // session. When the caller logs for "now" (no explicit weekOf), that's
+    // the client's local today; when backfilling an explicit past weekOf
+    // with no finer-grained day available, that week's Monday is the most
+    // honest date we can derive.
+    const effectiveDate = parsed.data.weekOf ? new Date(parsed.data.weekOf) : new Date();
+    const weekOf = normalizeToMonday(effectiveDate);
+    const sessionDate = parsed.data.weekOf
+      ? getLocalDate(weekOf, user.timezone || "America/Los_Angeles")
+      : getLocalDate(effectiveDate, user.timezone || "America/Los_Angeles");
 
     const result = await db.exerciseResult.upsert({
       where: {
-        clientId_exerciseName_programDay_setNumber_weekOf: {
+        clientId_exerciseName_programDay_setNumber_sessionDate: {
           clientId: user.id,
           exerciseName,
           programDay,
           setNumber,
-          weekOf,
+          sessionDate,
         },
       },
       create: {
@@ -126,6 +135,7 @@ export async function POST(req: NextRequest) {
         programDay,
         setNumber,
         weekOf,
+        sessionDate,
         weight: weight ?? 0,
         reps: reps ?? 0,
       },

@@ -3,6 +3,8 @@ import type Stripe from "stripe";
 import { stripe, getStripeWebhookSecret } from "@/lib/stripe";
 import { db } from "@/lib/db";
 import { upsertCoachSubscriptionFromStripeSubscription } from "@/lib/billing";
+import { WEBHOOK_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 export async function POST(req: NextRequest) {
   const signature = req.headers.get("stripe-signature");
@@ -20,6 +22,13 @@ export async function POST(req: NextRequest) {
       getStripeWebhookSecret()
     );
   } catch (err) {
+    reportServerError(WEBHOOK_FAILED.evt, err, {
+      route: "/api/webhooks/stripe",
+      method: "POST",
+      statusCode: 400,
+      context: { provider: "stripe", phase: "signature" },
+      allow: WEBHOOK_FAILED.allow,
+    });
     console.error("Stripe webhook signature verification failed", err);
     return new Response("Webhook verification failed", { status: 400 });
   }
@@ -36,6 +45,10 @@ export async function POST(req: NextRequest) {
       return new Response("OK", { status: 200 });
     }
 
+    // Network calls to Stripe happen here, outside any DB transaction —
+    // resolving which subscription this event concerns can be slow and must
+    // never hold a DB connection/lock open while it happens.
+    let subscription: Stripe.Subscription | null = null;
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -44,8 +57,7 @@ export async function POST(req: NextRequest) {
             typeof session.subscription === "string"
               ? session.subscription
               : session.subscription.id;
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          await upsertCoachSubscriptionFromStripeSubscription(subscription);
+          subscription = await stripe.subscriptions.retrieve(subscriptionId);
         }
         break;
       }
@@ -53,8 +65,7 @@ export async function POST(req: NextRequest) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        await upsertCoachSubscriptionFromStripeSubscription(subscription);
+        subscription = event.data.object as Stripe.Subscription;
         break;
       }
 
@@ -65,8 +76,7 @@ export async function POST(req: NextRequest) {
         if (subscriptionRef) {
           const subscriptionId =
             typeof subscriptionRef === "string" ? subscriptionRef : subscriptionRef.id;
-          const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-          await upsertCoachSubscriptionFromStripeSubscription(subscription);
+          subscription = await stripe.subscriptions.retrieve(subscriptionId);
         }
         break;
       }
@@ -76,18 +86,36 @@ export async function POST(req: NextRequest) {
         break;
     }
 
-    await db.stripeWebhookEvent.create({
-      data: {
-        id: event.id,
-        type: event.type,
-        // Round-trip through JSON to guarantee a plain-serializable value for
-        // the Json column (the raw Stripe.Event type isn't directly assignable).
-        payload: JSON.parse(JSON.stringify(event)),
-      },
+    // CB11: the effect (subscription upsert) and the idempotency receipt
+    // commit atomically. Previously these were two separate top-level
+    // awaits — a crash between them left the effect applied with no
+    // receipt, so a retried delivery could re-apply it a second time.
+    await db.$transaction(async (tx) => {
+      if (subscription) {
+        await upsertCoachSubscriptionFromStripeSubscription(subscription, new Date(event.created * 1000), tx);
+      }
+      await tx.stripeWebhookEvent.create({
+        data: {
+          id: event.id,
+          type: event.type,
+          // Round-trip through JSON to guarantee a plain-serializable value
+          // for the Json column (the raw Stripe.Event type isn't directly
+          // assignable).
+          payload: JSON.parse(JSON.stringify(event)),
+        },
+      });
     });
 
     return new Response("OK", { status: 200 });
   } catch (err) {
+    reportServerError(WEBHOOK_FAILED.evt, err, {
+      route: "/api/webhooks/stripe",
+      method: "POST",
+      statusCode: 500,
+      ids: { requestId: event.id },
+      context: { provider: "stripe", phase: "processing", eventType: event.type },
+      allow: WEBHOOK_FAILED.allow,
+    });
     console.error(`[POST /api/webhooks/stripe] event=${event.id} type=${event.type}`, err);
     return new Response("Webhook handler error", { status: 500 });
   }

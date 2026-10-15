@@ -1,0 +1,146 @@
+{
+  "fileSchemaVersion": 1,
+  "writtenBy": "INGESTION_TOOL",
+  "toolId": "ai-coach-ingest-fdc",
+  "notice": "MACHINE-WRITTEN BY THE INGESTION TOOL. RECORDS A SOURCE LIMITATION, NEVER A REVIEW DECISION. NOT A REVIEWER STRIKE. DO NOT EDIT BY HAND.",
+  "generatedAt": "2026-09-26T16:18:15.699Z",
+  "exclusions": [
+    {
+      "fdcId": 747438,
+      "canonicalName": "Beans, Dry, Light Red Kidney (0% moisture)",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 747440,
+      "canonicalName": "Beans, Dry, Dark Red Kidney (0% moisture)",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 747444,
+      "canonicalName": "Beans, Dry, Black (0% moisture)",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 748278,
+      "canonicalName": "Oil, canola",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 748608,
+      "canonicalName": "Oil, olive, extra virgin",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 1750348,
+      "canonicalName": "Oil, peanut",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 1750351,
+      "canonicalName": "Oil, olive, extra light",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 2727567,
+      "canonicalName": "Chicken, thigh, meat and skin, raw",
+      "reason": "Carbohydrate value is negative in the source record: -0.17255 g. Refused rather than clamped to zero.",
+      "errorCodes": [
+        "NEGATIVE_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 2727569,
+      "canonicalName": "Chicken, breast, meat and skin, raw",
+      "reason": "Carbohydrate value is negative in the source record: -0.42825 g. Refused rather than clamped to zero.",
+      "errorCodes": [
+        "NEGATIVE_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 2747673,
+      "canonicalName": "Tuna, ahi or yellowfin, frozen, wild caught",
+      "reason": "Carbohydrate value is negative in the source record: -0.1045 g. Refused rather than clamped to zero.",
+      "errorCodes": [
+        "NEGATIVE_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 2758994,
+      "canonicalName": "Bread, 100% whole wheat, commercial",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_FAT",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 2758998,
+      "canonicalName": "Pasta, dry, enriched, spaghetti",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_FAT",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    },
+    {
+      "fdcId": 2759004,
+      "canonicalName": "Lunchmeat, chicken breast, sliced",
+      "reason": "Energy (kcal) nutrient is missing or has null amount; Protein nutrient is missing or has null amount; Fat nutrient is missing or has null amount; Carbohydrate nutrient is missing or has null amount",
+      "errorCodes": [
+        "MISSING_ENERGY",
+        "MISSING_PROTEIN",
+        "MISSING_FAT",
+        "MISSING_CARBOHYDRATE"
+      ],
+      "runDate": "2026-09-26T16:18:15.699Z"
+    }
+  ]
+}

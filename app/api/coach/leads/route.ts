@@ -69,10 +69,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[GET /api/coach/leads]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
 
@@ -117,10 +114,7 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     if (!profile) {
-      return NextResponse.json(
-        { error: "Coach profile not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Coach profile not found" }, { status: 404 });
     }
 
     const body = await req.json();
@@ -167,9 +161,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ lead }, { status: 201 });
   } catch (err) {
     console.error("[POST /api/coach/leads]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

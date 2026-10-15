@@ -1,0 +1,268 @@
+import { assignFixtureReviewer } from "../helpers/ai-reviewer";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { randomUUID } from "node:crypto";
+import { db } from "@/lib/db";
+import { requestAiRun } from "@/lib/ai-coach/run-command";
+import { claimQueuedRun } from "@/lib/ai-coach/runs";
+import { processClaimedRun } from "@/lib/ai-coach/executor";
+import { SyntheticFixtureProvider } from "@/lib/ai-coach/provider/synthetic-provider";
+import { approvalStateHash } from "@/lib/ai-coach/validated-plan";
+import { getAiWorkspace } from "@/lib/queries/ai-coach";
+import { acceptPlanVersionAtomic } from "@/lib/ai-coach/plan-acceptance";
+import { contentHash } from "@/lib/ai-coach/canonical-json";
+import { buildInitialFixturePlan } from "@/lib/ai-coach/initial-plan";
+import {
+  LEGACY_RUN_SNAPSHOT,
+  legacyRunRowData,
+} from "../fixtures/ai-coach-legacy-run-snapshot";
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
+import { lockGlobalAiCoachState } from "../helpers/global-ai-coach-state";
+const enabled = process.env.SECURITY_INTEGRATION === "1";
+if (enabled) requireLocalTestDb();
+const suite = enabled ? describe : describe.skip;
+// T-2014: shares the database-wide AI Coach state. See tests/helpers/global-ai-coach-state.ts.
+lockGlobalAiCoachState("shared");
+/** Captured from the pre-change `runSnapshotSchema` at base commit 7bd49f1;
+ * see tests/unit/ai-coach-run-snapshot.test.ts and board/evidence/T-2041.md. */
+const GOLDEN_LEGACY_SNAPSHOT_HASH =
+  "f0996c93f14ee161ef819a25ad0fe3efdaf867c69d5e6942041f73f5b9faa800";
+suite("managed execution and permitted reads", () => {
+  beforeEach(() => {
+    vi.stubEnv("AI_COACH_FIXTURE_MODE", "true");
+    vi.stubEnv("FEATURE_AI_COACH_GENERATION", "true");
+    vi.stubEnv("FEATURE_AI_COACH_PUBLICATION", "true");
+  });
+  afterEach(() => vi.unstubAllEnvs());
+  afterAll(() => db.$disconnect());
+  async function fixture() {
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+    });
+    await assignFixtureReviewer(client.id);
+    await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    await db.aiCoachProfile.create({
+      data: {
+        clientId: client.id,
+        isSynthetic: true,
+        consentedAt: new Date(),
+        reviewTimezone: "America/Los_Angeles",
+        confirmedIntake: {
+          goal: "GENERAL_FITNESS",
+          experienceLevel: "NEW",
+          trainingDaysPerWeek: 3,
+          equipmentAccess: ["NONE"],
+          allergies: [],
+          dietaryRestrictions: [],
+          foodBudgetLevel: "LOW",
+          trackingPreference: "NUMBERS_VISIBLE",
+          unitsPreference: "METRIC",
+          heightCm: 170,
+          weightKg: 70,
+        },
+      },
+    });
+    const { runId } = await requestAiRun(client.id, {
+      requestKey: randomUUID(),
+      kind: "INITIAL",
+      representation: "MACROS",
+      expectedContextRevision: 0,
+      expectedProfileRevision: 0,
+    });
+    const claim = await claimQueuedRun(runId);
+    if (!claim.claimed) throw new Error("Fixture claim failed");
+    return { client, claim };
+  }
+  /**
+   * T-2041 read path 3 (`managed-executor.ts` parse -> stamp ->
+   * `validationReport.inputHash`): a run QUEUED before this ticket deployed
+   * and executed after it must produce the identical candidate. The
+   * `inputHash` asserted here is the golden `contentHash` captured from the
+   * **pre-change** `runSnapshotSchema` at base commit 7bd49f1 — if the schema
+   * change had moved the parse output by one byte, this is where it shows.
+   */
+  it("T-2041: a legacy (unbound) run snapshot replays to the identical candidate", async () => {
+    const id = randomUUID();
+    const client = await db.user.create({
+      data: { clerkId: id, email: `${id}@example.test`, isClient: true },
+    });
+    await db.clientCoachingContext.create({ data: { clientId: client.id, mode: "AI" } });
+    await db.aiCoachEntitlement.create({ data: { clientId: client.id } });
+    await db.aiCoachProfile.create({
+      data: {
+        clientId: client.id,
+        isSynthetic: true,
+        consentedAt: new Date(),
+        reviewTimezone: "America/Los_Angeles",
+        confirmedIntake: LEGACY_RUN_SNAPSHOT.intake,
+      },
+    });
+    const run = await db.aiCoachRun.create({
+      data: legacyRunRowData(client.id, `t2041-legacy-${randomUUID()}`),
+    });
+    const claim = await claimQueuedRun(run.id);
+    if (!claim.claimed) throw new Error("Fixture claim failed");
+    expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("completed");
+
+    const candidate = await db.aiPlanVersion.findFirstOrThrow({
+      where: { clientId: client.id },
+    });
+    expect(candidate.policyVersion).toBe("policy-fixture-v1");
+    expect(candidate.catalogVersions).toEqual({
+      food: "food-fixture-v2",
+      exercise: "exercise-fixture-v1",
+    });
+    expect((candidate.validationReport as { inputHash: string }).inputHash).toBe(
+      GOLDEN_LEGACY_SNAPSHOT_HASH
+    );
+    // And the payload is the synthetic corpus's, unchanged: the same hash the
+    // unit corpus pins for this intake through the three-argument composer.
+    const expected = buildInitialFixturePlan(
+      LEGACY_RUN_SNAPSHOT.intake,
+      `rx-${run.id}`,
+      "MACROS"
+    );
+    expect(candidate.payloadHash).toBe(contentHash(expected.payload));
+  });
+
+  it("saves exactly one pending candidate, without creating a human plan or exposing instructions", async () => {
+    const { client, claim } = await fixture();
+    expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("completed");
+    const view = await getAiWorkspace(client.id);
+    expect(view.activePlan).toBeNull();
+    expect(view.proposals).toHaveLength(1);
+    expect(view.proposals[0]).toMatchObject({ status: "PENDING_FINALIZATION", payload: null });
+    expect(await db.mealPlan.count({ where: { clientId: client.id } })).toBe(0);
+    expect(await db.coachClient.count({ where: { clientId: client.id } })).toBe(0);
+    expect(await processClaimedRun(claim, new SyntheticFixtureProvider())).toBe("failed");
+    expect(await db.aiPlanVersion.count({ where: { clientId: client.id } })).toBe(1);
+  });
+  it.each(["safety", "authority", "lease"])(
+    "rejects late provider output after %s changes",
+    async (reason) => {
+      const { client, claim } = await fixture();
+      const provider = {
+        async runStage() {
+          if (reason === "safety")
+            await db.aiCoachProfile.update({
+              where: { clientId: client.id },
+              data: { safetyRevision: { increment: 1 }, strengthPermission: "PAUSED" },
+            });
+          if (reason === "authority")
+            await db.clientCoachingContext.update({
+              where: { clientId: client.id },
+              data: { mode: "HUMAN", revision: { increment: 1 } },
+            });
+          if (reason === "lease")
+            await db.aiCoachRun.update({
+              where: { id: claim.run.id },
+              data: { fencingToken: { increment: 1 } },
+            });
+          return new SyntheticFixtureProvider().runStage();
+        },
+      };
+      expect(await processClaimedRun(claim, provider)).toBe("failed");
+      expect(await db.aiPlanVersion.count({ where: { clientId: client.id } })).toBe(0);
+    }
+  );
+  it("does not let reviewer approval activate a managed initial plan", async () => {
+    const { client, claim } = await fixture();
+    await processClaimedRun(claim, new SyntheticFixtureProvider());
+    const initial = await db.aiPlanVersion.findFirstOrThrow({ where: { clientId: client.id } });
+    const reviewerId = randomUUID();
+    const reviewer = await db.user.create({
+      data: { clerkId: reviewerId, email: `${reviewerId}@example.test` },
+    });
+    const grant = await db.aiCoachReviewerGrant.create({
+      data: {
+        userId: reviewer.id,
+        qualificationNote: "SYNTHETIC",
+        clientIds: [client.id],
+        domains: ["NUTRITION", "STRENGTH", "CARDIO"],
+      },
+    });
+    await db.aiPlanReviewerApproval.create({
+      data: {
+        planVersionId: initial.id,
+        reviewerGrantId: grant.id,
+        approvedHash: initial.payloadHash,
+        stateHash: approvalStateHash(initial),
+        approved: true,
+        rationale: "fixture",
+      },
+    });
+    await db.aiPlanVersion.update({
+      where: { id: initial.id },
+      data: { reviewerStatus: "APPROVED" },
+    });
+    const acceptance = {
+      requestKey: randomUUID(),
+      expectedBaseVersionId: null,
+      expectedContextRevision: 0,
+      expectedProfileRevision: 0,
+      expectedObservationRevision: 0,
+      expectedSafetyRevision: 0,
+    };
+    expect(await acceptPlanVersionAtomic(client.id, initial.id, acceptance)).toMatchObject({
+      success: false,
+      code: "REVIEWER_APPROVAL_REQUIRED",
+    });
+    const view = await getAiWorkspace(client.id);
+    const proposal = view.proposals[0];
+    expect(proposal.status).toBe("PENDING_FINALIZATION");
+    expect(proposal.payload).toBeNull();
+    expect(await db.aiAdjustmentSlot.count({ where: { clientId: client.id } })).toBe(0);
+    expect((await db.aiPlanVersion.findUniqueOrThrow({ where: { id: initial.id } })).status).toBe(
+      "PROPOSED"
+    );
+  });
+  it("requires exact reviewed content for both proposal visibility and acceptance", async () => {
+    const { client, claim } = await fixture();
+    await processClaimedRun(claim, new SyntheticFixtureProvider());
+    const candidate = await db.aiPlanVersion.findFirstOrThrow({ where: { clientId: client.id } });
+    const input = {
+      requestKey: randomUUID(),
+      expectedBaseVersionId: null,
+      expectedContextRevision: 0,
+      expectedProfileRevision: 0,
+      expectedObservationRevision: 0,
+      expectedSafetyRevision: 0,
+    };
+    expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({
+      success: false,
+      code: "REVIEWER_APPROVAL_REQUIRED",
+    });
+    const reviewerId = randomUUID();
+    const reviewer = await db.user.create({
+      data: { clerkId: reviewerId, email: `${reviewerId}@example.test` },
+    });
+    const grant = await db.aiCoachReviewerGrant.create({
+      data: {
+        userId: reviewer.id,
+        qualificationNote: "SYNTHETIC TEST REVIEWER",
+        clientIds: [client.id],
+        domains: ["NUTRITION", "STRENGTH", "CARDIO"],
+      },
+    });
+    await db.aiPlanReviewerApproval.create({
+      data: {
+        planVersionId: candidate.id,
+        reviewerGrantId: grant.id,
+        approvedHash: candidate.payloadHash,
+        stateHash: approvalStateHash(candidate),
+        approved: true,
+        rationale: "fixture",
+      },
+    });
+    await db.aiPlanVersion.update({
+      where: { id: candidate.id },
+      data: { reviewerStatus: "APPROVED" },
+    });
+    expect((await getAiWorkspace(client.id)).proposals[0].status).toBe("PENDING_FINALIZATION");
+    expect(await acceptPlanVersionAtomic(client.id, candidate.id, input)).toMatchObject({
+      success: false,
+      code: "REVIEWER_APPROVAL_REQUIRED",
+    });
+  });
+});

@@ -45,7 +45,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       }
 
       const messages = await db.message.findMany({
-        where: { clientId, weekOf },
+        where: { clientId, weekOf, coachId: user.id },
         orderBy: { createdAt: "asc" },
         select: {
           id: true,
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     // Return distinct weeks
     const rows = await db.message.findMany({
-      where: { clientId },
+      where: { clientId, coachId: user.id },
       distinct: ["weekOf"],
       orderBy: { weekOf: "desc" },
       select: { weekOf: true },

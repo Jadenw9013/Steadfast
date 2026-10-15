@@ -92,10 +92,7 @@ export function mergePlanExtras(
   incoming: PlanExtras
 ): Prisma.InputJsonValue {
   const base: Record<string, unknown> =
-    stored !== null &&
-    stored !== undefined &&
-    typeof stored === "object" &&
-    !Array.isArray(stored)
+    stored !== null && stored !== undefined && typeof stored === "object" && !Array.isArray(stored)
       ? { ...(stored as Record<string, unknown>) }
       : {};
 

@@ -12,7 +12,54 @@ import {
     requestApprovedEmail,
     waitlistConfirmationEmail,
 } from "@/lib/email/templates";
-import { linkOrInviteProspect, getActivationMessage } from "@/lib/activation";
+import { linkOrInviteProspect } from "@/lib/activation";
+import {
+    activateLead,
+    getActivationMessage,
+    COACH_SETTABLE_STAGES,
+    ACTIVATE_NOT_FOUND_ERROR,
+    type ActivateLeadResult,
+    type ActivationOutcome,
+    type ActivationRefusal,
+    type CoachSettableStage,
+} from "@/lib/leads/activate-lead";
+
+type ActivateActionResult =
+    | {
+          success: true;
+          outcome: ActivationOutcome;
+          message: string;
+          onRoster: boolean;
+          clientId: string | null;
+          email: string | null;
+          inviteExpiresAt: string | null;
+      }
+    // "already_active" is not an ActivationRefusal — it is a synthetic
+    // marker bypassPipelineAndActivate adds itself, below, because bypass
+    // (unlike pipeline) has always treated an already-active lead as a
+    // refusal rather than an idempotent success.
+    | { success: false; refusal: ActivationRefusal | "already_active"; message: string };
+
+/** Shared by activateClient and bypassPipelineAndActivate — the only two
+ *  callers of activateLead in this file. Never duplicate this mapping.
+ *  Carries `refusal` through so a caller (a REST route) can key an HTTP
+ *  status off the discriminant the service produced, instead of
+ *  string-matching the coach-facing sentence T-960 owns (T-978 review
+ *  round 1, CR-3 / parity gap 5). */
+function toActivateActionResult(result: ActivateLeadResult): ActivateActionResult {
+    if (!result.ok) {
+        return { success: false, refusal: result.refusal, message: result.message };
+    }
+    return {
+        success: true,
+        outcome: result.outcome,
+        message: getActivationMessage(result.prospectName, result.outcome, { email: result.inviteEmail }),
+        onRoster: result.onRoster,
+        clientId: result.clientId,
+        email: result.inviteEmail,
+        inviteExpiresAt: result.inviteExpiresAt ? result.inviteExpiresAt.toISOString() : null,
+    };
+}
 
 /** Resolve the current coach's CoachProfile.id (cached per request via Prisma). */
 async function getCoachProfileId(userId: string): Promise<string> {
@@ -246,61 +293,24 @@ export async function approveCoachingRequest(requestId: string) {
         timestamp: new Date().toISOString(),
     }));
 
-    // Send approval email to prospect
+    // Send approval email to prospect (generic sign-up nudge; the tokenized
+    // invite email below is what actually links the account on acceptance)
     const coachName = user.firstName || "Your coach";
-    let emailSent = false;
     try {
         const approvalEmail = requestApprovedEmail(request.prospectName, coachName);
-        const result = await sendEmail({ to: request.prospectEmail, ...approvalEmail });
-        emailSent = result.success;
+        await sendEmail({ to: request.prospectEmail, ...approvalEmail });
     } catch { /* email failure must not break approval */ }
 
-    // Try to convert immediately if they already have an account
-    const email = request.prospectEmailAddr ?? null;
-    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
-    let existingUser = email
-        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
-        : null;
-    if (!existingUser && phone.length >= 7) {
-        existingUser = await db.user.findFirst({
-            where: { phoneNumber: { contains: phone.slice(-10) } },
-        });
-    }
+    // Issue a consent-required invite (never an immediate link — CB01: coach
+    // approval alone must not grant access to an existing account).
+    const linkResult = await linkOrInviteProspect(
+        request,
+        { coachId: user.id, coachFirstName: user.firstName, coachLastName: user.lastName },
+        requestId,
+        "Converted from marketplace request.",
+    );
 
-    let immediateLink = false;
-
-    if (existingUser) {
-        const existingConnection = await db.coachClient.findUnique({
-            where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
-        });
-        if (!existingConnection) {
-            await db.coachClient.create({
-                data: {
-                    coachId: user.id,
-                    clientId: existingUser.id,
-                    coachNotes: `Converted from marketplace request.`,
-                },
-            });
-        }
-
-        // Mark the request logic complete
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { prospectId: existingUser.id },
-        });
-
-        immediateLink = true;
-
-        // Background email: notify existing user they're connected
-        try {
-            const { coachConnectedEmail } = await import("@/lib/email/templates");
-            if (existingUser.email) {
-                const email = coachConnectedEmail(request.prospectName, coachName);
-                sendEmail({ to: existingUser.email, ...email }).catch(console.error);
-            }
-        } catch { /* email failure must not break approval */ }
-    } else if (emailSent) {
-        // Track invite metadata for non-existing users only
+    if (!linkResult.linked) {
         await db.coachingRequest.update({
             where: { id: requestId },
             data: {
@@ -312,7 +322,7 @@ export async function approveCoachingRequest(requestId: string) {
 
     revalidatePath("/coach/leads");
     revalidatePath("/coach/dashboard");
-    return { ...updated, immediateLink };
+    return { ...updated, immediateLink: linkResult.linked && linkResult.alreadyConnected };
 }
 
 export async function rejectCoachingRequest(requestId: string) {
@@ -427,53 +437,22 @@ export async function resendInvite(requestId: string) {
         return { success: false, message: "This person has already signed up and is connected." };
     }
 
-    const email = request.prospectEmailAddr ?? null;
-    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
-    let existingUser = email
-        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
-        : null;
-    if (!existingUser && phone.length >= 7) {
-        existingUser = await db.user.findFirst({
-            where: { phoneNumber: { contains: phone.slice(-10) } },
-        });
-    }
+    // Issue (or re-send) a consent-required invite. Even if the prospect has
+    // since created an account, this never auto-links them (CB01) — it only
+    // (re)sends the invite they must accept themselves.
+    const linkResult = await linkOrInviteProspect(
+        request,
+        { coachId: user.id, coachFirstName: user.firstName, coachLastName: user.lastName },
+        requestId,
+        "Converted from marketplace request.",
+    );
 
-    if (existingUser) {
-        // Prospect signed up since last page load — auto-link and inform coach
-        const existingConnection = await db.coachClient.findUnique({
-            where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
-        });
-        if (!existingConnection) {
-            await db.coachClient.create({
-                data: {
-                    coachId: user.id,
-                    clientId: existingUser.id,
-                    coachNotes: `Converted from marketplace request.`,
-                },
-            });
-        }
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { prospectId: existingUser.id },
-        });
-
+    if (linkResult.linked) {
         revalidatePath("/coach/leads");
-        return { success: true, message: "Good news — they already signed up! They've been linked to your roster." };
+        return { success: true, message: "Good news — they're already connected to your roster." };
     }
-
-    // Send the invite email
-    const coachName = user.firstName || "Your coach";
-    const approvalEmail = requestApprovedEmail(request.prospectName, coachName);
-    const emailResult = await sendEmail({ to: (email ?? request.prospectEmail), ...approvalEmail });
-
-    if (!emailResult.success) {
-        console.error(JSON.stringify({
-            event: "marketplace.invite.resend_failed",
-            requestId,
-            error: emailResult.error,
-            timestamp: new Date().toISOString(),
-        }));
-        return { success: false, message: "Unable to send the invite email right now. Please try again shortly." };
+    if ("noEmailOnFile" in linkResult) {
+        return { success: false, message: "This lead has no email on file to invite." };
     }
 
     // Update invite tracking metadata
@@ -489,7 +468,6 @@ export async function resendInvite(requestId: string) {
         event: "marketplace.invite.resent",
         requestId,
         coachProfileId: request.coachProfileId,
-        sendCount: 1,
         timestamp: new Date().toISOString(),
     }));
 
@@ -589,43 +567,21 @@ export async function acceptClient(requestId: string) {
         throw new Error("Client already accepted.");
     }
 
-    // Create CoachClient if prospect has an account
-    const email = request.prospectEmailAddr ?? null;
-    const phone = (request.prospectPhone ?? request.prospectEmail ?? "").replace(/\D/g, "");
-    let existingUser = email
-        ? await db.user.findUnique({ where: { email: email.toLowerCase() } })
-        : null;
-    if (!existingUser && phone.length >= 7) {
-        existingUser = await db.user.findFirst({
-            where: { phoneNumber: { contains: phone.slice(-10) } },
-        });
-    }
+    // Issue a consent-required invite — accepting a lead never itself grants
+    // account access (CB01); the intended client must accept the invite.
+    const linkResult = await linkOrInviteProspect(
+        request,
+        { coachId: user.id, coachFirstName: user.firstName, coachLastName: user.lastName },
+        requestId,
+        "Accepted from lead.",
+    );
 
-    if (existingUser) {
-        const existingConn = await db.coachClient.findUnique({
-            where: { coachId_clientId: { coachId: user.id, clientId: existingUser.id } },
-        });
-        if (!existingConn) {
-            await db.coachClient.create({
-                data: { coachId: user.id, clientId: existingUser.id, coachNotes: "Accepted from lead." },
-            });
-        }
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { status: "ACCEPTED", prospectId: existingUser.id },
-        });
-    } else {
-        // No account yet — send sign-up invite email
-        await db.coachingRequest.update({
-            where: { id: requestId },
-            data: { status: "ACCEPTED", inviteLastSentAt: new Date(), inviteSendCount: { increment: 1 } },
-        });
-        const coachName = user.firstName || "Your coach";
-        try {
-            const email = requestApprovedEmail(request.prospectName, coachName);
-            await sendEmail({ to: request.prospectEmail, ...email });
-        } catch { /* email failure must not block */ }
-    }
+    await db.coachingRequest.update({
+        where: { id: requestId },
+        data: linkResult.linked
+            ? { status: "ACCEPTED", prospectId: linkResult.clientId }
+            : { status: "ACCEPTED", inviteLastSentAt: new Date(), inviteSendCount: { increment: 1 } },
+    });
 
     revalidatePath("/coach/leads");
     revalidatePath("/coach/dashboard");
@@ -661,6 +617,10 @@ export async function declineRequest(requestId: string) {
     return { success: true };
 }
 
+// ACTIVE is deliberately absent — activation is not a stage edit (T-978 I1).
+// It is a transaction that also establishes the relationship or the invite,
+// and the only door to it is `activateLead` via activateClient /
+// bypassPipelineAndActivate below.
 const VALID_STAGE_TRANSITIONS: Record<string, string[]> = {
     PENDING: ["CONSULTATION_SCHEDULED"],
     CONSULTATION_SCHEDULED: ["CONSULTATION_DONE", "INTAKE_SENT"],
@@ -668,17 +628,29 @@ const VALID_STAGE_TRANSITIONS: Record<string, string[]> = {
     INTAKE_SENT: ["INTAKE_SUBMITTED"],
     INTAKE_SUBMITTED: ["FORMS_SENT"],
     FORMS_SENT: ["FORMS_SIGNED"],
-    FORMS_SIGNED: ["ACTIVE"],
+    FORMS_SIGNED: [],
 };
 
 export async function updateConsultationStage(input: {
     requestId: string;
-    stage: string;
+    /** Typed CoachSettableStage (T-978) — ACTIVE is not a member, so a
+     *  TS-checked caller cannot even construct this call with it. A raw
+     *  Server Action POST bypasses that, so the runtime check below is what
+     *  actually protects the invariant. */
+    stage: CoachSettableStage | string;
     consultationDate?: string;
 }) {
     const { getCurrentDbUser } = await import("@/lib/auth/roles");
     const user = await getCurrentDbUser();
     if (!user.isCoach) throw new Error("Unauthorized");
+
+    // ACTIVE can never be set through a stage edit — this is checked before
+    // the transition map so re-adding a map entry cannot re-open the hole
+    // that let a stage edit strand a lead with no relationship and no
+    // invite (T-978).
+    if (!COACH_SETTABLE_STAGES.includes(input.stage as CoachSettableStage)) {
+        throw new Error("Activation is not a stage edit — use Activate on this lead.");
+    }
 
     const request = await db.coachingRequest.findUnique({
         where: { id: input.requestId },
@@ -711,102 +683,55 @@ export async function updateConsultationStage(input: {
     return { success: true };
 }
 
-export async function bypassPipelineAndActivate(input: { requestId: string }) {
+/**
+ * Bypass the intake pipeline and activate directly. Signature unchanged
+ * (T-978): the ownership check, the raw-SQL stage write and the swallowed
+ * "non-fatal" catch that used to live here are gone — they now live once,
+ * inside `activateLead`.
+ */
+export async function bypassPipelineAndActivate(input: { requestId: string }): Promise<ActivateActionResult> {
     const { getCurrentDbUser } = await import("@/lib/auth/roles");
     const user = await getCurrentDbUser();
     if (!user.isCoach) throw new Error("Unauthorized");
 
-    // 1. Verify ownership via raw SQL (avoids adapter-pg Json issues)
-    const leads = await db.$queryRaw<Array<{
-        id: string; consultationStage: string; prospectName: string;
-        prospectEmail: string; prospectPhone: string | null; prospectEmailAddr: string | null;
-    }>>`
-        SELECT cr."id", cr."consultationStage", cr."prospectName",
-               cr."prospectEmail", cr."prospectPhone", cr."prospectEmailAddr"
-        FROM "CoachingRequest" cr
-        JOIN "CoachProfile" cp ON cp."id" = cr."coachProfileId"
-        WHERE cr."id" = ${input.requestId} AND cp."userId" = ${user.id}
-        LIMIT 1
-    `;
-    if (leads.length === 0) return { success: false, message: "Lead not found." };
-    const lead = leads[0];
-
-    if (lead.consultationStage === "ACTIVE") {
-        return { success: false, message: "Already active." };
-    }
-
-    // 2. Mark lead as ACTIVE — this always succeeds
-    await db.$executeRaw`
-        UPDATE "CoachingRequest"
-        SET "consultationStage" = 'ACTIVE'::"ConsultationStage",
-            "status" = 'ACCEPTED'::"RequestStatus",
-            "updatedAt" = NOW()
-        WHERE "id" = ${input.requestId}
-    `;
-
-    // 3. Link prospect or create invite (shared helper — single source of truth)
-    let linkResult: Awaited<ReturnType<typeof linkOrInviteProspect>> | null = null;
-    try {
-        linkResult = await linkOrInviteProspect(
-            lead,
-            { coachId: user.id, coachFirstName: user.firstName },
-            input.requestId,
-            "Activated via pipeline bypass.",
-        );
-    } catch (err) {
-        console.error("[bypassPipelineAndActivate] link failed (non-fatal):", err);
-    }
+    const result = await activateLead({ requestId: input.requestId, coachUserId: user.id, mode: "BYPASS" });
 
     revalidatePath("/coach/leads");
     revalidatePath("/coach/dashboard");
-    return {
-        success: true,
-        message: getActivationMessage(lead.prospectName, linkResult ?? { linked: false, inviteToken: "", email: "" }),
-    };
+
+    if (result.ok && result.outcome === "already_active") {
+        // Bypass has always refused an already-active lead (409 on the REST
+        // twin), unlike the pipeline Activate button below, which treats it
+        // as an idempotent success. Preserved byte for byte.
+        return { success: false, refusal: "already_active", message: "Already active." };
+    }
+
+    return toActivateActionResult(result);
 }
 
-export async function activateClient(input: { requestId: string }) {
+/**
+ * Activate a lead from the normal pipeline (FORMS_SIGNED or
+ * INTAKE_SUBMITTED only). Signature unchanged (T-978): the ownership check,
+ * the stage guard and the direct `consultationStage` write that used to
+ * live here are gone — they now live once, inside `activateLead`.
+ * Keeps throwing "Request not found" on `not_found`, exactly as before —
+ * `activate/route.ts` turns that into a 404.
+ */
+export async function activateClient(input: { requestId: string }): Promise<ActivateActionResult> {
     const { getCurrentDbUser } = await import("@/lib/auth/roles");
     const user = await getCurrentDbUser();
     if (!user.isCoach) throw new Error("Unauthorized");
 
-    const request = await db.coachingRequest.findUnique({
-        where: { id: input.requestId },
-        select: { id: true, coachProfileId: true, status: true, consultationStage: true, prospectName: true, prospectEmail: true, prospectPhone: true, prospectEmailAddr: true, prospectId: true },
-    });
-    if (!request) throw new Error("Request not found");
-    const profileId = await getCoachProfileId(user.id);
-    if (request.coachProfileId !== profileId) throw new Error("Request not found");
+    const result = await activateLead({ requestId: input.requestId, coachUserId: user.id, mode: "PIPELINE" });
 
-    if (request.consultationStage === "ACTIVE") {
-        return { success: true, path: "already_active" as const };
+    if (!result.ok && result.refusal === "not_found") {
+        throw new Error(ACTIVATE_NOT_FOUND_ERROR);
     }
-    if (request.consultationStage !== "FORMS_SIGNED" && request.consultationStage !== "INTAKE_SUBMITTED") {
-        return { success: false, message: "This lead must complete intake before activating." };
-    }
-
-    // Mark lead as ACTIVE
-    await db.coachingRequest.update({
-        where: { id: input.requestId },
-        data: { consultationStage: "ACTIVE", status: "ACCEPTED" },
-    });
-
-    // Link prospect or create invite (shared helper — single source of truth)
-    const result = await linkOrInviteProspect(
-        request,
-        { coachId: user.id, coachFirstName: user.firstName, coachLastName: user.lastName },
-        input.requestId,
-        "Activated from intake pipeline.",
-    );
 
     revalidatePath("/coach/leads");
     revalidatePath("/coach/dashboard");
 
-    if (result.linked) {
-        return { success: true, path: "existing_account" as const, email: result.email, clientId: result.clientId };
-    } else {
-        return { success: true, path: "invite_sent" as const, email: result.email };
-    }
+    return toActivateActionResult(result);
 }
 
 const addLeadSchema = z.object({

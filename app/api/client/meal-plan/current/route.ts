@@ -1,9 +1,11 @@
+import { getClientProvider, isClientProviderCurrent } from "@/lib/queries/client-provider";
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { getMacroTarget } from "@/lib/queries/macro-targets";
+import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
 import { parsePlanExtras } from "@/types/meal-plan-extras";
-import { resolveDisplayPlanMode } from "@/lib/meal-plans/display-mode";
+import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
 
 export async function GET() {
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -19,61 +21,93 @@ export async function GET() {
   }
 
   try {
-    // ── Most recent published plan — explicit select (no select *) ────────
-    const plan = await db.mealPlan.findFirst({
-      where: { clientId: user.id, status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-      select: {
-        id: true,
-        weekOf: true,
-        status: true,
-        planMode: true,
-        publishedAt: true,
-        planExtras: true,
-        supportContent: true,
-        items: {
-          orderBy: { sortOrder: "asc" },
+    const provider = await getClientProvider(user.id);
+    if (provider.resolutionRequired || provider.origin === "AI")
+      return NextResponse.json(
+        {
+          error: provider.resolutionRequired
+            ? "Your coaching provider needs resolution."
+            : "Update Steadfast to use the AI Coach workspace.",
+        },
+        { status: 409, headers: { "Cache-Control": "private, no-store" } }
+      );
+    if (provider.origin === "NONE")
+      return NextResponse.json(
+        { mealPlan: null },
+        { headers: { "Cache-Control": "private, no-store" } }
+      );
+    // ── Active published plan — one shared rule (T-105), explicit select ──
+    // `!` is safe: AI / resolutionRequired returned above, and so did NONE, so
+    // `origin` is HUMAN here and `relationshipStartedAt` is non-null.
+    const planId = await resolveActiveMealPlanId(user.id, provider.relationshipStartedAt!);
+    const plan = planId
+      ? await db.mealPlan.findUnique({
+          where: { id: planId },
           select: {
             id: true,
-            mealName: true,
-            foodName: true,
-            quantity: true,
-            unit: true,
-            servingDescription: true,
-            calories: true,
-            protein: true,
-            carbs: true,
-            fats: true,
+            weekOf: true,
+            status: true,
+            planMode: true,
+            publishedAt: true,
+            planExtras: true,
+            supportContent: true,
+            items: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                id: true,
+                mealName: true,
+                foodName: true,
+                quantity: true,
+                unit: true,
+                servingDescription: true,
+                calories: true,
+                protein: true,
+                carbs: true,
+                fats: true,
+              },
+            },
+            macroTargets: {
+              orderBy: { sortOrder: "asc" },
+              select: {
+                id: true,
+                mealName: true,
+                calories: true,
+                protein: true,
+                carbs: true,
+                fats: true,
+              },
+            },
           },
-        },
-        macroTargets: {
-          orderBy: { sortOrder: "asc" },
-          select: { id: true, mealName: true, calories: true, protein: true, carbs: true, fats: true },
-        },
-      },
-    });
+        })
+      : null;
+
+    if (!(await isClientProviderCurrent(user.id, provider)))
+      return NextResponse.json(
+        { error: "Your provider changed. Refresh to continue." },
+        { status: 409, headers: { "Cache-Control": "private, no-store" } }
+      );
 
     if (!plan) {
       return NextResponse.json({ mealPlan: null });
     }
 
+    // T-802a — one log call, from the row's true `planMode` and array
+    // lengths. This is what makes iOS-originated degraded renders visible
+    // server-side (T-802 §4.3).
+    logDegradedPlanRender({
+      mealPlanId: plan.id,
+      planMode: plan.planMode,
+      itemCount: plan.items.length,
+      macroTargetCount: plan.macroTargets.length,
+      view: resolveClientPlanView({
+        planMode: plan.planMode,
+        itemCount: plan.items.length,
+        macroTargetCount: plan.macroTargets.length,
+      }),
+    });
+
     // ── MacroTarget for the same weekOf as the plan ───────────────────────
     const macro = await getMacroTarget(user.id, plan.weekOf);
-
-    // ── T-800 defensive render rule: never expose a mislabeled MACROS plan
-    // (zero targets, has items) as MACROS — the client would see a blank
-    // "no macro targets" card while the foods sit unrendered. ────────────
-    const displayPlanMode = resolveDisplayPlanMode(plan.planMode, {
-      items: plan.items.length,
-      macroTargets: plan.macroTargets.length,
-    });
-    if (displayPlanMode !== plan.planMode) {
-      console.warn("[meal-plan] mislabeled MACROS plan rendered as MEAL_PLAN", {
-        mealPlanId: plan.id,
-        items: plan.items.length,
-        macroTargets: plan.macroTargets.length,
-      });
-    }
 
     // ── planExtras: safe parse from Json field ────────────────────────────
     const extras = parsePlanExtras(plan.planExtras);
@@ -89,51 +123,54 @@ export async function GET() {
         }
       : null;
 
-    return NextResponse.json({
-      mealPlan: {
-        id: plan.id,
-        weekOf: plan.weekOf.toISOString(),
-        status: plan.status,
-        planMode: displayPlanMode,
-        publishedAt: plan.publishedAt?.toISOString() ?? null,
-        planExtras: planExtrasOut,
-        planNotes: plan.supportContent,
-        supportContent: plan.supportContent,
-        items: plan.items.map((item) => ({
-          id: item.id,
-          mealName: item.mealName,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          unit: item.unit || null,
-          servingDescription: item.servingDescription || null,
-          calories: item.calories,
-          protein: item.protein,
-          carbs: item.carbs,
-          fats: item.fats,
-        })),
-        macroTargets: plan.macroTargets.map((t) => ({
-          id: t.id,
-          mealName: t.mealName,
-          calories: t.calories,
-          protein: t.protein,
-          carbs: t.carbs,
-          fats: t.fats,
-        })),
-        macroTarget: macro
-          ? {
-              calories: macro.calories,
-              protein: macro.protein,
-              carbs: macro.carbs,
-              fats: macro.fats,
-            }
-          : null,
+    return NextResponse.json(
+      {
+        mealPlan: {
+          id: plan.id,
+          weekOf: plan.weekOf.toISOString(),
+          status: plan.status,
+          // Keep the declared value over the wire. T-802 clients use the mode
+          // plus both content counts to render a safe, read-only degraded state;
+          // rewriting it here would erase that signal and re-enable check-offs.
+          planMode: plan.planMode,
+          publishedAt: plan.publishedAt?.toISOString() ?? null,
+          planExtras: planExtrasOut,
+          planNotes: plan.supportContent,
+          supportContent: plan.supportContent,
+          items: plan.items.map((item) => ({
+            id: item.id,
+            mealName: item.mealName,
+            foodName: item.foodName,
+            quantity: item.quantity,
+            unit: item.unit || null,
+            servingDescription: item.servingDescription || null,
+            calories: item.calories,
+            protein: item.protein,
+            carbs: item.carbs,
+            fats: item.fats,
+          })),
+          macroTargets: plan.macroTargets.map((t) => ({
+            id: t.id,
+            mealName: t.mealName,
+            calories: t.calories,
+            protein: t.protein,
+            carbs: t.carbs,
+            fats: t.fats,
+          })),
+          macroTarget: macro
+            ? {
+                calories: macro.calories,
+                protein: macro.protein,
+                carbs: macro.carbs,
+                fats: macro.fats,
+              }
+            : null,
+        },
       },
-    });
+      { headers: { "Cache-Control": "private, no-store" } }
+    );
   } catch (err) {
     console.error("[GET /api/client/meal-plan/current]", err);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

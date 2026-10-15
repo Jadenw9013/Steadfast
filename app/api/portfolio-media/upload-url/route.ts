@@ -11,10 +11,10 @@ export async function POST() {
 
     const user = await db.user.findUnique({
         where: { clerkId },
-        select: { id: true, isCoach: true },
+        select: { id: true, isCoach: true, isDeactivated: true },
     });
 
-    if (!user || !user.isCoach) {
+    if (!user || !user.isCoach || user.isDeactivated) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

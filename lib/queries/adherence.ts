@@ -64,6 +64,11 @@ export type AdherenceDaySummary = {
   mealsCompleted: number;
   mealsTotal: number;
   workoutCompleted: boolean;
+  // CB08: whether a DailyAdherence record exists for this date at all. An
+  // untracked day is not verified nonadherence — the client may have been
+  // fine and simply not opened the checkoff UI. Callers must not treat
+  // `tracked: false` the same as a recorded zero/incomplete day.
+  tracked: boolean;
 };
 
 export type AdherenceSummary = {
@@ -99,10 +104,10 @@ export async function getAdherenceSummary(
 
   const summarize = (date: string): AdherenceDaySummary => {
     const r = byDate.get(date);
-    if (!r) return { date, mealsCompleted: 0, mealsTotal: 0, workoutCompleted: false };
+    if (!r) return { date, mealsCompleted: 0, mealsTotal: 0, workoutCompleted: false, tracked: false };
     const total = r.meals.length;
     const completed = r.meals.filter((m) => m.completed).length;
-    return { date, mealsCompleted: completed, mealsTotal: total, workoutCompleted: r.workoutCompleted };
+    return { date, mealsCompleted: completed, mealsTotal: total, workoutCompleted: r.workoutCompleted, tracked: true };
   };
 
   return {
@@ -117,22 +122,4 @@ export async function getCoachClientForAdherence(coachId: string, clientId: stri
     where: { coachId_clientId: { coachId, clientId } },
     select: { id: true, adherenceEnabled: true },
   });
-}
-
-/** Derive "today's meal names" from the currently published meal plan. */
-export async function getTodayMealNames(clientId: string): Promise<{ mealName: string; order: number }[]> {
-  const plan = await db.mealPlan.findFirst({
-    where: { clientId, status: "PUBLISHED" },
-    orderBy: { publishedAt: "desc" },
-    include: { items: { orderBy: { sortOrder: "asc" } } },
-  });
-  if (!plan) return [];
-  // Deduplicate by mealName preserving first-seen sortOrder
-  const seen = new Map<string, number>();
-  for (const item of plan.items) {
-    if (!seen.has(item.mealName)) seen.set(item.mealName, item.sortOrder);
-  }
-  return Array.from(seen.entries())
-    .sort((a, b) => a[1] - b[1])
-    .map(([mealName, order]) => ({ mealName, order }));
 }

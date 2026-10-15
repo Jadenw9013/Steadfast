@@ -14,11 +14,13 @@ vi.mock("@/lib/security/quota", () => ({
 }));
 
 vi.mock("@/lib/supabase/storage", () => ({
-  createSignedUploadUrls: vi.fn().mockImplementation((paths: string[]) =>
-    Promise.resolve(
-      paths.map((p) => ({ path: p, signedUrl: `https://storage/${p}`, token: "tok" }))
-    )
-  ),
+  createSignedUploadUrls: vi
+    .fn()
+    .mockImplementation((paths: string[]) =>
+      Promise.resolve(
+        paths.map((p) => ({ path: p, signedUrl: `https://storage/${p}`, token: "tok" }))
+      )
+    ),
 }));
 
 describe("T-950 check-in photo limit regression tests", () => {

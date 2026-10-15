@@ -1,6 +1,6 @@
 # Steadfast Web — Project Architecture & Context
 
-> **Last updated:** 2026-04-08  
+> **Last updated:** 2026-09-18  
 > **Purpose:** Reference document for AI tools, code reviews, and onboarding. Describes the project structure, tech stack, conventions, and data flow for the Next.js web application.
 
 ---
@@ -34,12 +34,12 @@
 ## Build & Dev
 
 ```bash
-npm run dev              # Start dev server (localhost:3000)
-npm run build            # Production build
-npm run lint             # ESLint
-npm run test             # Vitest (unit)
-npm run test:smoke       # Smoke tests (SMOKE=1)
-npm run release-check    # Full pre-deploy gate (release.sh)
+pnpm dev                 # Start dev server (localhost:3000)
+pnpm build               # Production build
+pnpm lint                # ESLint
+pnpm test                # Vitest (unit + smoke)
+pnpm run test:smoke      # Smoke tests (SMOKE=1)
+pnpm run release-check   # build + lint + secret/localhost/console.log scans (release.sh) — does not run tests
 ```
 
 ### Schema Change Workflow
@@ -63,6 +63,7 @@ npx prisma generate
 ```
 Steadfast/
 ├── proxy.ts                           # Auth middleware (Next.js 16 convention, replaces middleware.ts)
+├── instrumentation.ts                 # Next server error hook → shared observability pipeline
 ├── next.config.ts                     # Next.js config (Supabase image domains)
 ├── vercel.json                        # Cron job definitions
 ├── release.sh                         # Pre-deploy release gate script
@@ -255,7 +256,9 @@ Steadfast/
 │   │
 │   ├── client/                        # Client-specific components
 │   │   ├── plan-tab.tsx               # Plan view (meal plan + training toggle)
-│   │   ├── simple-meal-plan.tsx       # Read-only meal plan (no macros)
+│   │   ├── simple-meal-plan.tsx       # Client plan shell (T-802a) — both modes, one screen
+│   │   ├── macro-plan-view.tsx        # MacroMealList — macro-mode meal list (mounted by the shell)
+│   │   ├── daily-totals-card.tsx      # DailyTotalsCard / MacroStackedBar — shared totals card
 │   │   ├── training-program.tsx       # Read-only training program
 │   │   ├── today-adherence.tsx        # Daily meal/workout check-offs
 │   │   ├── status-card.tsx            # Check-in status card
@@ -303,6 +306,10 @@ Steadfast/
 │   │   ├── adherence.ts               # Daily adherence queries
 │   │   ├── intake.ts                  # Intake packet queries
 │   │   └── ... (12 more)
+│   ├── coach-client/
+│   │   └── end-relationship.ts        # T-2058: the one CoachClient teardown (removeClient, leaveCoach, DELETE /api/coach/clients/[clientId])
+│   ├── intake/
+│   │   └── completion.ts              # Shared intake answer merge + completeness rule (REST + action)
 │   ├── ocr/
 │   │   └── google-vision.ts           # Google Cloud Vision OCR extraction
 │   ├── llm/
@@ -327,7 +334,8 @@ Steadfast/
 │   │   └── templates.ts               # SMS templates
 │   ├── notifications/
 │   │   ├── apns.ts                    # APNs JWT + HTTP/2 push sender
-│   │   └── push.ts                    # Push notification orchestrator
+│   │   ├── push.ts                    # Push notification orchestrator
+│   │   └── ai-coach-plan.ts           # T-502: the only seam that turns an accepted AI plan into a push
 │   ├── pdf/
 │   │   ├── meal-plan-pdf.tsx          # Meal plan PDF renderer
 │   │   └── training-program-pdf.tsx   # Training program PDF renderer
@@ -363,6 +371,8 @@ Steadfast/
 ├── public/brand/                      # Brand assets (logo, icons)
 ├── scripts/                           # Utility scripts
 ├── docs/                              # Additional documentation
+│   └── migrations/                    # READ-ONLY preview SQL sizing a data migration before a human
+│                                      # applies it on a Neon branch — never part of a deploy
 │
 ├── CLAUDE.md                          # AI assistant context & constraints
 ├── STYLING_GUIDE.md                   # CSS/design conventions
@@ -393,6 +403,35 @@ proxy.ts (Clerk middleware — protects all routes except public)
               ├── Deactivation gate: redirects → /account-deletion-pending
               └── Onboarding gate: redirects to /onboarding if questionnaire incomplete
 ```
+
+**`/client` provider routing (S-34).** `/client` and its four tabs
+(`/client/plan`, `/client/training`, `/client/meal-plan`, `/client/check-in`)
+derive what to render from `getClientProvider()` (`lib/queries/client-provider.ts`)
+via two shared predicates, `rendersAiWorkspace()` and `rendersCoachingChooser()`
+— never a per-page copy of the condition. Evaluation order is the order below;
+the first match wins.
+
+| # | State | Condition | `/client` renders | The four tabs |
+|---|---|---|---|---|
+| 1 | Provider resolution required | `provider.resolutionRequired` | `<ProviderResolution />` | same |
+| 2 | AI active (enrolled) | `provider.origin === "AI"` | AI workspace (`AiClientSurface`) | AI workspace |
+| 3 | Synthetic fixture preview (non-production only) | `rendersAiWorkspace` — `aiPreviewAvailable && !aiDiscovery` | AI workspace | AI workspace |
+| 4 | AI offered, preparation available | `rendersCoachingChooser` and `getGenerationDeliveryState() === "ENABLED"` | `<AiCoachingChooser />` (AI card → `/client/ai-coach/start`, human card → `/coaches`) | each tab's existing NONE branch |
+| 5 | AI offered, preparation paused | `rendersCoachingChooser` and the delivery state is not `"ENABLED"` | `<AiCoachingChooser />` with one neutral `role="status"` notice | each tab's existing NONE branch |
+| 6 | HUMAN assigned | `provider.origin === "HUMAN"` | today's client dashboard | the plan/training/meal-plan/check-in content |
+| 7 | No provider / offer, or ineligible/gates-closed (indistinguishable by design) | `origin === "NONE"`, `aiDiscovery === null`, `aiPreviewAvailable === false` | "Find Your Coach" | each tab's existing NONE branch |
+
+**`relationshipStartedAt` (strict bound).** For a HUMAN provider, client plan reads (web pages, `/api/client/home`,
+`/api/client/meal-plan/current`, `/api/client/training/current`, `/api/client/plan/current`, the daily checklist)
+show only publications at or after the current `CoachClient.createdAt`. A previous coach's plan therefore never
+surfaces. The cost is that a client removed and re-added by the **same** coach sees no plan until that coach
+publishes again. T-2058 tried widening the bound from evidence ("Rule R") and withdrew it, because ordinary coach
+actions could defeat it. The exact fix, relationship episode history plus plan authorship, is T-2060.
+
+A live discovery *offer* (row 4/5) is never a provider switch — only rows 2
+and 3 replace the client shell. `getGenerationDeliveryState()`
+(`lib/ai-coach/operations.ts`) is read only inside the chooser branch, so a
+client with no offer costs nothing extra.
 
 ### Two Roles, One App
 
@@ -440,7 +479,7 @@ app/actions/ (34 server action files)
 
 ### Week-Based Data Model
 
-All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnight UTC** via `normalizeToMonday()` in `lib/utils/date.ts`. Check-ins, macro targets, meal plans, training programs, and messages are all keyed by `(clientId, weekOf)`. A coach's week-scoped meal plan and training reads both fall back across weeks when the requested week has no plan/program of its own, rather than rendering empty — but they do NOT bound that fallback the same way. `getTrainingProgramForReview` carries over the latest published row from a **strictly earlier** week only (T-803). `getEffectiveMealPlanForReview` is **unbounded** and can therefore carry a *later* week's published plan back into an earlier week (`lib/queries/meal-plans.ts`); that asymmetry is a known defect, tracked in T-888, not a design choice.
+All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnight UTC** via `normalizeToMonday()` in `lib/utils/date.ts`. Check-ins, macro targets, meal plans, training programs, and messages are all keyed by `(clientId, weekOf)`.
 
 ### State Management
 
@@ -515,7 +554,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 
 | Model | Purpose |
 |---|---|
-| `TrainingProgram` | Client-specific, week-scoped program (DRAFT/PUBLISHED/SUPERSEDED) |
+| `TrainingProgram` | Client-specific, week-scoped program (DRAFT/PUBLISHED) |
 | `TrainingDay` | Named day within a program |
 | `TrainingExercise` | Exercise within a day (sets, reps, intensity, notes) |
 | `TrainingProgramBlock` | Structured block (EXERCISE, ACTIVATION, SUPERSET, CARDIO, etc.) |
@@ -535,6 +574,30 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | `Testimonial` | Client reviews (1-5 stars, text, up to 4 images) |
 | `SavedCoach` | Client bookmarks |
 
+**T-978 — the activation invariant (I1).** A `CoachingRequest` at `consultationStage = 'ACTIVE'` always
+leaves, in the same committed transaction, either a `CoachClient` row for that coach and prospect, or a
+live, unexpired `ClientInvite` addressed to someone other than the coach themselves (a self-addressed
+invite is permanently unredeemable — `acceptClientInviteForUser` refuses it — so it would satisfy the
+letter of the invariant while still stranding the lead). `lib/leads/activate-lead.ts#activateLead` is the
+only writer of that value anywhere in the repo; a static guard
+(`tests/unit/single-activation-writer.test.ts`) and the funnel matrix
+(`tests/integration/lead-activation-funnel-matrix.test.ts`) both enforce it. Design write-up:
+`docs/onboarding-funnel.md`.
+
+**T-987 — invite acceptance matches any verified address, not exact equality.** `acceptClientInviteForUser`
+(`lib/activation.ts`) is the only `coachClient.create` call in the repo, so this rule lives there once and
+every acceptance surface (`redeemInvite`, `POST /api/client/connect-coach`) inherits it. The invite token is
+treated as the credential (random, single-use, 7-day expiry, delivered to the invited inbox); the invited
+address is a confirmation step. Any VERIFIED address on the signed-in Clerk account matches, via
+`lib/auth/invite-email-match.ts#accountOwnsEmail` (provider-aware: Gmail dots/+tags, Apple icloud/me/mac
+aliases). When nothing matches, the caller must explicitly confirm (`confirmDifferentEmail: true`) before a
+`CoachClient` row is created; CB01 still holds — no coach-controlled input reaches that flag, only the
+signed-in client's own request does. Three additive columns on `ClientInvite` (`mismatchSeenAt`,
+`mismatchEmail`, `acceptedWithMismatch`) record whether and from what address a mismatch occurred, so a coach
+can be shown it (T-988) without parsing `CoachClient.coachNotes`. Rows accepted in production before this
+column existed (under `7ce26a4`) read `acceptedWithMismatch = false`; that means "no mismatch recorded", not
+"accepted from the invited address" — no backfill is possible.
+
 ### Onboarding & Intake
 
 | Model | Purpose |
@@ -543,7 +606,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | `OnboardingResponse` | Client's answers to onboarding form |
 | `ClientIntake` | Structured health/fitness intake (specific fields, not JSON) |
 | `IntakeFormTemplate` | Customizable intake form template per coach |
-| `IntakePacket` | Token-gated intake bundle (form + documents for leads) |
+| `IntakePacket` | Token-gated intake bundle (form + documents for leads). `formAnswers` can hold answers from two surfaces at once (flat keys from the app's REST saves, the nested `sections` shape from the web token form), so every writer merges through `mergePacketSubmission` / `mergePacketAnswers` in `lib/intake/completion.ts` rather than replacing it, and `/onboarding/intake/[token]` prefills from it. |
 | `IntakePacketDocument` | Documents included in an intake packet |
 | `CoachDocument` | Coach-owned documents (text or file) |
 | `ClientFormSubmission` | Form answers within intake flow |
@@ -565,6 +628,215 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | `Message` | Coach↔Client DM messages (keyed by clientId + weekOf) |
 | `AccountDeletionRequest` | GDPR-compliant deletion with 30-day grace period |
 
+### AI Coach — live-launch and governance (T-989)
+
+31 models (`rg -c '^model Ai' prisma/schema.prisma`). The 7 migrations of the
+T-989 fold (`20260921000000`…`20260922010000`) create 15 of those 31 tables;
+T-995 (`20260925000000`) added one more, `AiCoachAccessGrantEvent`; S-23
+(`20260929000000`) added `AiNutritionLog`; the remaining 14 — including
+`AiCheckInObservation` and `AiOperationReceipt`, both `ON DELETE CASCADE` to
+`User` and grouped in "Not listed above" below — predate all three
+(15 + 1 + 1 + 14 = 31). `docs/ai-coach/04-Architecture-and-Data.md`
+and `docs/ai-coach/14-Handoff-Status.md` are the authoritative, kept-current
+source for the full model list; the groups are:
+
+| Group | Models | Purpose |
+|---|---|---|
+| Intake, profile, safety | `AiIntakeDraft`, `AiCoachProfile`, `AiCoachEntitlement`, `AiSafetyDisclosureEvent`, `AiNutritionSafetyDecision` | Client-facing AI Coach identity and the pre-generation safety gate |
+| Autonomy gate & provider boundary | `AiAutonomyGateDecision`, `AiProviderBoundaryAudit`, `AiAutomaticPlanApproval` | The fixed-order gate that must approve a candidate plan automatically before it can activate, and the audit of the constrained-provider call that fed it |
+| Plans, sessions, review | `AiPlanVersion`, `AiPlanReviewerApproval`, `AiCoachReviewerGrant`, `AiPlanAcceptanceReceipt`, `AiPlanAcceptanceOutbox` (T-502: also push delivery state — attempts/nextAttemptAt/deliveryOutcome/lastErrorCode), `AiAdjustmentSlot`, `AiWorkoutSession`, `AiCoachRun`, `AiPlanActivationAttempt` | Plan lifecycle, human-reviewer grants, and idempotent acceptance |
+| Provider transition | `AiCoachProviderTransitionReceipt`, `ClientCoachingContext` (mode/origin, not new) | Immutable record of a client's HUMAN↔AI provider switch |
+| Reviewed artifacts | `AiCoachArtifactVersion`, `AiCoachArtifactLifecycleEvent` | Versioned, append-only policy/catalog artifacts and their publish/revoke history |
+| Live-launch governance | `AiCoachLiveLaunchPacket`, `AiCoachLiveLaunchLifecycleEvent`, `AiCoachGovernanceGrant`, `AiCoachOperationalControl`, `AiCoachOperationalEvent`, `AiCoachAccessGrantEvent` | The approval packet for a release and the kill-switch/grant infrastructure that gates it, plus the append-only provisioning history for all three grant tables (T-995) |
+| Live activation | `AiCoachLiveActivation`, `AiCoachLiveActivationEvent` | The single server-selected active release (partial-unique "only one ACTIVE row") and its append-only activate/deactivate history |
+| Client-reported nutrition (S-23) | `AiNutritionLog` | One row per client per calendar day (`@@unique([clientId, loggedOn])`, which is also the index the rolling-window read uses). `source`/`completeness` are the client's own declaration, and four CHECK constraints in `20260929000000_ai_nutrition_log` keep `SKIPPED`/`NONE` (a declared "I did not log") distinguishable from a day with no row: a NONE day carries no numbers, a covered day carries an energy value, `source = SKIPPED` and `completeness = NONE` may not disagree, and no value is negative. `ON DELETE CASCADE` to `User` plus an explicit purge statement. Nothing reads it yet — the adaptive estimator in `lib/ai-coach/adaptive/` is phases 1-2 only and is wired to no request path |
+| Not listed above (pre-existing) | `AiCheckInObservation`, `AiOperationReceipt` | `ON DELETE CASCADE` to `User`, and also deleted explicitly in lib/account-deletion/purge.ts (T-509) so a later relation change cannot leave them behind |
+
+Catalog item references inside an `AiPlanVersion.payload` are resolved **by
+catalog key**: `lib/ai-coach/catalog/loader.ts` holds an explicit registry of
+the fixture catalogs this build carries in code, and reports a key it does not
+carry as `CATALOG_VERSION_NOT_SERVED` rather than as an invalid reference
+(T-2040). A payload bound to a published reviewed catalog is therefore
+validated by `lib/ai-coach/autonomy/gate.ts`'s artifact-backed
+`catalogItemsValid` — which also owns the exercise-modality check — rather than
+by `lib/ai-coach/plan-contract.ts`, whose `superRefine` still rejects an unknown
+ID, a version mismatch or a plan-binding mismatch inside a catalog this build
+does serve.
+
+Every model above with a `User` foreign key has a purge line in
+`lib/account-deletion/purge.ts` and a case in
+`tests/integration/account-deletion.test.ts`, including the two that also cascade.
+
+**T-2041 (2026-09-27), no migration:** `AiCoachRun.inputSnapshot` (JSON) gains one **optional** key, `runtimeBinding` — the runtime artifact set the run was prepared against: `mode`, `engineVersion`, `synthetic`, `contentKind`, `modelConfiguration`, `policyVersion`, `catalogVersions` and the five exact `artifactRefs` (`id`/`artifactKey`/`version`/`kind`/`digest`, one per artifact kind, sorted by kind). `POST /api/client/ai-coach/runs` (`requestAiRun`) resolves and freezes it before its transaction opens; the executor re-loads those exact references under its lock, and `plans/[id]/finalize` compares them against the set it loads for the account. The key is never defaulted, so a snapshot written before this change parses — and content-hashes — exactly as before. No column, no table, no purge line; the REST contract is unchanged.
+
+**T-2033 (2026-09-26), no migration:** `AiPlanVersion.payload` (JSON) widens additively — `nutrition.method` is now `"SYNTHETIC_CATALOG_MATCH" | "REVIEWED_PRESCRIPTION_V1"` and every payload gains an optional `prescriptionOutcome` object (`lib/ai-coach/plan-contract.ts`). A historical row with neither is read as a legacy candidate everywhere (`readNutritionHistory`, the autonomy gate's `prescription` fact); see `docs/ai-coach/14-Handoff-Status.md`'s T-2033 entry for the full read-path list.
+**T-2006/T-2030 bounded explanation prose:** `AiProviderBoundaryAudit` gains
+one additive nullable column, `explanationValidation Json?` — reason codes
+and a character count for the model's optional `explanationText`/
+`clarificationText`, never the text itself (rejected text is sanitized to
+`null` in `validatedOutput` too, so no rejected string reaches any column).
+Accepted prose is stored inside the existing
+`AiAutomaticPlanApproval.providerSelection.explanation.text` (added only
+when accepted, so every pre-existing row's `stateDigest` is unchanged) — no
+new table. `GET /api/client/ai-coach/workspace` (`getAiWorkspace`) projects
+two new fields inside each `proposals[].authorization`: `explanation:
+{text, kind} | null` and `clarification: {text, clarificationId, kind} |
+null`, both `null` unless the proposal is automatically approved with
+validated prose. See `docs/ai-coach/14-Handoff-Status.md`'s T-2030 entry.
+
+Every model above with a `User` foreign key and no `CASCADE` has a purge line
+in `lib/account-deletion/purge.ts` and a case in
+`tests/integration/account-deletion.test.ts`.
+`AiCoachOperationalControl` is global control state (one row per
+`AiCoachOperationalScope`), not user data — it has no purge line by design
+(see the schema comment on `updatedByGrantId`).
+
+**Grant provisioning (T-995).** Before this ticket, nothing in `lib/`, `app/`
+or `scripts/` ever wrote `AiCoachGovernanceGrant`, `AiCoachReviewerGrant` or
+`AiCoachEntitlement` — only test factories against the disposable local
+database did. `lib/ai-coach/grants.ts` is now the single shared writer for
+all three, called from two CLI-only scripts (no HTTP route, matching
+`ai-coach:activate`/`ai-coach:deactivate`). Every create/revoke runs inside
+one `db.$transaction`, under the lock order in
+`docs/ai-coach/05-API-and-State-Contracts.md`, and writes exactly one
+append-only `AiCoachAccessGrantEvent` audit row on success (nothing on
+refusal).
+
+The very first governance grant has no authority above it, so it gets its
+own once-ever script:
+
+```sh
+DATABASE_URL='<approved database>' pnpm run ai-coach:bootstrap-governance -- \
+  --confirm-bootstrap \
+  --user-id '<internal User.id of the operational owner>' \
+  --grant-ref '<signed OPERATIONAL_OWNER governance record id>' \
+  --actor-ref '<named human who ran this command, e.g. "Jaden Wong, operational owner, G04">' \
+  --reason-code 'GOVERNANCE_BOOTSTRAP'
+```
+
+It refuses (`ALREADY_BOOTSTRAPPED`) if any `AiCoachGovernanceGrant` row
+exists at all, revoked included — including after the first grant is later
+revoked — so it can never run a second time against the same database. The
+bootstrap grant always receives all eight `GOVERNANCE_SCOPES`; there is no
+`--scopes` argument on it. Every later grant is created by a
+`CONTROL_OPERATIONS` holder through the second script, whose first non-flag
+argument selects the operation:
+
+```sh
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- grant-governance   --actor-user-id '<id>' --user-id '<id>' --scopes 'PUBLISH_ARTIFACTS,REVOKE_ARTIFACTS' --grant-ref '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- revoke-governance  --actor-user-id '<id>' --user-id '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- grant-reviewer    --actor-user-id '<id>' --user-id '<id>' --client-ids '<id>,<id>' --domains 'NUTRITION,STRENGTH,CARDIO' --qualification-note '<note>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- revoke-reviewer   --actor-user-id '<id>' --user-id '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- grant-entitlement --actor-user-id '<id>' --client-id '<id>' [--expires-at '<ISO instant>'] --actor-ref '<name>' --reason-code '<CODE>'
+DATABASE_URL='<approved database>' pnpm run ai-coach:grant -- revoke-entitlement --actor-user-id '<id>' --client-id '<id>' --actor-ref '<name>' --reason-code '<CODE>'
+```
+
+`revoke-governance` refuses (`LAST_CONTROL_GRANT`) if it would leave zero
+non-revoked `CONTROL_OPERATIONS` grants held by an active (non-deactivated)
+account — a grant held only by a deactivated user is not a repairable
+authority, so it does not count toward "another holder" (T-995 r2 MAJOR 1).
+Purge is a separate, still-unguarded path: deleting the last
+`CONTROL_OPERATIONS` holder's account removes their grant with no equivalent
+check, and once any `AiCoachGovernanceGrant`/`AiCoachAccessGrantEvent` row has
+ever existed, `bootstrapGovernanceGrant` refuses forever — recovery in that
+case is a manual SQL insert against `AiCoachGovernanceGrant`
+(`INSERT INTO "AiCoachGovernanceGrant" ("id","userId","scopes","grantRef")
+VALUES (gen_random_uuid()::text, '<recovery user id>',
+ARRAY['CONTROL_OPERATIONS','PUBLISH_ARTIFACTS','REVOKE_ARTIFACTS','VIEW_AGGREGATE_MONITORING','APPROVE_LIVE_LAUNCH','REVOKE_LIVE_LAUNCH','ACTIVATE_LIVE_LAUNCH','DEACTIVATE_LIVE_LAUNCH'],
+'<incident reference>')`, recorded as an incident, never done silently. This
+belongs in the release packet as a named recovery procedure (T-995 r2 MINOR 7).
+
+**The entitlement path reads no `AiCoachReviewerGrant` row and calls no
+reviewer function** (T-2000, Jaden 2026-09-24) — it evaluates the same
+fail-closed *profile/synthetic/live-release* conditions `lockAiClient`
+applies, in the same order (refusal rows 15-17), so a row this command writes
+can never be refused by `lockAiClient` on those three grounds. This does
+**not** extend to the *context* condition: the writer refuses only
+`mode === "HUMAN"` or `resolutionRequired` (row 18, relaxed further at T-995
+r2 MAJOR 2 — see below), while `lockAiClient` with its default
+`requireAuthority = true` refuses anything that is not `mode === "AI"`,
+including `NONE` and a missing context row. An entitlement granted before
+enrollment — the normal case this path exists to serve — is therefore
+correctly refused by every `/api/*/ai-coach/*` route (`run-command.ts`,
+`retry-command.ts`, `reviewer.ts`, `managed-executor.ts`,
+`lib/check-ins/ai-observation.ts`, `lib/workouts/ai-session.ts`) until the
+client actually enrolls and `ClientCoachingContext.mode` becomes `"AI"`. That
+is intended, not a bug: the entitlement is the invitation, not the enrollment.
+
+**T-995 r2 MAJOR 2 — `grant-reviewer`'s context refusal (row 13) was relaxed.**
+As originally frozen, row 13 refused any assigned client whose
+`ClientCoachingContext.mode !== "AI"`. No real (non-synthetic) client can
+reach `mode: "AI"` until T-2000 removes `requireReviewerCapacity` from
+`client-commands.ts:189`'s `ENROLL` path — and that same capacity check
+requires a reviewer grant to already exist for that client, a deadlock for
+the first real client the ticket exists to unblock. Row 13 now refuses only
+`mode === "HUMAN"` or `resolutionRequired`; a `NONE`-mode (pre-enrollment,
+including no context row at all) client can be named in a reviewer grant,
+since no reviewer consumer reads anything for a client before it has a
+`PROPOSED` plan or a safety disposition, neither of which exists pre-enrollment.
+The reviewer-grant CLI stays in scope for safety-resolution and
+governance/exception tooling only; `client-commands.ts`, `run-command.ts` and
+`retry-command.ts` still call `requireReviewerCapacity` for non-synthetic
+profiles until T-2000 lands.
+
+**Deploy ordering — read this before pushing.** `lib/account-deletion/purge.ts`
+references `AiCoachAccessGrantEvent` unconditionally. **Migration
+`20260925000000_ai_coach_access_grant_events` must be applied to the target
+database before this commit is deployed**, or every account-deletion purge
+run throws `relation "AiCoachAccessGrantEvent" does not exist`, which
+`lib/account-deletion/sweep.ts` swallows by resetting the request to
+`PENDING` and incrementing `retryCount` — every pending deletion, web- and
+iOS-initiated alike, silently stalls with the statutory clock still running.
+`GET /api/health` surfaces the mismatch (`migrationsApplied` must equal
+`migrationsExpected`, currently **75** — `lib/health/expected-migrations.ts`)
+before any purge cron run confirms it the hard way.
+
+**Feature-flag scope (`lib/flags/ai-coach.ts`, `FEATURE_AI_COACH_ENROLLMENT/
+GENERATION/PUBLICATION`, all default OFF) — read this precisely, it is what an
+incident responder acts on:**
+
+- `FEATURE_AI_COACH_ENROLLMENT` gates only new enrollment: the public
+  discovery offer (`lib/ai-coach/discovery.ts`, and by extension `/ai-coach`
+  and the `/coaches` promo aside) and the synthetic-fixture `ENROLL` command
+  branch (`lib/ai-coach/client-commands.ts:168`).
+- `FEATURE_AI_COACH_GENERATION` gates only new generation runs
+  (`run-command.ts`, `retry-command.ts`, `executor.ts`, `managed-executor.ts`).
+- `FEATURE_AI_COACH_PUBLICATION` gates only a candidate becoming an active,
+  client-visible plan (`plan-acceptance.ts:307`).
+- **Setting all three to `false` does not shut down an already-enrolled
+  client's AI Coach surface.** `lib/ai-coach/http.ts` (`aiHttp`, the wrapper
+  for all 17 `/api/*/ai-coach/*` routes) checks no flag — workspace,
+  sessions, check-ins, concerns, export and evidence-delete are gated only by
+  `lockAiClient` (profile + entitlement + `mode='AI'` + active release), and
+  the `/client` surface swap runs off `ClientCoachingContext.mode === 'AI'`,
+  which no flag touches.
+- The single **global** revert, for an already-active release, is
+  `deactivateAiCoachLiveRelease` (`lib/ai-coach/live-launch/repository.ts:634`,
+  run via `pnpm ai-coach:deactivate` under a signed governance grant, no HTTP
+  route). That is the only lever that stops every surface at once; the three
+  flags each stop one narrower thing.
+- `POST /api/client/ai-coach/plans/[id]/finalize` and
+  `POST /api/client/ai-coach/plans/[id]/accept` resolve FIXTURE vs LIVE from
+  the account's profile and the sole ACTIVE release
+  (`lib/ai-coach/runtime-binding.ts#resolveAiCoachRuntimeBinding`, T-2000) —
+  a synthetic profile still requires fixture/dev mode
+  (`AI_COACH_FIXTURE_MODE=true`, non-production); a real profile requires an
+  ACTIVE governed live release. Either branch failing closed 503s regardless
+  of the three flags above. Per-client human review (`AiCoachReviewerGrant`,
+  reviewer status) is not consulted by either route for a managed candidate —
+  the T-1006 deterministic gate is the sole approver; the reviewer queue
+  remains synthetic-only governance/exception tooling.
+
+**AI Coach live-provider egress (T-996):** the only outbound network call the AI
+Coach code can make is `lib/ai-coach/provider/anthropic-provider.ts` calling
+`api.anthropic.com` (HTTPS 443) directly with Anthropic's Messages API, gated by
+`assertAiCoachOperationEnabled("PROVIDER")` and `assertActiveAiCoachLiveReleaseReady()`
+— it has no route, is never reachable from `app/api/**`, and is server-only.
+`@anthropic-ai/sdk` is loaded only through a dynamic `import()`, never a static one.
+The credential is named `AI_COACH_PROVIDER_CREDENTIAL` (an Anthropic API key); its
+presence enables nothing by itself while the operational control or the ACTIVE
+release gate is off.
+
 ---
 
 ## API Surface (REST — iOS & external consumption)
@@ -578,8 +850,9 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | POST | `/api/me/push-token` | Register APNs token |
 | DELETE | `/api/me/push-token` | Unregister APNs token |
 | GET/PUT | `/api/me/notifications` | Notification preferences |
-| GET | `/api/client/home` | Client home dashboard data |
-| GET | `/api/client/meal-plan/current` | Active published meal plan. `mealPlan.planMode` is a *display* mode, not necessarily the stored row's mode: a published row stamped `MACROS` with zero macro targets and at least one item is served as `MEAL_PLAN` so a client is never shown a blank plan (T-800). `items`/`macroTargets` always carry the row's true content. |
+| GET | `/api/client/home` | Client home dashboard data. The active plan and `adherence.mealNames` are resolved by `lib/meal-plans/active-plan.ts` |
+| GET | `/api/client/coaching-context` | S-34: returns `getClientProvider()`'s object verbatim — the route is a spread (`NextResponse.json({ data: await getClientProvider(id), requestId })`), not a field-by-field projection, so a future field added to `getClientProvider` ships to iOS the moment it lands here, with no route change. Exactly nine keys today: `origin`, `revision`, `resolutionRequired`, `activeCoachClientId`, `coachId`, `relationshipStartedAt`, `aiPreviewAvailable`, `aiDiscovery`, `aiDiscoveryReasonCode`. iOS (`team/sprint-1`) decodes `aiDiscovery` and renders its own chooser (`AICoachDiscoveryView`) from the same payload. |
+| GET | `/api/client/meal-plan/current` | Active published meal plan, resolved by `lib/meal-plans/active-plan.ts` |
 | GET | `/api/client/training/current` | Active published training program |
 | GET/POST | `/api/client/checkin` | Check-in submission |
 | GET | `/api/client/checkins` | Check-in history |
@@ -587,26 +860,34 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET | `/api/client/coach-photo` | Coach profile photo URL |
 | GET/PUT | `/api/client/settings/notifications` | Client notification settings |
 | GET/POST | `/api/client/adherence/*` | Daily adherence (today, meal, workout) |
+| GET | `/api/client/adherence/today` | Today's checkoff record + `mealNames` for the active plan (`lib/meal-plans/active-plan.ts`, provider-gated) |
 | POST | `/api/client/training/results` | Exercise progress logging |
+| POST | `/api/client/connect-coach` | Redeem a `ClientInvite` by `coachCode` (its `inviteToken`), through the shared `acceptClientInviteForUser` service. Body: `{ coachCode: string, confirmDifferentEmail?: boolean }` (the second field is additive/optional). `200 { success: true }` on acceptance; `409 { success: false, error: "confirmation_required", message, invitedEmailHint, signedInAs, coachName }` when the invite was sent to an address not verified on the signed-in account and the caller has not yet confirmed it (T-987) — `invitedEmailHint` is masked (`maskEmail`), never the raw invited address; `409 { error: "already_connected" }`, `410 { error: "expired" }`, `403 { error: "invalid_code" }` (all other refusals), `404 { error: "invalid_code" }` (unknown token) unchanged. No live caller on the currently shipped iOS build (`connectCoach(code:)` is dead code as of T-987/T-964). |
+| GET | `/api/intake/current` | The client's current intake (IntakePacket first, then ClientIntake) with its template and answers. `intake.template` is never null. |
+| PUT | `/api/intake/[id]/answers` | Save one section's answers. Accepts `{ answers: [{ questionId, answer }] }` (the legacy `{ answers: { qid: value } }` object form still works); an `answer` that is empty or whitespace-only is an explicit clear — it deletes the key from `IntakePacket.formAnswers` and nulls the `ClientIntake` column, numeric columns included. A reserved `questionId` (`sections`, anything starting with `_`) is refused on write. On the `ClientIntake` branch a value that cannot be stored in its column (a non-numeric or out-of-range number) is refused with 422 `{ code: "ANSWER_UNSTORABLE", refusedQuestionIds }` before any write, for the whole request — dropping it and answering 200 read as a successful save whenever the column already held an older value. Returns the full `IntakePacketData` with a real `template`. |
+| POST | `/api/intake/[id]/submit` | Submit the intake. The optional body carries the full answer set (`{ answers: [{ questionId, answer }] }`) as a safety net; it is merged before any write. Returns 422 `{ code: "INTAKE_INCOMPLETE", missingQuestionIds }` if a required question is still empty **or** a value cannot be stored in its column (e.g. a non-numeric bodyweight, or a number outside the range its column can hold), 422 `{ code: "DOCUMENTS_UNSIGNED" }` if the packet still has an unsigned document attached (the same rule the web token submit applies, worded to send the client to the emailed intake link, since the app has no signing UI), and 409 if already submitted (race-safe conditional update). On the packet branch it also advances the lead's `consultationStage` to `INTAKE_SUBMITTED`, as the web token submit does, but only from a stage that is not already `ACTIVE` or `DECLINED`. `lib/intake/completion.ts` is the single source of truth for answer normalisation, merging and completeness, shared with the two routes above and with the `submitClientIntake` Server Action. |
 
 ### Coach-facing (`/api/coach/`)
 
 | Method | Endpoint | Purpose |
 |---|---|---|
 | GET | `/api/coach/clients` | Client roster |
-| GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove |
-| GET/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. GET response additionally carries `clientPlanMode` (the `CoachClient` default) and `editorMode` (server-resolved `draft?.planMode ?? clientPlanMode` — never inferred from the published row's content) — T-800. PUT `planExtras` write semantics (T-841, identical on this route and the `saveDraftMealPlan` Server Action — shared logic in `lib/meal-plans/plan-extras-merge.ts`): absent/`undefined` key → no write; `null` → no write (documented no-op, do not "fix" this asymmetry); an object → shallow top-level merge against the raw stored JSON (`mergePlanExtras`), never a wholesale replace. `dayOverrides: []` is a present key and clears the overrides; an absent `dayOverrides` never clears. A present nested object (e.g. `metadata`) replaces the stored nested object wholesale — the merge is one level deep only. |
-| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Re-publishing a client/week atomically marks the previous published plan `SUPERSEDED`; a lost concurrent publish race returns 409 `PUBLISH_RACE_LOST`. Also returns 409 `PLAN_NOT_DRAFT` if not a draft and 409 `PLAN_EMPTY` if the plan has no content for its mode (T-800). |
-| GET/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD. GET with `weekOf`: this week's DRAFT, else this week's PUBLISHED, else the client's latest PUBLISHED from an earlier week returned as `source: "carried-over"` with `carriedOverFromWeekOf` set to that week's ISO date (`getTrainingProgramForReview`, T-803). GET without `weekOf` (the shipped iOS app's only call shape) is unchanged: `source` is `"published"` or `"empty"`, `carriedOverFromWeekOf` is always `null`. Every published lookup is ordered `publishedAt desc nulls last, createdAt desc, id desc` (`PUBLISHED_TRAINING_ORDER_BY` in `lib/queries/training-programs.ts`) so duplicate PUBLISHED rows resolve deterministically to the newest. PUT never writes into a non-DRAFT program (CB04, T-880): a PUBLISHED target is forked into a new DRAFT carrying the submitted days plus the target's injuries/equipment/templateSourceId, and an omitted (`undefined`) weeklyFrequency/clientNotes in the body inherits the target's value rather than being nulled — only an explicit value (including explicit `null`) overrides it. The response adds forkedNewProgramId. Both the fork write and the direct-DRAFT write are guarded by an `updateMany({ where: { status: "DRAFT" } })` inside the same transaction as the day rewrite; a concurrent publish landing between the status read and the write makes that guard match zero rows, and the route returns 409 `PROGRAM_PUBLISHED_DURING_SAVE` instead of silently rewriting a PUBLISHED row's days. The saveTrainingProgram Server Action applies the same rule week-scoped — it only ever edits the week's DRAFT and otherwise creates a new one — and the same guard makes it throw rather than silently rewrite if a concurrent publish wins the race. The REST PUT forks on every call against a published id with no week-scoped reuse (unlike the action); a caller that ignores forkedNewProgramId and keeps PUTting the same published id creates a new DRAFT per call — deliberately left open, T-882. |
-| POST | `/api/coach/clients/[clientId]/training/publish` | Publish training program. Publishing atomically marks the client's previous published program `SUPERSEDED`; the uniqueness scope is client-only, across weeks. A lost concurrent publish race returns 409 `PUBLISH_RACE_LOST`. |
+| GET/DELETE | `/api/coach/clients/[clientId]` | Client detail / remove. DELETE calls `lib/coach-client/end-relationship.ts#endCoachClientRelationship`, the single teardown shared with the `removeClient` and `leaveCoach` Server Actions (T-2058). One transaction deletes the `CoachClient` row, deletes the client's unpublished `DRAFT` meal plans and training programs when no relationship remains (published history is kept), reconciles `ClientCoachingContext` and moves the coach's `ACTIVE` lead for that `prospectId` to `CONSULTATION_DONE` (status untouched, so the coach can re-activate it). A client leaving via `leaveCoach` sets the lead to `DECLINED`. Response unchanged: `{ success: true }`. |
+| GET/POST/PUT | `/api/coach/clients/[clientId]/meal-plan` | Client meal plan CRUD. Auth + zod wrapper only — `lib/meal-plans/drafts.ts` is the single source of truth for draft create/save/fork, shared with the `createDraftMealPlan` / `saveDraftMealPlan` Server Actions and with `/api/mealplans/import-plan`. GET also returns `clientPlanMode` (the `CoachClient.planMode` default) and `editorMode` (which editor the coach must render), both resolved by `lib/meal-plans/plan-mode.ts` — the single source of truth for coach editor-mode resolution, shared with the web query `getEffectiveMealPlanForReview`. Neither is `mealPlan.planMode`, which stays the published/draft row's own snapshot that clients read. |
+| POST | `/api/coach/clients/[clientId]/meal-plan/publish` | Publish meal plan. Auth + zod wrapper only — `lib/meal-plans/publish.ts` is the single source of truth for the DRAFT→PUBLISHED transition, shared with the `publishMealPlan` Server Action and with `/api/mealplans/import-plan`. Rejections are `409` with `code` `PLAN_NOT_DRAFT`, `PUBLISH_RACE_LOST`, or `PLAN_EMPTY` (the plan has no content for its own `planMode`); `error` carries the user-facing sentence the Server Action throws verbatim. |
+| GET | `/api/coach/clients/[clientId]/meal-plan/history` | T-801 — paginated version history, `lib/meal-plans/history.ts` is the single source of truth, shared with the two routes below and the `restoreMealPlanVersion` Server Action. History is `PUBLISHED` + `SUPERSEDED` only (never `DRAFT` — an unpublished draft is work in progress, not a version the client ever saw); ordered `weekOf desc, publishedAt desc NULLS LAST, createdAt desc, version desc` so a legacy `SUPERSEDED` row from the pre-supersede-backfill era with a null `publishedAt` never floats above the week's live plan. Retention: kept forever, no pruning — rows are small and `lib/account-deletion/purge.ts` already deletes them by `clientId` with no status filter. |
+| GET | `/api/coach/clients/[clientId]/meal-plan/history/[mealPlanId]` | T-801 — read-only detail for one version (any status, including `DRAFT`), via `lib/meal-plans/history.ts`. Always returns both `items` and `macroTargets` — the caller picks by `planMode`, never by which array is non-empty, since a `MACROS` version routinely also carries a prior week's foods. `403` requires both the coach's `CoachClient` assignment to `clientId` **and** `mealPlan.clientId === clientId`; dropping the second check is an IDOR. |
+| POST | `/api/coach/clients/[clientId]/meal-plan/restore` | T-801 — restores a `PUBLISHED`/`SUPERSEDED` version into a brand-new `DRAFT` via `lib/meal-plans/history.ts`, which calls T-101's `createMealPlanDraft` with `startBlank: true` and every field explicit so no part of the restored draft can silently carry forward from an unrelated week. Never mutates or un-publishes the source version, and never touches `lib/meal-plans/drafts.ts` or `publish.ts`. `409 SOURCE_NOT_RESTORABLE` for a `DRAFT` source; `409 DRAFT_EXISTS` when the target week already has a draft unless `replaceExistingDraft: true` is sent (create-then-delete, never a transaction). |
+| GET/POST/PUT | `/api/coach/clients/[clientId]/training` | Client training program CRUD. POST and PUT are an auth + zod wrapper only (GET does its own query and shaping and deliberately never calls the service; POST additionally owns the `copyFromPublished` selection) — `lib/training-programs/drafts.ts` is the single source of truth for draft create/save/fork (CB05) on the coach draft-edit path, shared with the `saveTrainingProgram` Server Action. It is not the only writer of program days/blocks: `/api/workout-import/import` (OCR/LLM import) and `POST /api/coach/templates/[id]/apply` still create `TrainingDay`/`TrainingProgramBlock` rows directly — change those two as well when the block contract changes. Blocks accept exactly the six `BlockType` values `EXERCISE`, `ACTIVATION`, `INSTRUCTION`, `SUPERSET`, `CARDIO`, `OPTIONAL` on both surfaces (`"TEXT"` was never one and is rejected with 422); `dayName`/`title`/`content` normalize `null`/absent to `""`, and day/block `sortOrder` is renumbered dense `0..n-1` after a stable sort by `(sortOrder ?? array index)`, so a submitted `sortOrder` reorders the array rather than being stored verbatim. `weeklyFrequency` (coerced int 1..7, nullable) and `clientNotes` (max 2000, nullable) parse with the same shared schemas on POST and PUT. PUT returns `{ success, programId, forkedNewProgramId? }` — `forkedNewProgramId` is present only when the target was not a DRAFT and CB05 forked a new one. |
+| POST | `/api/coach/clients/[clientId]/training/publish` | Publish training program |
 | GET | `/api/coach/clients/[clientId]/intake` | Client intake data |
 | GET | `/api/coach/clients/[clientId]/messages` | Client message thread |
 | GET | `/api/coach/clients/[clientId]/checkins/[id]` | Specific check-in detail |
 | GET/POST | `/api/coach/leads` | Leads pipeline |
 | GET/PUT | `/api/coach/leads/[leadId]` | Lead detail / update |
 | POST | `/api/coach/leads/[leadId]/stage` | Advance lead stage |
-| POST | `/api/coach/leads/[leadId]/activate` | Convert lead to client |
-| POST | `/api/coach/leads/[leadId]/bypass-activate` | Direct activation (skip intake) |
+| POST | `/api/coach/leads/[leadId]/activate` | T-978: normal-pipeline activation (FORMS_SIGNED/INTAKE_SUBMITTED only). A thin wrapper over `activateClient` → `lib/leads/activate-lead.ts#activateLead`, the only writer of `consultationStage = 'ACTIVE'` in the repo. The stage write and the roster-or-invite write commit in one transaction (invariant I1) or neither happens; a lead with no email on file refuses (422) rather than activating with nothing behind it. |
+| POST | `/api/coach/leads/[leadId]/bypass-activate` | T-978: bypass activation (any non-DECLINED stage). A thin wrapper over `bypassPipelineAndActivate` → the same `activateLead` service — no second implementation. `409` if already active, `422` for every other refusal (including no email on file), both bodies carrying `error`/`message` with the identical sentence. |
 | GET | `/api/coach/leads/[leadId]/intake` | Lead intake data |
 | GET/PUT | `/api/coach/profile` | Coach profile CRUD |
 | POST | `/api/coach/profile-photo` | Upload coach photo |
@@ -615,6 +896,96 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET/POST/PUT/DELETE | `/api/coach/templates/*` | Template CRUD |
 | POST | `/api/coach/templates/[id]/apply` | Apply template to client |
 | GET/POST | `/api/coach/documents/*` | Document library CRUD |
+
+### AI Coach (`/api/client/ai-coach/`, `/api/ops/ai-coach/`, `/ai-coach`)
+
+The 17 `/api/*/ai-coach/*` routes (workspace, sessions, check-ins, concerns,
+export, evidence-delete, and the two below) share one wrapper,
+`lib/ai-coach/http.ts`'s `aiHttp` — it checks no feature flag. They are
+gated by `lockAiClient` per request (profile + entitlement + `mode='AI'` +
+an active governed release), not by `FEATURE_AI_COACH_*`. Only the *public
+discovery* surface (`/ai-coach`, the `/coaches` promo, and new enrollment)
+reads a flag — see the two-gate scope breakdown in the AI Coach data-model
+section above; do not generalize it to this whole section. The full route
+inventory lives in `docs/ai-coach/`; two of the routes this ticket's fold
+adds:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/client/ai-coach/plans/[id]/finalize` | Finalizes the client's current AI-generated plan version, via `lib/ai-coach/finalization.ts` — resolves FIXTURE vs LIVE from the account and the sole ACTIVE release (T-2000), 503s when neither applies regardless of flags |
+| POST | `/api/client/ai-coach/runs` | Creates an `AiCoachRun` (`lib/ai-coach/run-command.ts`) and then (T-2009) schedules a post-response drain of **that one run id** via `after()` from `next/server` → `drainRunNow` (`lib/ai-coach/executor.ts`). `runtime = "nodejs"`, `maxDuration = 120`. The REST envelope is unchanged; the client cannot observe the kick except by the run reaching a terminal status sooner |
+| POST | `/api/client/ai-coach/runs/[runId]/retry` | Same shape (T-2009): the kick targets the **new** retry run's id from the result, never the terminal original named in the path |
+| GET/POST | `/api/ops/ai-coach/governance` | Governance-grant-gated kill-switch and reviewed-artifact publish/revoke operations, via `lib/ai-coach/operations.ts` and `lib/ai-coach/artifacts/repository.ts` — no route can activate a live release (see the data-model section above) |
+
+**Intake v2 (T-2002/T-2024).** `POST /api/client/ai-coach/commands` is unchanged in
+route shape; three of its operations gained a v2 branch, all validated in
+`lib/ai-coach/client-commands.ts` and `lib/ai-coach/intake.ts`:
+- `SAVE_INTAKE` — `answers` accepts any subset of v1 + v2 intake fields
+  (`intakeAnswersSchema.partial()`, still permissive on read). Sending
+  `allergies` or `allergenDeclarations` is always a 422 (allergen state only
+  moves through `ALLERGIES`); sending `dietaryRestrictions` once a
+  `dietaryPattern` already exists (draft or confirmed) is a 422.
+- `ALLERGIES` — a two-shape command: exactly one of `allergies` (v1 string
+  array, unchanged) or `allergenDeclarations` (v2 structured object) must be
+  present. The v2 branch derives the legacy `allergies` token array via the
+  single writer `lib/ai-coach/intake-allergens.ts#deriveLegacyAllergyTokens`
+  and computes `newConcern` from a canonical content hash
+  (`canonicalDeclarations` + `contentHash`) instead of the v1 lowercase
+  string comparison, so a narrowing (e.g. adding a specificity under an
+  already-declared category) still bumps `safetyRevision` and invalidates
+  proposals.
+- `CONFIRM_INTAKE` — branches on `answers.intakeVersion`. `intakeVersion: 2`
+  is validated against `intakeV2ConfirmSchema` (the write-time completeness
+  schema — every v1 field plus every v2 status field, `allergenDeclarations`,
+  `dietaryPattern`, `dislikes`, `cuisinePreferences` required; the governed
+  value fields stay conditionally required by `superRefine` against their
+  status). The server sets `capturedAt` and derives `allergies`/
+  `dietaryRestrictions` — a client-supplied value for any of those three is
+  rejected. **S-16:** the seven bookkeeping *status* fields (`ageStatus`,
+  `energyMethodPopulationCategoryStatus`, `physicalActivityCategoryStatus`,
+  `bodyMeasurementStatus`, `goalStatus`, `trainingContextStatus`,
+  `cookingAccessStatus`) are defaulted server-side to `UNKNOWN` when absent
+  (`applyIntakeV2ConfirmDefaults`, `lib/ai-coach/intake-contract.ts`) so a
+  client that was never shown a governed question is not 422'd about it.
+  `UNKNOWN` is the restrictive value: the governed values must then be absent
+  and personalized nutrition stays pending. The default only ever *fills* —
+  an answered status is never overwritten, `CONFIRMED` is never inferred from
+  the presence of a value, and no clinical or safety field
+  (`allergenDeclarations`, `dietaryPattern`, `dislikes`,
+  `cuisinePreferences`) is defaulted at all. A v1-shaped confirm (no `intakeVersion`) against a client whose
+  profile already holds `intakeVersion: 2` is rejected `422` (`"Update
+  Steadfast to change your intake."`) so an old app build can never silently
+  downgrade a v2 profile.
+
+The workspace DTO (`GET /api/client/ai-coach/workspace`, `lib/queries/ai-coach.ts`)
+gained one new top-level field, `intakeSchemaVersions: [1, 2]` — a
+capability list so a client newer than the backend can detect it and
+degrade instead of eating an opaque 422. `schemaVersion` stays `1`; the
+shipped iOS build hard-fails on anything else.
+
+S-19 added two more top-level fields, both additive:
+
+- `safetyDisclosureCompleted: boolean` — whether an `AiSafetyDisclosureEvent`
+  row exists for the client. This is the *same* row `CONFIRM_INTAKE`'s guard
+  reads (`hasRecordedSafetyDisclosure`, `lib/ai-coach/safety.ts`), so a client
+  deciding whether to ask the safety questions can no longer disagree with the
+  server and take a `422 "Complete the safety questions first."` it has no way
+  to satisfy. Never derive this from `confirmedIntake`.
+- `safetyRestriction: { disposition, restrictedDomains[], planRequestBlocked,
+  clientCanResolve: false, resolvedBy: "AUTHORIZED_REVIEWER" } | null` — the client-readable projection of the gate
+  `requestAiRun` enforces. `planRequestBlocked` and the run guard are the same
+  function (`planRequestIsSafetyBlocked`, `lib/ai-coach/safety-restriction.ts`),
+  so the UI can state the refusal instead of the client discovering it as a
+  `SAFETY_RESTRICTED` 409. Nothing in this projection lifts a restriction:
+  `resolveAiSafety` remains the only path, and `clientCanResolve` is a `false`
+  literal on purpose — a client asserting they are safe would turn the gate
+  into a checkbox.
+
+`/ai-coach` (`app/ai-coach/page.tsx`, added to `proxy.ts`'s public routes) is
+the public, unauthenticated discovery page — `notFound()` unless both the
+enrollment flag and the governed activation row are satisfied. The
+`/coaches` directory also renders a promo aside under the same two-gate
+condition (`lib/ai-coach/discovery.ts`).
 
 ### Shared & Public
 
@@ -625,11 +996,14 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | GET | `/api/messages/weeks` | Available message weeks |
 | POST | `/api/actions/account-deletion` | Request account deletion |
 | POST | `/api/actions/account-deletion/cancel` | Cancel deletion |
+| POST | `/api/app-events` | Authenticated, bounded iOS handled-error diagnostics; no response or request content is accepted or persisted |
+| GET | `/api/health` | Unauthenticated liveness: build sha, DB reachability and migration ledger; no auth or PII |
 | GET | `/api/public/coaches` | Public coach listings (marketplace) |
 | GET | `/api/public/coaches/[slug]` | Public coach profile |
 | POST | `/api/public/coaching-request` | Submit coaching request (no auth required) |
 | POST | `/api/webhooks/clerk` | Clerk user sync webhook |
 | GET | `/api/cron/checkin-reminders` | Cron: daily reminder dispatch |
+| GET | `/api/cron/ai-coach-executor` | Cron: AI Coach durable job executor sweep (A05, T-503) |
 | GET | `/api/cron/purge-deleted-accounts` | Cron: account purge execution |
 
 ### Import Pipeline
@@ -639,14 +1013,14 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | POST | `/api/mealplans/upload-url` | Generate signed upload URL |
 | POST | `/api/mealplans/parse` | OCR → text extraction |
 | POST | `/api/mealplans/parse-text` | Text → AI structured JSON |
-| POST | `/api/mealplans/import-plan` | Finalize import into meal plan |
+| POST | `/api/mealplans/import-plan` | Finalize import into meal plan. Routes through `lib/meal-plans/drafts.ts` + `lib/meal-plans/publish.ts`; a rejected publish returns the same 409 bodies as the coach publish route — `PLAN_NOT_DRAFT`, `PUBLISH_RACE_LOST`, or `PLAN_EMPTY` (an import that parsed no meals). The draft row it just created is deliberately left in place on rejection. |
 | POST | `/api/mealplans/modify-plan` | AI plan modification |
 | GET | `/api/mealplans/draft` | Get meal plan draft |
 | GET | `/api/mealplans/[id]/export` | Export meal plan as PDF |
 | POST | `/api/workout-import/upload-url` | Workout signed upload URL |
 | POST | `/api/workout-import/parse` | Workout OCR extraction |
 | POST | `/api/workout-import/parse-text` | Workout AI structuring |
-| POST | `/api/workout-import/import` | Finalize workout import. The `publish: true` program branch uses the shared training publish service and supersedes the client's previous published program. |
+| POST | `/api/workout-import/import` | Finalize workout import |
 | GET | `/api/workout-import/draft` | Get workout draft |
 | GET | `/api/training-programs/[id]/export` | Export training program PDF |
 
@@ -707,6 +1081,68 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 - Failing checks block deploy
 - Vercel auto-deploys from `main` branch
 
+### Observability
+No error-monitoring SDK is wired in yet (T-924 adds Sentry). Until then, `lib/observability/` (T-920) is the
+one place a "silently degraded" code path — content that disagrees with its own mode, a lookup that misses
+with no fallback, a merge that drops keys — announces itself. It exists because three production incidents
+(a mislabelled meal plan, dropped `planExtras`, an empty training tab) threw no exception at all, so a stock
+error tracker would have caught none of them.
+
+- `lib/observability/report.ts` — `reportAnomaly(evt, opts)` (level `warning`) and `reportServerError(evt,
+  error, opts)` (level `error`) are the only two entry points. Both are synchronous, never throw, never
+  `await`, and never run inside a `db.$transaction`. A branch that knowingly degrades calls `reportAnomaly`
+  from the shared service it lives in (never from a route handler or component) — never a hand-rolled
+  `console.error`.
+- `ObservabilityEvent` (same file) is a **closed** type — no `extra: Record<string, unknown>` map, no index
+  signature. A new field is an architect decision, not a cast.
+- `lib/observability/redact.ts` — `redactContext(context, allow)` keeps only allow-listed keys whose value is
+  a string/number/boolean, scrubbing every string against emails, E.164 phones, JWTs, `sk_`/`pk_`/`whsec_`
+  keys, any URL with a query string, and any base64-looking run over 64 chars (truncated to 120 chars).
+  `sanitizeErrorMessage(error)` returns the message **only** for `AiCoachError`, `Prisma.PrismaClientKnownRequestError`
+  and `ZodError` (200-char cap); anything else emits only the constructor name. `routePattern(pathname)` strips
+  the query string and replaces id-shaped segments with `[id]`. `safeFrames(stack)` reduces a stack trace to
+  our own `"file:line"` frames, dropping every `node_modules` line.
+- `lib/observability/sinks.ts` — `activeSinks()` returns `[consoleSink]`, which writes one line of JSON to
+  `console.error`, greppable by its `sf.`-prefixed `evt`. This is the single extension point T-924 edits to
+  add Sentry; nothing else in the codebase may know a third-party sink exists.
+- `instrumentation.ts` reports uncaught route, Server Action and RSC errors through `reportServerError`.
+  It reads only the request path and method; request headers are never read or forwarded.
+- `lib/observability/events.ts` — owns the frozen event names and their `context` allow-lists, so a call
+  site cannot typo an event name or widen an allow-list inline:
+
+  | `evt` | fires from | meaning |
+  |---|---|---|
+  | `sf.training.week_empty_with_history` | `getTrainingProgramForReview` (`lib/queries/training-programs.ts`), called from the two **web** coach training pages under `app/coach/clients/[clientId]/**` | the requested week has no DRAFT/PUBLISHED program but the client has one in another week — the T-803 shape (no cross-week fallback). **Not wired to iOS**: `app/api/coach/clients/[clientId]/training/route.ts` re-implements this lookup inline rather than calling the shared query, so an iOS coach hitting the same empty state emits no beacon today. Coverage extends to iOS once that route is reconciled onto `hotfix/T-803-training-week-fallback`, which rewrites it to call the shared function. |
+  | `sf.mealplan.mode_payload_disagreement` | `publishMealPlanTarget` (`lib/meal-plans/publish.ts`) | publish rejected as empty for its own `planMode` while the other representation on the row has content — the T-800 shape |
+  | `sf.mealplan.save_dropped_keys` | `saveMealPlanDraftContent` (`lib/meal-plans/drafts.ts`) | a save's `planExtras` payload omits a top-level key the stored row has — the T-841 shape |
+  | `ios.api.decode_failed` | iOS `APIService.request<T>` | a typed response could not be decoded; route pattern and schema coding path only, never response content |
+  | `ios.api.server_error` | iOS `APIService.request<T>` | a non-401 response failed; route pattern and status code only, never response content |
+  | `sf.server.unhandled` | root `instrumentation.ts` | an uncaught server route, Server Action or RSC error |
+  | `sf.route.failed` | caught 5xx branches on critical coach/client routes | a route returned its existing generic failure response after reporting the thrown error |
+  | `sf.webhook.failed` | Stripe and Clerk webhook catches | signature or event-processing failure, with provider/phase and event type only |
+  | `sf.cron.failed` | reminder, purge and storage-cleanup catches | an independent cron phase failed while the remaining phases kept running |
+  | `sf.aicoach.envelope_failed` | `aiHttp` unknown-error branch | an unexpected error was converted to the existing `TEMPORARILY_UNAVAILABLE` response |
+- `lib/observability/critical-paths.ts` owns the route patterns where a 5xx means a coach or client cannot
+  complete their work: meal-plan and training save/publish, check-in submit, messages and meal-plan import.
+  T-923 consumes this list as alerting policy instead of maintaining another copy.
+- Server Actions that catch their own error and return `{ error }` are not captured; only those that throw.
+- `POST /api/app-events` accepts the two closed `ios.*` event names from authenticated app sessions. It
+  bounds and validates every scalar, rewrites route IDs server-side, applies a per-user quota, and emits
+  through the same sinks with `platform: "ios"`. Nothing is stored in Postgres. Set
+  `APP_EVENTS_INGEST_DISABLED=true` for an emergency 204 no-op without an app update.
+- `lib/observability/release.ts` — `releaseId()` and `deployEnv()`, memoized at module scope, read two
+  Vercel-injected environment variables (never set locally, never in `.env.example`):
+
+  | Variable | Injected by | Read as |
+  |---|---|---|
+  | `VERCEL_GIT_COMMIT_SHA` | Vercel (build time) | `release` — first 7 chars, or `"local"` when unset |
+  | `VERCEL_ENV` | Vercel (build + runtime) | `env` — `"production"` \| `"preview"` \| `"development"` (default) |
+- `GET /api/health` is public and returns only nine bounded scalars: status, short release, deploy class,
+  DB reachability, migration-ledger state/counts, elapsed milliseconds and timestamp. It never returns a
+  database host/name/user/URL, migration name, runtime/package version, environment variable, stack trace,
+  driver message, business count, user identifier, deployment URL or feature flag. The single ledger query
+  is shared in-process for 10 seconds and times out after 2 seconds.
+
 ### Font Size
 - All inputs: `font-size: max(1rem, 16px)` (prevents iOS zoom)
 - Minimum 48px tap targets for interactive elements
@@ -717,8 +1153,33 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 
 | Schedule | Endpoint | Purpose |
 |---|---|---|
-| Daily 19:00 UTC | `/api/cron/checkin-reminders` | Sends check-in reminders (email, SMS, push) based on cadence config |
-| On-demand | `/api/cron/purge-deleted-accounts` | Purges accounts past 30-day grace period (FK-safe deletion order) |
+| Daily 19:00 UTC | `/api/cron/checkin-reminders` | Sends check-in reminders (email, SMS, push) based on cadence config; also runs the account-purge and storage-cleanup sweeps piggybacked in the same invocation (F08) |
+| Daily 04:05 UTC | `/api/cron/ai-coach-executor` | AI Coach durable job executor (A05) — reconciles expired leases/due retries and claims up to 3 QUEUED runs per sweep; inert (zero database access) while `FEATURE_AI_COACH_GENERATION` is unset (T-503). `vercel.json`: `5 4 * * *` |
+| Daily 04:00 UTC | `/api/cron/purge-deleted-accounts` | Purges accounts past 30-day grace period (FK-safe deletion order) — a second, independent daily drain pass alongside the 19:00 piggyback above (T-503) |
+
+A fourth entry, `/api/cron/ai-coach-alerts` at `:35` hourly, is reserved for T-998 (alert evaluator);
+it must not renumber or reorder the three entries above.
+
+The executor route always returns 200. A healthy inert sweep body has no `paused` key
+(`{"disabled":true,...}`); `{"paused":true,"reason":"TEMPORARILY_UNAVAILABLE"}` means generation is
+blocked (kill switch or no ready live release) and needs investigating despite the 200 status.
+
+`/api/cron/ai-coach-executor` is scheduled by T-503 (owns `vercel.json`'s entry and the exact
+cadence, currently `5 4 * * *`). `runExecutorSweep` advances QUEUED `AiCoachRun`s one
+stage at a time, and (T-502) runs the acceptance-notification drain
+(`lib/ai-coach/acceptance-notifications.ts`) as its first phase, gated independently on
+`FEATURE_AI_COACH_PUBLICATION`.
+
+**The sweep is the only guaranteed drain (T-2009).** The two run-creating routes above also schedule
+an enqueue-time kick, which is what makes a freshly requested plan start within seconds instead of at
+the next sweep — but it is *best-effort*: a kick that never scheduled (no `waitUntil` in the runtime),
+or whose invocation was torn down mid-drain, leaves the run for the next sweep to reconcile and
+finish. Nothing in the system may depend on the kick having run, and nothing but the sweep may
+reconcile. `drainRunNow` claims through the same `claimQueuedRun` conditional update the sweep uses,
+so a run can never be executed twice; it never reconciles, never selects rows and never touches an id
+but its own; and it never writes FAILED itself — every terminal transition goes through the same
+`lib/ai-coach/runs.ts` accounting. One `sf.aicoach.run_kick` beacon is emitted per scheduling attempt
+(`outcome` only; no client, plan or failure detail).
 
 ---
 
@@ -731,7 +1192,7 @@ All core data is scoped by `weekOf` (DateTime), canonicalized to **Monday midnig
 | E2E | Playwright | `tests/e2e/` |
 
 ```bash
-npm run test              # Unit tests
-npm run test:smoke        # Smoke tests
-npx playwright test       # E2E tests
+pnpm test                  # Unit tests
+pnpm run test:smoke        # Smoke tests
+pnpm exec playwright test  # E2E tests
 ```

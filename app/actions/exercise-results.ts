@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { normalizeToMonday } from "@/lib/utils/date";
+import { normalizeToMonday, getLocalDate } from "@/lib/utils/date";
 import { revalidatePath } from "next/cache";
 
 const saveExerciseResultSchema = z.object({
@@ -30,16 +30,22 @@ export async function saveExerciseResult(input: unknown) {
   });
   if (!assignment) throw new Error("No coach assignment");
 
-  const weekOf = normalizeToMonday(new Date());
+  const now = new Date();
+  const weekOf = normalizeToMonday(now);
+  // CB08: uniqueness is keyed on the actual calendar day this session
+  // happened, not the week — a program day repeated more than once in the
+  // same week (an ordinary training pattern) must not collide with and
+  // silently overwrite an earlier session's recorded weight/reps.
+  const sessionDate = getLocalDate(now, user.timezone || "America/Los_Angeles");
 
   const result = await db.exerciseResult.upsert({
     where: {
-      clientId_exerciseName_programDay_setNumber_weekOf: {
+      clientId_exerciseName_programDay_setNumber_sessionDate: {
         clientId: user.id,
         exerciseName,
         programDay,
         setNumber,
-        weekOf,
+        sessionDate,
       },
     },
     create: {
@@ -48,6 +54,7 @@ export async function saveExerciseResult(input: unknown) {
       programDay,
       setNumber,
       weekOf,
+      sessionDate,
       weight,
       reps,
     },

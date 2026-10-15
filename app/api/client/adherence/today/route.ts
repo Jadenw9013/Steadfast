@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
-import { getTodayAdherence, getTodayMealNames } from "@/lib/queries/adherence";
+import { getTodayAdherence } from "@/lib/queries/adherence";
+import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
+import { getClientProvider } from "@/lib/queries/client-provider";
 
 /** Returns YYYY-MM-DD in the client's local timezone (or UTC fallback). */
 function todayString(tz: string): string {
@@ -33,9 +35,17 @@ export async function GET() {
     const tz = user.timezone || "America/Los_Angeles";
     const date = todayString(tz);
 
+    // T-105: this route had no provider resolution at all, so its meal names
+    // were unfiltered. Resolve first so `getActiveMealNames` gets the gate;
+    // a non-HUMAN provider simply yields `mealNames: []` (no new status code).
+    const provider = await getClientProvider(user.id);
+
     const [adherence, mealEntries, coachClient] = await Promise.all([
       getTodayAdherence(user.id, date),
-      getTodayMealNames(user.id),
+      getActiveMealNames(user.id, provider.relationshipStartedAt),
+      // T-202: this `coachClient.findFirst({ where: { clientId } })` is
+      // deliberately left unfiltered here — fixing it is T-202's scope, not
+      // T-105's, so `enabled` can still be true while `mealNames` is [].
       db.coachClient.findFirst({
         where: { clientId: user.id },
         select: { adherenceEnabled: true },

@@ -121,9 +121,9 @@ Do NOT use `prisma migrate dev` — it fails on Neon due to shadow DB issues.
 ## Verification Checklist
 
 ```bash
-npm run build          # Catches server/client boundary violations
-npm run lint           # ESLint
-npm run test           # Vitest (tests/unit/ + tests/smoke/)
+pnpm run build          # Catches server/client boundary violations
+pnpm run lint           # ESLint
+pnpm run test           # Vitest (tests/unit/ + tests/smoke/)
 npx prisma validate    # If schema changed
 ```
 

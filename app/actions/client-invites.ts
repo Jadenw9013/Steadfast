@@ -4,9 +4,9 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getCurrentDbUser } from "@/lib/auth/roles";
+import { acceptClientInviteForUser } from "@/lib/activation";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { currentUser } from "@clerk/nextjs/server";
-import { accountOwnsEmail, maskEmail } from "@/lib/auth/invite-email-match";
 
 const sendInviteSchema = z.object({
     name: z.string().min(1).max(100),
@@ -62,64 +62,44 @@ export async function sendClientInvite(input: unknown) {
 export async function redeemInvite(
     token: string,
     options: { confirmDifferentEmail?: boolean } = {},
-) {
+): Promise<
+    | { success: true; coachName: string | null }
+    | {
+          confirmationRequired: true;
+          error: string;
+          invitedEmailHint: string;
+          signedInAs: string;
+          coachName: string | null;
+      }
+    | { error: string }
+> {
     const user = await getCurrentDbUser();
 
-    const invite = await db.clientInvite.findUnique({
-        where: { inviteToken: token },
-        include: { coach: { select: { id: true, firstName: true } } },
-    });
-
+    const invite = await db.clientInvite.findUnique({ where: { inviteToken: token } });
     if (!invite) return { error: "Invite not found." };
-    if (invite.status !== "PENDING") return { error: "This invite has already been used." };
-    if (invite.expiresAt < new Date()) {
-        await db.clientInvite.update({ where: { id: invite.id }, data: { status: "EXPIRED" } });
-        return { error: "This invite link has expired. Ask your coach to send a new one." };
-    }
 
-    // T-1012. The invite token is the credential: it is random, single-use, expires in
-    // 7 days and was delivered to the invited inbox. The email comparison is a
-    // confirmation step, not the gate — treating it as a gate locked real clients out.
-    //
-    // Match against EVERY verified address on the Clerk account rather than the primary
-    // alone, with provider-aware normalization, so Gmail dots and +tags and Apple's
-    // icloud/me/mac aliases all resolve to the same mailbox. Apple "Hide My Email" issues
-    // a relay address that can never match anything a coach typed, so a mismatch asks for
-    // one explicit confirmation instead of refusing.
+    // Clerk's Backend API is network I/O; resolved here, outside
+    // acceptClientInviteForUser's transaction, and passed in as data.
     const clerkUser = await currentUser();
-    const ownsInvitedAddress =
-        accountOwnsEmail(clerkUser?.emailAddresses, invite.email) ||
-        // Fallback when Clerk is unreachable: compare the address we already stored.
-        (!clerkUser && invite.email === user.email.toLowerCase());
 
-    if (!ownsInvitedAddress && !options.confirmDifferentEmail) {
-        return {
-            mismatch: true as const,
-            invitedEmailHint: maskEmail(invite.email),
-            signedInAs: user.email,
-        };
-    }
-
-    // Check for existing coach relationship
-    const existingConn = await db.coachClient.findUnique({
-        where: { coachId_clientId: { coachId: invite.coachId, clientId: user.id } },
+    const result = await acceptClientInviteForUser(invite, user, {
+        accountEmailAddresses: clerkUser?.emailAddresses ?? null,
+        confirmDifferentEmail: options.confirmDifferentEmail,
     });
 
-    if (!existingConn) {
-        await db.coachClient.create({
-            data: {
-                coachId: invite.coachId,
-                clientId: user.id,
-                coachNotes: ownsInvitedAddress
-                    ? "Joined via direct invite."
-                    : `Joined via direct invite (confirmed from ${user.email}; invite was addressed to ${invite.email}).`,
-            },
-        });
+    if (!result.success) {
+        if (result.confirmationRequired) {
+            return {
+                confirmationRequired: true,
+                error: result.error,
+                invitedEmailHint: result.invitedEmailHint,
+                signedInAs: result.signedInAs,
+                coachName: result.coachName,
+            };
+        }
+        return { error: result.error };
     }
-
-    await db.clientInvite.update({ where: { id: invite.id }, data: { status: "ACCEPTED" } });
-
-    return { success: true, coachName: invite.coach.firstName };
+    return { success: true, coachName: result.coachName };
 }
 
 export async function getInviteDetails(token: string) {

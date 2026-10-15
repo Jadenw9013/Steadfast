@@ -4,9 +4,12 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
 import {
+  emptyPlanMessage,
   getMealPlanPublishTarget,
   publishMealPlanTarget,
 } from "@/lib/meal-plans/publish";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -60,6 +63,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // CB04 — publishing (supersede + race guard) lives entirely in
+    // lib/meal-plans/publish.ts, shared with the publishMealPlan server action.
     const result = await publishMealPlanTarget(target);
     if (!result.ok) {
       if (result.code === "NOT_DRAFT") {
@@ -68,9 +73,10 @@ export async function POST(req: NextRequest, { params }: Params) {
           { status: 409 }
         );
       }
+      // T-102b — `error` stays the first key and the only one iOS reads.
       if (result.code === "EMPTY_PLAN") {
         return NextResponse.json(
-          { error: result.message, code: "PLAN_EMPTY" },
+          { error: emptyPlanMessage(result.planMode), code: "PLAN_EMPTY" },
           { status: 409 }
         );
       }
@@ -116,6 +122,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan/publish",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST meal-plan publish" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/coach/clients/[clientId]/meal-plan/publish]", err);
     return NextResponse.json(
       { error: "Internal server error" },

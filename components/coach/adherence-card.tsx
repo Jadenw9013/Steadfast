@@ -10,7 +10,10 @@ interface Props {
 export function AdherenceCard({ clientId, adherenceEnabled, summary }: Props) {
   const { today, last7Days } = summary;
 
-  // 7-day rolled-up stats
+  // 7-day rolled-up stats. CB08: a day with no DailyAdherence record is
+  // untracked, not verified nonadherence — it must not count as a missed
+  // meal/workout in these totals or denominators.
+  const trackedDays = last7Days.filter((d) => d.tracked);
   const daysWithMeals = last7Days.filter((d) => d.mealsTotal > 0);
   const totalMealsCompleted = last7Days.reduce((s, d) => s + d.mealsCompleted, 0);
   const totalMealsTracked = last7Days.reduce((s, d) => s + d.mealsTotal, 0);
@@ -78,8 +81,8 @@ export function AdherenceCard({ clientId, adherenceEnabled, summary }: Props) {
                 />
                 <StatCell
                   label="Workouts"
-                  value={`${workoutsCompleted}/7`}
-                  sub="days completed"
+                  value={trackedDays.length > 0 ? `${workoutsCompleted}/${trackedDays.length}` : "—"}
+                  sub={trackedDays.length > 0 ? "days tracked" : "No data"}
                 />
               </div>
 
@@ -127,23 +130,26 @@ function StatCell({
   );
 }
 
-function DayBar({ days }: { days: { date: string; mealsCompleted: number; mealsTotal: number; workoutCompleted: boolean }[] }) {
+function DayBar({ days }: { days: { date: string; mealsCompleted: number; mealsTotal: number; workoutCompleted: boolean; tracked: boolean }[] }) {
   return (
     <div className="mt-3 flex gap-1" aria-label="7-day adherence overview">
       {days.map((d) => {
-        const hasData = d.mealsTotal > 0 || d.workoutCompleted;
         const allMealsDone = d.mealsTotal > 0 && d.mealsCompleted === d.mealsTotal;
         const dayLabel = new Date(d.date + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "narrow" });
         return (
           <div
             key={d.date}
-            title={`${d.date}: meals ${d.mealsCompleted}/${d.mealsTotal}, workout ${d.workoutCompleted ? "done" : "—"}`}
+            title={
+              d.tracked
+                ? `${d.date}: meals ${d.mealsCompleted}/${d.mealsTotal}, workout ${d.workoutCompleted ? "done" : "not done"}`
+                : `${d.date}: not tracked`
+            }
             className="flex flex-1 flex-col items-center gap-1"
           >
             <div
               aria-hidden="true"
               className={`h-6 w-full rounded-md ${
-                !hasData
+                !d.tracked
                   ? "bg-white/[0.1]"
                   : allMealsDone && d.workoutCompleted
                   ? "bg-emerald-500"

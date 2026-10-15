@@ -19,15 +19,11 @@ import { POST as publishRest } from "@/app/api/coach/clients/[clientId]/meal-pla
 import { GET as exportMealPlan } from "@/app/api/mealplans/[mealPlanId]/export/route";
 import { db } from "@/lib/db";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const PUBLISHED_MEAL_PLAN_INDEX = "MealPlan_one_published_per_client_week";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 
 const suite = enabled ? describe : describe.skip;
 
@@ -35,9 +31,7 @@ suite("T-952a meal-plan publish supersede", () => {
   beforeAll(async () => {
     // Production already has this enum value from the migration deployed ahead
     // of 973c955. The local test database must mirror that production state.
-    await db.$executeRawUnsafe(
-      `ALTER TYPE "MealPlanStatus" ADD VALUE IF NOT EXISTS 'SUPERSEDED'`
-    );
+    await db.$executeRawUnsafe(`ALTER TYPE "MealPlanStatus" ADD VALUE IF NOT EXISTS 'SUPERSEDED'`);
     await db.$executeRawUnsafe(
       `CREATE UNIQUE INDEX IF NOT EXISTS "${PUBLISHED_MEAL_PLAN_INDEX}" ON "MealPlan"("clientId","weekOf") WHERE (status = 'PUBLISHED')`
     );
@@ -113,14 +107,11 @@ suite("T-952a meal-plan publish supersede", () => {
   const params = (clientId: string) => ({ params: Promise.resolve({ clientId }) });
 
   function publishRequest(clientId: string, mealPlanId: string) {
-    return new NextRequest(
-      `https://example.test/api/coach/clients/${clientId}/meal-plan/publish`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealPlanId }),
-      }
-    );
+    return new NextRequest(`https://example.test/api/coach/clients/${clientId}/meal-plan/publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mealPlanId }),
+    });
   }
 
   async function expectSinglePublished(args: {
@@ -220,10 +211,7 @@ suite("T-952a meal-plan publish supersede", () => {
       "Add at least one food before publishing."
     );
 
-    const response = await publishRest(
-      publishRequest(client.id, emptyPlan.id),
-      params(client.id)
-    );
+    const response = await publishRest(publishRequest(client.id, emptyPlan.id), params(client.id));
     expect(response.status).toBe(409);
     expect(await response.json()).toEqual({
       error: "Add at least one food before publishing.",
@@ -238,16 +226,16 @@ suite("T-952a meal-plan publish supersede", () => {
   });
 
   it("the save action can deserialize a just-superseded plan", async () => {
-    const { previous } = await supersededFixture(
-      new Date("2026-10-26T00:00:00.000Z")
-    );
+    const { previous } = await supersededFixture(new Date("2026-10-26T00:00:00.000Z"));
 
-    await expect(
-      saveDraftMealPlan({
-        mealPlanId: previous.id,
-        supportContent: "Superseded plan read regression",
-      })
-    ).resolves.toEqual({ success: true });
+    const saveResult = await saveDraftMealPlan({
+      mealPlanId: previous.id,
+      supportContent: "Superseded plan read regression",
+    });
+    expect(saveResult).toMatchObject({
+      success: true,
+      forkedNewDraftId: expect.any(String),
+    });
 
     await expect(
       db.mealPlan.findUniqueOrThrow({
@@ -258,9 +246,7 @@ suite("T-952a meal-plan publish supersede", () => {
   });
 
   it("the PDF export route can deserialize a just-superseded plan", async () => {
-    const { previous } = await supersededFixture(
-      new Date("2026-11-02T00:00:00.000Z")
-    );
+    const { previous } = await supersededFixture(new Date("2026-11-02T00:00:00.000Z"));
 
     const response = await exportMealPlan(
       new NextRequest(`https://example.test/api/mealplans/${previous.id}/export`),

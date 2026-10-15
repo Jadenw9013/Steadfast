@@ -29,14 +29,19 @@ export default function IntakePacketPage({
     prospectName,
     sections,
     documents,
+    initialAnswers,
 }: {
     token: string;
     coachName: string;
     prospectName: string;
     sections: Section[];
     documents: Document[];
+    /** Answers already stored on the packet, e.g. saved from the iOS app. */
+    initialAnswers?: Record<string, string>;
 }) {
-    const [answers, setAnswers] = useState<Record<string, string>>({});
+    // Seeded, not blank: a client sent here to sign a document has usually
+    // filled the questions in the app already (T-624).
+    const [answers, setAnswers] = useState<Record<string, string>>(() => ({ ...initialAnswers }));
     const [signatures, setSignatures] = useState<Record<string, { type: "TYPED" | "DRAWN"; value: string }>>({});
     const [docAcks, setDocAcks] = useState<Record<string, boolean>>({});
     const [pending, startTransition] = useTransition();

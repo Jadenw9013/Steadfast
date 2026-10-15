@@ -19,21 +19,19 @@ vi.mock("@clerk/nextjs/server", () => ({
   auth: async () => ({ userId: mocks.authUserId }),
   currentUser: vi.fn(),
 }));
-vi.mock("@/lib/email/sendEmail", () => ({ sendEmail: vi.fn().mockResolvedValue({ success: true }) }));
+vi.mock("@/lib/email/sendEmail", () => ({
+  sendEmail: vi.fn().mockResolvedValue({ success: true }),
+}));
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { POST as createLead } from "@/app/api/coach/leads/route";
 import { linkOrInviteProspect } from "@/lib/activation";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") {
-    throw new Error("Dedicated local test database required");
-  }
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("T-961: lead email hotfix", () => {
@@ -103,7 +101,6 @@ suite("T-961: lead email hotfix", () => {
     expect(body.lead.prospectEmailAddr).toBeNull();
   });
 
-
   it("a coach's own address never creates a self-client at activation (an invite is still issued — T-973)", async () => {
     // Storing the address the iOS client sends is what makes this reachable
     // from the app: before the fix the field was dropped, so a coach typing
@@ -120,9 +117,14 @@ suite("T-961: lead email hotfix", () => {
     });
 
     const result = await linkOrInviteProspect(
-      { prospectName: "Me", prospectEmail: "555-0100", prospectPhone: null, prospectEmailAddr: user.email },
+      {
+        prospectName: "Me",
+        prospectEmail: "555-0100",
+        prospectPhone: null,
+        prospectEmailAddr: user.email,
+      },
       { coachId: user.id, coachFirstName: "Coach" },
-      lead.id,
+      lead.id
     );
 
     expect(result.linked).toBe(false);
@@ -200,15 +202,19 @@ suite("T-961: lead email hotfix", () => {
         },
       });
       const result = await linkOrInviteProspect(
-        { prospectName: "Jad Shehadeh", prospectEmail: contact, prospectPhone: null, prospectEmailAddr: null },
+        {
+          prospectName: "Jad Shehadeh",
+          prospectEmail: contact,
+          prospectPhone: null,
+          prospectEmailAddr: null,
+        },
         { coachId: user.id, coachFirstName: "Coach" },
-        lead.id,
+        lead.id
       );
       // No address on file must never become a link to somebody's account.
       expect(result.linked).toBe(false);
     }
   });
-
 
   it("a legacy-column address invites, and never auto-links through the email lookup (Decision H1)", async () => {
     // H1, recorded 2026-09-23: an address found only in the legacy contact
@@ -248,7 +254,7 @@ suite("T-961: lead email hotfix", () => {
         prospectEmailAddr: null,
       },
       { coachId: coach.id, coachFirstName: "Coach" },
-      lead.id,
+      lead.id
     );
 
     // Invited, not linked.
@@ -264,5 +270,4 @@ suite("T-961: lead email hotfix", () => {
     });
     expect(link).toBeNull();
   });
-
 });

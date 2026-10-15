@@ -47,7 +47,11 @@ export function MealPlanEditor({
       const result = await createDraftMealPlan({
         clientId,
         weekStartDate,
-        copyFromPublished,
+        // Foods-only editor: never let the draft's mode fall through to
+        // `CoachClient.planMode` (T-102a).
+        planMode: "MEAL_PLAN",
+        // Copy-forward is the default now; `startBlank` is the only opt-out.
+        startBlank: !copyFromPublished,
       });
       if ("mealPlanId" in result) {
         router.refresh();
@@ -83,8 +87,7 @@ export function MealPlanEditor({
         mealPlanId: plan.id,
         items: plan.items.map((item, i) => ({ ...item, sortOrder: i })),
       });
-      const result = await publishMealPlan({ mealPlanId: plan.id });
-      if (!result.success) throw new Error(result.message);
+      await publishMealPlan({ mealPlanId: plan.id });
       router.refresh();
     } catch (err) {
       console.error("Failed to publish:", err);

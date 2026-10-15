@@ -18,19 +18,19 @@ export default async function OnboardingPage() {
         include: { coach: true }
     });
 
-    if (!coachClient) redirect("/client/dashboard");
+    if (!coachClient) redirect("/client");
 
     const form = await db.onboardingForm.findFirst({
         where: { coachId: coachClient.coachId, isActive: true }
     });
 
-    if (!form) redirect("/client/dashboard");
+    if (!form) redirect("/client");
 
     const response = await db.onboardingResponse.findUnique({
         where: { clientId: user.id }
     });
 
-    if (response) redirect("/client/dashboard");
+    if (response) redirect("/client");
 
     return (
         <div className="min-h-[100dvh] bg-zinc-50">

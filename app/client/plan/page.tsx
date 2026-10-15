@@ -1,3 +1,5 @@
+import { getClientProvider, rendersAiWorkspace } from "@/lib/queries/client-provider";
+import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 import { getPublishedTrainingProgram } from "@/lib/queries/training-programs";
@@ -7,20 +9,39 @@ import { getLocalDate, normalizeToMonday } from "@/lib/utils/date";
 import { SimpleMealPlan } from "@/components/client/simple-meal-plan";
 import { TrainingProgram } from "@/components/client/training-program";
 import { PlanTab } from "@/components/client/plan-tab";
+import { resolveClientPlanView, logDegradedPlanRender } from "@/lib/meal-plans/client-plan-view";
 
 export default async function ClientPlanPage() {
   const user = await getCurrentDbUser();
+  const provider = await getClientProvider(user.id);
+  if (provider.resolutionRequired) return <ProviderResolution />;
+  if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={["plan"]} />;
+  if (provider.origin === "NONE") return <div className="sf-surface-card p-6"><h1 className="text-xl font-semibold">No current plan</h1><p className="mt-2 text-zinc-400">Connect with a coach to receive a new plan.</p></div>;
   const tz = user.timezone || "America/New_York";
   const todayDate = getLocalDate(new Date(), tz);
   const weekOf = normalizeToMonday(new Date());
 
   const [mealPlan, trainingProgram, todayAdherence, currentResults, previousResults] = await Promise.all([
-    getCurrentPublishedMealPlan(user.id),
-    getPublishedTrainingProgram(user.id),
+    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
+    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
     getTodayAdherence(user.id, todayDate),
     getExerciseResultsForWeek(user.id, weekOf),
     getPreviousExerciseResults(user.id, weekOf),
   ]);
+
+  if (mealPlan) {
+    logDegradedPlanRender({
+      mealPlanId: mealPlan.id,
+      planMode: mealPlan.planMode,
+      itemCount: mealPlan.items.length,
+      macroTargetCount: mealPlan.macroTargets?.length ?? 0,
+      view: resolveClientPlanView({
+        planMode: mealPlan.planMode,
+        itemCount: mealPlan.items.length,
+        macroTargetCount: mealPlan.macroTargets?.length ?? 0,
+      }),
+    });
+  }
 
   // Serialize Maps to plain Records for TrainingProgram client component
   const currentWeek: Record<string, { id: string; exerciseName: string; programDay: string; weight: number; reps: number; createdAt: string }> = {};
@@ -46,18 +67,11 @@ export default async function ClientPlanPage() {
       })()
     : null;
 
-  // ── Meal Plan content ──
-  const mealPlanContent = !mealPlan ? (
-    <div
-      className="sf-surface-card flex flex-col items-center gap-4 px-5 py-14 text-center sm:px-8 sm:py-20"
-      style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.08)", "--sf-card-atmosphere": "#0e1420" } as React.CSSProperties}
-    >
-      <p className="text-sm font-semibold">No meal plan yet</p>
-      <p className="mt-1 text-sm text-zinc-400">
-        Your coach hasn&apos;t published a meal plan yet. Check back soon!
-      </p>
-    </div>
-  ) : (
+  // ── Meal Plan content ── the cardio strip is gated on `cardioPrescription`
+  // alone (T-802a web change 5): a cardio prescription is a training
+  // prescription and has no reason to vanish because the meal plan hasn't
+  // been published. `SimpleMealPlan` now owns the no-plan state itself.
+  const mealPlanContent = (
     <div className="space-y-6">
       {cardioPrescription && (
         <div className="sf-glass-card px-5 py-4" style={{ borderColor: "rgba(34, 197, 94, 0.20)" }}>

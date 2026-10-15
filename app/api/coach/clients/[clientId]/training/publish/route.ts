@@ -6,6 +6,8 @@ import {
   getTrainingProgramPublishTarget,
   publishTrainingProgramTarget,
 } from "@/lib/training-programs/publish";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
 
@@ -61,13 +63,14 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // CB05 supersede + race guard live in lib/training-programs/publish.ts,
+    // the only writer of TrainingProgram.status = "PUBLISHED" (T-739).
     const result = await publishTrainingProgramTarget(target);
     if (!result.ok) {
       return NextResponse.json(
         result.code === "RACE_LOST"
           ? {
-              error:
-                "This program was already published or changed by someone else",
+              error: "This program was already published or changed by someone else",
               code: "PUBLISH_RACE_LOST",
             }
           : { error: "Can only publish drafts", code: "PLAN_NOT_DRAFT" },
@@ -97,6 +100,13 @@ export async function POST(req: NextRequest, { params }: Params) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/training/publish",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST training publish" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/coach/clients/[clientId]/training/publish]", err);
     return NextResponse.json(
       { error: "Internal server error" },

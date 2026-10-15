@@ -1,3 +1,7 @@
+import { getClientProvider, rendersAiWorkspace, rendersCoachingChooser } from "@/lib/queries/client-provider";
+import { AiClientSurface, ProviderResolution } from "@/components/ai-coach/client-surface";
+import { AiCoachingChooser } from "@/components/ai-coach/coaching-chooser";
+import { getGenerationDeliveryState } from "@/lib/ai-coach/operations";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getClientCheckInsLight, getLatestCoachMessage } from "@/lib/queries/check-ins";
 import { getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
@@ -7,13 +11,16 @@ import { getMyIntake } from "@/lib/queries/client-intake";
 import { parseCadenceConfig, getEffectiveCadence, getClientCadenceStatus, cadenceFromLegacyDays, getCadencePreview } from "@/lib/scheduling/cadence";
 import { parseCheckInMessage } from "@/lib/messages/check-in-message";
 
-import { getAdherenceEnabled, getTodayAdherence, getTodayMealNames } from "@/lib/queries/adherence";
+import { getAdherenceEnabled, getTodayAdherence } from "@/lib/queries/adherence";
+import { getActiveMealNames } from "@/lib/meal-plans/active-plan";
 import { db } from "@/lib/db";
 import Link from "next/link";
 
 import { ConnectCoachBanner } from "@/components/client/connect-coach-banner";
 import { MyRequestsCard } from "@/components/client/my-requests-card";
 import { getMyCoachingRequests } from "@/lib/queries/my-requests";
+import { CoachInviteBanner } from "@/components/client/coach-invite-banner";
+import { getMyPendingCoachInvites } from "@/lib/queries/client-invites";
 import { TestimonialPrompt } from "@/components/client/testimonial-prompt";
 import { getTestimonialEligibility } from "@/lib/queries/testimonial-eligibility";
 import { BecomeCoachForm } from "@/components/client/become-coach-form";
@@ -34,9 +41,19 @@ dayjs.extend(timezonePlugin);
 
 export default async function ClientDashboard() {
   const user = await getCurrentDbUser();
+  const provider = await getClientProvider(user.id);
+  if (provider.resolutionRequired) return <ProviderResolution />;
+  if (rendersAiWorkspace(provider)) return <AiClientSurface clientId={user.id} path={[]} />;
+  if (rendersCoachingChooser(provider))
+    return (
+      <AiCoachingChooser
+        offer={provider.aiDiscovery}
+        aiPreparationState={await getGenerationDeliveryState()}
+      />
+    );
 
   const coachAssignment = await db.coachClient.findFirst({
-    where: { clientId: user.id },
+    where: { clientId: user.id, id: provider.activeCoachClientId ?? "unassigned" },
     select: {
       id: true,
       cadenceConfig: true,
@@ -60,9 +77,10 @@ export default async function ClientDashboard() {
 
   // ── No-coach state: early return with focused layout ──────────────────────
   if (!coachAssignment) {
-    const [myRequests, checkIns] = await Promise.all([
+    const [myRequests, checkIns, pendingInvites] = await Promise.all([
       getMyCoachingRequests(),
       getClientCheckInsLight(user.id),
+      getMyPendingCoachInvites(user.email),
     ]);
     return (
       <div className="space-y-6">
@@ -72,6 +90,8 @@ export default async function ClientDashboard() {
             <p className="mt-1 text-xs font-bold uppercase tracking-wider text-zinc-500">{todayLabel}</p>
           </div>
         </section>
+
+        {pendingInvites.length > 0 && <CoachInviteBanner invites={pendingInvites} />}
 
         {myRequests.length > 0 && <MyRequestsCard requests={myRequests} />}
 
@@ -132,16 +152,17 @@ export default async function ClientDashboard() {
     );
   }
 
-  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake, adherenceEnabled, todayAdherence, planMeals] = await Promise.all([
+  const [checkIns, mealPlan, latestCoachMessage, weightHistory, trainingProgram, pendingIntake, adherenceEnabled, todayAdherence, planMeals, pendingInvites] = await Promise.all([
     getClientCheckInsLight(user.id),
-    getCurrentPublishedMealPlan(user.id),
+    provider.origin === "HUMAN" ? getCurrentPublishedMealPlan(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
     getLatestCoachMessage(user.id),
     getWeightHistory(user.id),
-    getPublishedTrainingProgram(user.id),
+    provider.origin === "HUMAN" ? getPublishedTrainingProgram(user.id, provider.relationshipStartedAt!) : Promise.resolve(null),
     getMyIntake(user.id),
     getAdherenceEnabled(user.id),
     getTodayAdherence(user.id, todayDate),
-    getTodayMealNames(user.id),
+    getActiveMealNames(user.id, provider.relationshipStartedAt),
+    getMyPendingCoachInvites(user.email),
   ]);
 
   // ── Cadence-aware status derivation ──────────────────────────────────────
@@ -268,6 +289,11 @@ export default async function ClientDashboard() {
         </div>
       </section>
 
+      {pendingInvites.length > 0 && (
+        <div className="animate-fade-in" style={{ animationDelay: "20ms" }}>
+          <CoachInviteBanner invites={pendingInvites} />
+        </div>
+      )}
 
       {/* Intake questionnaire banner */}
       {pendingIntake && (pendingIntake.status === "PENDING" || pendingIntake.status === "IN_PROGRESS") && (
@@ -311,11 +337,17 @@ export default async function ClientDashboard() {
       {/* TODAY'S PLAN — full-width detailed cards */}
       {(mealPlan || (trainingProgram && trainingProgram.days.length > 0)) && (() => {
         // ── Nutrition data ──
-        const uniqueMeals = mealPlan
-          ? [...new Set(mealPlan.items.map((i) => i.mealName))]
-          : [];
-        const totalMealCount = uniqueMeals.length;
-        const mealsLogged = todayAdherence?.meals?.filter((m) => m.completed).length ?? 0;
+        // T-101: `items` and `macroTargets` coexist on every version, so this
+        // card must not count raw `mealPlan.items` — a MACROS plan carries the
+        // previous foods week's items forward and would show food meals the
+        // client is never offered. `planMeals` is `getActiveMealNames`, the same
+        // mode-gated list the adherence checklist below and iOS's
+        // `/api/client/home` already use, so all three agree on the count.
+        const totalMealCount = planMeals.length;
+        const mealsLogged =
+          todayAdherence?.meals?.filter(
+            (m) => m.completed && planMeals.some((p) => p.mealName === m.mealNameSnapshot)
+          ).length ?? 0;
         const mealsRemaining = Math.max(0, totalMealCount - mealsLogged);
         const mealProgress = totalMealCount > 0 ? (mealsLogged / totalMealCount) * 100 : 0;
 

@@ -10,10 +10,12 @@ export function NavBar({
   role,
   canSwitchRole,
   hasCoach,
+  aiCoaching,
 }: {
   role: "coach" | "client";
   canSwitchRole?: boolean;
   hasCoach?: boolean;
+  aiCoaching?: boolean;
 }) {
   const pathname = usePathname();
   const maxWidth = role === "coach" ? "max-w-7xl" : "max-w-5xl";
@@ -32,7 +34,12 @@ export function NavBar({
         { href: "/coach/messages", label: "Messages" },
         { href: "/coach/more", label: "More" },
       ]
-      : [
+      : aiCoaching ? [
+        { href: "/client/plan", label: "Plan" },
+        { href: "/client/check-in", label: "Check-in" },
+        { href: "/client/ai-coach/reviews", label: "Reviews" },
+        { href: "/client/profile", label: "Profile" },
+      ] : [
         ...(!hasCoach ? [
           { href: "/coaches", label: "Find a Coach" },
         ] : []),

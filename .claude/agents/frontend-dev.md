@@ -109,9 +109,9 @@ Every page/component must handle:
 ## Verification Before Done
 
 ```bash
-npm run build          # Zero TS errors — catches server/client boundary issues
-npm run lint           # Zero ESLint errors
-npm run test           # Vitest unit tests pass
+pnpm run build          # Zero TS errors — catches server/client boundary issues
+pnpm run lint           # Zero ESLint errors
+pnpm run test           # Vitest unit tests pass
 ```
 
 - [ ] No `"use client"` on components that only need server rendering

@@ -11,7 +11,9 @@ export async function createSignedUploadUrls(fileNames: string[]) {
   const user = await getCurrentDbUser();
   const userId = user.clerkId;
 
-  const countValidation = validateCheckInPhotoCount(Array.isArray(fileNames) ? fileNames.length : 0);
+  const countValidation = validateCheckInPhotoCount(
+    Array.isArray(fileNames) ? fileNames.length : 0
+  );
   if (!countValidation.valid) {
     return { error: countValidation.error! };
   }
@@ -23,7 +25,7 @@ export async function createSignedUploadUrls(fileNames: string[]) {
   }
   const names = parsed.data;
 
-  if (!await consumeQuota("photo-uploads", user.id, 60, 3600)) {
+  if (!(await consumeQuota("photo-uploads", user.id, 60, 3600))) {
     return { error: "Upload limit reached. Please try again later." };
   }
 

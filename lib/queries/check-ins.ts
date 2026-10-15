@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentDbUser } from "@/lib/auth/roles";
 import { getSignedDownloadUrl, getSignedDownloadUrls } from "@/lib/supabase/storage";
 import { getProfilePhotoUrl } from "@/lib/supabase/profile-photo-storage";
 import { getCurrentWeekMonday } from "@/lib/utils/date";
@@ -180,11 +180,11 @@ export async function getCoachClientsWithWeekStatus(coachId: string) {
   const photoSignPromises = assignments.map(async (a) => {
     if (a.client.profilePhotoPath) {
       try {
-        const url = await getProfilePhotoUrl(a.client.profilePhotoPath);
-        console.log("[clients] signed photo for %s path=%s", a.client.email, a.client.profilePhotoPath);
-        return url;
+        return await getProfilePhotoUrl(a.client.profilePhotoPath);
       } catch (err) {
-        console.warn("[clients] photo sign FAILED for %s path=%s err=%s", a.client.email, a.client.profilePhotoPath, (err as Error).message);
+        // CB12: no email or storage path in routine logs — this fires on
+        // every dashboard load, not just genuine incidents.
+        console.warn("[clients] photo sign failed for clientId=%s err=%s", a.client.id, (err as Error).message);
         return null;
       }
     }
@@ -309,11 +309,11 @@ export async function getCheckInsByClientAndWeek(
 }
 
 export async function verifyCoachAccessToClient(clientId: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-
-  const coach = await db.user.findUnique({ where: { clerkId: userId } });
-  if (!coach || !coach.isCoach) throw new Error("Not a coach");
+  // getCurrentDbUser() rejects deactivated accounts; do not re-implement the
+  // lookup here or a deactivated coach with a still-valid Clerk session and
+  // an existing CoachClient row regains access (CB02).
+  const coach = await getCurrentDbUser();
+  if (!coach.isCoach) throw new Error("Not a coach");
 
   const assignment = await db.coachClient.findUnique({
     where: {
@@ -326,11 +326,8 @@ export async function verifyCoachAccessToClient(clientId: string) {
 }
 
 export async function verifyCoachAccessToCheckIn(checkInId: string) {
-  const { userId } = await auth();
-  if (!userId) throw new Error("Not authenticated");
-
-  const coach = await db.user.findUnique({ where: { clerkId: userId } });
-  if (!coach || !coach.isCoach) throw new Error("Not a coach");
+  const coach = await getCurrentDbUser();
+  if (!coach.isCoach) throw new Error("Not a coach");
 
   const checkIn = await db.checkIn.findUnique({
     where: { id: checkInId },

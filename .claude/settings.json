@@ -14,10 +14,6 @@
   },
   "permissions": {
     "allow": [
-      "Bash(npm run *)",
-      "Bash(npx prisma *)",
-      "Bash(npx playwright *)",
-      "Bash(npx tsx *)",
       "Bash(pnpm *)"
     ],
     "deny": [

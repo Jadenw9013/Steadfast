@@ -1,0 +1,2 @@
+ALTER TABLE "AiCoachReviewerGrant" ADD COLUMN "clientIds" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[], ADD COLUMN "domains" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE "AiPlanReviewerApproval" ADD COLUMN "stateHash" TEXT;

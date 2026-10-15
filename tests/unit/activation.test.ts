@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getActivationMessage, validateActivationPreconditions } from "@/lib/activation";
+import { getActivationMessage } from "@/lib/activation";
 
 /**
  * Activation safety tests.
@@ -16,94 +16,39 @@ import { getActivationMessage, validateActivationPreconditions } from "@/lib/act
  */
 
 describe("getActivationMessage", () => {
-    it("returns roster message when prospect was linked", () => {
+    it("returns an already-connected message when prospect was already linked", () => {
         const msg = getActivationMessage("Alex", {
             linked: true,
             clientId: "user_123",
             email: "alex@test.com",
+            alreadyConnected: true,
         });
         expect(msg).toContain("Alex");
-        expect(msg).toContain("roster");
+        expect(msg).toContain("already connected");
     });
 
-    it("returns pending message when prospect has no account", () => {
+    it("returns a pending-acceptance message when an invite was sent — never claims immediate access", () => {
         const msg = getActivationMessage("Sam", {
             linked: false,
             inviteToken: "tok_abc",
             email: "sam@test.com",
         });
         expect(msg).toContain("Sam");
-        expect(msg).toContain("create their account");
-    });
-});
-
-describe("validateActivationPreconditions", () => {
-    it("returns error for ACTIVE leads (idempotency guard)", () => {
-        const err = validateActivationPreconditions({ consultationStage: "ACTIVE" });
-        expect(err).toBe("Already active.");
+        expect(msg).toContain("accept");
+        // CB01 regression guard: activation must never claim the client is
+        // already on the roster before they have consented.
+        expect(msg).not.toContain("has been activated and added to your roster");
     });
 
-    // ── Normal pipeline (allowAnyStage = false) ──────────────────────────
-    describe("normal pipeline (strict stage check)", () => {
-        it("allows FORMS_SIGNED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "FORMS_SIGNED" });
-            expect(err).toBeNull();
+    it("returns a no-email message without claiming anything was sent", () => {
+        const msg = getActivationMessage("Jordan", {
+            linked: false,
+            inviteToken: null,
+            email: null,
+            noEmailOnFile: true,
         });
-
-        it("allows INTAKE_SUBMITTED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "INTAKE_SUBMITTED" });
-            expect(err).toBeNull();
-        });
-
-        it("blocks PENDING", () => {
-            const err = validateActivationPreconditions({ consultationStage: "PENDING" });
-            expect(err).toContain("complete intake");
-        });
-
-        it("blocks CONSULTATION_SCHEDULED", () => {
-            const err = validateActivationPreconditions({ consultationStage: "CONSULTATION_SCHEDULED" });
-            expect(err).toContain("complete intake");
-        });
-
-        it("blocks FORMS_SENT", () => {
-            const err = validateActivationPreconditions({ consultationStage: "FORMS_SENT" });
-            expect(err).toContain("complete intake");
-        });
-    });
-
-    // ── Bypass pipeline (allowAnyStage = true) ───────────────────────────
-    describe("bypass pipeline (any stage allowed)", () => {
-        it("allows PENDING when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "PENDING",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("allows CONSULTATION_SCHEDULED when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "CONSULTATION_SCHEDULED",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("allows FORMS_SENT when bypass is enabled", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "FORMS_SENT",
-                allowAnyStage: true,
-            });
-            expect(err).toBeNull();
-        });
-
-        it("still blocks ACTIVE even with bypass (idempotency)", () => {
-            const err = validateActivationPreconditions({
-                consultationStage: "ACTIVE",
-                allowAnyStage: true,
-            });
-            expect(err).toBe("Already active.");
-        });
+        expect(msg).toContain("Jordan");
+        expect(msg).toContain("email");
     });
 });
 
@@ -126,34 +71,152 @@ describe("activation helper contract", () => {
         expect(typeof mod.getActivationMessage).toBe("function");
     });
 
-    it("exports validateActivationPreconditions", async () => {
+    it("exports acceptClientInviteForUser", async () => {
         const mod = await import("@/lib/activation");
-        expect(typeof mod.validateActivationPreconditions).toBe("function");
+        expect(typeof mod.acceptClientInviteForUser).toBe("function");
     });
 
-    it("LinkResult discriminated union covers both branches", () => {
-        // Type-level test: ensure both paths produce valid messages
-        const linkedResult = { linked: true as const, clientId: "x", email: "x@x.com" };
+    it("LinkResult discriminated union covers all three branches", () => {
+        // Type-level test: ensure every path produces valid, distinct messages
+        const linkedResult = { linked: true as const, clientId: "x", email: "x@x.com", alreadyConnected: true as const };
         const inviteResult = { linked: false as const, inviteToken: "tok", email: "y@y.com" };
+        const noEmailResult = { linked: false as const, inviteToken: null, email: null, noEmailOnFile: true as const };
 
-        // Both must produce non-empty strings
-        expect(getActivationMessage("Test", linkedResult).length).toBeGreaterThan(0);
-        expect(getActivationMessage("Test", inviteResult).length).toBeGreaterThan(0);
+        const messages = [linkedResult, inviteResult, noEmailResult].map((r) => getActivationMessage("Test", r));
+        for (const m of messages) expect(m.length).toBeGreaterThan(0);
 
-        // Messages must be different
-        expect(getActivationMessage("Test", linkedResult))
-            .not.toBe(getActivationMessage("Test", inviteResult));
-    });
-
-    it("linkOrInviteProspect accepts bypass options parameter", async () => {
-        const mod = await import("@/lib/activation");
-        expect(mod.linkOrInviteProspect.length).toBeGreaterThanOrEqual(3);
-    });
-
-    it("produces correct roster message for bypass linked result", () => {
-        const bypassResult = { linked: true as const, clientId: "user_bypass", email: "client@test.com" };
-        const msg = getActivationMessage("Manuel", bypassResult);
-        expect(msg).toBe("Manuel has been activated and added to your roster.");
+        // Messages must all be distinct
+        expect(new Set(messages).size).toBe(messages.length);
     });
 });
 
+/**
+ * CB01 regression guard: linkOrInviteProspect must never resolve a match by
+ * phone number alone. This is a static-source check (not a DB-dependent
+ * behavioral test) that fails loudly if phone-based User lookup is
+ * reintroduced into lib/activation.ts.
+ */
+describe("CB01 — no phone-match authorization", () => {
+    it("lib/activation.ts never queries User by phoneNumber", async () => {
+        const fs = await import("node:fs/promises");
+        const source = await fs.readFile(new URL("../../lib/activation.ts", import.meta.url), "utf8");
+        // The ProspectInfo type may still carry a prospectPhone field (other
+        // callers construct it), but activation.ts itself must never use it
+        // to resolve which User account to act on.
+        expect(source).not.toMatch(/phoneNumber/);
+    });
+
+    // T-978: the sibling of the guard above. establishRelationshipOrInvite's
+    // candidate set is exact email equality plus prospectId — never a phone
+    // lookup. This is the shared primitive activateLead and
+    // linkOrInviteProspect both call, so it is the one place CB01 must hold
+    // for the whole funnel, not just the pre-existing file.
+    it("lib/leads/activate-lead.ts never queries User by phoneNumber", async () => {
+        const fs = await import("node:fs/promises");
+        const source = await fs.readFile(new URL("../../lib/leads/activate-lead.ts", import.meta.url), "utf8");
+        expect(source).not.toMatch(/phoneNumber/);
+    });
+});
+
+/**
+ * T-978 — the message table in lib/leads/activate-lead.ts. All four
+ * outcomes and all five refusals: distinct, non-empty. Every one that has a
+ * real prospect name available interpolates it (not_found is the deliberate
+ * exception — the transaction refuses before any lead is ever read, so
+ * there is no name to interpolate; its sentence is a fixed, safe "Lead not
+ * found"). No refusal sentence claims anything happened: none may contain
+ * "activated", "active client", "roster" or "invite sent" — the pure-function
+ * form of "a refusal never claims anything happened".
+ */
+describe("lib/leads/activate-lead.ts getActivationMessage", () => {
+    const FORBIDDEN_IN_REFUSALS = ["activated", "active client", "roster", "invite sent"];
+
+    it("produces nine distinct, non-empty sentences", async () => {
+        const { getActivationMessage } = await import("@/lib/leads/activate-lead");
+        const states = [
+            "already_active",
+            "already_on_roster",
+            "invite_emailed",
+            "invite_created_email_failed",
+            "not_found",
+            "wrong_stage",
+            "no_email_on_file",
+            "self_addressed",
+            "failed",
+        ] as const;
+        const messages = states.map((s) => getActivationMessage("Sam", s, { email: "sam@example.test" }));
+        for (const m of messages) expect(m.length).toBeGreaterThan(0);
+        expect(new Set(messages).size).toBe(messages.length);
+    });
+
+    it("interpolates the prospect name in every state except not_found", async () => {
+        const { getActivationMessage } = await import("@/lib/leads/activate-lead");
+        const states = [
+            "already_active",
+            "already_on_roster",
+            "invite_emailed",
+            "invite_created_email_failed",
+            "wrong_stage",
+            "no_email_on_file",
+            "self_addressed",
+            "failed",
+        ] as const;
+        for (const s of states) {
+            expect(getActivationMessage("Zaleria", s)).toContain("Zaleria");
+        }
+        // The deliberate exception: no lead was ever read, so there is
+        // nothing to name.
+        expect(getActivationMessage("", "not_found")).toBe("Lead not found");
+    });
+
+    it("no refusal sentence claims anything happened", async () => {
+        const { getActivationMessage } = await import("@/lib/leads/activate-lead");
+        const refusals = ["not_found", "wrong_stage", "no_email_on_file", "self_addressed", "failed"] as const;
+        for (const r of refusals) {
+            const msg = getActivationMessage("Sam", r, { email: "sam@example.test" }).toLowerCase();
+            for (const bad of FORBIDDEN_IN_REFUSALS) {
+                expect(msg, `refusal "${r}" message "${msg}" must not contain "${bad}"`).not.toContain(bad);
+            }
+        }
+    });
+});
+
+/**
+ * T-987 — the ownership rule (does this signed-in account own the invited
+ * address?) must live in exactly one place: lib/auth/invite-email-match.ts,
+ * called from lib/activation.ts. A second normalizer or a second
+ * `toLowerCase() ===` comparison in either product caller is the "wrong
+ * implementation" the spec warns about: it would put the rule back in a
+ * caller and leave the shared service (or one surface) out of sync.
+ */
+describe("T-987 — one ownership rule, reused not reimplemented", () => {
+    async function read(relPath: string): Promise<string> {
+        const fs = await import("node:fs/promises");
+        return fs.readFile(new URL(`../../${relPath}`, import.meta.url), "utf8");
+    }
+
+    it("lib/activation.ts imports the shared matcher from lib/auth/invite-email-match", async () => {
+        const source = await read("lib/activation.ts");
+        expect(source).toContain('from "@/lib/auth/invite-email-match"');
+    });
+
+    it("no second email normalizer exists outside lib/auth/invite-email-match.ts", async () => {
+        for (const file of [
+            "lib/activation.ts",
+            "app/actions/client-invites.ts",
+            "app/api/client/connect-coach/route.ts",
+        ]) {
+            const source = await read(file);
+            expect(source, `${file} must not reimplement Gmail dot-stripping`).not.toMatch(/replace\(\/\\\.\/g/);
+            expect(source, `${file} must not reimplement Apple relay handling`).not.toMatch(/privaterelay/);
+            expect(source, `${file} must not reimplement +-tag stripping`).not.toMatch(/indexOf\("\+"\)/);
+        }
+    });
+
+    it("app/actions/client-invites.ts and the connect-coach route never compare emails directly", async () => {
+        for (const file of ["app/actions/client-invites.ts", "app/api/client/connect-coach/route.ts"]) {
+            const source = await read(file);
+            expect(source, `${file} must not gate on toLowerCase() ===`).not.toMatch(/toLowerCase\(\)\s*===/);
+        }
+    });
+});

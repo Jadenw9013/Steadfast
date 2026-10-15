@@ -1,0 +1,2433 @@
+{
+  "fileSchemaVersion": 1,
+  "reviewMetadata": {
+    "accountableOwner": {
+      "name": "Jaden Wong",
+      "role": "Accountable Owner / Founder"
+    },
+    "reviewer": {
+      "name": "Jaden Wong",
+      "reviewerType": "QUALIFIED_CONTENT_REVIEWER",
+      "qualifications": [
+        "Accountable owner and founder. Reviewed within the general fitness and wellness scope only; no clinical qualification is claimed."
+      ]
+    },
+    "reviewedAt": "2026-09-27T00:00:00.000Z",
+    "reviewRecordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+    "decision": "APPROVED",
+    "signoffScope": [
+      "Signed by the accountable owner as the sole reviewer. There is no external legal review, no independent clinical review and no second signer for this artifact set.",
+      "Reviewed within the general fitness and wellness scope only. No clinical qualification, licence, registration number or certifying body is claimed or recorded.",
+      "Sources cited by this artifact set were confirmed as supporting the rules they are bound to, within that scope. Their full texts were not independently verified by Steadfast.",
+      "Scope of this signature: the nutrition and training policy bundle, its parameter values, rules, safety controls and the sources recorded in its provenance."
+    ],
+    "allowedScope": [
+      "GENERAL_FITNESS_PROGRAMMING",
+      "GENERAL_BEHAVIOR_NUTRITION_EDUCATION"
+    ],
+    "explicitExclusions": [
+      "DIAGNOSIS",
+      "TREATMENT_OR_REHABILITATION",
+      "CLINICAL_NUTRITION_OR_MEDICAL_NUTRITION_THERAPY",
+      "MEDICATION_OR_SUPPLEMENT_PRESCRIBING",
+      "CLINICIAN_INSTRUCTION_OVERRIDE"
+    ],
+    "jurisdictionReview": {
+      "jurisdictions": [
+        "US"
+      ],
+      "legalReviewStatus": "APPROVED",
+      "legalReviewBasis": "ACCOUNTABLE_OWNER_SCOPE_ATTESTATION",
+      "scopeNote": "Reviewed within general fitness and wellness scope; medical advice disclaimed.",
+      "recordId": "steadfast-hq.board.REVIEW-WORKSHEET.2026-09-27",
+      "reviewedAt": "2026-09-27T00:00:00.000Z"
+    },
+    "publicFrameworkReferences": [],
+    "proposalProvenance": [
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.TABLE_5_16",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MIN",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MAX",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MIN",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MAX",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MIN",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MAX",
+        "sourceClaimId": "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES",
+        "sourceId": "NASEM-ENERGY-2023",
+        "sourceUrl": "https://nap.nationalacademies.org/catalog/26818/dietary-reference-intakes-for-energy",
+        "sourceLocator": "Chapter 5, Table 5-16, pp. 163-164"
+      },
+      {
+        "parameterId": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MIN",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MAX",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.FAT.PERCENT_ENERGY.MIN",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.FAT.PERCENT_ENERGY.MAX",
+        "sourceClaimId": "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 11 (AMDR), Table 11-1, p. 769"
+      },
+      {
+        "parameterId": "MACRO.ENERGY_DENSITY.PROTEIN.KCAL_PER_G",
+        "sourceClaimId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+      },
+      {
+        "parameterId": "MACRO.ENERGY_DENSITY.CARBOHYDRATE.KCAL_PER_G",
+        "sourceClaimId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+      },
+      {
+        "parameterId": "MACRO.ENERGY_DENSITY.FAT.KCAL_PER_G",
+        "sourceClaimId": "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "General Principles of Energy and Macronutrient Metabolism, pp. 69-70"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.NONE.MIN",
+        "sourceClaimId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 10 (Protein and Amino Acids), p. 589"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.NONE.TARGET",
+        "sourceClaimId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 10 (Protein and Amino Acids), p. 589"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.NONE.MAX",
+        "sourceClaimId": "CLAIM.NASEM.DRI.PROTEIN.BASELINE",
+        "sourceId": "NASEM-DRI-COLLECTION",
+        "sourceUrl": "https://ods.od.nih.gov/HealthInformation/nutrientrecommendations/",
+        "sourceLocator": "Chapter 10 (Protein and Amino Acids), p. 589"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MIN",
+        "sourceClaimId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceId": "AND-DC-ACSM-2016",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "sourceLocator": "Section: Protein Requirements, pp. 547-548"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.TARGET",
+        "sourceClaimId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceId": "AND-DC-ACSM-2016",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "sourceLocator": "Section: Protein Requirements, pp. 547-548"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MAX",
+        "sourceClaimId": "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT",
+        "sourceId": "AND-DC-ACSM-2016",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/26920240/",
+        "sourceLocator": "Section: Protein Requirements, pp. 547-548"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.REGULAR.MIN",
+        "sourceClaimId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceId": "MORTON-PROTEIN-META-2018",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.REGULAR.TARGET",
+        "sourceClaimId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceId": "MORTON-PROTEIN-META-2018",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      },
+      {
+        "parameterId": "MACRO.PROTEIN.G_PER_KG.REGULAR.MAX",
+        "sourceClaimId": "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING",
+        "sourceId": "MORTON-PROTEIN-META-2018",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/28698222/",
+        "sourceLocator": "Morton 2018 BJSM meta-analysis breakpoint 1.62 g/kg (95% CI: 1.03-2.20); ISSN 2017 Position Stand 1.4-2.0 g/kg"
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.UNDER_30.MAX",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_30_45.MAX",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_45_60.MAX",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN_60_90.MAX",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.OVER_90.MAX",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.EXERCISE_COUNT.MIN",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.UNDER_30",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_30_45",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_45_60",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.MIN_60_90",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.SESSION.PLANNED_MINUTES.OVER_90",
+        "sourceClaimId": "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE",
+        "sourceId": "ACSM-PROGRESSION-MODELS-2009",
+        "sourceUrl": "https://pubmed.ncbi.nlm.nih.gov/19204579/",
+        "sourceLocator": "American College of Sports Medicine. American College of Sports Medicine position stand. Progression models in resistance training for healthy adults. Med Sci Sports Exerc. 2009;41(3):687-708."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.NEW.SETS_PER_EXERCISE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.RETURNING.SETS_PER_EXERCISE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.EXPERIENCED.SETS_PER_EXERCISE",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.NEW.REPS_PER_SET",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.RETURNING.REPS_PER_SET",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.EXPERIENCED.REPS_PER_SET",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.NEW.REST_SECONDS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.RETURNING.REST_SECONDS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.DOSE.EXPERIENCED.REST_SECONDS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.NEW",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.RETURNING",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.EXPERIENCED",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "CARDIO.DOSE.NEW.SESSION_MINUTES",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "CARDIO.DOSE.RETURNING.SESSION_MINUTES",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "CARDIO.DOSE.EXPERIENCED.SESSION_MINUTES",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "CARDIO.DOSE.NEW.SESSIONS_PER_WEEK",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "CARDIO.DOSE.RETURNING.SESSIONS_PER_WEEK",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "CARDIO.DOSE.EXPERIENCED.SESSIONS_PER_WEEK",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "CARDIO.DOSE.MAX_SESSION_MINUTES",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "WORKLOAD.WEEKLY.TOTAL_SESSIONS.MAX",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source. Raised from three to four on 2026-09-29 so a four-day strength split can schedule its cardio without this ceiling trimming it first."
+      },
+      {
+        "parameterId": "PROGRESSION.STRENGTH.REPS.INCREMENT",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.STRENGTH.REPS.MAX_ABOVE_INITIAL",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.STRENGTH.SETS.INCREMENT",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.STRENGTH.LOAD.INCREMENT_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.CARDIO.MINUTES.INCREMENT",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.EVIDENCE.MIN_COMPLETE_SESSION_WEEKS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.EVIDENCE.MIN_COMPLETE_SETS_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.EVIDENCE.MAX_EFFORT_RATING",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, not verified against a primary literature source."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.LOSE.GRADUAL.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.LOSE.MODERATE.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.GAIN.GRADUAL.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.GAIN.MODERATE.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ENERGY.BODY_MASS.ENERGY_PER_KG",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ROUNDING.ENERGY_KCAL.STEP",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ROUNDING.MACRO_GRAMS.DECIMALS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "COMPOSITION.TOLERANCE_PERCENT",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "SAFETY.NUTRITION.MIN_DAILY_ENERGY.FLOOR.V1",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      },
+      {
+        "parameterId": "SAFETY.NUTRITION.MAX_WEEKLY_LOSS_RATE.CEILING.V1",
+        "sourceClaimId": "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION",
+        "sourceId": "STEADFAST-OWNER-ADOPTION-2026-09-29",
+        "sourceUrl": "https://example.invalid/steadfast/board/dose-worksheets",
+        "sourceLocator": "proposed by engineering, adopted by me, without claiming external literature sources."
+      }
+    ]
+  },
+  "content": {
+    "artifactKey": "policy-bundle-nutrition",
+    "version": 1,
+    "supportedPopulation": "Adult general-fitness population (non-pregnant, non-lactating).",
+    "supportedGoals": [
+      "GENERAL_FITNESS",
+      "WEIGHT_MANAGEMENT"
+    ],
+    "requiredInputIds": [
+      "AGE_ELIGIBILITY",
+      "PREGNANCY_POSTPARTUM",
+      "EATING_DISORDER_HISTORY_OR_CONCERN",
+      "TYPE_1_DIABETES",
+      "CARDIAC_CONDITION",
+      "SYNTHETIC_SCREEN_RESULT"
+    ],
+    "ruleIds": [
+      "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+      "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1",
+      "GOAL.ADJUSTMENT.BOUNDED.V1",
+      "MACRO.COMPOSITION.DRI_AMDR.V1",
+      "PRESCRIPTION.ROUNDING.ORDER.V1",
+      "NUTRITION_MINIMUM_DAILY_ENERGY_RULE",
+      "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
+      "NUTRITION_NO_CONSECUTIVE_DEFICIT_RULE",
+      "NUTRITION_INTAKE_SCREEN_RULE",
+      "NUTRITION_CONTRAINDICATION_RULE",
+      "NUTRITION_EVIDENCE_RULE",
+      "NUTRITION_COOLDOWN_RULE",
+      "NUTRITION_CUMULATIVE_LIMIT_RULE",
+      "TRAINING.TEMPLATE.SELECTION.V1",
+      "TRAINING.DOSE.BEGINNER.V1",
+      "TRAINING.RULE.SESSION_STRUCTURE.V1",
+      "CARDIO.RULE.DOSE.BEGINNER.V1",
+      "WORKLOAD.RULE.COMBINED.V1",
+      "PROGRESSION.RULE.BOUNDED_TRAINING.V1",
+      "WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1",
+      "WEEKLY.RULE.COOLDOWN.V1",
+      "WEEKLY.RULE.CUMULATIVE_LIMIT.V1",
+      "WEEKLY.ADJUSTMENT.ENERGY.RELATIVE_STEP.V1",
+      "WEEKLY.ADJUSTMENT.ENERGY.REESTIMATE_FROM_CURRENT_WEIGHT.V1",
+      "WEEKLY.RULE.SIMPLIFY_BY_RECOMPOSITION.V1",
+      "WEEKLY.RULE.SIMPLIFY_BY_SESSION_DROP.V1",
+      "CONTRA.SPINAL_LOADING.V1",
+      "CONTRA.OVERHEAD_LOADING.V1",
+      "CONTRA.DEEP_KNEE_FLEXION.V1",
+      "CONTRA.HIGH_IMPACT.V1",
+      "CONTRA.FLOOR_TRANSFER.V1",
+      "CONTRA.PRONE_POSITION.V1",
+      "CONTRA.SUPINE_POSITION.V1",
+      "CONTRA.GRIP_DEMAND.V1",
+      "BEGINNER.CONSTRAINT.TECHNIQUE_SIMPLE.V1",
+      "BEGINNER.CONSTRAINT.NO_EXTERNAL_LOAD.V1",
+      "BEGINNER.CONSTRAINT.LOW_IMPACT.V1",
+      "BEGINNER.CONSTRAINT.SUPERVISION_NOT_REQUIRED.V1"
+    ],
+    "calculationMethodIds": [
+      "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+      "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1",
+      "MACRO.COMPOSITION.DRI_AMDR.V1",
+      "PRESCRIPTION.ROUNDING.ORDER.V1",
+      "TRAINING.TEMPLATE.SELECTION.V1",
+      "TRAINING.DOSE.BEGINNER.V1"
+    ],
+    "adjustmentRuleIds": [
+      "GOAL.ADJUSTMENT.BOUNDED.V1",
+      "PROGRESSION.RULE.BOUNDED_TRAINING.V1",
+      "WEEKLY.ADJUSTMENT.ENERGY.REESTIMATE_FROM_CURRENT_WEIGHT.V1",
+      "WEEKLY.RULE.SIMPLIFY_BY_RECOMPOSITION.V1"
+    ],
+    "cooldownRuleIds": [
+      "NUTRITION_COOLDOWN_RULE",
+      "WEEKLY.RULE.COOLDOWN.V1"
+    ],
+    "cumulativeLimitRuleIds": [
+      "NUTRITION_CUMULATIVE_LIMIT_RULE",
+      "WEEKLY.RULE.CUMULATIVE_LIMIT.V1"
+    ],
+    "contraindicationRuleIds": [
+      "NUTRITION_CONTRAINDICATION_RULE"
+    ],
+    "evidenceRuleIds": [
+      "NUTRITION_EVIDENCE_RULE",
+      "WEEKLY.RULE.EVIDENCE_SUFFICIENCY.V1"
+    ],
+    "escalationTemplateIds": [
+      "ESCALATION.PLAN.READY.V1",
+      "ESCALATION.SERVICE.UNAVAILABLE.V1",
+      "ESCALATION.SCOPE.OUT_OF_SCOPE.V1",
+      "ESCALATION.SAFETY.RESTRICTED.V1",
+      "ESCALATION.INTAKE.INCOMPLETE.V1",
+      "ESCALATION.INTAKE.UNRECOGNISED.V1",
+      "ESCALATION.NUTRITION.TARGET.OUT_OF_SCOPE.V1",
+      "ESCALATION.NUTRITION.TARGET.NOT_READY.V1",
+      "ESCALATION.NUTRITION.TARGET.NEEDS_ANSWERS.V1",
+      "ESCALATION.NUTRITION.SAFETY.UNAVAILABLE.V1",
+      "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1",
+      "ESCALATION.NUTRITION.SAFETY.HOLD.V1",
+      "ESCALATION.EVIDENCE.NEEDS_INPUT.V1",
+      "ESCALATION.EVIDENCE.HOLD.V1",
+      "ESCALATION.PLAN.NOT_USABLE.V1"
+    ],
+    "prescriptionExplanationTemplateIds": [
+      "PRESCRIPTION.EXPLANATION.NUTRITION.TARGET.V1"
+    ],
+    "trainingEffortTemplateIds": [
+      "TRAINING.EFFORT.STRENGTH.V1",
+      "TRAINING.EFFORT.CARDIO.V1"
+    ],
+    "safetyControls": {
+      "schemaVersion": 1,
+      "screening": {
+        "instrumentId": "NUTRITION_SCREENING_V1",
+        "resultInputId": "SYNTHETIC_SCREEN_RESULT",
+        "ruleId": "NUTRITION_INTAKE_SCREEN_RULE",
+        "flaggedReasonCode": "SCREEN_FLAGGED",
+        "unknownReasonCode": "SCREEN_UNKNOWN",
+        "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
+      },
+      "contraindications": [
+        {
+          "inputId": "AGE_ELIGIBILITY",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_AGE_ELIGIBILITY",
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
+        },
+        {
+          "inputId": "PREGNANCY_POSTPARTUM",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_PREGNANCY_POSTPARTUM",
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
+        },
+        {
+          "inputId": "EATING_DISORDER_HISTORY_OR_CONCERN",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_EATING_DISORDER",
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
+        },
+        {
+          "inputId": "TYPE_1_DIABETES",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_TYPE_1_DIABETES",
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
+        },
+        {
+          "inputId": "CARDIAC_CONDITION",
+          "ruleId": "NUTRITION_CONTRAINDICATION_RULE",
+          "reasonCode": "CONTRAINDICATION_CARDIAC_CONDITION",
+          "escalationTemplateId": "ESCALATION.NUTRITION.SAFETY.PAUSE_REFER.V1"
+        }
+      ],
+      "nutritionLimits": {
+        "minimumDailyEnergyParameterId": "SAFETY.NUTRITION.MIN_DAILY_ENERGY.FLOOR.V1",
+        "maximumWeeklyLossRateParameterId": "SAFETY.NUTRITION.MAX_WEEKLY_LOSS_RATE.CEILING.V1",
+        "minimumDailyEnergyRuleId": "NUTRITION_MINIMUM_DAILY_ENERGY_RULE",
+        "maximumWeeklyLossRateRuleId": "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE",
+        "noConsecutiveDeficitRuleId": "NUTRITION_NO_CONSECUTIVE_DEFICIT_RULE",
+        "minimumDailyEnergyReasonCode": "MINIMUM_DAILY_ENERGY_LIMIT",
+        "maximumWeeklyLossRateReasonCode": "MAXIMUM_WEEKLY_LOSS_RATE_LIMIT",
+        "noConsecutiveDeficitReasonCode": "CONSECUTIVE_DEFICIT_BLOCKED",
+        "missingRateInputReasonCode": "RATE_INPUT_MISSING",
+        "unverifiableHistoryReasonCode": "HISTORY_UNVERIFIABLE"
+      }
+    },
+    "numericParameters": [
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.INTERCEPT",
+        "value": 753.07,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "value": 14.1,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "value": 650,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "value": 581.47,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 14.94,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 830,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.INTERCEPT",
+        "value": 1004.82,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 15.91,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 652,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "value": -517.88,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "value": -10.83,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 19.11,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 1561,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.MALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.INTERCEPT",
+        "value": 584.9,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.WEIGHT_COEFFICIENT",
+        "value": 11.71,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.HEIGHT_COEFFICIENT",
+        "value": 572,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.INACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.INTERCEPT",
+        "value": 575.77,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 12.14,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 660,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.LOW_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.INTERCEPT",
+        "value": 710.25,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 12.34,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 654,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.INTERCEPT",
+        "value": 511.83,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.AGE_COEFFICIENT",
+        "value": -7.01,
+        "unit": "KCAL_PER_DAY_PER_YEAR",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.WEIGHT_COEFFICIENT",
+        "value": 12.56,
+        "unit": "KCAL_PER_DAY_PER_KG",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.HEIGHT_COEFFICIENT",
+        "value": 907,
+        "unit": "KCAL_PER_DAY_PER_METRE",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.FEMALE_ADULT.VERY_ACTIVE.ACTIVITY_COEFFICIENT",
+        "value": 1,
+        "unit": "RATIO",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.TABLE_5_16"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MIN",
+        "value": 19,
+        "unit": "YEARS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.AGE_YEARS.MAX",
+        "value": 80,
+        "unit": "YEARS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MIN",
+        "value": 140,
+        "unit": "CENTIMETRES",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.HEIGHT_CM.MAX",
+        "value": 220,
+        "unit": "CENTIMETRES",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MIN",
+        "value": 40,
+        "unit": "KILOGRAMS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "ENERGY.EER.NASEM2023.INPUT_RANGE.WEIGHT_KG.MAX",
+        "value": 200,
+        "unit": "KILOGRAMS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.ENERGY.2023.INPUT_RANGES"
+        ]
+      },
+      {
+        "id": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MIN",
+        "value": 45,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MAX",
+        "value": 65,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.FAT.PERCENT_ENERGY.MIN",
+        "value": 20,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.FAT.PERCENT_ENERGY.MAX",
+        "value": 35,
+        "unit": "PERCENT_OF_TOTAL_ENERGY",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.MACRONUTRIENTS.AMDR"
+        ]
+      },
+      {
+        "id": "MACRO.ENERGY_DENSITY.PROTEIN.KCAL_PER_G",
+        "value": 4,
+        "unit": "KCAL_PER_GRAM",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY"
+        ]
+      },
+      {
+        "id": "MACRO.ENERGY_DENSITY.CARBOHYDRATE.KCAL_PER_G",
+        "value": 4,
+        "unit": "KCAL_PER_GRAM",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY"
+        ]
+      },
+      {
+        "id": "MACRO.ENERGY_DENSITY.FAT.KCAL_PER_G",
+        "value": 9,
+        "unit": "KCAL_PER_GRAM",
+        "applicabilityRuleIds": [
+          "MACRO.COMPOSITION.DRI_AMDR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.ATWATER_ENERGY_DENSITY"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.NONE.MIN",
+        "value": 0.8,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.PROTEIN.BASELINE"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.NONE.TARGET",
+        "value": 0.8,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.PROTEIN.BASELINE"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.NONE.MAX",
+        "value": 1.2,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.NASEM.DRI.PROTEIN.BASELINE"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MIN",
+        "value": 1.2,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.TARGET",
+        "value": 1.4,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.OCCASIONAL.MAX",
+        "value": 1.6,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.AND.PROTEIN.ACTIVE_ADULT"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.MIN",
+        "value": 1.6,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.TARGET",
+        "value": 2,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING"
+        ]
+      },
+      {
+        "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.MAX",
+        "value": 2.4,
+        "unit": "G_PER_KG_BODY_WEIGHT_PER_DAY",
+        "applicabilityRuleIds": [
+          "MACRO.PROTEIN.WEIGHT_BASIS.CURRENT_BODY_WEIGHT.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ISSN.MORTON.PROTEIN.RESISTANCE_TRAINING"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.UNDER_30.MAX",
+        "value": 4,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN_30_45.MAX",
+        "value": 5,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN_45_60.MAX",
+        "value": 6,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN_60_90.MAX",
+        "value": 8,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.OVER_90.MAX",
+        "value": 10,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.EXERCISE_COUNT.MIN",
+        "value": 3,
+        "unit": "EXERCISES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.UNDER_30",
+        "value": 30,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.MIN_30_45",
+        "value": 45,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.MIN_45_60",
+        "value": 60,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.MIN_60_90",
+        "value": 90,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.SESSION.PLANNED_MINUTES.OVER_90",
+        "value": 120,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "TRAINING.RULE.SESSION_STRUCTURE.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.ACSM.PROGRESSION.TRAINING.SESSION_STRUCTURE"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.NEW.SETS_PER_EXERCISE",
+        "value": 3,
+        "unit": "SETS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.RETURNING.SETS_PER_EXERCISE",
+        "value": 3,
+        "unit": "SETS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.EXPERIENCED.SETS_PER_EXERCISE",
+        "value": 4,
+        "unit": "SETS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.NEW.REPS_PER_SET",
+        "value": 10,
+        "unit": "REPETITIONS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.RETURNING.REPS_PER_SET",
+        "value": 10,
+        "unit": "REPETITIONS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.EXPERIENCED.REPS_PER_SET",
+        "value": 8,
+        "unit": "REPETITIONS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.NEW.REST_SECONDS",
+        "value": 90,
+        "unit": "SECONDS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.RETURNING.REST_SECONDS",
+        "value": 90,
+        "unit": "SECONDS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.DOSE.EXPERIENCED.REST_SECONDS",
+        "value": 120,
+        "unit": "SECONDS",
+        "applicabilityRuleIds": [
+          "TRAINING.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.NEW",
+        "value": 3,
+        "unit": "SESSIONS_PER_WEEK",
+        "applicabilityRuleIds": [
+          "TRAINING.TEMPLATE.SELECTION.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.RETURNING",
+        "value": 4,
+        "unit": "SESSIONS_PER_WEEK",
+        "applicabilityRuleIds": [
+          "TRAINING.TEMPLATE.SELECTION.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "TRAINING.TEMPLATE.DAYS.MAX_STRENGTH_SESSIONS.EXPERIENCED",
+        "value": 4,
+        "unit": "SESSIONS_PER_WEEK",
+        "applicabilityRuleIds": [
+          "TRAINING.TEMPLATE.SELECTION.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "CARDIO.DOSE.NEW.SESSION_MINUTES",
+        "value": 20,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "CARDIO.DOSE.RETURNING.SESSION_MINUTES",
+        "value": 25,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "CARDIO.DOSE.EXPERIENCED.SESSION_MINUTES",
+        "value": 30,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "CARDIO.DOSE.NEW.SESSIONS_PER_WEEK",
+        "value": 2,
+        "unit": "SESSIONS_PER_WEEK",
+        "applicabilityRuleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "CARDIO.DOSE.RETURNING.SESSIONS_PER_WEEK",
+        "value": 2,
+        "unit": "SESSIONS_PER_WEEK",
+        "applicabilityRuleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "CARDIO.DOSE.EXPERIENCED.SESSIONS_PER_WEEK",
+        "value": 3,
+        "unit": "SESSIONS_PER_WEEK",
+        "applicabilityRuleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "CARDIO.DOSE.MAX_SESSION_MINUTES",
+        "value": 45,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "CARDIO.RULE.DOSE.BEGINNER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "WORKLOAD.WEEKLY.TOTAL_SESSIONS.MAX",
+        "value": 6,
+        "unit": "SESSIONS_PER_WEEK",
+        "applicabilityRuleIds": [
+          "WORKLOAD.RULE.COMBINED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX",
+        "value": 360,
+        "unit": "MINUTES_PER_WEEK",
+        "applicabilityRuleIds": [
+          "WORKLOAD.RULE.COMBINED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "WORKLOAD.WEEKLY.TRAINING_MINUTES.MAX_WHEN_ENERGY_REDUCED",
+        "value": 240,
+        "unit": "MINUTES_PER_WEEK",
+        "applicabilityRuleIds": [
+          "WORKLOAD.RULE.COMBINED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "WORKLOAD.WEEKLY.CONSECUTIVE_TRAINING_DAYS.MAX",
+        "value": 4,
+        "unit": "DAYS",
+        "applicabilityRuleIds": [
+          "WORKLOAD.RULE.COMBINED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.STRENGTH.REPS.INCREMENT",
+        "value": 1,
+        "unit": "REPETITIONS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.STRENGTH.REPS.MAX_ABOVE_INITIAL",
+        "value": 2,
+        "unit": "REPETITIONS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.STRENGTH.SETS.INCREMENT",
+        "value": 0,
+        "unit": "SETS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.STRENGTH.SETS.MAX_ABOVE_INITIAL",
+        "value": 0,
+        "unit": "SETS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.STRENGTH.LOAD.INCREMENT_FRACTION",
+        "value": 0.05,
+        "unit": "FRACTION_OF_CURRENT_LOAD",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.STRENGTH.LOAD.MAX_INCREASE_FRACTION_PER_WINDOW",
+        "value": 0.1,
+        "unit": "FRACTION_OF_CURRENT_LOAD",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.CARDIO.MINUTES.INCREMENT",
+        "value": 2,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.CARDIO.MINUTES.MAX_ABOVE_INITIAL",
+        "value": 6,
+        "unit": "MINUTES_PER_SESSION",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.EVIDENCE.MIN_COMPLETE_SESSION_WEEKS",
+        "value": 2,
+        "unit": "WEEKS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.EVIDENCE.MIN_COMPLETE_SETS_FRACTION",
+        "value": 0.85,
+        "unit": "FRACTION_OF_PRESCRIBED_SETS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.EVIDENCE.MAX_EFFORT_RATING",
+        "value": 6,
+        "unit": "RPE_POINTS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "PROGRESSION.WINDOW.MIN_DAYS_BETWEEN_INCREASES",
+        "value": 14,
+        "unit": "DAYS",
+        "applicabilityRuleIds": [
+          "PROGRESSION.RULE.BOUNDED_TRAINING.V1",
+          "WEEKLY.RULE.COOLDOWN.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.LOSE.GRADUAL.ENERGY_DELTA_FRACTION",
+        "value": -0.1,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.LOSE.MODERATE.ENERGY_DELTA_FRACTION",
+        "value": -0.2,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.GAIN.GRADUAL.ENERGY_DELTA_FRACTION",
+        "value": 0.05,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.GAIN.MODERATE.ENERGY_DELTA_FRACTION",
+        "value": 0.1,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.ADJUSTMENT.MAINTAIN.ANY.ENERGY_DELTA_FRACTION",
+        "value": 0.0,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+        "value": 0.25,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "GOAL.BOUND.RELATIVE.MAX_INCREASE_FRACTION",
+        "value": 0.25,
+        "unit": "FRACTION_OF_MAINTENANCE_ENERGY",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ENERGY.BODY_MASS.ENERGY_PER_KG",
+        "value": 7700,
+        "unit": "KCAL_PER_KG_BODY_MASS",
+        "applicabilityRuleIds": [
+          "GOAL.ADJUSTMENT.BOUNDED.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ENERGY.INPUT.WEIGHT_MEASUREMENT.MAX_AGE_DAYS",
+        "value": 14,
+        "unit": "DAYS",
+        "applicabilityRuleIds": [
+          "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ROUNDING.ENERGY_KCAL.STEP",
+        "value": 10,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ROUNDING.MACRO_GRAMS.DECIMALS",
+        "value": 0,
+        "unit": "DECIMAL_PLACES",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "ROUNDING.PROJECTED_WEEKLY_CHANGE_KG.DECIMALS",
+        "value": 2,
+        "unit": "DECIMAL_PLACES",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "COMPOSITION.TOLERANCE_PERCENT",
+        "value": 5,
+        "unit": "PERCENT",
+        "applicabilityRuleIds": [
+          "PRESCRIPTION.ROUNDING.ORDER.V1"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "SAFETY.NUTRITION.MIN_DAILY_ENERGY.FLOOR.V1",
+        "value": 1200,
+        "unit": "KCAL_PER_DAY",
+        "applicabilityRuleIds": [
+          "NUTRITION_MINIMUM_DAILY_ENERGY_RULE"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      },
+      {
+        "id": "SAFETY.NUTRITION.MAX_WEEKLY_LOSS_RATE.CEILING.V1",
+        "value": 1.0,
+        "unit": "PERCENT_BODY_WEIGHT_PER_WEEK",
+        "applicabilityRuleIds": [
+          "NUTRITION_MAXIMUM_WEEKLY_LOSS_RATE_RULE"
+        ],
+        "evidenceClaimIds": [
+          "CLAIM.OWNER.TRAINING.DOSE_AND_PROGRESSION"
+        ]
+      }
+    ],
+    "unknownAnswerBehavior": "FAIL_CLOSED",
+    "outOfScopeOutcome": "PAUSE_REFER"
+  }
+}

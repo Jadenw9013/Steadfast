@@ -14,9 +14,10 @@ import { saveDraftMealPlan } from "@/app/actions/meal-plans";
 import { PUT as putMealPlanRest } from "@/app/api/coach/clients/[clientId]/meal-plan/route";
 import { db } from "@/lib/db";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 /**
  * T-841 regression suite. Run through the local test DB:
- *   DATABASE_URL=postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test \
+ *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
  *   SECURITY_INTEGRATION=1 pnpm exec vitest run tests/integration/plan-extras-merge-regression.test.ts
  *
  * Case 1 ("THE NEGATIVE CONTROL") must FAIL on unmodified
@@ -26,10 +27,7 @@ import { db } from "@/lib/db";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("T-841: planExtras save merges key-wise instead of replacing wholesale", () => {
@@ -42,9 +40,18 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
 
   async function fixture() {
     const coachId = randomUUID();
-    const coach = await db.user.create({ data: { clerkId: coachId, email: `${coachId}@example.test`, isCoach: true, activeRole: "COACH" } });
+    const coach = await db.user.create({
+      data: {
+        clerkId: coachId,
+        email: `${coachId}@example.test`,
+        isCoach: true,
+        activeRole: "COACH",
+      },
+    });
     const clientId = randomUUID();
-    const client = await db.user.create({ data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true } });
+    const client = await db.user.create({
+      data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true },
+    });
     await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
     return { coach, client };
   }
@@ -72,13 +79,27 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
       mealPlanId,
       planNotes: "",
       items: [
-        { mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 },
+        {
+          mealName: "Meal 1",
+          sortOrder: 0,
+          foodName: "Chicken breast",
+          quantity: "6",
+          unit: "oz",
+          calories: 280,
+          protein: 52,
+          carbs: 0,
+          fats: 6,
+        },
       ],
       planExtras: { dayOverrides: [{ label: "Refeed", color: "blue", weekdays: ["Friday"] }] },
     };
   }
 
-  async function seedDraftWithExtras(clientId: string, extras: unknown, weekOf = new Date("2026-09-14T00:00:00Z")) {
+  async function seedDraftWithExtras(
+    clientId: string,
+    extras: unknown,
+    weekOf = new Date("2026-09-14T00:00:00Z")
+  ) {
     return db.mealPlan.create({
       data: {
         clientId,
@@ -89,7 +110,17 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
         planExtras: extras as never,
         items: {
           create: [
-            { mealName: "Meal 1", sortOrder: 0, foodName: "Old food", quantity: "1", unit: "unit", calories: 100, protein: 10, carbs: 10, fats: 1 },
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Old food",
+              quantity: "1",
+              unit: "unit",
+              calories: 100,
+              protein: 10,
+              carbs: 10,
+              fats: 1,
+            },
           ],
         },
       },
@@ -128,12 +159,26 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const draft = await seedDraftWithExtras(client.id, seededExtras, new Date("2026-09-21T00:00:00Z"));
+    const draft = await seedDraftWithExtras(
+      client.id,
+      seededExtras,
+      new Date("2026-09-21T00:00:00Z")
+    );
 
     const result = await saveDraftMealPlan({
       mealPlanId: draft.id,
       items: [
-        { mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 },
+        {
+          mealName: "Meal 1",
+          sortOrder: 0,
+          foodName: "Chicken breast",
+          quantity: "6",
+          unit: "oz",
+          calories: 280,
+          protein: 52,
+          carbs: 0,
+          fats: 6,
+        },
       ],
       planExtras: { dayOverrides: [{ label: "Refeed", color: "blue", weekdays: ["Friday"] }] },
     });
@@ -154,7 +199,11 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const draft = await seedDraftWithExtras(client.id, seededExtras, new Date("2026-09-28T00:00:00Z"));
+    const draft = await seedDraftWithExtras(
+      client.id,
+      seededExtras,
+      new Date("2026-09-28T00:00:00Z")
+    );
 
     // Web's "clear highlighted changes" affordance: rebuilds the whole
     // metadata object with the sub-key deleted, and sends it as a complete
@@ -185,7 +234,11 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const draft = await seedDraftWithExtras(client.id, seededExtras, new Date("2026-10-05T00:00:00Z"));
+    const draft = await seedDraftWithExtras(
+      client.id,
+      seededExtras,
+      new Date("2026-10-05T00:00:00Z")
+    );
 
     const response = await putMealPlanRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan`, {
@@ -207,7 +260,11 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const draft = await seedDraftWithExtras(client.id, seededExtras, new Date("2026-10-12T00:00:00Z"));
+    const draft = await seedDraftWithExtras(
+      client.id,
+      seededExtras,
+      new Date("2026-10-12T00:00:00Z")
+    );
 
     const response = await putMealPlanRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan`, {
@@ -215,7 +272,19 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mealPlanId: draft.id,
-          items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "New food", quantity: "1", unit: "unit", calories: 200, protein: 20, carbs: 20, fats: 2 }],
+          items: [
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "New food",
+              quantity: "1",
+              unit: "unit",
+              calories: 200,
+              protein: 20,
+              carbs: 20,
+              fats: 2,
+            },
+          ],
         }),
       }),
       params(client.id)
@@ -230,7 +299,11 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const draft = await seedDraftWithExtras(client.id, seededExtras, new Date("2026-10-19T00:00:00Z"));
+    const draft = await seedDraftWithExtras(
+      client.id,
+      seededExtras,
+      new Date("2026-10-19T00:00:00Z")
+    );
 
     const response = await putMealPlanRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan`, {
@@ -255,7 +328,11 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
       supplements: [{ name: "Creatine" }],
       metadata: { phase: "cutting" },
     };
-    const draft = await seedDraftWithExtras(client.id, legacyExtras, new Date("2026-10-26T00:00:00Z"));
+    const draft = await seedDraftWithExtras(
+      client.id,
+      legacyExtras,
+      new Date("2026-10-26T00:00:00Z")
+    );
 
     const response = await putMealPlanRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan`, {
@@ -288,10 +365,31 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
         planMode: "MACROS",
         planExtras: seededExtras as never,
         items: {
-          create: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Untouched food", quantity: "1", unit: "unit", calories: 100, protein: 10, carbs: 10, fats: 1 }],
+          create: [
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Untouched food",
+              quantity: "1",
+              unit: "unit",
+              calories: 100,
+              protein: 10,
+              carbs: 10,
+              fats: 1,
+            },
+          ],
         },
         macroTargets: {
-          create: [{ mealName: "Breakfast", sortOrder: 0, calories: 400, protein: 30, carbs: 40, fats: 10 }],
+          create: [
+            {
+              mealName: "Breakfast",
+              sortOrder: 0,
+              calories: 400,
+              protein: 30,
+              carbs: 40,
+              fats: 10,
+            },
+          ],
         },
       },
     });
@@ -302,7 +400,16 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mealPlanId: draft.id,
-          macroTargets: [{ mealName: "Breakfast", sortOrder: 0, calories: 500, protein: 40, carbs: 50, fats: 15 }],
+          macroTargets: [
+            {
+              mealName: "Breakfast",
+              sortOrder: 0,
+              calories: 500,
+              protein: 40,
+              carbs: 50,
+              fats: 15,
+            },
+          ],
         }),
       }),
       params(client.id)
@@ -322,23 +429,39 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
 
   it("case 9 — authorization regression: 403 for another coach's client with no write, 401 unauthenticated, 403 non-coach; the added select does not move the auth boundary", async () => {
     const { client } = await fixture();
-    const draft = await seedDraftWithExtras(client.id, seededExtras, new Date("2026-11-09T00:00:00Z"));
+    const draft = await seedDraftWithExtras(
+      client.id,
+      seededExtras,
+      new Date("2026-11-09T00:00:00Z")
+    );
 
     // Another coach, not assigned to this client.
     const otherCoachId = randomUUID();
-    const otherCoach = await db.user.create({ data: { clerkId: otherCoachId, email: `${otherCoachId}@example.test`, isCoach: true, activeRole: "COACH" } });
+    const otherCoach = await db.user.create({
+      data: {
+        clerkId: otherCoachId,
+        email: `${otherCoachId}@example.test`,
+        isCoach: true,
+        activeRole: "COACH",
+      },
+    });
     mocks.authUserId = otherCoach.clerkId;
 
     const forbiddenResponse = await putMealPlanRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealPlanId: draft.id, planExtras: { metadata: { phase: "bulking" } } }),
+        body: JSON.stringify({
+          mealPlanId: draft.id,
+          planExtras: { metadata: { phase: "bulking" } },
+        }),
       }),
       params(client.id)
     );
     expect(forbiddenResponse.status).toBe(403);
-    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: draft.id } })).planExtras).toEqual(seededExtras);
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: draft.id } })).planExtras).toEqual(
+      seededExtras
+    );
 
     // Unauthenticated.
     mocks.authUserId = "";
@@ -346,27 +469,39 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealPlanId: draft.id, planExtras: { metadata: { phase: "bulking" } } }),
+        body: JSON.stringify({
+          mealPlanId: draft.id,
+          planExtras: { metadata: { phase: "bulking" } },
+        }),
       }),
       params(client.id)
     );
     expect(unauthResponse.status).toBe(401);
-    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: draft.id } })).planExtras).toEqual(seededExtras);
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: draft.id } })).planExtras).toEqual(
+      seededExtras
+    );
 
     // Authenticated but not a coach.
     const nonCoachId = randomUUID();
-    const nonCoachUser = await db.user.create({ data: { clerkId: nonCoachId, email: `${nonCoachId}@example.test`, isClient: true } });
+    const nonCoachUser = await db.user.create({
+      data: { clerkId: nonCoachId, email: `${nonCoachId}@example.test`, isClient: true },
+    });
     mocks.authUserId = nonCoachUser.clerkId;
     const nonCoachResponse = await putMealPlanRest(
       new NextRequest(`https://example.test/api/coach/clients/${client.id}/meal-plan`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mealPlanId: draft.id, planExtras: { metadata: { phase: "bulking" } } }),
+        body: JSON.stringify({
+          mealPlanId: draft.id,
+          planExtras: { metadata: { phase: "bulking" } },
+        }),
       }),
       params(client.id)
     );
     expect(nonCoachResponse.status).toBe(403);
-    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: draft.id } })).planExtras).toEqual(seededExtras);
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: draft.id } })).planExtras).toEqual(
+      seededExtras
+    );
   });
 
   it("case 10 — items/macroTargets replacement unchanged when planExtras is also present in the same request", async () => {
@@ -382,10 +517,31 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
         planMode: "MEAL_PLAN",
         planExtras: seededExtras as never,
         items: {
-          create: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Old food", quantity: "1", unit: "unit", calories: 100, protein: 10, carbs: 10, fats: 1 }],
+          create: [
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "Old food",
+              quantity: "1",
+              unit: "unit",
+              calories: 100,
+              protein: 10,
+              carbs: 10,
+              fats: 1,
+            },
+          ],
         },
         macroTargets: {
-          create: [{ mealName: "Breakfast", sortOrder: 0, calories: 400, protein: 30, carbs: 40, fats: 10 }],
+          create: [
+            {
+              mealName: "Breakfast",
+              sortOrder: 0,
+              calories: 400,
+              protein: 30,
+              carbs: 40,
+              fats: 10,
+            },
+          ],
         },
       },
     });
@@ -396,8 +552,22 @@ suite("T-841: planExtras save merges key-wise instead of replacing wholesale", (
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mealPlanId: draft.id,
-          items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "New food", quantity: "2", unit: "unit", calories: 250, protein: 25, carbs: 25, fats: 5 }],
-          macroTargets: [{ mealName: "Lunch", sortOrder: 0, calories: 600, protein: 50, carbs: 60, fats: 20 }],
+          items: [
+            {
+              mealName: "Meal 1",
+              sortOrder: 0,
+              foodName: "New food",
+              quantity: "2",
+              unit: "unit",
+              calories: 250,
+              protein: 25,
+              carbs: 25,
+              fats: 5,
+            },
+          ],
+          macroTargets: [
+            { mealName: "Lunch", sortOrder: 0, calories: 600, protein: 50, carbs: 60, fats: 20 },
+          ],
           planExtras: { dayOverrides: [{ label: "Refeed" }] },
         }),
       }),

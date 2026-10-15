@@ -1,0 +1,3353 @@
+{
+  "fileSchemaVersion": 1,
+  "reviewMetadata": {
+    "decision": "DRAFT_UNSIGNED",
+    "preparedBy": "ENGINEERING_DRAFT_FROM_REVIEWED_SOURCE",
+    "preparedAt": "2026-09-26T00:00:00.000Z",
+    "draftRecordId": "draft-meal-templates-v1",
+    "worksheetSectionIds": [
+      "D08",
+      "D12"
+    ],
+    "proposalProvenance": [
+      {
+        "parameterId": "meal-template-set-v1",
+        "sourceClaimId": "GAP-N12",
+        "sourceId": "USDA-FDC",
+        "sourceUrl": "https://fdc.nal.usda.gov/",
+        "sourceLocator": "Meal templates mechanically composed from USDA FoodData Central items"
+      }
+    ],
+    "unsignedNotice": "PROPOSED VALUES AWAITING QUALIFIED PROFESSIONAL REVIEW. NOT APPROVED. NOT FOR LIVE USE."
+  },
+  "content": {
+    "artifactKey": "meal-templates",
+    "version": 1,
+    "foodCatalogRef": {
+      "artifactKey": "food-catalog",
+      "version": 1
+    },
+    "substitutionGroups": [
+      {
+        "id": "sub-group-lean-poultry",
+        "name": "Lean Poultry",
+        "basis": "ROLE_IN_MEAL",
+        "memberFoodIds": [
+          "fdc-2646170",
+          "fdc-174515"
+        ],
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "reviewState": "PROPOSED",
+        "note": "Lean poultry protein sources"
+      },
+      {
+        "id": "sub-group-grains",
+        "name": "Staple Grains",
+        "basis": "ROLE_IN_MEAL",
+        "memberFoodIds": [
+          "fdc-168917",
+          "fdc-169712"
+        ],
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "reviewState": "PROPOSED",
+        "note": "Steamed or cooked whole and refined grains"
+      },
+      {
+        "id": "sub-group-green-vegetables",
+        "name": "Green Vegetables",
+        "basis": "ROLE_IN_MEAL",
+        "memberFoodIds": [
+          "fdc-747447",
+          "fdc-168462",
+          "fdc-168421"
+        ],
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "reviewState": "PROPOSED",
+        "note": "Leafy and cruciferous green vegetables"
+      },
+      {
+        "id": "sub-group-legumes",
+        "name": "Cooked Legumes",
+        "basis": "ROLE_IN_MEAL",
+        "memberFoodIds": [
+          "fdc-175188",
+          "fdc-2644288"
+        ],
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "reviewState": "PROPOSED",
+        "note": "Canned and cooked beans and pulses"
+      },
+      {
+        "id": "sub-group-nuts",
+        "name": "Whole Tree Nuts and Peanuts",
+        "basis": "ROLE_IN_MEAL",
+        "memberFoodIds": [
+          "fdc-170567",
+          "fdc-2346394",
+          "fdc-2515376"
+        ],
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "reviewState": "PROPOSED",
+        "note": "Raw or roasted nuts and peanuts"
+      },
+      {
+        "id": "sub-group-berries",
+        "name": "Fresh Berries",
+        "basis": "ROLE_IN_MEAL",
+        "memberFoodIds": [
+          "fdc-167762",
+          "fdc-2346411"
+        ],
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "reviewState": "PROPOSED",
+        "note": "Fresh berries"
+      }
+    ],
+    "templates": [
+      {
+        "id": "comp-steamed-broccoli",
+        "version": 1,
+        "name": "Steamed Broccoli Florets",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747447",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 40,
+              "nominalGrams": 76,
+              "maxGrams": 150,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 chopped"
+            },
+            "householdMeasure": {
+              "text": "1 chopped",
+              "gramWeight": 76,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Steam broccoli florets until tender and drain.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "comp-cooked-quinoa",
+        "version": 1,
+        "name": "Cooked Quinoa",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168917",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 95,
+              "nominalGrams": 185,
+              "maxGrams": 370,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 185,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-grains"
+          }
+        ],
+        "preparation": "Simmer quinoa in water until liquid is absorbed.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "comp-steamed-rice",
+        "version": 1,
+        "name": "Steamed White Rice",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-169712",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 132,
+              "maxGrams": 265,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup, loosely packed"
+            },
+            "householdMeasure": {
+              "text": "1 cup, loosely packed",
+              "gramWeight": 132,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-grains"
+          }
+        ],
+        "preparation": "Steam white rice until tender.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "comp-sauteed-spinach",
+        "version": 1,
+        "name": "Sauteed Baby Spinach",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168462",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Cook spinach in a pan until wilted.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "comp-black-beans-prep",
+        "version": 1,
+        "name": "Seasoned Black Beans",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-175188",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 120,
+              "nominalGrams": 240,
+              "maxGrams": 480,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 240,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          }
+        ],
+        "preparation": "Rinse black beans, warm on stovetop, and serve.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "comp-roasted-carrots",
+        "version": 1,
+        "name": "Sliced Roasted Carrots",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "OVEN"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-170393",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 110,
+              "maxGrams": 220,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup grated"
+            },
+            "householdMeasure": {
+              "text": "1 cup grated",
+              "gramWeight": 110,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Slice carrots and roast until tender.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "comp-grilled-chicken-prep",
+        "version": 1,
+        "name": "Grilled Chicken Breast Fillet",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2646170",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 114,
+              "maxGrams": 230,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 114,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-lean-poultry"
+          }
+        ],
+        "preparation": "Cook chicken breast on heated stovetop pan until done.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "comp-seared-salmon-prep",
+        "version": 1,
+        "name": "Seared Pink Salmon",
+        "isComponent": true,
+        "slot": "COMPONENT",
+        "patternTags": [
+          "OMNIVORE",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-175138",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "3 oz"
+            },
+            "householdMeasure": {
+              "text": "3 oz",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Sear salmon fillet in pan on stovetop until done.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "bf-vegan-low-oatmeal",
+        "version": 1,
+        "name": "Oat Bran Porridge with Strawberries",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168873",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 110,
+              "nominalGrams": 219,
+              "maxGrams": 440,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 219,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-167762",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup, halves"
+            },
+            "householdMeasure": {
+              "text": "1 cup, halves",
+              "gramWeight": 152,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-berries"
+          }
+        ],
+        "preparation": "Warm cooked oat bran on stovetop and top with sliced strawberries.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "bf-vegan-mod-quinoa-berries",
+        "version": 1,
+        "name": "Warm Quinoa Breakfast Bowl with Blueberries and Walnuts",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "MICROWAVE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2346411",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 140,
+              "maxGrams": 280,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 140,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-berries"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2346394",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-nuts"
+          }
+        ],
+        "preparation": "Warm cooked quinoa in microwave and fold in blueberries and walnuts.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "bf-vegan-flex-avocado-toast",
+        "version": 1,
+        "name": "Warm Quinoa Breakfast Bowl with Sliced Avocado and Tomato",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168917",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 95,
+              "nominalGrams": 185,
+              "maxGrams": 370,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 185,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-grains"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-1999634",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Top warm cooked quinoa with sliced avocado and sliced roma tomato.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "bf-lacto-low-scrambled-eggs",
+        "version": 1,
+        "name": "Scrambled Eggs with Steamed Spinach",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-748967",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 25,
+              "nominalGrams": 50,
+              "maxGrams": 100,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 whole without shell"
+            },
+            "householdMeasure": {
+              "text": "1 whole without shell",
+              "gramWeight": 50.3,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168462",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Whisk eggs, cook on stovetop pan, and fold in fresh spinach.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "bf-lacto-mod-greek-parfait",
+        "version": 1,
+        "name": "Greek Yogurt Parfait with Strawberries and Almonds",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-330137",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 80,
+              "nominalGrams": 156,
+              "maxGrams": 310,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 container"
+            },
+            "householdMeasure": {
+              "text": "1 container",
+              "gramWeight": 156,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-167762",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup, halves"
+            },
+            "householdMeasure": {
+              "text": "1 cup, halves",
+              "gramWeight": 152,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-berries"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-170567",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 28,
+              "maxGrams": 55,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 oz (23 whole kernels)"
+            },
+            "householdMeasure": {
+              "text": "1 oz (23 whole kernels)",
+              "gramWeight": 28.35,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-nuts"
+          }
+        ],
+        "preparation": "Layer plain greek yogurt in a bowl with sliced strawberries and almonds.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "bf-lacto-flex-egg-pita-melt",
+        "version": 1,
+        "name": "Egg White and Quinoa Breakfast Bowl with Avocado",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747997",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 34,
+              "maxGrams": 70,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 white"
+            },
+            "householdMeasure": {
+              "text": "1 white",
+              "gramWeight": 34,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168917",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 95,
+              "nominalGrams": 185,
+              "maxGrams": 370,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 185,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-grains"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Scramble egg whites on stovetop and serve over warm quinoa with sliced avocado.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "bf-omni-low-egg-and-turkey",
+        "version": 1,
+        "name": "Whole Egg with Sliced Turkey Breast and Pita",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-748967",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 25,
+              "nominalGrams": 50,
+              "maxGrams": 100,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 whole without shell"
+            },
+            "householdMeasure": {
+              "text": "1 whole without shell",
+              "gramWeight": 50.3,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-174515",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 113,
+              "maxGrams": 225,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "4 oz"
+            },
+            "householdMeasure": {
+              "text": "4 oz",
+              "gramWeight": 113,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-lean-poultry"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-174916",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 30,
+              "nominalGrams": 64,
+              "maxGrams": 130,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 pita, large (6-1/2\" dia)"
+            },
+            "householdMeasure": {
+              "text": "1 pita, large (6-1/2\" dia)",
+              "gramWeight": 64,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Cook whole egg and turkey breast in pan, then serve with whole wheat pita.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "bf-omni-mod-chicken-omelet",
+        "version": 1,
+        "name": "Chicken and Spinach Egg White Scramble",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747997",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 34,
+              "maxGrams": 70,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 white"
+            },
+            "householdMeasure": {
+              "text": "1 white",
+              "gramWeight": 34,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-grilled-chicken-prep",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168462",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Scramble egg whites with chicken breast pieces and baby spinach in a pan.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "bf-omni-flex-salmon-pita",
+        "version": 1,
+        "name": "Seared Salmon and Avocado Pita Pocket",
+        "isComponent": false,
+        "slot": "BREAKFAST",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-seared-salmon-prep",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-174916",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 30,
+              "nominalGrams": 64,
+              "maxGrams": 130,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 pita, large (6-1/2\" dia)"
+            },
+            "householdMeasure": {
+              "text": "1 pita, large (6-1/2\" dia)",
+              "gramWeight": 64,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Sear salmon on stovetop and assemble inside whole wheat pita with avocado.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "lu-vegan-low-black-bean-bowl",
+        "version": 1,
+        "name": "Steamed White Rice with Black Beans and Broccoli",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "MICROWAVE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-rice",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-175188",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 120,
+              "nominalGrams": 240,
+              "maxGrams": 480,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 240,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747447",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 40,
+              "nominalGrams": 76,
+              "maxGrams": 150,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 chopped"
+            },
+            "householdMeasure": {
+              "text": "1 chopped",
+              "gramWeight": 76,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Warm cooked rice, black beans, and steamed broccoli, then mix in a bowl.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "lu-vegan-mod-chickpea-quinoa",
+        "version": 1,
+        "name": "Quinoa and Chickpea Salad with Bell Pepper",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2644288",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 130,
+              "maxGrams": 260,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 130,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2258590",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Combine chilled cooked quinoa, drained chickpeas, and diced red bell pepper.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "lu-vegan-flex-avocado-quinoa-bowl",
+        "version": 1,
+        "name": "Avocado Quinoa Fiesta Bowl with Tomatoes",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "MICROWAVE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-175188",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 120,
+              "nominalGrams": 240,
+              "maxGrams": 480,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 240,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-1999634",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Combine warmed quinoa and black beans, then top with sliced avocado and tomatoes.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "lu-lacto-low-egg-pita-salad",
+        "version": 1,
+        "name": "Hard-Boiled Egg and Spinach Rice Bowl",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-748967",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 25,
+              "nominalGrams": 50,
+              "maxGrams": 100,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 whole without shell"
+            },
+            "householdMeasure": {
+              "text": "1 whole without shell",
+              "gramWeight": 50.3,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-169712",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 132,
+              "maxGrams": 265,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup, loosely packed"
+            },
+            "householdMeasure": {
+              "text": "1 cup, loosely packed",
+              "gramWeight": 132,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-grains"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168462",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Cook egg in pan, slice, and serve over steamed white rice with fresh baby spinach.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "lu-lacto-mod-greek-yogurt-bowl",
+        "version": 1,
+        "name": "Savory Greek Yogurt and Chickpea Bowl",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-330137",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 80,
+              "nominalGrams": 156,
+              "maxGrams": 310,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 container"
+            },
+            "householdMeasure": {
+              "text": "1 container",
+              "gramWeight": 156,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2644288",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 130,
+              "maxGrams": 260,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 130,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-1999634",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Top plain greek yogurt with rinsed chickpeas and diced roma tomatoes.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "lu-lacto-flex-quinoa-egg-bowl",
+        "version": 1,
+        "name": "Quinoa and Hard-Boiled Egg Bowl with Avocado",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-748967",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 25,
+              "nominalGrams": 50,
+              "maxGrams": 100,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 whole without shell"
+            },
+            "householdMeasure": {
+              "text": "1 whole without shell",
+              "gramWeight": 50.3,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2258590",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Boil egg on stovetop, slice, and arrange over quinoa with avocado and bell pepper.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "lu-omni-low-chicken-rice-bowl",
+        "version": 1,
+        "name": "Chicken Breast and Steamed Rice Bowl",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-grilled-chicken-prep",
+            "servings": 1
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-rice",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747447",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 40,
+              "nominalGrams": 76,
+              "maxGrams": 150,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 chopped"
+            },
+            "householdMeasure": {
+              "text": "1 chopped",
+              "gramWeight": 76,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Combine grilled chicken pieces with steamed rice and broccoli in a bowl.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "lu-omni-mod-turkey-quinoa-salad",
+        "version": 1,
+        "name": "Roasted Turkey Breast with Quinoa and Spinach",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-174515",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 113,
+              "maxGrams": 225,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "4 oz"
+            },
+            "householdMeasure": {
+              "text": "4 oz",
+              "gramWeight": 113,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-lean-poultry"
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168462",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Cook turkey breast in pan, slice, and serve over cooked quinoa and steamed spinach.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "lu-omni-flex-steak-pita",
+        "version": 1,
+        "name": "Top Sirloin Steak Pita with Avocado and Peppers",
+        "isComponent": false,
+        "slot": "LUNCH",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2727574",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 114,
+              "maxGrams": 230,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 114,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-174916",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 30,
+              "nominalGrams": 64,
+              "maxGrams": 130,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 pita, large (6-1/2\" dia)"
+            },
+            "householdMeasure": {
+              "text": "1 pita, large (6-1/2\" dia)",
+              "gramWeight": 64,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2258590",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Sear sirloin steak in skillet, slice thin, and stuff into pita with avocado and peppers.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "din-vegan-low-chickpea-curry",
+        "version": 1,
+        "name": "Steamed Rice and Chickpea Stew with Carrots",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2644288",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 130,
+              "maxGrams": 260,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 130,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-rice",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-170393",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 110,
+              "maxGrams": 220,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup grated"
+            },
+            "householdMeasure": {
+              "text": "1 cup grated",
+              "gramWeight": 110,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Simmer chickpeas and sliced carrots in a saucepan, then serve over steamed rice.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "din-vegan-mod-black-bean-quinoa",
+        "version": 1,
+        "name": "Quinoa and Black Bean Plate with Roasted Broccoli",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-black-beans-prep",
+            "servings": 1
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-broccoli",
+            "servings": 1
+          }
+        ],
+        "preparation": "Assemble warm quinoa, seasoned black beans, and steamed broccoli on a dinner plate.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "din-vegan-flex-mediterranean-platter",
+        "version": 1,
+        "name": "Mediterranean Grain Platter with Avocado and Veggies",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_30_60",
+        "requiredEquipment": [
+          "OVEN",
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2644288",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 130,
+              "maxGrams": 260,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 130,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-169291",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 60,
+              "nominalGrams": 124,
+              "maxGrams": 250,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup, chopped"
+            },
+            "householdMeasure": {
+              "text": "1 cup, chopped",
+              "gramWeight": 124,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Roast sliced zucchini in oven, arrange over quinoa and chickpeas, and top with avocado.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "din-lacto-low-egg-rice-bowl",
+        "version": 1,
+        "name": "Egg and Steamed Rice Bowl with Sauteed Spinach",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-748967",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 25,
+              "nominalGrams": 50,
+              "maxGrams": 100,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 whole without shell"
+            },
+            "householdMeasure": {
+              "text": "1 whole without shell",
+              "gramWeight": 50.3,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-rice",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168462",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Cook whole eggs in skillet and serve over warm steamed rice with sauteed spinach.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "din-lacto-mod-quinoa-frittata",
+        "version": 1,
+        "name": "Quinoa and Egg White Skillet with Broccoli",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747997",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 34,
+              "maxGrams": 70,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 white"
+            },
+            "householdMeasure": {
+              "text": "1 white",
+              "gramWeight": 34,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747447",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 40,
+              "nominalGrams": 76,
+              "maxGrams": 150,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 chopped"
+            },
+            "householdMeasure": {
+              "text": "1 chopped",
+              "gramWeight": 76,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Combine egg whites, cooked quinoa, and steamed broccoli in a heated pan and cook through.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "din-lacto-flex-greek-bowl",
+        "version": 1,
+        "name": "Greek Yogurt and Chickpea Dinner Bowl with Avocado",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-330137",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 80,
+              "nominalGrams": 156,
+              "maxGrams": 310,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 container"
+            },
+            "householdMeasure": {
+              "text": "1 container",
+              "gramWeight": 156,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2644288",
+            "catalogVersion": "food-catalog:v1",
+            "state": "COOKED",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 130,
+              "maxGrams": 260,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 130,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-legumes"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-1999634",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Warm chickpeas on stovetop and plate with greek yogurt, avocado slices, and tomatoes.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "din-omni-low-chicken-broccoli",
+        "version": 1,
+        "name": "Skillet Chicken Breast with Rice and Steamed Broccoli",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-grilled-chicken-prep",
+            "servings": 1
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-rice",
+            "servings": 1
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-broccoli",
+            "servings": 1
+          }
+        ],
+        "preparation": "Sear chicken breast in skillet and serve alongside steamed white rice and broccoli.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "din-omni-mod-salmon-quinoa",
+        "version": 1,
+        "name": "Pan-Seared Salmon with Quinoa and Steamed Spinach",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "MIN_15_30",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-seared-salmon-prep",
+            "servings": 1
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-cooked-quinoa",
+            "servings": 1
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-168462",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup"
+            },
+            "householdMeasure": {
+              "text": "1 cup",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-green-vegetables"
+          }
+        ],
+        "preparation": "Pan-sear salmon fillet on stovetop and plate with cooked quinoa and steamed spinach.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "din-omni-flex-sirloin-steak",
+        "version": 1,
+        "name": "Grilled Top Sirloin Steak with Roasted Vegetables",
+        "isComponent": false,
+        "slot": "DINNER",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "MIN_30_60",
+        "requiredEquipment": [
+          "OVEN",
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2727574",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 114,
+              "maxGrams": 230,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 114,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-steamed-broccoli",
+            "servings": 1
+          },
+          {
+            "kind": "COMPONENT_TEMPLATE",
+            "templateId": "comp-roasted-carrots",
+            "servings": 1
+          }
+        ],
+        "preparation": "Sear top sirloin steak in skillet and serve with oven-roasted carrots and broccoli.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "sn-vegan-low-banana-peanuts",
+        "version": 1,
+        "name": "Fresh Banana with Raw Peanuts",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "NONE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-173944",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 126,
+              "maxGrams": 250,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 NLEA serving"
+            },
+            "householdMeasure": {
+              "text": "1 NLEA serving",
+              "gramWeight": 126,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2515376",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-nuts"
+          }
+        ],
+        "preparation": "Peel and slice banana, serve with raw peanuts.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "sn-vegan-mod-strawberries-almonds",
+        "version": 1,
+        "name": "Fresh Strawberries with Almonds",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-167762",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup, halves"
+            },
+            "householdMeasure": {
+              "text": "1 cup, halves",
+              "gramWeight": 152,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-berries"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-170567",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 28,
+              "maxGrams": 55,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 oz (23 whole kernels)"
+            },
+            "householdMeasure": {
+              "text": "1 oz (23 whole kernels)",
+              "gramWeight": 28.35,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-nuts"
+          }
+        ],
+        "preparation": "Rinse strawberries and serve alongside whole almonds.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "sn-vegan-flex-walnuts-blueberries",
+        "version": 1,
+        "name": "Raw English Walnuts with Fresh Blueberries",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2346411",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 140,
+              "maxGrams": 280,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 140,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-berries"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2346394",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-nuts"
+          }
+        ],
+        "preparation": "Combine fresh blueberries and walnut halves in a dish.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "sn-lacto-low-greek-yogurt-banana",
+        "version": 1,
+        "name": "Plain Greek Yogurt with Banana Slices",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-330137",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 80,
+              "nominalGrams": 156,
+              "maxGrams": 310,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 container"
+            },
+            "householdMeasure": {
+              "text": "1 container",
+              "gramWeight": 156,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-173944",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 126,
+              "maxGrams": 250,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 NLEA serving"
+            },
+            "householdMeasure": {
+              "text": "1 NLEA serving",
+              "gramWeight": 126,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Spoon greek yogurt into a dish and top with sliced fresh banana.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "sn-lacto-mod-yogurt-berries",
+        "version": 1,
+        "name": "Greek Yogurt with Fresh Strawberries and Peanuts",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-330137",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 80,
+              "nominalGrams": 156,
+              "maxGrams": 310,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 container"
+            },
+            "householdMeasure": {
+              "text": "1 container",
+              "gramWeight": 156,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-167762",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 75,
+              "nominalGrams": 152,
+              "maxGrams": 305,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup, halves"
+            },
+            "householdMeasure": {
+              "text": "1 cup, halves",
+              "gramWeight": 152,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-berries"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2515376",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 30,
+              "maxGrams": 60,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 30,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-nuts"
+          }
+        ],
+        "preparation": "Combine plain greek yogurt with sliced strawberries and crushed peanuts.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      },
+      {
+        "id": "sn-lacto-flex-hard-boiled-egg-snack",
+        "version": 1,
+        "name": "Hard-Boiled Egg with Sliced Avocado and Tomato",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-748967",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 25,
+              "nominalGrams": 50,
+              "maxGrams": 100,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 whole without shell"
+            },
+            "householdMeasure": {
+              "text": "1 whole without shell",
+              "gramWeight": 50.3,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-1999634",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Boil egg on stovetop, peel, slice, and serve with avocado and tomato slices.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "sn-omni-low-egg-white-snack",
+        "version": 1,
+        "name": "Egg White and Carrot Sticks Snack",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-747997",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 15,
+              "nominalGrams": 34,
+              "maxGrams": 70,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 white"
+            },
+            "householdMeasure": {
+              "text": "1 white",
+              "gramWeight": 34,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-170393",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 110,
+              "maxGrams": 220,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 cup grated"
+            },
+            "householdMeasure": {
+              "text": "1 cup grated",
+              "gramWeight": 110,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Cook egg whites on stovetop pan and serve with sliced raw carrot sticks.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "sn-omni-mod-tuna-salad-snack",
+        "version": 1,
+        "name": "Fish Tuna Salad with Crisp Red Bell Pepper",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "MODERATE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-175160",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "3 oz"
+            },
+            "householdMeasure": {
+              "text": "3 oz",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2258590",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 45,
+              "nominalGrams": 85,
+              "maxGrams": 170,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 RACC"
+            },
+            "householdMeasure": {
+              "text": "1 RACC",
+              "gramWeight": 85,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Serve prepared tuna salad with sliced crisp red bell peppers.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": null
+      },
+      {
+        "id": "sn-omni-flex-turkey-avocado-roll",
+        "version": 1,
+        "name": "Turkey Breast Slices with Fresh Avocado",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE"
+        ],
+        "budgetBand": "FLEXIBLE",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "STOVETOP"
+        ],
+        "requiredRefrigeration": "FRIDGE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-174515",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 55,
+              "nominalGrams": 113,
+              "maxGrams": 225,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "4 oz"
+            },
+            "householdMeasure": {
+              "text": "4 oz",
+              "gramWeight": 113,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": "sub-group-lean-poultry"
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-171706",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 70,
+              "nominalGrams": 136,
+              "maxGrams": 270,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 fruit, without skin and seed"
+            },
+            "householdMeasure": {
+              "text": "1 fruit, without skin and seed",
+              "gramWeight": 136,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Sear turkey breast slices lightly in pan and wrap around avocado slices.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": false,
+        "notes": "Portion basis: weigh raw."
+      },
+      {
+        "id": "sn-vegan-default-portion-peanut-butter",
+        "version": 1,
+        "name": "Fresh Banana with Creamy Peanut Butter",
+        "isComponent": false,
+        "slot": "SNACK",
+        "patternTags": [
+          "OMNIVORE",
+          "LACTO_OVO_VEGETARIAN",
+          "VEGAN",
+          "PESCATARIAN"
+        ],
+        "budgetBand": "LOW",
+        "prepTimeBand": "UNDER_15",
+        "requiredEquipment": [
+          "NONE"
+        ],
+        "requiredRefrigeration": "NONE",
+        "servings": 1,
+        "yieldGrams": null,
+        "yieldMethod": "UNKNOWN",
+        "ingredients": [
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-173944",
+            "catalogVersion": "food-catalog:v1",
+            "state": "RAW",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 65,
+              "nominalGrams": 126,
+              "maxGrams": 250,
+              "rangeBasis": "SOURCE_PORTION_SCALED",
+              "sourcePortionText": "1 NLEA serving"
+            },
+            "householdMeasure": {
+              "text": "1 NLEA serving",
+              "gramWeight": 126,
+              "provenance": "SOURCE_PORTION"
+            },
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          },
+          {
+            "kind": "FOOD",
+            "foodId": "fdc-2262072",
+            "catalogVersion": "food-catalog:v1",
+            "state": "READY_TO_EAT",
+            "scaling": "SCALES",
+            "portion": {
+              "minGrams": 50,
+              "nominalGrams": 100,
+              "maxGrams": 200,
+              "rangeBasis": "DEFAULT_100G_BAND",
+              "sourcePortionText": null
+            },
+            "householdMeasure": null,
+            "purchaseUnit": null,
+            "substitutionGroupId": null
+          }
+        ],
+        "preparation": "Slice fresh banana and serve with creamy peanut butter.",
+        "reviewState": "PROPOSED",
+        "requiresReviewerPortion": true,
+        "notes": null
+      }
+    ]
+  }
+}

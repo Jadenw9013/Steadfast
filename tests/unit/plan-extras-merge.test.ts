@@ -32,7 +32,9 @@ describe("mergePlanExtras — T-841 frozen semantics", () => {
 
   it("case 3 — non-object stored values are treated as {} (array, string, number, JSON null)", () => {
     const incoming = { metadata: { phase: "bulking" } };
-    expect(mergePlanExtras([{ metadata: { phase: "old" } }] as unknown as never, incoming)).toEqual(incoming);
+    expect(mergePlanExtras([{ metadata: { phase: "old" } }] as unknown as never, incoming)).toEqual(
+      incoming
+    );
     expect(mergePlanExtras("not-an-object" as unknown as never, incoming)).toEqual(incoming);
     expect(mergePlanExtras(42 as unknown as never, incoming)).toEqual(incoming);
     expect(mergePlanExtras(null, incoming)).toEqual(incoming);
@@ -80,7 +82,9 @@ describe("mergePlanExtras — T-841 frozen semantics", () => {
     const result = mergePlanExtras(stored, incoming);
 
     expect(result).toEqual({ metadata: { phase: "cutting" } });
-    expect((result as { metadata: { highlightedChanges?: string } }).metadata.highlightedChanges).toBeUndefined();
+    expect(
+      (result as { metadata: { highlightedChanges?: string } }).metadata.highlightedChanges
+    ).toBeUndefined();
   });
 
   it("case 9 — an incoming key explicitly set to undefined never clears the stored value (rule 3)", () => {

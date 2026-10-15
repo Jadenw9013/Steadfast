@@ -2,7 +2,19 @@
 
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import styles from "./meal-card.module.css";
 import { createDraftMealPlan, saveDraftMealPlan, publishMealPlan } from "@/app/actions/meal-plans";
+import {
+  applyMacroEstimates,
+  buildAutofillRequest,
+  buildMacroDraftInput,
+  findMealNameProblem,
+  macroCalorieMismatch,
+  macroEditorSignature,
+  mealNameProblemMessage,
+  AUTOFILL_MISALIGNED_MESSAGE,
+  AUTOFILL_NO_SOURCE_MESSAGE,
+} from "@/lib/meal-plans/editor-state";
 import { MealPlanActions } from "./meal-plan-actions";
 import {
   macroTargetsToEditable,
@@ -10,8 +22,6 @@ import {
   type EditableMacroMeal,
 } from "@/types/meal-plan";
 import type { EffectiveMealPlan } from "@/lib/queries/meal-plans";
-import { emptyPlanMessage } from "@/lib/meal-plans/publish-messages";
-import { macroEditorSignature } from "@/lib/meal-plans/editor-state";
 
 const MACRO_FIELDS = [
   { key: "calories" as const, label: "Calories", short: "Cal", accent: "text-blue-300", ring: "focus:border-blue-400/60 focus:ring-blue-400/20" },
@@ -25,6 +35,7 @@ function MacroMealRow({
   index,
   isFirst,
   isLast,
+  noFoodsForAutofill,
   onUpdate,
   onRemove,
   onMoveUp,
@@ -34,6 +45,8 @@ function MacroMealRow({
   index: number;
   isFirst: boolean;
   isLast: boolean;
+  /** This row has no foods under its name, so autofill will leave it alone. */
+  noFoodsForAutofill?: boolean;
   onUpdate: (patch: Partial<EditableMacroMeal>) => void;
   onRemove: () => void;
   onMoveUp: () => void;
@@ -42,9 +55,12 @@ function MacroMealRow({
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState(meal.mealName);
   const formattedIndex = String(index + 1).padStart(2, "0");
+  // Advisory only — never blocks Publish, and stays silent on a calories-only
+  // row (T-103).
+  const mismatch = macroCalorieMismatch(meal);
 
   return (
-    <div className="group/card overflow-hidden sf-glass-card">
+    <div className={`${styles.staticCard} overflow-hidden sf-glass-card`}>
       {/* Header — mirrors MealCard's header for visual consistency between modes */}
       <div className="flex flex-wrap items-center justify-between gap-y-1 border-b border-white/[0.08] px-4 py-3.5 sm:px-5">
         <div className="flex min-w-0 items-center gap-3">
@@ -79,10 +95,10 @@ function MacroMealRow({
                 setTempName(meal.mealName);
                 setEditingName(true);
               }}
-              className="flex items-center gap-2 whitespace-nowrap text-sm font-bold uppercase tracking-wider text-white transition-colors hover:text-blue-100"
+              className="group/name flex items-center gap-2 whitespace-nowrap text-sm font-bold uppercase tracking-wider text-white transition-colors hover:text-blue-100"
             >
               {meal.mealName}
-              <svg className="h-3 w-3 shrink-0 text-zinc-600 opacity-0 transition-opacity group-hover/card:opacity-100" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="h-3 w-3 shrink-0 text-zinc-600 opacity-0 transition-opacity group-hover/name:opacity-100 group-focus-visible/name:opacity-100" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
               </svg>
             </button>
@@ -132,6 +148,28 @@ function MacroMealRow({
           </label>
         ))}
       </div>
+
+      {noFoodsForAutofill && (
+        <p className="px-4 pb-3 text-[11px] text-zinc-500">
+          No foods in this meal — autofill will skip it.
+        </p>
+      )}
+
+      {mismatch && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.08] px-4 py-2.5">
+          <p className="min-w-0 text-[11px] text-amber-400">
+            Calories don&rsquo;t match these macros (4×P + 4×C + 9×F = {mismatch.derived}).
+          </p>
+          <button
+            type="button"
+            onClick={() => onUpdate({ calories: mismatch.derived })}
+            aria-label={`Set ${meal.mealName} calories to ${mismatch.derived}`}
+            className="flex min-h-[48px] shrink-0 items-center rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition-all hover:border-amber-500/40 hover:bg-amber-500/20 active:scale-[0.97]"
+          >
+            Use {mismatch.derived}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -152,42 +190,53 @@ export function MacroPlanEditor({
   const router = useRouter();
   const [draftId, setDraftId] = useState<string | null>(effectivePlan.draftId);
   const [meals, setMeals] = useState<EditableMacroMeal[]>(() => macroTargetsToEditable(effectivePlan.macroTargets));
+  // T-103 — `MealPlan.supportContent`, the same column and the same field the
+  // foods editor authors. A macro week routinely inherits notes written in
+  // foods mode (T-101 carry-forward) and the client's MacroMealList renders
+  // them, so the coach needs to be able to see and edit them here too.
+  const [supportContent, setSupportContent] = useState<string>(effectivePlan.supportContent || "");
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  // T-102b — publishMealPlan throws on rejection (e.g. the server-side
+  // empty-plan guard); without this the rejection was silent and the button
+  // just reverted to "Publish". Mirrors the autofillError state below.
+  // Holds a fixed sentence, never the thrown message — see handlePublish.
+  // T-103 — it now also carries a locally-computed meal-name validation
+  // sentence (`mealNameProblemMessage`), produced before any server call. The
+  // *thrown* message is still never used.
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [notifyClient, setNotifyClient] = useState(coachDefaultNotify ?? true);
   const [autofilling, setAutofilling] = useState(false);
   const [autofillError, setAutofillError] = useState<string | null>(null);
   const [privacyConsent, setPrivacyConsent] = useState(false);
-  const [publishError, setPublishError] = useState<string | null>(null);
 
   const isUnsaved = draftId === null;
   // Foods from a prior MEAL_PLAN-mode edit of this same plan (if any) — the source autofill estimates from.
   const hasExistingItems = effectivePlan.items.length > 0;
 
-  // Mirror of the foods editor: the plan-mode toggle unmounts this editor and
-  // everything typed into it, so report whether the current targets differ
-  // from the ones this editor was seeded with (T-800 code-review r1, MAJOR-3).
+  // Which rows autofill can actually estimate, and which it must leave alone.
+  // Rows with no foods under their name are excluded from the request entirely:
+  // the model is instructed to return zeros for a foodless meal, so sending them
+  // would wipe hand-typed targets (T-103).
+  const autofill = useMemo(
+    () => buildAutofillRequest(meals, effectivePlan.items),
+    [meals, effectivePlan.items]
+  );
+
+  // Mirror of the foods editor: the plan-mode toggle above unmounts this editor
+  // and everything typed into it, so report whether the current targets differ
+  // from the ones this editor was seeded with (T-102a review, finding 1).
   const baselineSignature = useMemo(
-    () => macroEditorSignature(effectivePlan.macroTargets),
+    () => macroEditorSignature(effectivePlan.macroTargets, effectivePlan.supportContent || ""),
     [effectivePlan]
   );
-  const hasUnsavedChanges = macroEditorSignature(meals) !== baselineSignature;
+  const hasUnsavedChanges =
+    macroEditorSignature(meals, supportContent) !== baselineSignature;
 
   useEffect(() => {
     onUnsavedChange?.(hasUnsavedChanges);
     return () => onUnsavedChange?.(false);
   }, [hasUnsavedChanges, onUnsavedChange]);
-
-  // NIT: clear the stale publish-refusal sentence as soon as the coach adds a
-  // meal row, rather than leaving it on screen until the next publish attempt
-  // (T-800 code-review r1, NIT-1). Adjusted during render, not in an effect —
-  // same pattern as plan-mode-toggle.tsx's seeded-mode reset — so this can't
-  // cascade an extra render.
-  const [lastMealCountForError, setLastMealCountForError] = useState(meals.length);
-  if (meals.length !== lastMealCountForError) {
-    setLastMealCountForError(meals.length);
-    if (meals.length > 0 && publishError) setPublishError(null);
-  }
 
   const dailyTotals = meals.reduce(
     (acc, m) => ({
@@ -201,15 +250,11 @@ export function MacroPlanEditor({
 
   async function ensureDraft(): Promise<string | null> {
     if (draftId) return draftId;
-    const result = await createDraftMealPlan({
-      clientId,
-      weekStartDate,
-      // Must stay explicit — this is the one editor where the coach
-      // deliberately chose MACROS. Omitting it (T-800) would let a new
-      // version fall through to a stale default instead.
-      planMode: "MACROS",
-      macroTargets: flattenMacroMeals(meals),
-    });
+    // Payload shape (including the explicit `planMode: "MACROS"`) lives in
+    // lib/meal-plans/editor-state.ts, under unit test — T-102a review, finding 2.
+    const result = await createDraftMealPlan(
+      buildMacroDraftInput({ clientId, weekStartDate, meals, supportContent })
+    );
     if ("mealPlanId" in result) {
       setDraftId(result.mealPlanId);
       return result.mealPlanId;
@@ -221,7 +266,23 @@ export function MacroPlanEditor({
     setSaving(true);
     try {
       if (draftId) {
-        await saveDraftMealPlan({ mealPlanId: draftId, macroTargets: flattenMacroMeals(meals) });
+        // `|| undefined`, not `?? undefined`: an emptied box must not clear the
+        // saved notes (that is T-732, and `supportContentInputSchema`
+        // normalizes "" to undefined server-side anyway). The create path in
+        // `buildMacroDraftInput` deliberately sends an explicit `null` instead
+        // — on create, `undefined` means "carry the previous plan's notes
+        // forward" (T-101). The asymmetry is intentional.
+        const result = await saveDraftMealPlan({
+          mealPlanId: draftId,
+          macroTargets: flattenMacroMeals(meals),
+          supportContent: supportContent || undefined,
+        });
+        // Someone else published/superseded this draft in the meantime —
+        // the server forked a fresh one rather than corrupting the live
+        // plan. Adopt its id.
+        if ("forkedNewDraftId" in result && result.forkedNewDraftId) {
+          setDraftId(result.forkedNewDraftId);
+        }
       } else {
         await ensureDraft();
       }
@@ -232,30 +293,44 @@ export function MacroPlanEditor({
   }
 
   async function handlePublish() {
-    // Local pre-check with the exact sentence: production Next redacts
-    // Server Action error messages into a minified React error, so the
-    // server-side publish guard alone would turn "plan vanishes" into
-    // "Publish button does nothing" (T-800).
-    if (meals.length === 0) {
-      setPublishError(emptyPlanMessage("MACROS"));
+    // Before `setPublishing(true)` and before any server call — including
+    // `ensureDraft()` — so a rejected publish never creates a draft row (T-103).
+    const problem = findMealNameProblem(meals.map((m) => m.mealName));
+    if (problem) {
+      setPublishError(mealNameProblemMessage(problem));
       return;
     }
-    setPublishError(null);
     setPublishing(true);
+    setPublishError(null);
     try {
-      const id = draftId ?? (await ensureDraft());
-      if (!id) return;
-      await saveDraftMealPlan({ mealPlanId: id, macroTargets: flattenMacroMeals(meals) });
-      const result = await publishMealPlan({ mealPlanId: id, notifyClient });
-      if (!result.success) {
-        setPublishError(result.message);
+      let id = draftId ?? (await ensureDraft());
+      if (!id) {
+        setPublishError("Publish failed. Please try again.");
         return;
       }
+      // `supportContent: supportContent || undefined` — same T-732 semantics as
+      // handleSave above.
+      const saveResult = await saveDraftMealPlan({
+        mealPlanId: id,
+        macroTargets: flattenMacroMeals(meals),
+        supportContent: supportContent || undefined,
+      });
+      if ("forkedNewDraftId" in saveResult && saveResult.forkedNewDraftId) {
+        id = saveResult.forkedNewDraftId;
+      }
+      await publishMealPlan({ mealPlanId: id, notifyClient });
       setDraftId(null);
       router.refresh();
     } catch {
-      // Never render the thrown message — production Next redacts Server
-      // Action errors into a minified React error string.
+      // Deliberately ignores the thrown error's message. In a production build
+      // Next.js redacts Server Action error messages, and React's flight client
+      // replaces them with a real Error whose message is
+      // "Minified React error #441; visit https://react.dev/errors/441 ..." —
+      // so `err.message` would render minified React text and a react.dev URL
+      // to the coach. Fixed sentence, mirroring
+      // components/coach/training/training-program-editor.tsx's publish catch.
+      // T-742 restores the mode-specific server wording by making
+      // publishMealPlan return a result instead of throwing.
       setPublishError("Publish failed. Please try again.");
     } finally {
       setPublishing(false);
@@ -292,38 +367,37 @@ export function MacroPlanEditor({
       setAutofillError("Check the box above to confirm before using AI.");
       return;
     }
+    if (autofill.sourceMeals.length === 0) {
+      setAutofillError(AUTOFILL_NO_SOURCE_MESSAGE);
+      return;
+    }
     setAutofilling(true);
     setAutofillError(null);
     try {
-      // Group existing food items (from a prior MEAL_PLAN-mode edit of this plan) by meal name.
-      const grouped = new Map<string, { food: string; portion: string }[]>();
-      for (const item of effectivePlan.items) {
-        const list = grouped.get(item.mealName) ?? [];
-        list.push({ food: item.foodName, portion: item.servingDescription || `${item.quantity} ${item.unit}`.trim() });
-        grouped.set(item.mealName, list);
-      }
-      const sourceMeals = meals.length > 0
-        ? meals.map((m) => ({ name: m.mealName, items: grouped.get(m.mealName) ?? [] }))
-        : Array.from(grouped, ([name, items]) => ({ name, items }));
-
       const response = await fetch("/api/mealplans/estimate-macros", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ privacyConsent: true, meals: sourceMeals }),
+        body: JSON.stringify({ privacyConsent: true, meals: autofill.sourceMeals }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.error || "Failed to estimate macros");
 
       const estimates: { name: string; calories: number; protein: number; carbs: number; fats: number }[] = body.meals;
-      if (meals.length > 0) {
-        setMeals((prev) =>
-          prev.map((m) => {
-            const est = estimates.find((e) => e.name === m.mealName);
-            return est ? { ...m, calories: est.calories, protein: est.protein, carbs: est.carbs, fats: est.fats } : m;
-          })
-        );
-      } else {
+      if (autofill.seeding) {
         setMeals(estimates.map((e) => ({ id: crypto.randomUUID(), mealName: e.name, calories: e.calories, protein: e.protein, carbs: e.carbs, fats: e.fats })));
+      } else {
+        // Applied to the `meals` render snapshot, deliberately NOT through a
+        // `setMeals(prev => …)` updater: the index mapping is only valid against
+        // the array the request was built from, and this matches how
+        // handleSave/handlePublish already flatten the snapshot. A row added
+        // during the round-trip is therefore discarded — the window is one
+        // OpenAI call, during which the button reads "Estimating…".
+        const next = applyMacroEstimates(meals, autofill.targetIndices, estimates);
+        if (!next) {
+          setAutofillError(AUTOFILL_MISALIGNED_MESSAGE);
+          return;
+        }
+        setMeals(next);
       }
     } catch (err) {
       setAutofillError(err instanceof Error ? err.message : "Failed to estimate macros");
@@ -370,7 +444,7 @@ export function MacroPlanEditor({
             <button
               type="button"
               onClick={handleAutofill}
-              disabled={autofilling || !privacyConsent}
+              disabled={autofilling || !privacyConsent || autofill.sourceMeals.length === 0}
               className="group flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-400 transition-all hover:bg-blue-500/20 hover:border-blue-500/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40"
             >
               <svg className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -383,6 +457,11 @@ export function MacroPlanEditor({
             <input type="checkbox" checked={privacyConsent} onChange={(e) => setPrivacyConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500/50" />
             <span>I agree to send this plan&rsquo;s foods to OpenAI to estimate macros. I have removed personal client information, or obtained the client&rsquo;s permission to share it. Review estimates before saving.</span>
           </label>
+          {/* A precondition, not a failure — same muted treatment as the
+              description above, not the red error styling below. */}
+          {autofill.sourceMeals.length === 0 && (
+            <p className="text-xs text-zinc-500">{AUTOFILL_NO_SOURCE_MESSAGE}</p>
+          )}
           {autofillError && <p className="text-xs text-red-400">{autofillError}</p>}
         </div>
       )}
@@ -396,6 +475,7 @@ export function MacroPlanEditor({
             index={i}
             isFirst={i === 0}
             isLast={i === meals.length - 1}
+            noFoodsForAutofill={hasExistingItems && autofill.skippedIndices.includes(i)}
             onUpdate={(patch) => updateMeal(i, patch)}
             onRemove={() => removeMeal(i)}
             onMoveUp={() => moveMeal(i, "up")}
@@ -425,11 +505,49 @@ export function MacroPlanEditor({
         Day overrides aren&rsquo;t supported in macro mode yet.
       </p>
 
+      {/* Support Content (Guidelines, Extras, etc) — same field and markup as
+          the foods editor (meal-plan-editor-v2.tsx). Distinct id so the two can
+          never collide. No undo wiring: this editor has no undo stack. The
+          inline `font-size` is defensive redundancy, not a specificity
+          override — globals.css's unlayered `input, select, textarea {
+          font-size: max(1rem, 16px) }` already beats `text-sm` regardless of
+          specificity (Tailwind's utilities live in `@layer utilities`, and an
+          unlayered rule always wins over a layered one). It's the same inline
+          style the macro number inputs above already carry, kept for the same
+          belt-and-braces reason: the design system requires 16px on every
+          input and this makes that explicit at the call site. */}
+      <div className="sf-glass-card p-6 shadow-xl shadow-black/40">
+        <label htmlFor="macroSupportContent" className="mb-3 block text-xs font-bold uppercase tracking-wider text-zinc-500">
+          Support Content & Guidelines
+        </label>
+        <textarea
+          id="macroSupportContent"
+          value={supportContent}
+          onChange={(e) => setSupportContent(e.target.value)}
+          className="w-full min-h-[160px] resize-y rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-sm leading-relaxed text-zinc-200 placeholder:text-zinc-600 focus:border-blue-500/50 focus:bg-white/[0.04] focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          style={{ fontSize: "max(1rem, 16px)" }}
+          placeholder="Add unconstrained text here for supplements, allowances, rules, substitutions, coach notes, or whatever else formatting you need."
+        />
+      </div>
+
+      {/* T-102b — publish rejection feedback, rendered next to the button that caused it. */}
       {publishError && (
-        <p className="text-sm font-medium text-red-400" role="alert">
-          {publishError}
-        </p>
+        <div
+          role="alert"
+          className="flex items-start justify-between gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 text-sm text-red-400"
+        >
+          <span className="min-w-0 py-2.5">{publishError}</span>
+          <button
+            type="button"
+            onClick={() => setPublishError(null)}
+            aria-label="Dismiss"
+            className="-mr-2 flex h-12 w-12 shrink-0 items-center justify-center rounded-lg text-red-400/70 transition-colors hover:bg-red-500/10 hover:text-red-300"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
       )}
+
       <MealPlanActions
         saving={saving}
         publishing={publishing}

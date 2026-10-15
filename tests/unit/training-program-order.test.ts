@@ -21,9 +21,6 @@ describe("PUBLISHED_TRAINING_ORDER_BY", () => {
 
 describe("DRAFT_TRAINING_ORDER_BY", () => {
   it("is exactly updatedAt desc, then id desc", () => {
-    expect(DRAFT_TRAINING_ORDER_BY).toEqual([
-      { updatedAt: "desc" },
-      { id: "desc" },
-    ]);
+    expect(DRAFT_TRAINING_ORDER_BY).toEqual([{ updatedAt: "desc" }, { id: "desc" }]);
   });
 });

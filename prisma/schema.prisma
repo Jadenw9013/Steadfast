@@ -83,24 +83,25 @@ model User {
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 
-  coachAssignments  CoachClient[]      @relation("Coach")
-  clientAssignments CoachClient[]      @relation("Client")
-  checkIns          CheckIn[]
-  clientMessages    Message[]          @relation("ClientMessages")
-  sentMessages      Message[]          @relation("SentMessages")
-  macroTargets      MacroTarget[]      @relation("MacroTargets")
-  mealPlans         MealPlan[]         @relation("MealPlans")
-  foodLibrary       FoodLibraryItem[]  @relation("FoodLibrary")
-  coachUploads      MealPlanUpload[]   @relation("CoachUploads")
-  clientUploads     MealPlanUpload[]   @relation("ClientUploads")
-  notificationLogs  NotificationLog[]
-  checkInTemplates  CheckInTemplate[]  @relation("CheckInTemplates")
-  trainingPrograms  TrainingProgram[]  @relation("TrainingPrograms")
-  trainingTemplates TrainingTemplate[] @relation("TrainingTemplates")
-  workoutImports    WorkoutImport[]    @relation("WorkoutImports")
-  coachProfile      CoachProfile?      @relation("MarketplaceProfile")
-  prospectRequests  CoachingRequest[]  @relation("ProspectRequests")
-  planSnippets      PlanSnippet[]      @relation("PlanSnippets")
+  coachAssignments    CoachClient[]      @relation("Coach")
+  clientAssignments   CoachClient[]      @relation("Client")
+  checkIns            CheckIn[]
+  clientMessages      Message[]          @relation("ClientMessages")
+  sentMessages        Message[]          @relation("SentMessages")
+  coachScopedMessages Message[]          @relation("CoachScopedMessages")
+  macroTargets        MacroTarget[]      @relation("MacroTargets")
+  mealPlans           MealPlan[]         @relation("MealPlans")
+  foodLibrary         FoodLibraryItem[]  @relation("FoodLibrary")
+  coachUploads        MealPlanUpload[]   @relation("CoachUploads")
+  clientUploads       MealPlanUpload[]   @relation("ClientUploads")
+  notificationLogs    NotificationLog[]
+  checkInTemplates    CheckInTemplate[]  @relation("CheckInTemplates")
+  trainingPrograms    TrainingProgram[]  @relation("TrainingPrograms")
+  trainingTemplates   TrainingTemplate[] @relation("TrainingTemplates")
+  workoutImports      WorkoutImport[]    @relation("WorkoutImports")
+  coachProfile        CoachProfile?      @relation("MarketplaceProfile")
+  prospectRequests    CoachingRequest[]  @relation("ProspectRequests")
+  planSnippets        PlanSnippet[]      @relation("PlanSnippets")
 
   onboardingForm     OnboardingForm?     @relation("CoachOnboardingForm")
   onboardingResponse OnboardingResponse? @relation("ClientOnboardingResponse")
@@ -136,6 +137,1038 @@ model User {
   reportsAgainst MessageReport[] @relation("ReportsAgainst")
 
   coachSubscription CoachSubscription?
+
+  coachingContext                ClientCoachingContext?
+  aiCoachProfile                 AiCoachProfile?
+  aiCoachEntitlement             AiCoachEntitlement?
+  aiCoachRuns                    AiCoachRun[]
+  aiPlanVersions                 AiPlanVersion[]
+  aiAdjustmentSlots              AiAdjustmentSlot[]
+  aiWorkoutSessions              AiWorkoutSession[]
+  aiCoachReviewerGrant           AiCoachReviewerGrant?
+  aiIntakeDraft                  AiIntakeDraft?
+  aiSafetyDisclosures            AiSafetyDisclosureEvent[]
+  aiPlanAcceptanceReceipts       AiPlanAcceptanceReceipt[]
+  aiPlanAcceptanceOutbox         AiPlanAcceptanceOutbox[]
+  aiOperationReceipts            AiOperationReceipt[]
+  aiObservations                 AiCheckInObservation[]
+  aiNutritionLogs                AiNutritionLog[]
+  aiNutritionSafetyDecisions     AiNutritionSafetyDecision[]
+  aiAutonomyGateDecisions        AiAutonomyGateDecision[]
+  aiProviderBoundaryAudits       AiProviderBoundaryAudit[]
+  aiAutomaticPlanApprovals       AiAutomaticPlanApproval[]
+  aiPlanActivationAttempts       AiPlanActivationAttempt[]
+  aiCoachGovernanceGrant         AiCoachGovernanceGrant?
+  aiCoachOperationalEvents       AiCoachOperationalEvent[]
+  aiCoachArtifactLifecycleEvents AiCoachArtifactLifecycleEvent[]
+  aiCoachLiveLaunchEvents        AiCoachLiveLaunchLifecycleEvent[]
+  aiCoachLiveActivationEvents    AiCoachLiveActivationEvent[]
+  aiCoachProviderTransitions     AiCoachProviderTransitionReceipt[]
+  aiCoachAccessGrantEventsAsActor   AiCoachAccessGrantEvent[] @relation("AiCoachAccessGrantEventActor")
+  aiCoachAccessGrantEventsAsSubject AiCoachAccessGrantEvent[] @relation("AiCoachAccessGrantEventSubject")
+}
+
+enum CoachingMode {
+  NONE
+  HUMAN
+  AI
+}
+
+// docs/ai-coach/05-API-and-State-Contracts.md — the single current-provider
+// authority (A01/CB06). Every writer that creates or deletes a CoachClient
+// row must reconcile this in the same transaction (see
+// lib/activation.ts's reconcileCoachingContextForClient). Ambiguous legacy
+// state (more than one CoachClient row for a client — not possible today,
+// verified zero occurrences before this migration, but not enforced by a
+// DB constraint) sets resolutionRequired instead of guessing an active one.
+model ClientCoachingContext {
+  id                  String       @id @default(cuid())
+  clientId            String       @unique
+  mode                CoachingMode @default(NONE)
+  activeCoachClientId String?      @unique
+  revision            Int          @default(0)
+  resolutionRequired  Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  client            User         @relation(fields: [clientId], references: [id])
+  activeCoachClient CoachClient? @relation(fields: [activeCoachClientId], references: [id])
+}
+
+// Persistent AI-coaching identity for a client (A01). Retained across
+// pause/re-enrollment; the confirmed intake payload and clinical policy
+// content are added by later A-series slices. `activePlanVersionId` has no
+// FK yet — AiPlanVersion doesn't exist until A02.
+model AiCoachProfile {
+  isSynthetic                 Boolean   @default(false) // Explicit test subject; never client-writable.
+  id                          String    @id @default(cuid())
+  clientId                    String    @unique
+  profileRevision             Int       @default(0)
+  observationRevision         Int       @default(0)
+  safetyRevision              Int       @default(0)
+  reviewTimezone              String?
+  activePlanVersionId         String?
+  // Written only by ENROLL's accepted path (lib/ai-coach/client-commands.ts),
+  // which verifies consentTextDigest against the live release's approved
+  // disclosure text (non-synthetic) before writing — never by confirmIntake
+  // or a run request. Stamped fresh on every accepted ENROLL, including
+  // re-consent, so it means "when the client consented to the disclosure
+  // recorded alongside it", not merely "first ever consent". See S-21.
+  consentedAt                 DateTime?
+  consentReleaseId            String?
+  consentConfigurationDigest  String?
+  consentConfigurationId      String?
+  consentConfigurationVersion Int?
+  consentPrivacyNoticeVersion String?
+  consentTextDigest           String?
+
+  // Confirmed structured intake (A03) — set only by an explicit confirm
+  // action, never by a draft save. A new allergy or goal change cannot
+  // remain only in a pending draft (docs/ai-coach/05).
+  confirmedIntake Json?
+
+  // Current safety disposition and per-domain permissions (A03). Only
+  // submitSafetyDisclosure (lib/ai-coach/safety.ts) may change these — it
+  // can increase caution but never clear a restriction; clearing is a
+  // separate, deliberate reviewed-resolution action (clearSafetyRestriction),
+  // never reachable from the client's own disclosure submission.
+  safetyDisposition   AiSafetyDisposition @default(CLEAR)
+  nutritionPermission AiDomainPermission  @default(ALLOW)
+  strengthPermission  AiDomainPermission  @default(ALLOW)
+  cardioPermission    AiDomainPermission  @default(ALLOW)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client User @relation(fields: [clientId], references: [id])
+}
+
+// Account-owned proof of an explicit provider choice. It binds only minimized
+// consent/configuration metadata, never intake answers or disclosure text.
+model AiCoachProviderTransitionReceipt {
+  id                            String       @id @default(cuid())
+  clientId                      String
+  fromMode                      CoachingMode
+  fromContextRevision           Int
+  toMode                        CoachingMode
+  toContextRevision             Int
+  releaseId                     String
+  runtimeConfigurationDigest    String
+  discoveryConfigurationId      String
+  discoveryConfigurationVersion Int
+  privacyNoticeVersion          String
+  consentTextDigest             String
+  createdAt                     DateTime     @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, createdAt])
+}
+
+enum AiSafetyDisposition {
+  CLEAR
+  CLARIFY
+  RESTRICTED
+  REFER
+  URGENT
+}
+
+enum AiDomainPermission {
+  ALLOW
+  HOLD_ONLY
+  PAUSED
+}
+
+// Unconfirmed, partially-completed intake — separate from
+// AiCoachProfile.confirmedIntake so an in-progress edit never counts as
+// confirmed (A03). Available to an authenticated invited applicant before
+// AI becomes the active provider (docs/ai-coach/05).
+model AiIntakeDraft {
+  id        String   @id @default(cuid())
+  clientId  String   @unique
+  answers   Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client User @relation(fields: [clientId], references: [id])
+}
+
+// Append-only audit log of every safety disclosure received and what it
+// changed (A03) — "History remains distinguishable from current advice"
+// (docs/ai-coach/06 §1). Never edited or deleted except by account purge.
+model AiSafetyDisclosureEvent {
+  id                       String              @id @default(cuid())
+  clientId                 String
+  reportedAt               DateTime            @default(now())
+  structuredAnswers        Json
+  dispositionAfter         AiSafetyDisposition
+  nutritionPermissionAfter AiDomainPermission
+  strengthPermissionAfter  AiDomainPermission
+  cardioPermissionAfter    AiDomainPermission
+  safetyRevisionAfter      Int
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, reportedAt])
+}
+
+// Invited-pilot entitlement (A01) — separate from coach billing
+// (CoachSubscription) and from provider authority (ClientCoachingContext).
+// Grants cannot be self-asserted by a client or by the model; enrollment
+// must check this server-side alongside the enrollment feature flag.
+model AiCoachEntitlement {
+  id        String    @id @default(cuid())
+  clientId  String    @unique
+  grantedAt DateTime  @default(now())
+  grantedBy String? // internal id of whoever granted it; null for a seeded/manual grant
+  expiresAt DateTime?
+  revokedAt DateTime?
+
+  client User @relation(fields: [clientId], references: [id])
+}
+
+// T-1005 — global, server-owned reviewed artifacts. These rows contain no
+// client data and are not owned by a User. Content, compatibility, review
+// metadata, version and digest are immutable after insertion; the migration's
+// trigger permits only DRAFT -> PUBLISHED -> REVOKED lifecycle transitions.
+enum AiCoachArtifactKind {
+  POLICY_BUNDLE
+  FOOD_CATALOG
+  EXERCISE_CATALOG
+  EVIDENCE_REGISTRY
+  ESCALATION_TEMPLATES
+}
+
+enum AiCoachArtifactState {
+  DRAFT
+  PUBLISHED
+  REVOKED
+}
+
+model AiCoachArtifactVersion {
+  id             String               @id
+  artifactKey    String
+  version        Int
+  kind           AiCoachArtifactKind
+  state          AiCoachArtifactState @default(DRAFT)
+  schemaVersion  Int
+  engineVersions String[]
+  dependencies   Json
+  content        Json
+  contentDigest  String
+  synthetic      Boolean
+  reviewMetadata Json
+
+  effectiveAt      DateTime?
+  expiresAt        DateTime?
+  publishedAt      DateTime?
+  revokedAt        DateTime?
+  revocationReason String?   @db.Text
+  createdAt        DateTime  @default(now())
+
+  @@unique([kind, artifactKey, version])
+  @@index([kind, artifactKey, state, effectiveAt])
+}
+
+enum AiNutritionSafetyOutcome {
+  PASS
+  HOLD
+  PAUSE_REFER
+}
+
+// T-1003 — append-only audit of deterministic server-side nutrition safety
+// gates. Inputs are structured/minimized synthetic fixtures in this slice;
+// no model trace or diagnostic label is stored. Policy identity and digest
+// bind every result to the exact reviewed T-1005 bundle used to compute it.
+model AiNutritionSafetyDecision {
+  id                    String                   @id @default(cuid())
+  clientId              String
+  evaluationKey         String
+  policyArtifactId      String
+  policyArtifactVersion Int
+  policyArtifactDigest  String
+  outcome               AiNutritionSafetyOutcome
+  reasonCodes           String[]
+  ruleIds               String[]
+  escalationTemplateIds String[]
+  inputSnapshot         Json
+  inputDigest           String
+  sourcePlanVersionIds  String[]
+  createdAt             DateTime                 @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, createdAt])
+  @@index([clientId, evaluationKey])
+}
+
+enum AiAutonomyOutcome {
+  APPROVE_AUTOMATICALLY
+  HOLD
+  FOCUSED_CLARIFICATION
+  PAUSE_REFER
+}
+
+// T-1006 — immutable server-owned result of the fixed-order autonomy gate.
+// It binds the exact reviewed artifact set, current revisions, minimized
+// structured inputs, source revisions, T-1003 decision and evaluated candidate.
+// A reviewer status, model response or feature flag is never an approval input.
+model AiAutonomyGateDecision {
+  id                        String            @id @default(cuid())
+  clientId                  String
+  evaluationKey             String
+  outcome                   AiAutonomyOutcome
+  orderedReasonCodes        String[]
+  ruleIds                   String[]
+  nextActionTemplateId      String
+  artifactRefs              Json
+  sourceRefs                Json
+  inputSnapshot             Json
+  inputDigest               String
+  validationReport          Json
+  contextRevision           Int
+  profileRevision           Int
+  observationRevision       Int
+  safetyRevision            Int
+  nutritionSafetyDecisionId String?
+  evaluatedPlanVersionId    String?
+  approvedPlanVersionId     String?
+  candidatePayloadHash      String?
+  createdAt                 DateTime          @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, createdAt])
+  @@index([clientId, evaluationKey])
+}
+
+enum AiProviderBoundaryOutcome {
+  VALIDATED
+  SKIPPED_GATE
+  FAIL_CLOSED
+  CAUTION
+}
+
+// T-1007 — minimized append-only provider-boundary audit. It stores digests
+// and validated reference selections, never raw prompts, provider traces,
+// policy bodies or another client's data. T-2006/T-2030:
+// `validatedOutput.explanationText`/`clarificationText` are sanitized to
+// `null` whenever the corresponding prose was rejected — a rejected string
+// never reaches this row — and `explanationValidation` stores only reason
+// codes and a character count, never the text itself.
+model AiProviderBoundaryAudit {
+  id                     String                    @id @default(cuid())
+  clientId               String
+  operationId            String                    @unique
+  promptContractVersion  String
+  providerConfiguration  String
+  boundaryOutcome        AiProviderBoundaryOutcome
+  resultOutcome          AiAutonomyOutcome
+  failureCode            String?
+  attempts               Int
+  preGateDecisionId      String
+  finalGateDecisionId    String?
+  inputSnapshot          Json
+  inputDigest            String
+  validatedOutput        Json?
+  outputDigest           String?
+  usage                  Json?
+  explanationValidation  Json?
+  createdAt              DateTime                  @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, createdAt])
+}
+
+// T-1008 — the only authorization record that can make a managed proposal
+// actionable. It is append-only and binds a server-assembled T-1006 input to
+// the exact candidate and successful T-1007 audit. A reviewer/model cannot
+// write or replace this record.
+model AiAutomaticPlanApproval {
+  id                      String   @id @default(cuid())
+  clientId                String
+  planVersionId           String   @unique
+  gateDecisionId          String
+  providerBoundaryAuditId String   @unique
+  evaluationKey           String
+  candidatePayloadHash    String
+  artifactRequest         Json
+  artifactRefs            Json
+  sourceRefs              Json
+  gateInput               Json
+  providerSelection       Json
+  stateDigest             String
+  createdAt               DateTime @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, createdAt])
+}
+
+enum AiPlanActivationOutcome {
+  ACCEPTED
+  REJECTED
+}
+
+// T-1008 — minimized append-only acceptance audit. No prompt, trace, health
+// note, intake body or provider prose is stored here.
+model AiPlanActivationAttempt {
+  id                  String                  @id @default(cuid())
+  clientId            String
+  planVersionId       String
+  requestKeyDigest    String
+  outcome             AiPlanActivationOutcome
+  reasonCode          String
+  automaticApprovalId String?
+  freshGateDecisionId String?
+  createdAt           DateTime                @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@index([clientId, createdAt])
+  @@index([planVersionId, createdAt])
+}
+
+// T-1010 — manually provisioned, least-privilege governance authority.
+// Reviewer grants are deliberately not accepted for these operations.
+model AiCoachGovernanceGrant {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  scopes    String[]
+  grantedAt DateTime  @default(now())
+  revokedAt DateTime?
+  grantRef  String
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+enum AiCoachOperationalScope {
+  GENERATION
+  PROVIDER
+  FINALIZATION
+  ACCEPTANCE
+  ARTIFACT_PUBLICATION
+}
+
+model AiCoachOperationalControl {
+  scope             AiCoachOperationalScope @id
+  disabled          Boolean                 @default(true)
+  reasonCode        String
+  incidentReference String?
+  // Deliberately no FK to AiCoachGovernanceGrant and no purge line (T-989
+  // review MINOR 5): this is one global kill-switch row per scope, not
+  // per-user data, so account deletion must never delete or block on it.
+  // If the grant that last flipped this switch is later purged with its
+  // user, this id becomes a historical, unresolvable reference — accepted,
+  // accountability-record-only staleness, not a functional dependency
+  // (nothing reads this column to authorize anything; only
+  // AiCoachOperationalEvent/AiCoachLiveLaunchLifecycleEvent/
+  // AiCoachLiveActivationEvent rows recording that same grant's other
+  // actions get deleted, by actorUserId, same as this decision applies to
+  // AiCoachArtifactLifecycleEvent.governanceGrantId).
+  updatedByGrantId  String
+  revision          Int                     @default(0)
+  updatedAt         DateTime                @updatedAt
+}
+
+// Append-only governance history for kill-switch changes.
+model AiCoachOperationalEvent {
+  id                String                  @id @default(cuid())
+  actorUserId       String
+  scope             AiCoachOperationalScope
+  disabled          Boolean
+  reasonCode        String
+  incidentReference String?
+  revision          Int
+  createdAt         DateTime                @default(now())
+
+  actor User @relation(fields: [actorUserId], references: [id])
+
+  @@index([scope, createdAt])
+}
+
+enum AiCoachAccessGrantType {
+  GOVERNANCE
+  REVIEWER
+  ENTITLEMENT
+}
+
+enum AiCoachAccessGrantAction {
+  BOOTSTRAP
+  GRANT
+  REVOKE
+}
+
+// T-995 — append-only provisioning history for the three AI Coach permission
+// tables. BOOTSTRAP is once-ever per database; every other row names the
+// CONTROL_OPERATIONS grant that authorized it.
+model AiCoachAccessGrantEvent {
+  id                String                   @id @default(cuid())
+  actorUserId       String
+  subjectUserId     String
+  governanceGrantId String
+  grantType         AiCoachAccessGrantType
+  action            AiCoachAccessGrantAction
+  grantRecordId     String
+  scopes            String[]                 @default([])
+  domains           String[]                 @default([])
+  clientIds         String[]                 @default([])
+  grantRef          String?
+  actorRef          String
+  reasonCode        String
+  expiresAt         DateTime?
+  createdAt         DateTime                 @default(now())
+
+  actor   User @relation("AiCoachAccessGrantEventActor", fields: [actorUserId], references: [id])
+  subject User @relation("AiCoachAccessGrantEventSubject", fields: [subjectUserId], references: [id])
+
+  @@index([subjectUserId, createdAt])
+  @@index([grantType, createdAt])
+}
+
+enum AiCoachArtifactLifecycleAction {
+  PUBLISH
+  REVOKE
+}
+
+// Append-only accountable lifecycle audit for the authorized T-1010 workflow.
+model AiCoachArtifactLifecycleEvent {
+  id                String                         @id @default(cuid())
+  actorUserId       String
+  governanceGrantId String
+  artifactVersionId String
+  action            AiCoachArtifactLifecycleAction
+  reasonCode        String
+  reviewRecordId    String
+  incidentReference String?
+  createdAt         DateTime                       @default(now())
+
+  actor User @relation(fields: [actorUserId], references: [id])
+
+  @@index([artifactVersionId, createdAt])
+}
+
+enum AiCoachLiveLaunchState {
+  DRAFT
+  APPROVED
+  REVOKED
+}
+
+enum AiCoachLiveLaunchAction {
+  APPROVE
+  REVOKE
+}
+
+enum AiCoachLiveActivationState {
+  ACTIVE
+  DEACTIVATED
+}
+
+enum AiCoachLiveActivationAction {
+  ACTIVATE
+  DEACTIVATE
+}
+
+// A global, versioned evidence index for a specific live release. Drafts may
+// retain explicit human-decision placeholders, but neither repository nor DB
+// lifecycle rules permit those/test-only packets to become APPROVED.
+model AiCoachLiveLaunchPacket {
+  id            String                 @id
+  packetKey     String
+  version       Int
+  state         AiCoachLiveLaunchState @default(DRAFT)
+  schemaVersion Int
+  releaseId     String                 @unique
+  engineVersion String
+  jurisdictions String[]
+  packet        Json
+  contentDigest String
+  testOnly      Boolean                @default(true)
+
+  effectiveAt      DateTime?
+  expiresAt        DateTime?
+  approvedAt       DateTime?
+  revokedAt        DateTime?
+  revocationReason String?   @db.Text
+  createdAt        DateTime  @default(now())
+
+  lifecycleEvents AiCoachLiveLaunchLifecycleEvent[]
+  activations     AiCoachLiveActivation[]
+
+  @@unique([packetKey, version])
+  @@index([state, effectiveAt, expiresAt])
+}
+
+// Server-selected authority for live operations and discovery. There is no
+// route or environment-variable selector for this row; activation is possible
+// only through the governed repository after the exact packet is revalidated.
+model AiCoachLiveActivation {
+  id                         String                     @id
+  state                      AiCoachLiveActivationState
+  packetId                   String                     @unique
+  packetDigest               String
+  releaseId                  String                     @unique
+  runtimeConfigurationDigest String
+  signedActivationRef        String
+  reasonCode                 String
+  revision                   Int                        @default(0)
+  activatedAt                DateTime                   @default(now())
+  deactivatedAt              DateTime?
+  deactivationReason         String?                    @db.Text
+
+  packet AiCoachLiveLaunchPacket @relation(fields: [packetId], references: [id])
+
+  @@index([state, activatedAt])
+}
+
+model AiCoachLiveActivationEvent {
+  id                         String                      @id @default(cuid())
+  actorUserId                String
+  governanceGrantId          String
+  activationId               String
+  packetId                   String
+  action                     AiCoachLiveActivationAction
+  packetDigest               String
+  runtimeConfigurationDigest String
+  signedActivationRef        String
+  reasonCode                 String
+  incidentReference          String?
+  createdAt                  DateTime                    @default(now())
+
+  actor User @relation(fields: [actorUserId], references: [id])
+
+  @@index([activationId, createdAt])
+  @@index([packetId, createdAt])
+}
+
+// Append-only accountable history. It stores packet digests/references, not
+// policy bodies, prompts, traces, client facts, or external signature bodies.
+model AiCoachLiveLaunchLifecycleEvent {
+  id                     String                  @id @default(cuid())
+  actorUserId            String
+  governanceGrantId      String
+  packetId               String
+  action                 AiCoachLiveLaunchAction
+  reasonCode             String
+  packetDigest           String
+  signedApprovalIndexRef String
+  incidentReference      String?
+  createdAt              DateTime                @default(now())
+
+  actor  User                    @relation(fields: [actorUserId], references: [id])
+  packet AiCoachLiveLaunchPacket @relation(fields: [packetId], references: [id])
+
+  @@index([packetId, createdAt])
+}
+
+// ── AI Coach: runs, plans, sessions, reviewer grants (A02) ────────────────────
+// docs/ai-coach/05-API-and-State-Contracts.md is authoritative for these
+// states and transitions. Synthetic-fixture engineering only — no real
+// clinical policy, catalog, or live model calls exist yet (A03/A04/A05).
+
+enum AiRunKind {
+  INITIAL
+  WEEKLY_REVIEW
+  REPRESENTATION
+}
+
+enum AiRunStatus {
+  QUEUED
+  RUNNING
+  RETRY_WAIT
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+enum AiChangeClass {
+  INITIAL
+  ROUTINE
+  TARGET_PRESERVING
+  PROTECTIVE
+}
+
+enum AiPlanStatus {
+  PROPOSED
+  ACCEPTED
+  DECLINED
+  SUPERSEDED
+  INVALIDATED
+}
+
+enum AiReviewerStatus {
+  NOT_REQUIRED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AiLoadKind {
+  EXTERNAL
+  BODYWEIGHT
+  ASSISTED
+}
+
+// A durable job record. Duplicate requests must resolve to the same
+// business operation (see businessKey); inputs and a completed result are
+// immutable once set, only execution metadata (status/lease/attempts)
+// changes. Run creation/business-key computation, and the deterministic
+// controller itself, are later A-series slices (A03/A04/A09) — this model
+// establishes the lifecycle shape and transition invariants only.
+model AiCoachRun {
+  id       String      @id @default(cuid())
+  clientId String
+  kind     AiRunKind
+  status   AiRunStatus @default(QUEUED)
+
+  // Deduplicates a logical run: derived from client + all relevant
+  // revisions + policy/catalog/model-config versions + run kind + active
+  // base + activation window + requested representation + retry
+  // generation. Computed by the caller (A03/A09); this model only enforces
+  // that duplicates collapse to one row.
+  businessKey String @unique
+
+  // Frozen inputs, snapshotted at creation and never mutated.
+  contextRevision     Int
+  profileRevision     Int
+  observationRevision Int
+  safetyRevision      Int
+  lookbackStart       DateTime?
+  lookbackEnd         DateTime?
+  snapshotCutoffAt    DateTime?
+  activationStartsAt  DateTime?
+  activationEndsAt    DateTime?
+
+  // Execution/lease metadata — mutable.
+  leaseExpiresAt  DateTime?
+  fencingToken    Int       @default(0)
+  attempts        Int       @default(0)
+  retryGeneration Int       @default(0)
+  // Explicit lineage for a server-authorized manual retry after terminal
+  // failure — a new row, never a reopened terminal one (docs/ai-coach/05).
+  retryOfRunId    String?
+  lastError       String?   @db.Text
+
+  // A05: the last persisted stage output, written atomically with a
+  // RUNNING→QUEUED checkpoint so a resumed run continues from real
+  // progress instead of repeating a stage. Never holds prompts/model
+  // traces meant for end-user or reviewer display — see run-status.ts.
+  checkpointData Json?
+  inputSnapshot  Json? // Immutable minimized inputs for managed runs.
+  resultDecision Json? // Validated safe decision, never a model trace.
+
+  // Result — set once, on the terminal COMPLETED transition.
+  resultPlanVersionId String?
+  resultReviewAction  AiReviewAction?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client  User         @relation(fields: [clientId], references: [id])
+  retryOf AiCoachRun?  @relation("RunRetryChain", fields: [retryOfRunId], references: [id])
+  retries AiCoachRun[] @relation("RunRetryChain")
+
+  @@index([clientId])
+  @@index([status, leaseExpiresAt])
+}
+
+enum AiReviewAction {
+  HOLD
+  SIMPLIFY
+  ADJUST
+  CLARIFY
+  PAUSE_REFER
+}
+
+// An immutable canonical AI plan payload. Content never changes once
+// created — a correction creates a new version with `baseVersionId`
+// pointing at the prior one. `acceptedAt` never resets. AI plans never
+// write the legacy MealPlan/TrainingProgram tables (D04).
+model AiPlanVersion {
+  id            String         @id @default(cuid())
+  clientId      String
+  version       Int
+  baseVersionId String?
+  status        AiPlanStatus   @default(PROPOSED)
+  changeClass   AiChangeClass?
+
+  // Immutable payload — PlanPayloadV1-shaped (nutrition/meals/strength/
+  // cardio). Stored as Json pending A04's reviewed catalog/policy schema;
+  // payloadHash lets a reviewer approval bind to the exact content without
+  // this model needing to know its internal shape yet.
+  payload     Json
+  payloadHash String
+
+  // Revisions this version was computed against — an acceptance must
+  // recheck these are still current (docs/ai-coach/05 "Atomic acceptance").
+  contextRevision     Int
+  profileRevision     Int
+  observationRevision Int
+  safetyRevision      Int
+
+  policyVersion   String
+  catalogVersions Json
+
+  activationStartsAt DateTime?
+  activationEndsAt   DateTime?
+
+  reviewerStatus       AiReviewerStatus @default(NOT_REQUIRED)
+  reviewerApprovalHash String?
+  reviewWindowKey      String?
+  validationReport     Json?
+  sourceRefs           Json?
+
+  acceptedAt    DateTime? // permanent once set — never cleared or reused
+  // A10: bounded, optional — set only by declinePlanVersion, only from PROPOSED.
+  declineReason String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client                User                    @relation(fields: [clientId], references: [id])
+  baseVersion           AiPlanVersion?          @relation("PlanVersionHistory", fields: [baseVersionId], references: [id])
+  corrections           AiPlanVersion[]         @relation("PlanVersionHistory")
+  approval              AiPlanReviewerApproval?
+  adjustmentSlot        AiAdjustmentSlot?
+  workoutSessions       AiWorkoutSession[]
+  acceptanceOutboxEntry AiPlanAcceptanceOutbox?
+
+  @@unique([clientId, version])
+  @@index([clientId, status])
+}
+
+// A10 — idempotency receipt for the accept-plan-version operation. Scoped
+// to (clientId, requestKey): the same key+payload replayed returns the
+// original receipt; the same key with a different payload (different
+// inputDigest) is a REVISION_CONFLICT, never silently re-executed
+// (docs/ai-coach/05 "Scope idempotency to authenticated owner and
+// operation"). The stored `activeVersionIdAtReceiptTime` is audit-only —
+// a replay must freshly re-read AiCoachProfile.activePlanVersionId rather
+// than trust this cached value as current state.
+model AiPlanAcceptanceReceipt {
+  id                           String   @id @default(cuid())
+  clientId                     String
+  requestKey                   String
+  inputDigest                  String
+  planVersionId                String
+  alreadyAccepted              Boolean
+  activeVersionIdAtReceiptTime String? // null when replayed after the active pointer was cleared
+  createdAt                    DateTime @default(now())
+
+  client User @relation(fields: [clientId], references: [id])
+
+  @@unique([clientId, requestKey])
+}
+
+// A10 — durable, deduplicated notification-intent record, inserted in the
+// same transaction as acceptance (docs/ai-coach/05 step 5: "insert a
+// deduplicated outbox event atomically"). One row per accepted plan
+// version, ever — a replayed acceptance can never enqueue a second
+// notification for the same version. Delivery (T-502) is a bounded drain
+// phase inside `runExecutorSweep` (`lib/ai-coach/acceptance-notifications.ts`),
+// gated on `FEATURE_AI_COACH_PUBLICATION` and the `ACCEPTANCE` operational
+// control, and push delivery state — matching this codebase's
+// StorageCleanupOutbox pattern for the claim/backoff shape.
+enum AiNotificationOutcome {
+  DELIVERED
+  SUPPRESSED_PREFERENCE
+  SUPPRESSED_NO_DEVICE
+  SUPPRESSED_ACCOUNT_CLOSED
+  SUPPRESSED_SUPERSEDED
+  SUPPRESSED_STALE
+  ABANDONED
+}
+
+model AiPlanAcceptanceOutbox {
+  id              String    @id @default(cuid())
+  planVersionId   String    @unique
+  clientId        String
+  createdAt       DateTime  @default(now())
+  processedAt     DateTime?
+  attempts        Int       @default(0) // also the claim token — see the drain's conditional updateMany
+  nextAttemptAt   DateTime? // null = due now; set forward on claim (lease) and on backoff
+  deliveryOutcome AiNotificationOutcome? // non-null iff processedAt is non-null
+  lastErrorCode   String? // closed AiPlanNotificationErrorCode set ONLY — this column is exported to the client, never a provider body
+
+  client      User          @relation(fields: [clientId], references: [id])
+  planVersion AiPlanVersion @relation(fields: [planVersionId], references: [id])
+
+  @@index([processedAt, nextAttemptAt])
+}
+
+// One accepted ROUTINE change per client per canonical review window,
+// permanently. Superseding, declining a later proposal, pausing, or
+// re-enrolling cannot erase this row (D08).
+model AiAdjustmentSlot {
+  id                    String   @id @default(cuid())
+  clientId              String
+  reviewWindowKey       String
+  acceptedPlanVersionId String   @unique
+  acceptedAt            DateTime @default(now())
+
+  client              User          @relation(fields: [clientId], references: [id])
+  acceptedPlanVersion AiPlanVersion @relation(fields: [acceptedPlanVersionId], references: [id])
+
+  @@unique([clientId, reviewWindowKey])
+}
+
+// A qualified reviewer's authorization to approve AI plan versions. An
+// ordinary isCoach flag is never sufficient authority (docs/ai-coach/05,
+// docs/ai-coach/06 §2) — this is an explicit, revocable capability grant.
+model AiCoachReviewerGrant {
+  clientIds         String[]  @default([]) // Explicit consented case assignments; never isCoach-derived.
+  domains           String[]  @default([]) // NUTRITION, STRENGTH, CARDIO verified capability scopes.
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  qualificationNote String    @db.Text
+  grantedAt         DateTime  @default(now())
+  grantedBy         String?
+  revokedAt         DateTime?
+
+  user      User                     @relation(fields: [userId], references: [id])
+  approvals AiPlanReviewerApproval[]
+}
+
+// A reviewer decision binds to the exact payload hash and revisions at
+// decision time — a modified candidate needs a new decision (docs/ai-coach/05).
+model AiPlanReviewerApproval {
+  id              String   @id @default(cuid())
+  planVersionId   String   @unique
+  reviewerGrantId String
+  stateHash       String? // Binds policy, catalog, evidence and revisions as well as content.
+  approvedHash    String
+  approved        Boolean
+  rationale       String   @db.Text
+  decidedAt       DateTime @default(now())
+
+  planVersion   AiPlanVersion        @relation(fields: [planVersionId], references: [id])
+  reviewerGrant AiCoachReviewerGrant @relation(fields: [reviewerGrantId], references: [id])
+}
+
+// A single logged strength-training session event. Uniqueness is on the
+// caller-supplied idempotency key, not on (exercise, day, week) — repeated
+// sessions of the same exercise in one week must remain independent
+// (mirrors F07's ExerciseResult.sessionDate fix, generalized with an
+// explicit client event id instead of a derived date).
+model AiWorkoutSession {
+  modality              String      @default("STRENGTH")
+  sessionInstanceId     String?
+  prescriptionSessionId String?
+  durationMinutes       Float?
+  resultStatus          String      @default("REPORTED_PARTIAL")
+  painReported          Boolean     @default(false)
+  effortRating          Int?
+  inputDigest           String?
+  deletedAt             DateTime?
+  id                    String      @id @default(cuid())
+  clientId              String
+  clientEventId         String
+  planVersionId         String
+  exerciseId            String
+  occurredAt            DateTime
+  timezone              String
+  setIndex              Int
+  reps                  Int?
+  loadValue             Float?
+  loadUnit              String?
+  loadKind              AiLoadKind?
+  painNote              String?     @db.Text
+  effortNote            String?     @db.Text
+  revision              Int         @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client      User          @relation(fields: [clientId], references: [id])
+  planVersion AiPlanVersion @relation(fields: [planVersionId], references: [id])
+
+  @@unique([clientId, clientEventId])
+  @@index([clientId, occurredAt])
+}
+
+// Durable mutation receipts shared by web/native commands. Cascade is intentional:
+// account deletion must not retain intake/evidence response payloads.
+
+// AI evidence is deliberately separate from human check-in queries: a later
+// human relationship is not implicit consent to read prior AI health answers.
+model AiCheckInObservation {
+  id            String    @id @default(cuid())
+  clientId      String
+  clientEventId String
+  occurredAt    DateTime
+  payload       Json
+  revision      Int       @default(1)
+  submitted     Boolean   @default(false)
+  inputDigest   String
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  client        User      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, clientEventId])
+  @@index([clientId, occurredAt])
+}
+
+enum AiNutritionLogSource {
+  PLAN_AS_WRITTEN
+  PLAN_WITH_EDITS
+  MANUAL
+  SKIPPED
+}
+
+enum AiNutritionLogCompleteness {
+  FULL
+  PARTIAL
+  NONE
+}
+
+// S-23 (adaptive energy, phase 1) — the client's own daily nutrition record.
+//
+// `SKIPPED` / `NONE` are FIRST-CLASS states, not an absence. "The client said
+// they did not log that day" is information the estimator must be able to see;
+// "there is no row for that day" is not. The two are kept distinguishable by
+// construction: a stored row always carries a declared `source` and a declared
+// `completeness`, and the migration's CHECK constraints
+// (`AiNutritionLog_none_has_no_macros`, `AiNutritionLog_logged_has_energy`,
+// `AiNutritionLog_skipped_is_none`, `AiNutritionLog_nonnegative`) make a row
+// that says "nothing was logged" while still carrying numbers, or a row that
+// claims coverage with no energy value, impossible to write. `completeness` is
+// the client's own declaration, never inferred.
+//
+// No separate @@index: the `@@unique([clientId, loggedOn])` btree is itself the
+// index the rolling-window read uses (equality on clientId, range on loggedOn).
+// A second index on the same leading columns would cost every write and serve
+// no read.
+model AiNutritionLog {
+  id           String                     @id @default(cuid())
+  clientId     String
+  loggedOn     DateTime                   @db.Date
+  energyKcal   Float?
+  proteinG     Float?
+  carbsG       Float?
+  fatG         Float?
+  source       AiNutritionLogSource
+  completeness AiNutritionLogCompleteness
+  revision     Int                        @default(1)
+  createdAt    DateTime                   @default(now())
+  updatedAt    DateTime                   @updatedAt
+  client       User                       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, loggedOn])
+}
+
+model AiOperationReceipt {
+  id          String   @id @default(cuid())
+  clientId    String
+  operation   String
+  requestKey  String
+  inputDigest String
+  result      Json
+  createdAt   DateTime @default(now())
+  client      User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, operation, requestKey])
 }
 
 model IntakeFormTemplate {
@@ -161,6 +1194,8 @@ model CoachClient {
 
   coach  User @relation("Coach", fields: [coachId], references: [id])
   client User @relation("Client", fields: [clientId], references: [id])
+
+  activeForContext ClientCoachingContext?
 
   @@unique([coachId, clientId])
   @@index([coachId])
@@ -262,16 +1297,12 @@ model MacroTarget {
   @@unique([clientId, weekOf])
 }
 
-// SUPERSEDED has NO migration in this repo on purpose. The production database
-// already carries it (verified read-only against pg_enum on 2026-09-19); the value
-// arrived in one of the 19 migrations applied ahead of deployed code — see T-1000.
-// This declaration makes the generated client able to READ those rows, which it
-// could not before T-952a. Do not `prisma migrate dev` to "fix" the missing
-// migration: it would try to add an enum value production already has. The real
-// migration lands when team/sprint-1 merges.
 enum MealPlanStatus {
   DRAFT
   PUBLISHED
+  // A plan that was published but has since been replaced by a newer
+  // published plan for the same client/week. Content is retained (CB04 —
+  // clients keep prior published history); only PUBLISHED is "current."
   SUPERSEDED
 }
 
@@ -299,6 +1330,7 @@ model MealPlan {
   items        MealPlanItem[]
   macroTargets MealMacroTarget[]
 
+  @@unique([clientId, weekOf, version])
   @@index([clientId, weekOf])
   @@index([clientId, status])
 }
@@ -348,11 +1380,55 @@ model Message {
   body      String   @db.Text
   createdAt DateTime @default(now())
 
-  client User @relation("ClientMessages", fields: [clientId], references: [id])
-  sender User @relation("SentMessages", fields: [senderId], references: [id])
+  // The specific coach this message belongs to (the other participant in
+  // the conversation, from the client's perspective). Set at creation time
+  // from the resolved current coach, independent of whether the CoachClient
+  // relationship still exists later (CoachClient rows are hard-deleted on
+  // disconnect). Pre-migration rows were attributed in two steps:
+  // 20260913200000_message_coach_scope claimed coach-authored rows by their
+  // sender, then 20260915000000_message_coach_backfill_single_coach (T-661)
+  // attributed the remainder only where all three held: exactly one
+  // CoachClient row exists, ClientCoachingContext names that row as the
+  // active HUMAN relationship (or no context row exists at all, the legacy
+  // fallback), and either no other coach's message appears anywhere in the
+  // client's history or the surviving relationship provably began after the
+  // last of them. That is a strict subset of what getClientProvider would
+  // name, never a superset. It is bounded to the period the relationship
+  // demonstrably existed and clamped to start strictly after any other
+  // coach's last message, so a successor never inherits a predecessor's
+  // thread. Where the surviving relationship row PREDATES another coach's
+  // activity, no lower bound can be evidenced at all and nothing is
+  // attributed for that client.
+  // Null means "no single coach can be attributed": the client has 0 or 2+
+  // CoachClient rows, their coaching context is resolutionRequired or AI, the
+  // message was sent while unassigned, it predates the attribution window, it
+  // falls inside another coach's conversation, or the client's history
+  // interleaves a second coach in an order no evidence can split. A coach can
+  // only ever read
+  // messages where this matches their own id; the client's own view is never
+  // filtered by it (CB03 — conversations are participant-scoped, but the
+  // client keeps their full archive). Since T-672 coach surfaces read through
+  // getCoachThread(clientId, coachId) (lib/queries/messages.ts), which cannot
+  // be called without a coach id; getAllMessages/getMessages take an optional
+  // asCoachId and are unfiltered only when it is omitted, for the client's own
+  // archive. That last clause corrects the parentheticals in the applied
+  // migrations 20260913200000_message_coach_scope and
+  // 20260915000000_message_coach_backfill_single_coach, which say those
+  // functions are "never coach-filtered". For getAllMessages that was true
+  // when written and false since T-672. For getMessages it was already
+  // inaccurate on arrival: asCoachId was added to it by c64074f (F03), the
+  // same commit that added the first of those migrations, so getMessages has
+  // never been unscoped for a coach and this ticket does not touch it.
+  // Applied migration SQL is checksummed and is never edited.
+  coachId String?
+
+  client User  @relation("ClientMessages", fields: [clientId], references: [id])
+  sender User  @relation("SentMessages", fields: [senderId], references: [id])
+  coach  User? @relation("CoachScopedMessages", fields: [coachId], references: [id])
 
   @@index([clientId, weekOf])
   @@index([senderId])
+  @@index([clientId, coachId])
 }
 
 // ── Messaging Safety: Block & Report ────────────────────────────────────────
@@ -568,14 +1644,11 @@ model TrainingTemplateCardio {
 
 // ── Training Programs (client-specific, week-scoped) ────────────────────────
 
-// SUPERSEDED has NO migration in this repo on purpose. The production database
-// already carries it (verified read-only against pg_enum on 2026-09-20); the value
-// arrived in one of the migrations applied ahead of deployed code — see T-1000.
-// This declaration makes the generated client able to read rows written by the
-// shared publish service. Do not add a migration for a value production has.
 enum TrainingProgramStatus {
   DRAFT
   PUBLISHED
+  // See MealPlanStatus.SUPERSEDED — a published program later replaced by a
+  // newer published program for the same client (CB05).
   SUPERSEDED
 }
 
@@ -853,6 +1926,7 @@ model CoachingRequest {
   formSubmission      ClientFormSubmission?
   signature           ClientFormSignature?
   intakePacket        IntakePacket?
+  clientInvite        ClientInvite?
 
   @@index([coachProfileId])
   @@index([status])
@@ -893,6 +1967,24 @@ model ClientInvite {
   status      InviteStatus @default(PENDING)
   createdAt   DateTime     @default(now())
   expiresAt   DateTime
+
+  // Set when this invite was issued to activate a pipeline lead, so acceptance
+  // can update the originating request's prospectId/status. Null for invites
+  // sent directly via sendClientInvite (no pipeline request involved).
+  requestId String?          @unique
+  request   CoachingRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+
+  /// T-987. Set once, the first time an authenticated client holding this token
+  /// was shown the "confirm a different address" step. Cleared, along with
+  /// mismatchEmail and acceptedWithMismatch, when lib/leads/activate-lead.ts
+  /// reissues this row for a new redemption attempt (T-987 review round 2) —
+  /// T-962/T-988 are the first readers, and a stale mismatch from a previous
+  /// holder must not be reported against whoever the invite is reissued to.
+  mismatchSeenAt       DateTime?
+  /// The account address that triggered or completed that confirmation, lowercased.
+  mismatchEmail        String?
+  /// True only when this invite was accepted through the confirm path.
+  acceptedWithMismatch Boolean  @default(false)
 
   coach User @relation("CoachInvites", fields: [coachId], references: [id])
 
@@ -1076,7 +2168,14 @@ model ExerciseResult {
   exerciseName String // snapshot: "Incline Press"
   programDay   String // snapshot: "Day 1 — Chest"
   setNumber    Int      @default(1) // 1-indexed set number
-  weekOf       DateTime // normalizeToMonday()
+  weekOf       DateTime // normalizeToMonday() — retained for weekly rollups
+  // Client-local calendar date ("YYYY-MM-DD") this specific session
+  // occurred on. Uniqueness is keyed on this, not weekOf (CB08): a program
+  // day repeated more than once in the same week — an ordinary beginner
+  // training pattern — used to collide on the old
+  // (clientId, exerciseName, programDay, setNumber, weekOf) key and the
+  // upsert would silently overwrite the earlier session's weight/reps.
+  sessionDate  String   @default("")
   weight       Float
   reps         Int
   createdAt    DateTime @default(now())
@@ -1084,8 +2183,9 @@ model ExerciseResult {
 
   client User @relation("ExerciseResults", fields: [clientId], references: [id])
 
-  @@unique([clientId, exerciseName, programDay, setNumber, weekOf])
+  @@unique([clientId, exerciseName, programDay, setNumber, sessionDate])
   @@index([clientId])
+  @@index([clientId, weekOf])
 }
 
 model CoachDocument {
@@ -1208,6 +2308,12 @@ model CoachSubscription {
   currentPeriodEnd     DateTime?
   cancelAtPeriodEnd    Boolean            @default(false)
   trialEnd             DateTime?
+  // CB11: the Stripe Event.created timestamp of the last webhook event
+  // actually applied to this row. Stripe does not guarantee in-order
+  // webhook delivery; an update is only applied if its event is not
+  // older than this, so a late-arriving stale payload can't regress
+  // already-applied entitlement state.
+  lastEventAt          DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 }
@@ -1226,4 +2332,25 @@ model RequestQuota {
   expiresAt DateTime
 
   @@index([expiresAt])
+}
+
+// CB09: a durable record of storage objects that need deleting, written
+// BEFORE the owning database row is unlinked/replaced (e.g. a check-in
+// photo overwrite, or account-deletion purge). Without this, an unlinked
+// object had no reference anywhere once its row was gone, so replacing a
+// photo silently orphaned the old file forever — including surviving a
+// later full account deletion, since purge only ever enumerated
+// currently-linked rows.
+model StorageCleanupOutbox {
+  id          String    @id @default(cuid())
+  bucket      String
+  storagePath String
+  reason      String
+  createdAt   DateTime  @default(now())
+  processedAt DateTime?
+  attempts    Int       @default(0)
+  lastError   String?   @db.Text
+
+  @@unique([bucket, storagePath])
+  @@index([processedAt])
 }

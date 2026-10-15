@@ -1,0 +1,1504 @@
+{
+  "_comment": "SYNTHETIC FIXTURE VALUES \u2014 NOT APPROVED GUIDANCE. Every parameter value here is a clearly fake, non-standard placeholder chosen to be unambiguously distinct from any real published NASEM/DRI figure (see tests/helpers/ai-prescription-bundle.ts's own header for the T-2032 review r1 finding M4 rationale). Every `expected` value below is the checked-in engine's own output for the given bundleOverrides/input, independently spot-verified by hand against the frozen formula in board/tickets/T-2003.md for a representative sample (see board/reviews/T-2032-web-engineer-r2.md). The RD signs the real values in a later ticket (T-2034); these are re-signed when real values land (D03-T01). Every PRESCRIBED row asserts the full prescription (all fields except parameterSetDigest and assumptions, which are content-hash/reviewed-copy values not meaningful to hand-check here) so a bug hiding behind a thin per-row assertion (T-2032 review r1 finding B1/m11) cannot recur.",
+  "vectors": [
+    {
+      "id": "nominal-male-inactive",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "INACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2250,
+          "targetEnergyKcal": 2250,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 171,
+            "max": 297
+          },
+          "fatRangeG": {
+            "min": 27,
+            "max": 67
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "nominal-male-low-active",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "LOW_ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2420,
+          "targetEnergyKcal": 2420,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 184,
+            "max": 319
+          },
+          "fatRangeG": {
+            "min": 30,
+            "max": 72
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "nominal-male-active",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2590,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 197,
+            "max": 341
+          },
+          "fatRangeG": {
+            "min": 32,
+            "max": 77
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "nominal-male-very-active",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "VERY_ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2760,
+          "targetEnergyKcal": 2760,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 210,
+            "max": 364
+          },
+          "fatRangeG": {
+            "min": 34,
+            "max": 82
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "nominal-female-inactive",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 28,
+        "energyMethodPopulationCategory": "FEMALE_ADULT",
+        "physicalActivityCategory": "INACTIVE",
+        "heightCm": 165,
+        "weightKg": 65,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 1790,
+          "targetEnergyKcal": 1790,
+          "proteinG": 65,
+          "carbohydrateRangeG": {
+            "min": 137,
+            "max": 236
+          },
+          "fatRangeG": {
+            "min": 22,
+            "max": 53
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "nominal-female-low-active",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 28,
+        "energyMethodPopulationCategory": "FEMALE_ADULT",
+        "physicalActivityCategory": "LOW_ACTIVE",
+        "heightCm": 165,
+        "weightKg": 65,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 1920,
+          "targetEnergyKcal": 1920,
+          "proteinG": 65,
+          "carbohydrateRangeG": {
+            "min": 146,
+            "max": 253
+          },
+          "fatRangeG": {
+            "min": 24,
+            "max": 57
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "nominal-female-active",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 28,
+        "energyMethodPopulationCategory": "FEMALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 165,
+        "weightKg": 65,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2050,
+          "targetEnergyKcal": 2050,
+          "proteinG": 65,
+          "carbohydrateRangeG": {
+            "min": 156,
+            "max": 270
+          },
+          "fatRangeG": {
+            "min": 25,
+            "max": 61
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "nominal-female-very-active",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 28,
+        "energyMethodPopulationCategory": "FEMALE_ADULT",
+        "physicalActivityCategory": "VERY_ACTIVE",
+        "heightCm": 165,
+        "weightKg": 65,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2190,
+          "targetEnergyKcal": 2190,
+          "proteinG": 65,
+          "carbohydrateRangeG": {
+            "min": 167,
+            "max": 289
+          },
+          "fatRangeG": {
+            "min": 27,
+            "max": 65
+          },
+          "projectedWeeklyWeightChangeKg": 0.01,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "age-boundary-min-18",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 18,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2650,
+          "targetEnergyKcal": 2650,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 202,
+            "max": 349
+          },
+          "fatRangeG": {
+            "min": 32,
+            "max": 79
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "age-inside-45",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 45,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2520,
+          "targetEnergyKcal": 2520,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 192,
+            "max": 332
+          },
+          "fatRangeG": {
+            "min": 31,
+            "max": 75
+          },
+          "projectedWeeklyWeightChangeKg": 0.01,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "age-boundary-max-79",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 79,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2350,
+          "targetEnergyKcal": 2350,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 179,
+            "max": 310
+          },
+          "fatRangeG": {
+            "min": 29,
+            "max": 70
+          },
+          "projectedWeeklyWeightChangeKg": 0.01,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "height-boundary-min-140",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 140,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2350,
+          "targetEnergyKcal": 2350,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 179,
+            "max": 310
+          },
+          "fatRangeG": {
+            "min": 29,
+            "max": 70
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "height-boundary-max-220",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 220,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2830,
+          "targetEnergyKcal": 2830,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 216,
+            "max": 373
+          },
+          "fatRangeG": {
+            "min": 34,
+            "max": 84
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "weight-boundary-min-40",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 40,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2110,
+          "targetEnergyKcal": 2110,
+          "proteinG": 40,
+          "carbohydrateRangeG": {
+            "min": 161,
+            "max": 278
+          },
+          "fatRangeG": {
+            "min": 26,
+            "max": 63
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "weight-boundary-max-200",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 200,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 4030,
+          "targetEnergyKcal": 4030,
+          "proteinG": 200,
+          "carbohydrateRangeG": {
+            "min": 307,
+            "max": 531
+          },
+          "fatRangeG": {
+            "min": 49,
+            "max": 120
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "goal-bound-max-reduction-exact",
+      "bundleOverrides": [
+        {
+          "id": "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+          "value": 0.2
+        }
+      ],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "LOSE",
+        "goalPaceClass": "MODERATE",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2080,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 159,
+            "max": 274
+          },
+          "fatRangeG": {
+            "min": 25,
+            "max": 62
+          },
+          "projectedWeeklyWeightChangeKg": -0.71,
+          "appliedBoundIds": [
+            "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION"
+          ],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "goal-bound-max-reduction-inside-default",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "LOSE",
+        "goalPaceClass": "MODERATE",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2070,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 158,
+            "max": 273
+          },
+          "fatRangeG": {
+            "min": 25,
+            "max": 62
+          },
+          "projectedWeeklyWeightChangeKg": -0.73,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "goal-bound-max-reduction-outside-tightened",
+      "bundleOverrides": [
+        {
+          "id": "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION",
+          "value": 0.1
+        }
+      ],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "LOSE",
+        "goalPaceClass": "MODERATE",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2340,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 178,
+            "max": 308
+          },
+          "fatRangeG": {
+            "min": 29,
+            "max": 70
+          },
+          "projectedWeeklyWeightChangeKg": -0.35,
+          "appliedBoundIds": [
+            "GOAL.BOUND.RELATIVE.MAX_REDUCTION_FRACTION"
+          ],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "minimum-daily-energy-floor-exact",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": {
+        "minimumDailyEnergyKcal": 1140
+      },
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 75,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "INACTIVE",
+        "heightCm": 140,
+        "weightKg": 40,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "LOSE",
+        "goalPaceClass": "MODERATE",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 1430,
+          "targetEnergyKcal": 1140,
+          "proteinG": 40,
+          "carbohydrateRangeG": {
+            "min": 87,
+            "max": 150
+          },
+          "fatRangeG": {
+            "min": 14,
+            "max": 34
+          },
+          "projectedWeeklyWeightChangeKg": -0.4,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "minimum-daily-energy-floor-below-clamped",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": {
+        "minimumDailyEnergyKcal": 1200
+      },
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 75,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "INACTIVE",
+        "heightCm": 140,
+        "weightKg": 40,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "LOSE",
+        "goalPaceClass": "MODERATE",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 1430,
+          "targetEnergyKcal": 1200,
+          "proteinG": 40,
+          "carbohydrateRangeG": {
+            "min": 92,
+            "max": 158
+          },
+          "fatRangeG": {
+            "min": 15,
+            "max": 36
+          },
+          "projectedWeeklyWeightChangeKg": -0.32,
+          "appliedBoundIds": [
+            "SYNTHETIC_PRESCRIPTION_MIN_DAILY_ENERGY"
+          ],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "maximum-weekly-loss-rate-exact",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": {
+        "maximumWeeklyLossRatePercent": 0.91
+      },
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "LOSE",
+        "goalPaceClass": "MODERATE",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2080,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 159,
+            "max": 274
+          },
+          "fatRangeG": {
+            "min": 25,
+            "max": 62
+          },
+          "projectedWeeklyWeightChangeKg": -0.71,
+          "appliedBoundIds": [
+            "SYNTHETIC_PRESCRIPTION_MAX_WEEKLY_LOSS_RATE"
+          ],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "maximum-weekly-loss-rate-above-clamped",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": {
+        "maximumWeeklyLossRatePercent": 0.5
+      },
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "LOSE",
+        "goalPaceClass": "MODERATE",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2310,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 176,
+            "max": 304
+          },
+          "fatRangeG": {
+            "min": 28,
+            "max": 69
+          },
+          "projectedWeeklyWeightChangeKg": -0.39,
+          "appliedBoundIds": [
+            "SYNTHETIC_PRESCRIPTION_MAX_WEEKLY_LOSS_RATE"
+          ],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "protein-below-min-clamped",
+      "bundleOverrides": [
+        {
+          "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.TARGET",
+          "value": 0.2
+        }
+      ],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "REGULAR",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2590,
+          "proteinG": 120,
+          "carbohydrateRangeG": {
+            "min": 197,
+            "max": 341
+          },
+          "fatRangeG": {
+            "min": 32,
+            "max": 77
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [
+            "MACRO.PROTEIN.G_PER_KG.REGULAR.MIN"
+          ],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "protein-above-max-clamped",
+      "bundleOverrides": [
+        {
+          "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.MAX",
+          "value": 2
+        },
+        {
+          "id": "MACRO.PROTEIN.G_PER_KG.REGULAR.TARGET",
+          "value": 9
+        }
+      ],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "REGULAR",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2590,
+          "proteinG": 160,
+          "carbohydrateRangeG": {
+            "min": 197,
+            "max": 341
+          },
+          "fatRangeG": {
+            "min": 32,
+            "max": 77
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [
+            "MACRO.PROTEIN.G_PER_KG.REGULAR.MAX"
+          ],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "missing-ageYears",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": null,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_INPUT_MISSING"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "missing-weightKg",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": null,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_INPUT_MISSING"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "unsupported-population-pregnancy",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "PREGNANCY",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_POPULATION_UNSUPPORTED"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "unsupported-population-lactation",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "LACTATION",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_POPULATION_UNSUPPORTED"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "unsupported-population-not-listed",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "NOT_LISTED",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_POPULATION_UNSUPPORTED"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "weight-measurement-stale-boundary-pass",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-10",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "PRESCRIBED",
+        "reasonCodes": [],
+        "prescription": {
+          "method": "REVIEWED_PRESCRIPTION_V1",
+          "energyMethodStructureId": "NASEM.ENERGY.2023.ADULT.EER.LINEAR.V1",
+          "maintenanceEnergyKcal": 2590,
+          "targetEnergyKcal": 2590,
+          "proteinG": 80,
+          "carbohydrateRangeG": {
+            "min": 197,
+            "max": 341
+          },
+          "fatRangeG": {
+            "min": 32,
+            "max": 77
+          },
+          "projectedWeeklyWeightChangeKg": 0,
+          "appliedBoundIds": [],
+          "tolerancePercent": 10
+        }
+      }
+    },
+    {
+      "id": "weight-measurement-stale-fail",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-09",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_WEIGHT_MEASUREMENT_STALE"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "infeasible-protein-exceeds-energy",
+      "bundleOverrides": [
+        {
+          "id": "MACRO.PROTEIN.G_PER_KG.NONE.MIN",
+          "value": 40
+        }
+      ],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_MACRO_RANGES_INFEASIBLE"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "infeasible-carb-min-exceeds-max",
+      "bundleOverrides": [
+        {
+          "id": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MIN",
+          "value": 55
+        },
+        {
+          "id": "MACRO.CARBOHYDRATE.PERCENT_ENERGY.MAX",
+          "value": 50
+        }
+      ],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_MACRO_RANGES_INFEASIBLE"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "height-outside-above-max-221",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 221,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "weight-outside-above-max-201",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 201,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "age-outside-below-min-17",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 17,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "height-outside-below-min-139",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 139,
+        "weightKg": 80,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"
+        ],
+        "prescription": null
+      }
+    },
+    {
+      "id": "weight-outside-below-min-39",
+      "bundleOverrides": [],
+      "safetyFloorOverrides": null,
+      "explanationTexts": null,
+      "input": {
+        "intakeVersion": 2,
+        "ageYears": 30,
+        "energyMethodPopulationCategory": "MALE_ADULT",
+        "physicalActivityCategory": "ACTIVE",
+        "heightCm": 180,
+        "weightKg": 39,
+        "weightMeasuredOn": "2026-09-20",
+        "evaluatedOn": "2026-09-24",
+        "bodyWeightIntent": "MAINTAIN",
+        "goalPaceClass": "MAINTAIN",
+        "resistanceTrainingContext": "NONE",
+        "dietaryPattern": "OMNIVORE",
+        "dietaryPatternReason": "PREFERENCE"
+      },
+      "expected": {
+        "status": "UNAVAILABLE",
+        "reasonCodes": [
+          "PRESCRIPTION_INPUT_OUT_OF_SUPPORTED_RANGE"
+        ],
+        "prescription": null
+      }
+    }
+  ]
+}

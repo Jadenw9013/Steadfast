@@ -58,24 +58,36 @@ export default async function ClientProfilePage({
   const clientTz = profile.client.timezone || "America/New_York";
   const clientTodayDate = getLocalDate(new Date(), clientTz);
 
-  const [effectivePlan, messages, foodLibrary, trainingData, templates, weightHistory, onboardingResponse, clientIntake, coachClientAdherence, adherenceSummary, exerciseProgress, intakePacket] =
-    await Promise.all([
-      getEffectiveMealPlanForReview({ coachId: coach.id, clientId, weekOf }),
-      getMessages(clientId, weekOf),
-      getFoodLibrary(coach.id),
-      getTrainingProgramForReview(clientId, weekOf),
-      getCoachTemplatesForPicker(coach.id),
-      getWeightHistory(clientId),
-      db.onboardingResponse.findUnique({
-        where: { clientId },
-        include: { form: true },
-      }),
-      getClientIntake(clientId),
-      getCoachClientForAdherence(coach.id, clientId),
-      getAdherenceSummary(clientId, clientTodayDate),
-      getRecentExerciseProgress(clientId),
-      getIntakePacketForClient(coach.id, clientId),
-    ]);
+  const [
+    effectivePlan,
+    messages,
+    foodLibrary,
+    trainingData,
+    templates,
+    weightHistory,
+    onboardingResponse,
+    clientIntake,
+    coachClientAdherence,
+    adherenceSummary,
+    exerciseProgress,
+    intakePacket,
+  ] = await Promise.all([
+    getEffectiveMealPlanForReview({ coachId: coach.id, clientId, weekOf }),
+    getMessages(clientId, weekOf, coach.id),
+    getFoodLibrary(coach.id),
+    getTrainingProgramForReview(clientId, weekOf),
+    getCoachTemplatesForPicker(coach.id),
+    getWeightHistory(clientId),
+    db.onboardingResponse.findUnique({
+      where: { clientId },
+      include: { form: true },
+    }),
+    getClientIntake(clientId),
+    getCoachClientForAdherence(coach.id, clientId),
+    getAdherenceSummary(clientId, clientTodayDate),
+    getRecentExerciseProgress(clientId),
+    getIntakePacketForClient(coach.id, clientId),
+  ]);
 
   const {
     client,
@@ -99,8 +111,6 @@ export default async function ClientProfilePage({
   // "Missing" state, so this matches what the dashboard already shows.
   const badgeInfo = BADGE_MAP[cadenceStatus.status] ?? BADGE_MAP.upcoming;
   const badgeLabel = getCoachStatusLabel(cadenceStatus.status);
-
-
 
   // Intake status display config
   const intakeStatusConfig = {
@@ -149,22 +159,22 @@ export default async function ClientProfilePage({
 
   const initialProgram = trainingData.program
     ? {
-      id: trainingData.program.id,
-      status: trainingData.program.status,
-      templateSourceId: trainingData.program.templateSourceId,
-      weeklyFrequency: trainingData.program.weeklyFrequency,
-      clientNotes: trainingData.program.clientNotes,
-      injuries: trainingData.program.injuries,
-      equipment: trainingData.program.equipment,
-      days: trainingData.program.days.map((d) => ({
-        dayName: d.dayName,
-        blocks: d.blocks.map((b) => ({
-          type: b.type,
-          title: b.title,
-          content: b.content,
+        id: trainingData.program.id,
+        status: trainingData.program.status,
+        templateSourceId: trainingData.program.templateSourceId,
+        weeklyFrequency: trainingData.program.weeklyFrequency,
+        clientNotes: trainingData.program.clientNotes,
+        injuries: trainingData.program.injuries,
+        equipment: trainingData.program.equipment,
+        days: trainingData.program.days.map((d) => ({
+          dayName: d.dayName,
+          blocks: d.blocks.map((b) => ({
+            type: b.type,
+            title: b.title,
+            content: b.content,
+          })),
         })),
-      })),
-    }
+      }
     : null;
 
   return (
@@ -179,7 +189,10 @@ export default async function ClientProfilePage({
           >
             &larr;
           </Link>
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-[2px]" style={{ background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)" }}>
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full p-[2px]"
+            style={{ background: "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)" }}
+          >
             {profilePhotoUrl ? (
               <img
                 src={profilePhotoUrl}
@@ -228,7 +241,20 @@ export default async function ClientProfilePage({
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-zinc-900 opacity-60" />
               </span>
             )}
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
             {currentWeekStatus === "submitted" ? "Review Check-in" : "View Latest Check-in"}
           </Link>
         )}
@@ -247,9 +273,7 @@ export default async function ClientProfilePage({
       </div>
 
       {/* Send Intake CTA — always visible when no intake exists */}
-      {!clientIntake && (
-        <DismissibleIntakeBanner clientId={clientId} />
-      )}
+      {!clientIntake && <DismissibleIntakeBanner clientId={clientId} />}
 
       {/* Intake status badge (PENDING or IN_PROGRESS) */}
       {clientIntake && clientIntake.status !== "COMPLETED" && (
@@ -257,7 +281,9 @@ export default async function ClientProfilePage({
           {(() => {
             const cfg = intakeStatusConfig[clientIntake.status];
             return (
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}
+              >
                 <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                 {cfg.label}
               </span>
@@ -278,7 +304,9 @@ export default async function ClientProfilePage({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {/* Show intake baseline weight when no real check-ins exist */}
-          {latestCheckIn?.weight == null && clientIntake?.status === "COMPLETED" && clientIntake.bodyweightLbs != null ? (
+          {latestCheckIn?.weight == null &&
+          clientIntake?.status === "COMPLETED" &&
+          clientIntake.bodyweightLbs != null ? (
             <MetricCard
               label="Baseline (Intake)"
               value={clientIntake.bodyweightLbs}
@@ -314,18 +342,13 @@ export default async function ClientProfilePage({
           />
 
           <div className="sf-glass-card px-4 py-3">
-            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">
-              Change
-            </p>
+            <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Change</p>
             {weightDelta != null ? (
               <div className="mt-1 flex items-baseline gap-1">
                 <span
-                  className={`text-2xl font-bold tabular-nums ${weightDelta > 0
-                    ? "text-red-400"
-                    : weightDelta < 0
-                      ? "text-emerald-400"
-                      : ""
-                    }`}
+                  className={`text-2xl font-bold tabular-nums ${
+                    weightDelta > 0 ? "text-red-400" : weightDelta < 0 ? "text-emerald-400" : ""
+                  }`}
                 >
                   {weightDelta > 0 ? "+" : ""}
                   {weightDelta}
@@ -333,18 +356,26 @@ export default async function ClientProfilePage({
                 <span className="text-xs text-zinc-400">lbs</span>
               </div>
             ) : (
-              <p className="mt-1 text-2xl font-bold text-zinc-600">
-                &mdash;
-              </p>
+              <p className="mt-1 text-2xl font-bold text-zinc-600">&mdash;</p>
             )}
           </div>
 
           {latestCheckIn?.dietCompliance != null && (
-            <MetricCard label="Diet" value={latestCheckIn.dietCompliance} suffix="/10" accent="border-t-emerald-500/50" />
+            <MetricCard
+              label="Diet"
+              value={latestCheckIn.dietCompliance}
+              suffix="/10"
+              accent="border-t-emerald-500/50"
+            />
           )}
 
           {latestCheckIn?.energyLevel != null && (
-            <MetricCard label="Energy" value={latestCheckIn.energyLevel} suffix="/10" accent="border-t-amber-500/50" />
+            <MetricCard
+              label="Energy"
+              value={latestCheckIn.energyLevel}
+              suffix="/10"
+              accent="border-t-amber-500/50"
+            />
           )}
         </div>
 
@@ -374,11 +405,13 @@ export default async function ClientProfilePage({
         </div>
       </section>
 
-
       {/* Intake status banner (sent/in-progress, not yet completed) */}
       {clientIntake && clientIntake.status !== "COMPLETED" && (
         <section aria-labelledby="intake-pending-heading">
-          <h2 id="intake-pending-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          <h2
+            id="intake-pending-heading"
+            className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          >
             Intake Questionnaire
           </h2>
           <div className="sf-glass-card flex flex-wrap items-center justify-between gap-3 px-5 py-4">
@@ -386,7 +419,9 @@ export default async function ClientProfilePage({
               {(() => {
                 const cfg = intakeStatusConfig[clientIntake.status];
                 return (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}
+                  >
                     <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                     {cfg.label}
                   </span>
@@ -403,8 +438,6 @@ export default async function ClientProfilePage({
         </section>
       )}
 
-
-
       {/* Daily Adherence — summary only, shown when adherence is enabled */}
       {coachClientAdherence?.adherenceEnabled && (
         <AdherenceCard
@@ -416,10 +449,16 @@ export default async function ClientProfilePage({
 
       {/* Plans — Meal Plan | Training Plan tabs */}
       <section aria-labelledby="plans-heading">
-        <h2 id="plans-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        <h2
+          id="plans-heading"
+          className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+        >
           Plans
         </h2>
-        <div className="sf-glass-card p-5" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.06)" } as React.CSSProperties}>
+        <div
+          className="sf-glass-card p-5"
+          style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.06)" } as React.CSSProperties}
+        >
           <PlanTabs
             mealPlan={{
               clientId,
@@ -434,7 +473,9 @@ export default async function ClientProfilePage({
               weekStartDate: weekDateStr,
               templates: mappedTemplates,
               initialProgram,
-              carriedOverFromWeek: trainingData.carriedOverFrom ? formatDateUTC(trainingData.carriedOverFrom) : null,
+              carriedOverFromWeek: trainingData.carriedOverFrom
+                ? formatDateUTC(trainingData.carriedOverFrom)
+                : null,
             }}
           />
         </div>
@@ -442,55 +483,83 @@ export default async function ClientProfilePage({
 
       {/* Intake Summary — IntakePacket / legacy / manual coach notes */}
       <section aria-labelledby="intake-summary-heading">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 id="intake-summary-heading" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-              Intake Summary
-            </h2>
-          </div>
-          <IntakeSummaryPanel
-            intakePacketId={intakePacket?.id ?? null}
-            formAnswers={
-              intakePacket?.formAnswers &&
-              typeof intakePacket.formAnswers === "object" &&
-              "sections" in (intakePacket.formAnswers as object)
-                ? (intakePacket.formAnswers as { sections: { sectionId: string; sectionTitle: string; answers: { questionId: string; label: string; value: string }[] }[] })
-                : null
-            }
-            submittedAt={intakePacket?.submittedAt?.toISOString() ?? null}
-            coachNotes={intakePacket?.coachNotes ?? null}
-            legacyResponses={
-              onboardingResponse
-                ? // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  (onboardingResponse.form.questions as any[]).map((q) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const answerObj = (onboardingResponse.answers as any[]).find((a: any) => a.questionId === q.id);
-                    const raw = answerObj?.answer;
-                    const answer =
-                      typeof raw === "boolean" ? (raw ? "Yes" : "No")
-                      : Array.isArray(raw) ? raw.join(", ")
-                      : (raw ?? "");
-                    return { questionLabel: q.label as string, answer };
-                  })
-                : null
-            }
-            clientName={`${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() || "the client"}
-            clientId={clientId}
-            manualNotes={profile.coachNotes ?? null}
-          />
-        </section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2
+            id="intake-summary-heading"
+            className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+          >
+            Intake Summary
+          </h2>
+        </div>
+        <IntakeSummaryPanel
+          intakePacketId={intakePacket?.id ?? null}
+          formAnswers={
+            intakePacket?.formAnswers &&
+            typeof intakePacket.formAnswers === "object" &&
+            "sections" in (intakePacket.formAnswers as object)
+              ? (intakePacket.formAnswers as {
+                  sections: {
+                    sectionId: string;
+                    sectionTitle: string;
+                    answers: { questionId: string; label: string; value: string }[];
+                  }[];
+                })
+              : null
+          }
+          submittedAt={intakePacket?.submittedAt?.toISOString() ?? null}
+          coachNotes={intakePacket?.coachNotes ?? null}
+          legacyResponses={
+            onboardingResponse
+              ? (
+                  onboardingResponse.form.questions as Array<{
+                    id: string;
+                    label: string;
+                  }>
+                ).map((q) => {
+                  const answerObj = (
+                    onboardingResponse.answers as Array<{
+                      questionId: string;
+                      answer: unknown;
+                    }>
+                  ).find((a) => a.questionId === q.id);
+                  const raw = answerObj?.answer;
+                  const answer =
+                    typeof raw === "boolean"
+                      ? raw
+                        ? "Yes"
+                        : "No"
+                      : Array.isArray(raw)
+                        ? raw.join(", ")
+                        : raw == null
+                          ? ""
+                          : String(raw);
+                  return { questionLabel: q.label as string, answer };
+                })
+              : null
+          }
+          clientName={`${client.firstName ?? ""} ${client.lastName ?? ""}`.trim() || "the client"}
+          clientId={clientId}
+          manualNotes={profile.coachNotes ?? null}
+        />
+      </section>
 
       {/* Legacy structured intake (completed via old system) — shown only when no IntakePacket */}
       {!intakePacket && clientIntake?.status === "COMPLETED" && (
         <section aria-labelledby="intake-heading">
           <div className="mb-3 flex items-center justify-between">
-            <h2 id="intake-heading" className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            <h2
+              id="intake-heading"
+              className="text-xs font-semibold uppercase tracking-wider text-zinc-500"
+            >
               Intake Baseline
             </h2>
             <div className="flex items-center gap-2">
               {(() => {
                 const cfg = intakeStatusConfig.COMPLETED;
                 return (
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${cfg.bg}`}
+                  >
                     <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                     {cfg.label}
                   </span>
@@ -499,19 +568,34 @@ export default async function ClientProfilePage({
               <SendIntakeButton clientId={clientId} isResend />
             </div>
           </div>
-          <div className="sf-glass-card" style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.05)" } as React.CSSProperties}>
+          <div
+            className="sf-glass-card"
+            style={{ "--sf-card-highlight": "rgba(59, 91, 219, 0.05)" } as React.CSSProperties}
+          >
             {/* Key stats row */}
             <div className="grid grid-cols-2 divide-x divide-zinc-800 border-b border-zinc-800 sm:grid-cols-4">
-              <IntakeStatCell label="Bodyweight" value={clientIntake.bodyweightLbs ? `${clientIntake.bodyweightLbs} lbs` : "—"} />
-              <IntakeStatCell label="Height" value={clientIntake.heightInches ? `${clientIntake.heightInches} in` : "—"} />
-              <IntakeStatCell label="Age" value={clientIntake.ageYears ? `${clientIntake.ageYears} yrs` : "—"} />
+              <IntakeStatCell
+                label="Bodyweight"
+                value={clientIntake.bodyweightLbs ? `${clientIntake.bodyweightLbs} lbs` : "—"}
+              />
+              <IntakeStatCell
+                label="Height"
+                value={clientIntake.heightInches ? `${clientIntake.heightInches} in` : "—"}
+              />
+              <IntakeStatCell
+                label="Age"
+                value={clientIntake.ageYears ? `${clientIntake.ageYears} yrs` : "—"}
+              />
               <IntakeStatCell label="Gender" value={clientIntake.gender ?? "—"} />
             </div>
             {/* Detail rows */}
             <div className="divide-y divide-zinc-800 p-5">
               <IntakeRow label="Primary Goal" value={clientIntake.primaryGoal} />
               <IntakeRow label="Training Experience" value={clientIntake.trainingExperience} />
-              <IntakeRow label="Training Days / Week" value={clientIntake.trainingDaysPerWeek?.toString()} />
+              <IntakeRow
+                label="Training Days / Week"
+                value={clientIntake.trainingDaysPerWeek?.toString()}
+              />
               <IntakeRow label="Equipment Access" value={clientIntake.gymAccess} />
               <IntakeRow label="Injuries / Limitations" value={clientIntake.injuries} />
               <IntakeRow label="Dietary Restrictions" value={clientIntake.dietaryRestrictions} />
@@ -522,10 +606,12 @@ export default async function ClientProfilePage({
         </section>
       )}
 
-
       {/* Check-in History */}
       <section aria-labelledby="history-heading">
-        <h2 id="history-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+        <h2
+          id="history-heading"
+          className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500"
+        >
           Check-in History
         </h2>
         {checkIns.length === 0 ? (
@@ -541,12 +627,19 @@ export default async function ClientProfilePage({
                   key={checkIn.id}
                   href={`/coach/clients/${clientId}/check-ins/${checkIn.id}`}
                   className={`flex items-center gap-3 rounded-lg border border-l-[3px] border-white/[0.08] bg-white/[0.04] px-4 py-2.5 transition-colors hover:border-white/[0.14] hover:bg-white/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400/50 focus-visible:ring-offset-2 ${
-                    checkIn.status === "REVIEWED" ? "border-l-emerald-500/60" : "border-l-blue-500/60"
+                    checkIn.status === "REVIEWED"
+                      ? "border-l-emerald-500/60"
+                      : "border-l-blue-500/60"
                   }`}
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">
-                      {checkIn.submittedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                      {checkIn.submittedAt.toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
                     </p>
                   </div>
 
@@ -567,7 +660,10 @@ export default async function ClientProfilePage({
 
                   {/* Status badge */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`inline-block h-2 w-2 rounded-full ${cfg.dot}`} aria-hidden="true" />
+                    <span
+                      className={`inline-block h-2 w-2 rounded-full ${cfg.dot}`}
+                      aria-hidden="true"
+                    />
                     <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
                   </div>
                 </Link>
@@ -634,7 +730,15 @@ function IntakeStatCell({ label, value }: { label: string; value: string }) {
   );
 }
 
-function IntakeRow({ label, value, last }: { label: string; value?: string | null; last?: boolean }) {
+function IntakeRow({
+  label,
+  value,
+  last,
+}: {
+  label: string;
+  value?: string | null;
+  last?: boolean;
+}) {
   if (!value) return null;
   return (
     <div className={`py-3 ${last ? "" : ""}`}>

@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 1,
+  "packetId": "ai-coach-live-launch-draft-v1",
+  "packetKey": "ai-coach-live-launch",
+  "version": 1,
+  "releaseId": "live-release-unassigned-v1",
+  "engineVersion": "ai-coach-live-engine-unassigned",
+  "jurisdictions": ["REQUIRED HUMAN DECISION: approved launch jurisdictions"],
+  "authoredAt": "2026-09-22T00:00:00.000Z",
+  "authoringStatus": "DRAFT_NOT_AUTHORIZED",
+  "testOnly": true,
+  "runtimeConfiguration": null,
+  "runtimeConfigurationDigest": null,
+  "sourceRecords": [
+    {
+      "id": "nutrition-evidence-governance-v1",
+      "path": "steadfast-hq/board/strategy/ai-coach-nutrition-evidence-governance.md",
+      "digest": "9ce60f6bd7a745e8897ebb51159bd35aac4a0535321f5477eb8d6a348ab3d9f2"
+    },
+    {
+      "id": "nutrition-professional-review-worksheet-v1",
+      "path": "steadfast-hq/board/strategy/ai-coach-nutrition-professional-review-worksheet.md",
+      "digest": "754f538bde04228c52ce5c4e0044661614cd00b3dd54822afbaf717909f18dd8"
+    },
+    {
+      "id": "nutrition-gap-proposed-resolutions-v1",
+      "path": "steadfast-hq/board/strategy/ai-coach-nutrition-gap-proposed-resolutions.md",
+      "digest": "2b1d9098e31fab812a2f1854202373054c66a2e3414fd35537ef2f99afc6fc9f"
+    },
+    {
+      "id": "t1005-ticket-record",
+      "path": "steadfast-hq/board/tickets/T-1005.md",
+      "digest": "6040c5479e5bef7e0fff91ade1179489ee4062482cf4afabc2c174a67f32e254"
+    },
+    {
+      "id": "t1003-ticket-record",
+      "path": "steadfast-hq/board/tickets/T-1003.md",
+      "digest": "fb89865d4e8e68b3799cfd57ca24a5816a4d7c5760774e119cb41848ca44d11a"
+    },
+    {
+      "id": "t1006-ticket-record",
+      "path": "steadfast-hq/board/tickets/T-1006.md",
+      "digest": "0481476e1f640b5edbb5b1429f737b6d173b6d2e199f6c46a02f6d29a41d8a79"
+    },
+    {
+      "id": "t1007-ticket-record",
+      "path": "steadfast-hq/board/tickets/T-1007.md",
+      "digest": "ce98f8fc8fee58c6a280b722eb82868ed2c7fa8604f302401aea8b909b076459"
+    },
+    {
+      "id": "t1008-ticket-record",
+      "path": "steadfast-hq/board/tickets/T-1008.md",
+      "digest": "c70d2386a37798f56f5cbdb2dcf6cb07c295a7ee431254cfc25d03b930511114"
+    },
+    {
+      "id": "t1009-ticket-record",
+      "path": "steadfast-hq/board/tickets/T-1009.md",
+      "digest": "468dabe8ce78dd6b474ccfeed13e66f9eecd511872a10665c47f84d5075d4422"
+    },
+    {
+      "id": "t1010-ticket-record",
+      "path": "steadfast-hq/board/tickets/T-1010.md",
+      "digest": "51505c9565c2edf26bb99a0c6febdb3cfbad86fed98e9324950edf8f93940530"
+    },
+    {
+      "id": "t1009-t1010-synthetic-release-evidence-v1",
+      "path": "docs/ai-coach/evidence/T-1009-T-1010-release-evidence-v1.md",
+      "digest": "b659e265cdc49086d3dde303a808acb1ffce88842dcd7ed008019e516b15ebed"
+    }
+  ],
+  "artifactBindings": [],
+  "decisionRecords": [
+    {
+      "decisionId": "D01",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: supported population and exclusions",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D02",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: age eligibility and routing",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D03",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: pregnancy and postpartum handling",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D04",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: eating-disorder history or concern handling",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D05",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: diabetes and medical-condition exclusions",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D06",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: screening instrument, cutoffs, and missing-answer routing",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D07",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: energy-floor policy fields, units, population, and exclusions",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D08",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: rate-limit policy fields, units, population, and exclusions",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D09",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: no-consecutive-deficit interpretation and escalation",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D10",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: adjustment cadence, cooldown, and cumulative limits",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D11",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: emergency, referral, and client-facing wording",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    },
+    {
+      "decisionId": "D12",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: post-approval validation and monitoring criteria",
+      "recordId": null,
+      "recordDigest": null,
+      "approvalId": null
+    }
+  ],
+  "approvals": [
+    {
+      "approvalId": "approval-nutrition-professional",
+      "requirement": "NUTRITION_PROFESSIONAL",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: qualified nutrition-professional review and signature",
+      "reviewer": null,
+      "scope": null,
+      "jurisdictions": [],
+      "subjectReleaseId": null,
+      "subjectArtifactDigests": [],
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "signedAt": null,
+      "expiresAt": null,
+      "signature": null
+    },
+    {
+      "approvalId": "approval-legal-scope",
+      "requirement": "LEGAL_SCOPE",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: jurisdiction-specific legal and scope-of-practice review",
+      "reviewer": null,
+      "scope": null,
+      "jurisdictions": [],
+      "subjectReleaseId": null,
+      "subjectArtifactDigests": [],
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "signedAt": null,
+      "expiresAt": null,
+      "signature": null
+    },
+    {
+      "approvalId": "approval-provider-privacy-security",
+      "requirement": "PROVIDER_PRIVACY_SECURITY",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: provider privacy, security, retention, regional processing, and no-training approval",
+      "reviewer": null,
+      "scope": null,
+      "jurisdictions": [],
+      "subjectReleaseId": null,
+      "subjectArtifactDigests": [],
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "signedAt": null,
+      "expiresAt": null,
+      "signature": null
+    },
+    {
+      "approvalId": "approval-operational-owner",
+      "requirement": "OPERATIONAL_OWNER",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: named accountable operational owner and on-call authority",
+      "reviewer": null,
+      "scope": null,
+      "jurisdictions": [],
+      "subjectReleaseId": null,
+      "subjectArtifactDigests": [],
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "signedAt": null,
+      "expiresAt": null,
+      "signature": null
+    },
+    {
+      "approvalId": "approval-slo-spend-limits",
+      "requirement": "SLO_AND_SPEND_LIMITS",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: live SLO, alert, timeout, retry, token, and spend limits",
+      "reviewer": null,
+      "scope": null,
+      "jurisdictions": [],
+      "subjectReleaseId": null,
+      "subjectArtifactDigests": [],
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "signedAt": null,
+      "expiresAt": null,
+      "signature": null
+    },
+    {
+      "approvalId": "approval-incident-referral-wording",
+      "requirement": "INCIDENT_AND_REFERRAL_WORDING",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: incident, emergency, pause, and referral wording and runbook",
+      "reviewer": null,
+      "scope": null,
+      "jurisdictions": [],
+      "subjectReleaseId": null,
+      "subjectArtifactDigests": [],
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "signedAt": null,
+      "expiresAt": null,
+      "signature": null
+    },
+    {
+      "approvalId": "approval-product-governance",
+      "requirement": "PRODUCT_GOVERNANCE",
+      "status": "PENDING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: final governed release decision for the exact revision and artifacts",
+      "reviewer": null,
+      "scope": null,
+      "jurisdictions": [],
+      "subjectReleaseId": null,
+      "subjectArtifactDigests": [],
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "signedAt": null,
+      "expiresAt": null,
+      "signature": null
+    }
+  ],
+  "evidence": [
+    {
+      "evidenceId": "evidence-t1005-artifact-integrity",
+      "requirement": "T1005_ARTIFACT_INTEGRITY",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: attest current migration replay and artifact lifecycle/reference results",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-t1006-autonomy-gate",
+      "requirement": "T1006_AUTONOMY_GATE",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: attest deterministic safety and autonomy gate results for the release revision",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-t1007-provider-boundary",
+      "requirement": "T1007_PROVIDER_BOUNDARY",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: attest provider-boundary adversarial results for the release revision",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-t1008-activation-lifecycle",
+      "requirement": "T1008_ACTIVATION_LIFECYCLE",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: attest finalization, acceptance, export, and deletion results",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-t1009-adversarial-suite",
+      "requirement": "T1009_ADVERSARIAL_SUITE",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: bind and attest the synthetic adversarial corpus results",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-t1010-operations-drill",
+      "requirement": "T1010_OPERATIONS_DRILL",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: bind and attest aggregate monitoring and rollback results",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-staging-kill-switch-drill",
+      "requirement": "STAGING_KILL_SWITCH_DRILL",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: witnessed staging kill-switch and rollback drill",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-real-provider-evaluation",
+      "requirement": "REAL_PROVIDER_EVALUATION",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: approved real-provider evaluation without raw prompt or trace retention",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    },
+    {
+      "evidenceId": "evidence-full-xcode",
+      "requirement": "FULL_XCODE",
+      "status": "MISSING",
+      "requiredHumanDecision": "REQUIRED HUMAN DECISION: full-Xcode build and test evidence for the exact iOS revision",
+      "subjectRevision": null,
+      "subjectConfigurationDigest": null,
+      "recordId": null,
+      "recordDigest": null,
+      "observedAt": null,
+      "expiresAt": null,
+      "attestation": null
+    }
+  ]
+}

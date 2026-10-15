@@ -259,6 +259,8 @@ export function SignaturePage({ token, prospectName, coachName, answers, prospec
                         <li>The information above is accurate to the best of my knowledge</li>
                         <li>I understand this information will be used by {coachName} to build my coaching program</li>
                         <li>I am voluntarily entering into a coaching relationship with {coachName}</li>
+                        <li>I understand that coaching provided through Steadfast is for general fitness and wellness only, does not constitute medical advice or medical nutrition therapy, and coaches are not required to hold clinical credentials</li>
+                        <li>I acknowledge that I should consult my physician before undertaking any diet or exercise changes, and I assume full responsibility for my health and participation, releasing Steadfast from liability</li>
                     </ul>
                 </div>
             </div>

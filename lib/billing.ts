@@ -1,6 +1,9 @@
 import type Stripe from "stripe";
 import { db } from "@/lib/db";
+import type { Prisma } from "@/app/generated/prisma/client";
 import { SubscriptionStatus } from "@/app/generated/prisma/client";
+
+type DbClient = typeof db | Prisma.TransactionClient;
 
 /** Maps a Stripe subscription status string onto our SubscriptionStatus enum. */
 export function mapStripeStatus(status: Stripe.Subscription.Status): SubscriptionStatus {
@@ -46,9 +49,18 @@ export function mapStripeStatus(status: Stripe.Subscription.Status): Subscriptio
  *
  * If neither resolves to a known coach, the event is logged and skipped —
  * there is nothing in our system to attach it to.
+ *
+ * CB11: Stripe does not guarantee webhook delivery order. `eventCreatedAt`
+ * (the originating Stripe Event's `created` timestamp) is compared against
+ * the row's `lastEventAt` before writing — an update whose event is older
+ * than the last one actually applied is skipped rather than regressing
+ * entitlement state. Pass `tx` to run this as part of a caller's own
+ * transaction (e.g. alongside recording the webhook receipt).
  */
 export async function upsertCoachSubscriptionFromStripeSubscription(
-  subscription: Stripe.Subscription
+  subscription: Stripe.Subscription,
+  eventCreatedAt: Date,
+  tx: DbClient = db
 ): Promise<void> {
   const customerId =
     typeof subscription.customer === "string"
@@ -67,27 +79,44 @@ export async function upsertCoachSubscriptionFromStripeSubscription(
     currentPeriodEnd: item ? new Date(item.current_period_end * 1000) : null,
     cancelAtPeriodEnd: subscription.cancel_at_period_end,
     trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
+    lastEventAt: eventCreatedAt,
   };
+
+  // Not stale = no event has been applied yet, or the last applied event is
+  // no newer than this one (same-second distinct events both apply; a
+  // strictly older event does not).
+  const notStale = { OR: [{ lastEventAt: null }, { lastEventAt: { lte: eventCreatedAt } }] };
 
   const coachId = subscription.metadata?.coachId;
 
   if (coachId) {
-    await db.coachSubscription.upsert({
-      where: { coachId },
-      create: { coachId, ...data },
-      update: data,
+    const updated = await tx.coachSubscription.updateMany({
+      where: { coachId, ...notStale },
+      data,
     });
+    if (updated.count === 0) {
+      const existing = await tx.coachSubscription.findUnique({ where: { coachId }, select: { id: true } });
+      if (!existing) {
+        await tx.coachSubscription.create({ data: { coachId, ...data } });
+      } else {
+        console.info(`[billing] Skipped stale Stripe event ${subscription.id} for coach ${coachId} — a newer event was already applied.`);
+      }
+    }
     return;
   }
 
-  const result = await db.coachSubscription.updateMany({
-    where: { stripeCustomerId: customerId },
+  const updated = await tx.coachSubscription.updateMany({
+    where: { stripeCustomerId: customerId, ...notStale },
     data,
   });
-
-  if (result.count === 0) {
-    console.error(
-      `[billing] Stripe subscription ${subscription.id} for customer ${customerId} has no coachId metadata and no matching CoachSubscription row — skipped`
-    );
+  if (updated.count === 0) {
+    const existing = await tx.coachSubscription.findFirst({ where: { stripeCustomerId: customerId }, select: { id: true } });
+    if (!existing) {
+      console.error(
+        `[billing] Stripe subscription ${subscription.id} for customer ${customerId} has no coachId metadata and no matching CoachSubscription row — skipped`
+      );
+    } else {
+      console.info(`[billing] Skipped stale Stripe event ${subscription.id} for customer ${customerId} — a newer event was already applied.`);
+    }
   }
 }

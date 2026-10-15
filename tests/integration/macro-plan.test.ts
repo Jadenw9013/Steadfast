@@ -25,12 +25,10 @@ import { db } from "@/lib/db";
 import { purgeUserAccount } from "@/lib/account-deletion/purge";
 import { getEffectiveMealPlanForReview, getCurrentPublishedMealPlan } from "@/lib/queries/meal-plans";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 suite("macro-only plan mode with real PostgreSQL constraints", () => {
@@ -46,14 +44,18 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     const coach = await db.user.create({ data: { clerkId: coachId, email: `${coachId}@example.test`, isCoach: true, activeRole: "COACH" } });
     const clientId = randomUUID();
     const client = await db.user.create({ data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true } });
-    await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
-    return { coach, client };
+    // T-665: `link` is returned so tests can pass `link.createdAt` as the
+    // required provider gate to `getCurrentPublishedMealPlan` — the link is
+    // created before every publish in this file, so `publishedAt >=
+    // link.createdAt` always holds.
+    const link = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+    return { coach, client, link };
   }
 
   const params = (clientId: string) => ({ params: Promise.resolve({ clientId }) });
 
   it("saves, publishes, and fetches a macro-only plan identically through the web action and the iOS REST route", async () => {
-    const { coach, client } = await fixture();
+    const { coach, client, link } = await fixture();
     mocks.authUserId = coach.clerkId;
 
     const macroTargets = [
@@ -72,7 +74,7 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     await publishMealPlan({ mealPlanId });
 
     // Read back through the web query module (feeds SimpleMealPlan / MealPlanEditorV2)
-    const web = await getCurrentPublishedMealPlan(client.id);
+    const web = await getCurrentPublishedMealPlan(client.id, link.createdAt);
     expect(web?.planMode).toBe("MACROS");
     expect(web?.macroTargets.map((t) => ({ mealName: t.mealName, calories: t.calories }))).toEqual([
       { mealName: "Breakfast", calories: 500 },
@@ -89,7 +91,7 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
   });
 
   it("does not disturb an existing meal-plan-only save/publish flow when macroTargets is never passed", async () => {
-    const { coach, client } = await fixture();
+    const { coach, client, link } = await fixture();
     mocks.authUserId = coach.clerkId;
 
     const items = [
@@ -101,14 +103,14 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     expect(saveResult).toEqual({ success: true });
     await publishMealPlan({ mealPlanId });
 
-    const web = await getCurrentPublishedMealPlan(client.id);
+    const web = await getCurrentPublishedMealPlan(client.id, link.createdAt);
     expect(web?.planMode).toBe("MEAL_PLAN");
     expect(web?.items).toHaveLength(1);
     expect(web?.macroTargets).toEqual([]);
   });
 
   it("saves macro targets identically when created via the iOS REST route instead of the web action", async () => {
-    const { coach, client } = await fixture();
+    const { coach, client, link } = await fixture();
     mocks.authUserId = coach.clerkId;
 
     const createResponse = await createDraftRest(
@@ -151,43 +153,35 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     );
     expect(publishResponse.status).toBe(200);
 
-    // Parity property this test exists to prove: the mode iOS wrote is the
-    // mode web reads back on the published row itself, independent of what
-    // the coach's editor resolves to (T-800 code-review r1, MINOR-6 — this
-    // assertion was dropped by a mechanical rename fix in r1 and is restored
-    // here).
-    const publishedRow = await db.mealPlan.findUniqueOrThrow({ where: { id: mealPlan.id } });
-    expect(publishedRow.planMode).toBe("MACROS");
-
-    // Read back through the web query module — must match what iOS wrote.
-    // T-800: EffectiveMealPlan.planMode was replaced with clientPlanMode +
-    // editorMode. No draft exists for this week, so editorMode is the
-    // CoachClient default (MEAL_PLAN — this fixture never toggled it),
-    // server-resolved as draft?.planMode ?? clientPlanMode with no inference
-    // from the published row's content (round-3 adjudication removed the r1
-    // MAJOR-2 content-based fallback — board/tickets/T-800.md "## Decision").
-    // The published row here has 0 items and 1 macro target, which
-    // contradicts that default, and that is the intended, recoverable state
-    // this ticket's spec (risk 2) accepts: the coach sees the foods editor
-    // and one labelled tap on the Plan Type toggle reveals the macro
-    // content.
+    // Read back through the web query module — must match what iOS wrote
     const web = await getEffectiveMealPlanForReview({ coachId: coach.id, clientId: client.id, weekOf: new Date("2026-09-14T00:00:00Z") });
+    expect(web.source).toBe("published");
+    expect(web.macroTargets).toEqual([{ mealName: "Dinner", calories: 650, protein: 48, carbs: 62, fats: 19 }]);
+    // T-102a deleted `EffectiveMealPlan.planMode`. The original assertion here
+    // was about the PUBLISHED ROW's own mode — the snapshot iOS wrote — so it
+    // moves to that row's source of truth, not to `editorMode`.
+    expect((await getCurrentPublishedMealPlan(client.id, link.createdAt))?.planMode).toBe("MACROS");
+    // `editorMode` is NOT "MACROS" here, and that is the frozen rule working:
+    // publishing consumed the draft, and this coach set `planMode` per-draft
+    // without ever toggling `CoachClient.planMode`, so the editor falls back to
+    // the client default. Accepted cost, same family as spec risk 4 / T-738.
+    // Re-adding the published row's mode to the precedence chain to make this
+    // read "MACROS" would break the published-only toggle case.
     expect(web.editorMode).toBe("MEAL_PLAN");
     expect(web.clientPlanMode).toBe("MEAL_PLAN");
-    expect(web.macroTargets).toEqual([{ mealName: "Dinner", calories: 650, protein: 48, carbs: 62, fats: 19 }]);
   });
 
   it("toggling plan mode updates the CoachClient default and the current draft, but never a published plan", async () => {
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    // T-800: publish now refuses an empty MEAL_PLAN plan, so this draft
-    // needs at least one item to reach PUBLISHED — the toggle/mode
-    // propagation under test doesn't depend on which item.
+    // T-102b — fixture content only: publishing a MEAL_PLAN plan with zero
+    // items is now rejected by the shared service. The assertions below are
+    // about planMode propagation, so the food itself is not meaningful.
     const { mealPlanId } = await createDraftMealPlan({
       clientId: client.id,
       weekStartDate: "2026-09-14",
-      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Chicken breast", quantity: "6", unit: "oz", calories: 280, protein: 52, carbs: 0, fats: 6 }],
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Fixture food", quantity: "1", unit: "serving", calories: 100, protein: 10, carbs: 10, fats: 1 }],
     });
     await publishMealPlan({ mealPlanId });
     // A second draft for a later week — should pick up the toggle immediately since it's still a draft
@@ -219,6 +213,149 @@ suite("macro-only plan mode with real PostgreSQL constraints", () => {
     );
     expect(response.status).toBe(200);
     expect((await db.coachClient.findUniqueOrThrow({ where: { coachId_clientId: { coachId: coach.id, clientId: client.id } } })).planMode).toBe("MACROS");
+  });
+
+  // ── T-103: the macro editor can now author plan notes ──────────────────────
+  // The macro editor's only server-visible change. Each case sends the exact
+  // payload `buildMacroDraftInput` / the save handlers produce, so the
+  // create-path `null` vs. save-path `undefined` asymmetry is exercised for
+  // real rather than asserted in a unit test alone.
+
+  const MACRO_TARGETS = [
+    { mealName: "Breakfast", sortOrder: 0, calories: 500, protein: 40, carbs: 50, fats: 15 },
+    { mealName: "Lunch", sortOrder: 1, calories: 700, protein: 55, carbs: 70, fats: 20 },
+  ];
+
+  it("macro notes typed by the coach reach the client's macro view", async () => {
+    const { coach, client, link } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    // Exactly what buildMacroDraftInput({ ..., supportContent: "SYNTHETIC coach notes" }) produces.
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC coach notes",
+    });
+    await publishMealPlan({ mealPlanId });
+
+    // This is the data components/client/simple-meal-plan.tsx hands to
+    // MacroPlanView — before T-103 there was no way to produce this row from
+    // the macro editor at all.
+    const published = await getCurrentPublishedMealPlan(client.id, link.createdAt);
+    expect(published?.planMode).toBe("MACROS");
+    expect(published?.macroTargets.map((t) => t.mealName)).toEqual(["Breakfast", "Lunch"]);
+    expect(published?.supportContent).toBe("SYNTHETIC coach notes");
+  });
+
+  it("saving notes on an existing macro draft updates only the notes", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC v1",
+    });
+
+    // The macro editor's save payload.
+    await saveDraftMealPlan({
+      mealPlanId,
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC v2",
+    });
+
+    const plan = await db.mealPlan.findUniqueOrThrow({
+      where: { id: mealPlanId },
+      include: { macroTargets: { orderBy: { sortOrder: "asc" } }, items: true },
+    });
+    expect(plan.supportContent).toBe("SYNTHETIC v2");
+    expect(plan.macroTargets.map((t) => [t.mealName, t.calories])).toEqual([
+      ["Breakfast", 500],
+      ["Lunch", 700],
+    ]);
+    expect(plan.items).toEqual([]);
+  });
+
+  it("an emptied notes box does not clear saved notes (T-732 semantics preserved)", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    const { mealPlanId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: "SYNTHETIC keep me",
+    });
+
+    // `supportContent: supportContent || undefined` with an empty textarea —
+    // byte-identical to what the foods editor has always sent.
+    await saveDraftMealPlan({ mealPlanId, macroTargets: MACRO_TARGETS, supportContent: undefined });
+
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: mealPlanId } })).supportContent).toBe(
+      "SYNTHETIC keep me"
+    );
+  });
+
+  it("an empty notes box on CREATE does not resurrect the previous week's notes (T-101)", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    // A published foods week carrying notes — the carry-forward source.
+    const { mealPlanId: foodsWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Oats", quantity: "80", unit: "g", calories: 300, protein: 10, carbs: 54, fats: 5 }],
+      supportContent: "SYNTHETIC previous week notes",
+    });
+    await publishMealPlan({ mealPlanId: foodsWeekId });
+
+    // Next week, macro mode, empty notes box → explicit null, which must beat
+    // the carry-forward. `undefined` here would resurrect the notes above.
+    const { mealPlanId: macroWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-21",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: null,
+    });
+
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: macroWeekId } })).supportContent).toBeNull();
+    // The published week is untouched — carry-forward reads, it never writes.
+    expect((await db.mealPlan.findUniqueOrThrow({ where: { id: foodsWeekId } })).supportContent).toBe(
+      "SYNTHETIC previous week notes"
+    );
+  });
+
+  it("items are still carried forward into the macro draft", async () => {
+    const { coach, client } = await fixture();
+    mocks.authUserId = coach.clerkId;
+
+    const { mealPlanId: foodsWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-14",
+      items: [{ mealName: "Meal 1", sortOrder: 0, foodName: "Oats", quantity: "80", unit: "g", calories: 300, protein: 10, carbs: 54, fats: 5 }],
+    });
+    await publishMealPlan({ mealPlanId: foodsWeekId });
+
+    const { mealPlanId: macroWeekId } = await createDraftMealPlan({
+      clientId: client.id,
+      weekStartDate: "2026-09-21",
+      planMode: "MACROS",
+      macroTargets: MACRO_TARGETS,
+      supportContent: null,
+    });
+
+    // T-101 rule 3 — and what makes the autofill panel appear in macro mode.
+    const draft = await db.mealPlan.findUniqueOrThrow({
+      where: { id: macroWeekId },
+      include: { items: true },
+    });
+    expect(draft.items.map((i) => i.foodName)).toEqual(["Oats"]);
   });
 
   it("purge removes MealMacroTarget rows along with the plan", async () => {

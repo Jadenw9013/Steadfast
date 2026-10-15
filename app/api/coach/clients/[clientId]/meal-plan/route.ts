@@ -4,31 +4,24 @@ import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { parseWeekStartDate, getCurrentWeekMonday } from "@/lib/utils/date";
 import { planExtrasSchema } from "@/types/meal-plan-extras";
-import { mergePlanExtras } from "@/lib/meal-plans/plan-extras-merge";
+import { mealMacroTargetSchema, planModeSchema } from "@/lib/meal-plans/macro-targets";
+import { resolveDefaultPlanMode, resolveEditorPlanMode } from "@/lib/meal-plans/plan-mode";
 import {
-  mealMacroTargetSchema,
-  planModeSchema,
-  macroTargetTransactionOps,
-  resolveDefaultPlanMode,
-} from "@/lib/meal-plans/macro-targets";
-import { resolveEditorPlanMode } from "@/lib/meal-plans/plan-mode";
+  mealPlanItemSchema,
+  supportContentInputSchema,
+  resolveStartBlank,
+  createMealPlanDraft,
+  getMealPlanSaveTarget,
+  saveMealPlanDraftContent,
+} from "@/lib/meal-plans/drafts";
+import { ROUTE_FAILED } from "@/lib/observability/events";
+import { reportServerError } from "@/lib/observability/report";
 
 type Params = { params: Promise<{ clientId: string }> };
 
-const mealPlanItemSchema = z.object({
-  mealName: z.string().min(1).max(100),
-  sortOrder: z.number().int().min(0),
-  foodName: z.string().min(1).max(200),
-  quantity: z.string().min(1).max(50),
-  unit: z.string().min(1).max(20),
-  servingDescription: z.string().max(200).optional(),
-  calories: z.coerce.number().int().min(0).default(0),
-  protein: z.coerce.number().int().min(0).default(0),
-  carbs: z.coerce.number().int().min(0).default(0),
-  fats: z.coerce.number().int().min(0).default(0),
-});
-
-async function verifyAssignment(coachId: string, clientId: string) {
+/** Exported so the three history routes (T-801) import this instead of
+ *  writing a third and fourth copy of the same assignment check. */
+export async function verifyAssignment(coachId: string, clientId: string) {
   return db.coachClient.findUnique({
     where: { coachId_clientId: { coachId, clientId } },
     select: { id: true },
@@ -100,11 +93,16 @@ export async function GET(req: NextRequest, { params }: Params) {
       fats: true,
     } as const;
 
-    // Draft, published and the client's persistent default all in parallel —
-    // the CoachClient.planMode read adds no latency. Mirrors
-    // `getEffectiveMealPlanForReview` in lib/queries/meal-plans.ts so the two
-    // coach-facing readers compose lib/meal-plans/plan-mode.ts the same way
-    // (T-800 code-review r1 MAJOR-1).
+    // All three reads in parallel — the CoachClient.planMode read adds no
+    // latency. Mirrors `getEffectiveMealPlanForReview` in lib/queries/meal-plans.ts
+    // so the two coach-facing readers compose lib/meal-plans/plan-mode.ts the
+    // same way. The published read is scoped to the requested week, matching the
+    // draft lookup. The previous unscoped lookup returned the globally-latest
+    // published plan while reporting `source: "published"` and a `weekOf` from a
+    // different week (T-101, audit note 2). The default-week branch above is
+    // unaffected: it derives `weekOf` from the latest published plan, so this
+    // returns that same row. Its own defect (preferring the latest published
+    // week over the current week) is T-731.
     const [draft, published, clientPlanMode] = await Promise.all([
       db.mealPlan.findFirst({
         where: { clientId, weekOf, status: "DRAFT" },
@@ -116,12 +114,13 @@ export async function GET(req: NextRequest, { params }: Params) {
           status: true,
           planMode: true,
           planExtras: true,
+          supportContent: true,
           items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
           macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
         },
       }),
       db.mealPlan.findFirst({
-        where: { clientId, status: "PUBLISHED" },
+        where: { clientId, weekOf, status: "PUBLISHED" },
         orderBy: { publishedAt: "desc" },
         select: {
           id: true,
@@ -130,6 +129,7 @@ export async function GET(req: NextRequest, { params }: Params) {
           status: true,
           planMode: true,
           planExtras: true,
+          supportContent: true,
           publishedAt: true,
           items: { orderBy: { sortOrder: "asc" }, select: itemSelect },
           macroTargets: { orderBy: { sortOrder: "asc" }, select: macroTargetSelect },
@@ -139,11 +139,9 @@ export async function GET(req: NextRequest, { params }: Params) {
     ]);
 
     // Computed from the DRAFT for the requested week ONLY — never from
-    // `published`, or a toggle on a published-only week would silently do
-    // nothing again. See lib/meal-plans/plan-mode.ts. Server-resolved
-    // `draft?.planMode ?? clientPlanMode` — never inferred from the
-    // published row's content (round-2 adjudication, board/tickets/T-800.md
-    // "## Decision").
+    // `published`, and never from `active` below, or a toggle on a
+    // published-only week would silently do nothing again (T-102a).
+    // See lib/meal-plans/plan-mode.ts.
     const editorMode = resolveEditorPlanMode(draft?.planMode ?? null, clientPlanMode);
 
     const active = draft ?? published;
@@ -157,6 +155,12 @@ export async function GET(req: NextRequest, { params }: Params) {
             status: active.status,
             planMode: active.planMode,
             planExtras: active.planExtras ?? null,
+            // Same column under both names — `planNotes` is what iOS decodes,
+            // `supportContent` is web's canonical name. Matches the precedent
+            // in app/api/client/meal-plan/current/route.ts. Before T-101 an
+            // iOS coach could not see plan notes a web coach wrote at all.
+            planNotes: active.supportContent ?? null,
+            supportContent: active.supportContent ?? null,
             items: active.items,
             macroTargets: active.macroTargets,
           }
@@ -167,14 +171,21 @@ export async function GET(req: NextRequest, { params }: Params) {
       // Server-computed "current week" — clients should prefer this over
       // any on-device date math when seeding a brand-new plan's weekOf.
       currentWeekOf: getCurrentWeekMonday().toISOString(),
-      // T-800 MAJOR-1, additive. Always present and never null, including
-      // when `mealPlan` is null. `mealPlan.planMode` above is unchanged and
-      // still means "the planMode of the row in `mealPlan`"; `editorMode` is
-      // what the coach's editor must render.
+      // T-102a, additive. Always present and never null, including when
+      // `mealPlan` is null — that empty case is the whole point. `mealPlan
+      // .planMode` above is unchanged and still means "the planMode of the row
+      // in `mealPlan`"; `editorMode` is what the coach's editor must render.
       clientPlanMode,
       editorMode,
     });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "GET",
+      statusCode: 500,
+      context: { handler: "GET meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[GET /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -187,11 +198,15 @@ export async function GET(req: NextRequest, { params }: Params) {
 
 const createDraftSchema = z.object({
   weekOf: z.string().min(1),
-  copyFromPublished: z.boolean().default(false),
+  /** Legacy. Only an explicit `false` is still meaningful (⇒ start blank);
+   *  `true` and omitted both mean copy-forward. Prefer `startBlank`. */
+  copyFromPublished: z.boolean().optional(),
+  startBlank: z.boolean().optional(),
   items: z.array(mealPlanItemSchema).max(50).optional(),
   macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
   planMode: planModeSchema.optional(),
   planExtras: planExtrasSchema.optional(),
+  supportContent: supportContentInputSchema,
 });
 
 export async function POST(req: NextRequest, { params }: Params) {
@@ -222,7 +237,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       );
     }
 
-    const { weekOf: weekOfParam, copyFromPublished } = parsed.data;
+    const { weekOf: weekOfParam } = parsed.data;
     let weekOf: Date;
     try {
       weekOf = parseWeekStartDate(weekOfParam);
@@ -230,97 +245,35 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Invalid weekOf date" }, { status: 400 });
     }
 
-    // Determine next version number
-    const latestVersion = await db.mealPlan.findFirst({
-      where: { clientId, weekOf },
-      orderBy: { version: "desc" },
-      select: { version: true },
-    });
-    const nextVersion = (latestVersion?.version ?? 0) + 1;
-
-    let itemsToCreate: z.infer<typeof mealPlanItemSchema>[] = [];
-    let macroTargetsToCreate: z.infer<typeof mealMacroTargetSchema>[] = parsed.data.macroTargets ?? [];
-    let extrasToStore = parsed.data.planExtras;
-    let planMode = parsed.data.planMode;
-
-    if (parsed.data.items || parsed.data.macroTargets) {
-      itemsToCreate = parsed.data.items ?? [];
-    } else if (copyFromPublished) {
-      const publishedPlan = await db.mealPlan.findFirst({
-        where: { clientId, status: "PUBLISHED" },
-        orderBy: { publishedAt: "desc" },
-        select: {
-          planMode: true,
-          planExtras: true,
-          items: {
-            orderBy: { sortOrder: "asc" },
-            select: {
-              mealName: true,
-              sortOrder: true,
-              foodName: true,
-              quantity: true,
-              unit: true,
-              servingDescription: true,
-              calories: true,
-              protein: true,
-              carbs: true,
-              fats: true,
-            },
-          },
-          macroTargets: {
-            orderBy: { sortOrder: "asc" },
-            select: { mealName: true, sortOrder: true, calories: true, protein: true, carbs: true, fats: true },
-          },
-        },
-      });
-      if (publishedPlan) {
-        itemsToCreate = publishedPlan.items.map((item) => ({
-          mealName: item.mealName,
-          sortOrder: item.sortOrder,
-          foodName: item.foodName,
-          quantity: item.quantity,
-          unit: item.unit,
-          servingDescription: item.servingDescription ?? undefined,
-          calories: item.calories,
-          protein: item.protein,
-          carbs: item.carbs,
-          fats: item.fats,
-        }));
-        macroTargetsToCreate = publishedPlan.macroTargets.map((t) => ({ ...t }));
-        if (planMode === undefined) planMode = publishedPlan.planMode;
-        if (!extrasToStore && publishedPlan.planExtras) {
-          const validated = planExtrasSchema.safeParse(publishedPlan.planExtras);
-          if (validated.success) extrasToStore = validated.data;
-        }
-      }
-    }
-
-    if (planMode === undefined) {
-      planMode = await resolveDefaultPlanMode(user.id, clientId);
-    }
-
-    const plan = await db.mealPlan.create({
-      data: {
-        clientId,
-        weekOf,
-        version: nextVersion,
-        status: "DRAFT",
-        planMode,
-        planExtras: extrasToStore ?? undefined,
-        items: { create: itemsToCreate },
-        macroTargets: { create: macroTargetsToCreate },
-      },
-      select: {
-        id: true,
-        weekOf: true,
-        version: true,
-        status: true,
-        planMode: true,
-      },
+    // All draft-creation logic (copy-forward, planMode resolution, versioning)
+    // lives in lib/meal-plans/drafts.ts so this route and the web Server Action
+    // can't diverge again — T-101.
+    const { mealPlanId } = await createMealPlanDraft({
+      clientId,
+      coachId: user.id,
+      weekOf,
+      startBlank: resolveStartBlank(parsed.data),
+      planMode: parsed.data.planMode,
+      items: parsed.data.items,
+      macroTargets: parsed.data.macroTargets,
+      planExtras: parsed.data.planExtras,
+      supportContent: parsed.data.supportContent,
     });
 
-    return NextResponse.json({ mealPlan: plan }, { status: 201 });
+    const fullPlan = await db.mealPlan.findUniqueOrThrow({
+      where: { id: mealPlanId },
+      select: { id: true, weekOf: true, version: true, status: true, planMode: true },
+    });
+
+    return NextResponse.json({ mealPlan: fullPlan }, { status: 201 });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "POST",
+      statusCode: 500,
+      context: { handler: "POST meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[POST /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -336,6 +289,10 @@ const saveDraftSchema = z.object({
   items: z.array(mealPlanItemSchema).max(50).optional(),
   macroTargets: z.array(mealMacroTargetSchema).max(50).optional(),
   planExtras: planExtrasSchema.optional().nullable(),
+  /** Canonical name, matches the web Server Action. */
+  supportContent: supportContentInputSchema,
+  /** Alias — the name iOS already sends. `supportContent` wins if both present. */
+  planNotes: supportContentInputSchema,
 });
 
 export async function PUT(req: NextRequest, { params }: Params) {
@@ -367,57 +324,37 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     const { mealPlanId, items, macroTargets, planExtras } = parsed.data;
+    const supportContent =
+      parsed.data.supportContent !== undefined ? parsed.data.supportContent : parsed.data.planNotes;
 
-    const plan = await db.mealPlan.findUnique({
-      where: { id: mealPlanId },
-      select: { clientId: true, status: true, planExtras: true },
-    });
-    if (!plan) {
+    const target = await getMealPlanSaveTarget(mealPlanId);
+    if (!target) {
       return NextResponse.json({ error: "Meal plan not found" }, { status: 404 });
     }
-    if (plan.clientId !== clientId) {
+    if (target.clientId !== clientId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await db.$transaction([
-      ...(items !== undefined
-        ? [
-            db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
-            ...items.map((item, i) =>
-              db.mealPlanItem.create({
-                data: {
-                  mealPlanId,
-                  mealName: item.mealName,
-                  sortOrder: i,
-                  foodName: item.foodName,
-                  quantity: item.quantity,
-                  unit: item.unit,
-                  servingDescription: item.servingDescription ?? null,
-                  calories: item.calories,
-                  protein: item.protein,
-                  carbs: item.carbs,
-                  fats: item.fats,
-                },
-              })
-            ),
-          ]
-        : []),
-      ...(macroTargets !== undefined ? macroTargetTransactionOps(mealPlanId, macroTargets) : []),
-      // T-841 — merge key-wise against the RAW stored JSON instead of
-      // replacing wholesale. See lib/meal-plans/plan-extras-merge.ts and the
-      // identical comment in app/actions/meal-plans.ts:saveDraftMealPlan.
-      ...(planExtras != null
-        ? [
-            db.mealPlan.update({
-              where: { id: mealPlanId },
-              data: { planExtras: mergePlanExtras(plan.planExtras, planExtras) },
-            }),
-          ]
-        : []),
-    ]);
+    // CB04 fork-on-published lives entirely in lib/meal-plans/drafts.ts.
+    const result = await saveMealPlanDraftContent(target, {
+      items,
+      macroTargets,
+      planExtras,
+      supportContent,
+    });
 
+    if (result.forkedNewDraftId) {
+      return NextResponse.json({ success: true, forkedNewDraftId: result.forkedNewDraftId });
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "PUT",
+      statusCode: 500,
+      context: { handler: "PUT meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[PUT /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },
@@ -476,6 +413,13 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     await db.mealPlan.delete({ where: { id: mealPlanId } });
     return NextResponse.json({ success: true });
   } catch (err) {
+    reportServerError(ROUTE_FAILED.evt, err, {
+      route: "/api/coach/clients/[id]/meal-plan",
+      method: "DELETE",
+      statusCode: 500,
+      context: { handler: "DELETE meal-plan" },
+      allow: ROUTE_FAILED.allow,
+    });
     console.error("[DELETE /api/coach/clients/[clientId]/meal-plan]", err);
     return NextResponse.json(
       { error: "Internal server error" },

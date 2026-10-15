@@ -51,18 +51,9 @@ export function macroTargetTransactionOps(
   ];
 }
 
-/** Resolve the planMode a brand-new draft should start with when the caller
- *  didn't explicitly specify one: the CoachClient's persistent default. */
-export async function resolveDefaultPlanMode(
-  coachId: string,
-  clientId: string
-): Promise<PlanModeInput> {
-  const assignment = await db.coachClient.findUnique({
-    where: { coachId_clientId: { coachId, clientId } },
-    select: { planMode: true },
-  });
-  return assignment?.planMode ?? "MEAL_PLAN";
-}
+/** `resolveDefaultPlanMode` moved to `lib/meal-plans/plan-mode.ts` (T-102a) —
+ *  it is a plan-mode read, not macro-target logic, and it reads the same
+ *  `CoachClient.planMode` column the editor-mode rule needs. */
 
 /** Coach sets a client's persistent default plan mode. Caller must have
  *  already verified coach ownership of this client (verifyCoachAccessToClient).

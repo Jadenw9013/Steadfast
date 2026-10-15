@@ -9,6 +9,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const actingUser = await prisma.user.findUnique({ where: { clerkId: userId }, select: { isDeactivated: true } });
+    if (!actingUser || actingUser.isDeactivated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     
     // Validate request config

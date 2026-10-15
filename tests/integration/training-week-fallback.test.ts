@@ -14,9 +14,10 @@ import { GET as getTrainingRest } from "@/app/api/coach/clients/[clientId]/train
 import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { db } from "@/lib/db";
 
+import { requireLocalTestDb } from "../helpers/require-local-test-db";
 /**
  * T-803 regression suite. Run through the local test DB:
- *   DATABASE_URL=postgresql://jadenwong@127.0.0.1:5432/steadfast_security_test \
+ *   DATABASE_URL=<local test DB from tests/helpers/require-local-test-db.ts> \
  *   SECURITY_INTEGRATION=1 pnpm exec vitest run tests/integration/training-week-fallback.test.ts
  *
  * Cases 1-4 must FAIL on unmodified 04e8d41 (origin/main) — see
@@ -26,10 +27,7 @@ import { db } from "@/lib/db";
 
 const enabled = process.env.SECURITY_INTEGRATION === "1";
 // Fail closed: these tests never run against a production database.
-if (enabled) {
-  const url = new URL(process.env.DATABASE_URL ?? "");
-  if (url.hostname !== "127.0.0.1" || url.pathname !== "/steadfast_security_test") throw new Error("Dedicated local test database required");
-}
+if (enabled) requireLocalTestDb();
 const suite = enabled ? describe : describe.skip;
 
 const INDEX_NAME = "TrainingProgram_one_published_per_client";
@@ -118,9 +116,18 @@ suite("T-803: coach training week-scoped read falls back to the latest published
 
   async function fixture() {
     const coachId = randomUUID();
-    const coach = await db.user.create({ data: { clerkId: coachId, email: `${coachId}@example.test`, isCoach: true, activeRole: "COACH" } });
+    const coach = await db.user.create({
+      data: {
+        clerkId: coachId,
+        email: `${coachId}@example.test`,
+        isCoach: true,
+        activeRole: "COACH",
+      },
+    });
     const clientId = randomUUID();
-    const client = await db.user.create({ data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true } });
+    const client = await db.user.create({
+      data: { clerkId: clientId, email: `${clientId}@example.test`, isClient: true },
+    });
     await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
     createdClientIds.push(client.id);
     createdUserIds.push(coach.id, client.id);
@@ -132,13 +139,16 @@ suite("T-803: coach training week-scoped read falls back to the latest published
   const WEEK_A = new Date("2026-08-31T00:00:00Z");
   const WEEK_B = new Date("2026-09-07T00:00:00Z");
 
-  async function createProgram(clientId: string, opts: {
-    weekOf: Date;
-    status: "DRAFT" | "PUBLISHED";
-    publishedAt?: Date | null;
-    createdAt?: Date;
-    dayName?: string;
-  }) {
+  async function createProgram(
+    clientId: string,
+    opts: {
+      weekOf: Date;
+      status: "DRAFT" | "PUBLISHED";
+      publishedAt?: Date | null;
+      createdAt?: Date;
+      dayName?: string;
+    }
+  ) {
     const program = await db.trainingProgram.create({
       data: {
         clientId,
@@ -150,14 +160,19 @@ suite("T-803: coach training week-scoped read falls back to the latest published
             {
               dayName: opts.dayName ?? "Day 1",
               sortOrder: 0,
-              blocks: { create: [{ type: "EXERCISE", title: "Squat", content: "5x5", sortOrder: 0 }] },
+              blocks: {
+                create: [{ type: "EXERCISE", title: "Squat", content: "5x5", sortOrder: 0 }],
+              },
             },
           ],
         },
       },
     });
     if (opts.createdAt) {
-      await db.trainingProgram.update({ where: { id: program.id }, data: { createdAt: opts.createdAt } });
+      await db.trainingProgram.update({
+        where: { id: program.id },
+        data: { createdAt: opts.createdAt },
+      });
     }
     return program;
   }
@@ -194,7 +209,11 @@ suite("T-803: coach training week-scoped read falls back to the latest published
     // in the past, which the non-week-scoped client read then serves as the
     // client's current workout. The bound (`weekOf: { lt: requestedWeekOf }`)
     // must keep this case at `source: "empty"`.
-    const futureProgram = await createProgram(client.id, { weekOf: WEEK_B, status: "PUBLISHED", dayName: "Future" });
+    const futureProgram = await createProgram(client.id, {
+      weekOf: WEEK_B,
+      status: "PUBLISHED",
+      dayName: "Future",
+    });
 
     const webResult = await getTrainingProgramForReview(client.id, WEEK_A);
     expect(webResult.source).toBe("empty");
@@ -266,8 +285,15 @@ suite("T-803: coach training week-scoped read falls back to the latest published
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    const nullPublishedAt = await createProgram(client.id, { weekOf: WEEK_A, status: "PUBLISHED", dayName: "NullPublishedAt" });
-    await db.trainingProgram.update({ where: { id: nullPublishedAt.id }, data: { publishedAt: null } });
+    const nullPublishedAt = await createProgram(client.id, {
+      weekOf: WEEK_A,
+      status: "PUBLISHED",
+      dayName: "NullPublishedAt",
+    });
+    await db.trainingProgram.update({
+      where: { id: nullPublishedAt.id },
+      data: { publishedAt: null },
+    });
     const realOne = await createProgram(client.id, {
       weekOf: WEEK_A,
       status: "PUBLISHED",
@@ -304,8 +330,16 @@ suite("T-803: coach training week-scoped read falls back to the latest published
     const { coach, client } = await fixture();
     mocks.authUserId = coach.clerkId;
 
-    await createProgram(client.id, { weekOf: WEEK_A, status: "PUBLISHED", dayName: "Earlier published" });
-    const draft = await createProgram(client.id, { weekOf: WEEK_B, status: "DRAFT", dayName: "Draft" });
+    await createProgram(client.id, {
+      weekOf: WEEK_A,
+      status: "PUBLISHED",
+      dayName: "Earlier published",
+    });
+    const draft = await createProgram(client.id, {
+      weekOf: WEEK_B,
+      status: "DRAFT",
+      dayName: "Draft",
+    });
 
     const result = await getTrainingProgramForReview(client.id, WEEK_B);
     expect(result.source).toBe("draft");
@@ -351,26 +385,50 @@ suite("T-803: coach training week-scoped read falls back to the latest published
     expect(unauth.status).toBe(401);
 
     const nonCoachId = randomUUID();
-    const nonCoach = await db.user.create({ data: { clerkId: nonCoachId, email: `${nonCoachId}@example.test`, isClient: true } });
+    const nonCoach = await db.user.create({
+      data: { clerkId: nonCoachId, email: `${nonCoachId}@example.test`, isClient: true },
+    });
     createdUserIds.push(nonCoach.id);
     mocks.authUserId = nonCoach.clerkId;
-    const forbiddenNonCoach = await getTrainingRest(restRequest(client.id, WEEK_B), params(client.id));
+    const forbiddenNonCoach = await getTrainingRest(
+      restRequest(client.id, WEEK_B),
+      params(client.id)
+    );
     expect(forbiddenNonCoach.status).toBe(403);
 
     const otherCoachId = randomUUID();
-    const otherCoach = await db.user.create({ data: { clerkId: otherCoachId, email: `${otherCoachId}@example.test`, isCoach: true, activeRole: "COACH" } });
+    const otherCoach = await db.user.create({
+      data: {
+        clerkId: otherCoachId,
+        email: `${otherCoachId}@example.test`,
+        isCoach: true,
+        activeRole: "COACH",
+      },
+    });
     createdUserIds.push(otherCoach.id);
     mocks.authUserId = otherCoach.clerkId;
-    const forbiddenUnassigned = await getTrainingRest(restRequest(client.id, WEEK_B), params(client.id));
+    const forbiddenUnassigned = await getTrainingRest(
+      restRequest(client.id, WEEK_B),
+      params(client.id)
+    );
     expect(forbiddenUnassigned.status).toBe(403);
 
     const assignedCoachId = randomUUID();
-    const assignedCoach = await db.user.create({ data: { clerkId: assignedCoachId, email: `${assignedCoachId}@example.test`, isCoach: true, activeRole: "COACH" } });
+    const assignedCoach = await db.user.create({
+      data: {
+        clerkId: assignedCoachId,
+        email: `${assignedCoachId}@example.test`,
+        isCoach: true,
+        activeRole: "COACH",
+      },
+    });
     createdUserIds.push(assignedCoach.id);
     await db.coachClient.create({ data: { coachId: assignedCoach.id, clientId: client.id } });
     mocks.authUserId = assignedCoach.clerkId;
     const badWeekOf = await getTrainingRest(
-      new NextRequest(`https://example.test/api/coach/clients/${client.id}/training?weekOf=not-a-date`),
+      new NextRequest(
+        `https://example.test/api/coach/clients/${client.id}/training?weekOf=not-a-date`
+      ),
       params(client.id)
     );
     expect(badWeekOf.status).toBe(400);
