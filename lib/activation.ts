@@ -454,19 +454,33 @@ export async function acceptClientInviteForUser(
  * legacy human-relationship change happening elsewhere (e.g. an old,
  * no-longer-relevant CoachClient row being cleaned up after AI
  * enrollment).
+ *
+ * T-2059: `clearStaleResolution` is for the one-off deploy-time
+ * reconciliation only (scripts/reconcile-coaching-context.ts). The deployed
+ * `main` never read or wrote this table, so a `resolutionRequired` flag the
+ * A01 backfill set for a client with 2+ CoachClient rows stays set after
+ * main deleted all but one of them, with nothing left to resolve. With the
+ * option, a non-AI `resolutionRequired` context whose client now has at most
+ * one CoachClient row is recomputed like any other; with 2+ rows it is left
+ * exactly as it is. Runtime callers never pass it, so the sticky behaviour
+ * above is unchanged for them.
  */
 export async function reconcileCoachingContextForClient(
   tx: DbClient,
-  clientId: string
+  clientId: string,
+  options: { clearStaleResolution?: boolean } = {}
 ): Promise<void> {
   const existing = await tx.clientCoachingContext.findUnique({ where: { clientId } });
-  if (existing?.resolutionRequired || existing?.mode === "AI") return;
+  if (existing?.mode === "AI") return;
+  if (existing?.resolutionRequired && !options.clearStaleResolution) return;
 
   const relationships = await tx.coachClient.findMany({
     where: { clientId },
     select: { id: true },
     orderBy: { createdAt: "asc" },
   });
+  // Still genuinely ambiguous: the flag has a cause, leave the row untouched.
+  if (existing?.resolutionRequired && relationships.length > 1) return;
 
   if (relationships.length <= 1) {
     const mode = relationships.length === 1 ? "HUMAN" : "NONE";
