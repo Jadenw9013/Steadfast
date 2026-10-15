@@ -211,3 +211,31 @@ describe("T-2028 confirm workflow", () => {
     expect(redirect).not.toHaveBeenCalled();
   });
 });
+
+describe("T-2055 item 1 — preferred pace is required on step 1 for Fat Loss / Build Muscle", () => {
+  it("asks for a pace only when the goal needs one", () => {
+    expect(
+      intakeStepIssues(0, { ...completeSelections, goal: "FAT_LOSS", experience: "BEGINNER" }, {}, false)
+    ).toEqual(["Choose a preferred pace, or Undecided."]);
+    expect(
+      intakeStepIssues(
+        0,
+        { ...completeSelections, goal: "FAT_LOSS", experience: "BEGINNER", goalPace: "GRADUAL" },
+        {},
+        false
+      )
+    ).toEqual([]);
+    expect(
+      intakeStepIssues(
+        0,
+        { ...completeSelections, goal: "GENERAL_FITNESS", experience: "BEGINNER" },
+        {},
+        false
+      )
+    ).toEqual([]);
+  });
+
+  it("resumes on step 1 for a Fat Loss selection missing its pace", () => {
+    expect(firstIncompleteIntakeStage({ ...completeSelections, goal: "FAT_LOSS" }, true)).toBe(0);
+  });
+});
