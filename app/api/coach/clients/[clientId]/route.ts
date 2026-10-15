@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 import { getClientProfile } from "@/lib/queries/client-profile";
-import { reconcileCoachingContextForClient } from "@/lib/activation";
+import { endCoachClientRelationship } from "@/lib/coach-client/end-relationship";
 
 // ── GET — full client snapshot ────────────────────────────────────────────────
 
@@ -120,38 +120,15 @@ export async function DELETE(
     }
 
     // Delete the coach-client link (preserves the client's account + data).
-    // The delete and the ClientCoachingContext reconciliation (A01/CB06)
-    // commit atomically.
-    await db.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${clientId} FOR UPDATE`;
-      await tx.coachClient.delete({ where: { id: assignment.id } });
-      await reconcileCoachingContextForClient(tx, clientId);
+    // T-2058: the same teardown as the web removeClient action — the row,
+    // the client's unpublished drafts, the ClientCoachingContext
+    // reconciliation and the lead stage commit atomically.
+    await endCoachClientRelationship({
+      coachClientId: assignment.id,
+      coachId: user.id,
+      clientId,
+      endedBy: "COACH",
     });
-
-    // Best-effort: set any associated lead back to CONTACTED so coach can re-add later
-    try {
-      const coachProfile = await db.coachProfile.findFirst({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-      if (coachProfile) {
-        const clientEmail = (
-          await db.user.findUnique({ where: { id: clientId }, select: { email: true } })
-        )?.email;
-        if (clientEmail) {
-          await db.coachingRequest.updateMany({
-            where: {
-              coachProfileId: coachProfile.id,
-              prospectEmail: clientEmail,
-              consultationStage: "ACTIVE",
-            },
-            data: { consultationStage: "CONSULTATION_DONE" },
-          });
-        }
-      }
-    } catch {
-      // Non-fatal: lead update is best-effort
-    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

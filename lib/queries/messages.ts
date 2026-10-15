@@ -54,11 +54,14 @@ export async function hasUnreadMessages(
   weekOf: Date,
   coachId: string
 ) {
-  // "Unread" = any message from the client (not sent by the coach)
+  // "Unread" = any message in THIS coach's conversation not sent by the
+  // coach. Scoped by coachId like getCoachThread (CB03, T-2058/D7): a
+  // successor must not count messages the client sent to a predecessor.
   const count = await db.message.count({
     where: {
       clientId,
       weekOf,
+      coachId,
       senderId: { not: coachId },
     },
   });

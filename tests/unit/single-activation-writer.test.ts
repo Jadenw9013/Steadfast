@@ -24,7 +24,10 @@ const PRISMA_ACTIVE = /consultationStage:\s*"ACTIVE"/;
 const ALLOWLIST: Record<string, string> = {
   "lib/leads/activate-lead.ts":
     "the one writer — this file's doc comment says so and its own transaction is the enforcement boundary.",
-  "app/api/coach/clients/[clientId]/route.ts":
+  // T-2058 moved this entry, unchanged in kind, from
+  // app/api/coach/clients/[clientId]/route.ts: the removal teardown is now one
+  // shared function, so the route no longer contains the pattern.
+  "lib/coach-client/end-relationship.ts":
     "a `where` clause selecting leads to move OFF ACTIVE on client removal (T-979 territory), never a write of ACTIVE — a read, not a writer.",
 };
 
@@ -73,7 +76,7 @@ describe("T-978 — single writer of consultationStage = ACTIVE", () => {
 
   it("the allowlist itself is exactly the two files the spec names — a seventh entry needs a human to add it here", () => {
     expect(Object.keys(ALLOWLIST).sort()).toEqual(
-      ["app/api/coach/clients/[clientId]/route.ts", "lib/leads/activate-lead.ts"].sort()
+      ["lib/coach-client/end-relationship.ts", "lib/leads/activate-lead.ts"].sort()
     );
     for (const reason of Object.values(ALLOWLIST)) {
       expect(reason.length).toBeGreaterThan(0);

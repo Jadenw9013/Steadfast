@@ -38,6 +38,14 @@ export async function POST(req: NextRequest) {
     try {
       const existingByEmail = await db.user.findUnique({ where: { email } });
       if (existingByEmail && existingByEmail.clerkId !== id && existingByEmail.clerkId.startsWith("pending_")) {
+        // T-2058/D8: same rule as getCurrentDbUser (lib/auth/roles.ts): a
+        // deactivated (pending-deletion) placeholder is never claimed. Writing
+        // nothing here also keeps the upsert below from creating a second
+        // account on that address. 200 so Clerk does not retry a state only
+        // the purge resolves.
+        if (existingByEmail.isDeactivated) {
+          return new Response("Account is pending deletion", { status: 200 });
+        }
         await db.user.update({
           where: { id: existingByEmail.id },
           data: {
