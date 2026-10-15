@@ -36,6 +36,18 @@ export async function POST(req: NextRequest) {
     }
 
     try {
+      const existingByEmail = await db.user.findUnique({ where: { email } });
+      if (existingByEmail && existingByEmail.clerkId !== id && existingByEmail.clerkId.startsWith("pending_")) {
+        await db.user.update({
+          where: { id: existingByEmail.id },
+          data: {
+            clerkId: id,
+            firstName: first_name ?? existingByEmail.firstName,
+            lastName: last_name ?? existingByEmail.lastName,
+          },
+        });
+      }
+
       if (eventType === "user.created") {
         const roleFields = resolveRoleOnCreate(public_metadata?.role);
         await db.user.upsert({

@@ -341,6 +341,7 @@ type TxOutcome =
   // this call) even when the prospect happens to already be on the roster.
   | { kind: "already_active"; prospectName: string; onRoster: boolean; clientId: string | null }
   | { kind: "roster"; clientId: string; prospectName: string }
+  | { kind: "bypass_roster"; clientId: string; prospectName: string; invite: ClientInvite; coachName: string }
   | { kind: "invite"; invite: ClientInvite; prospectName: string; coachName: string };
 
 /**
@@ -384,6 +385,7 @@ export async function activateLead(input: ActivateLeadInput): Promise<ActivateLe
           prospectEmailAddr: true,
           prospectPhone: true,
           consultationStage: true,
+          intakeAnswers: true,
         },
       });
 
@@ -448,7 +450,99 @@ export async function activateLead(input: ActivateLeadInput): Promise<ActivateLe
         return { kind: "roster", clientId: established.clientId, prospectName: lead.prospectName };
       }
 
-      // established.kind === "invite"
+      // If mode === "BYPASS", immediately establish the client User and CoachClient roster connection
+      // so the client is added to the active roster directly as the confirmation dialog promised.
+      if (mode === "BYPASS") {
+        const { reconcileCoachingContextForClient } = await import("@/lib/activation");
+        const email = established.invite.email;
+        let clientUser = await trx.user.findUnique({
+          where: { email },
+          select: { id: true, email: true },
+        });
+
+        if (!clientUser) {
+          const nameParts = lead.prospectName.trim().split(/\s+/);
+          const firstName = nameParts[0] || "Client";
+          const lastName = nameParts.slice(1).join(" ") || "";
+
+          clientUser = await trx.user.create({
+            data: {
+              email,
+              clerkId: `pending_${lead.id}`,
+              firstName,
+              lastName,
+              isClient: true,
+              isCoach: false,
+              activeRole: "CLIENT",
+            },
+            select: { id: true, email: true },
+          });
+        }
+
+        const coachNotes = input.coachNote || "Activated via pipeline bypass.";
+        const existingConn = await trx.coachClient.findFirst({
+          where: { coachId: coachUserId, clientId: clientUser.id },
+          select: { id: true },
+        });
+        if (!existingConn) {
+          await trx.coachClient.create({
+            data: {
+              coachId: coachUserId,
+              clientId: clientUser.id,
+              coachNotes,
+              planMode: "MEAL_PLAN",
+            },
+          });
+        }
+
+        await reconcileCoachingContextForClient(trx, clientUser.id);
+
+        const intakeAnswers = (lead.intakeAnswers as Record<string, string>) || {};
+        if (intakeAnswers.goals || intakeAnswers.injuries || intakeAnswers.experience) {
+          await trx.clientIntake.upsert({
+            where: { clientId: clientUser.id },
+            update: {
+              status: "COMPLETED",
+              completedAt: new Date(),
+              primaryGoal: intakeAnswers.goals || undefined,
+              injuries: intakeAnswers.injuries || undefined,
+              trainingExperience: intakeAnswers.experience || undefined,
+            },
+            create: {
+              coachId: coachUserId,
+              clientId: clientUser.id,
+              status: "COMPLETED",
+              completedAt: new Date(),
+              primaryGoal: intakeAnswers.goals || undefined,
+              injuries: intakeAnswers.injuries || undefined,
+              trainingExperience: intakeAnswers.experience || undefined,
+            },
+          });
+        }
+
+        await trx.coachingRequest.update({
+          where: { id: requestId },
+          data: {
+            consultationStage: "ACTIVE",
+            status: "ACCEPTED",
+            prospectId: clientUser.id,
+            inviteLastSentAt: new Date(),
+            inviteSendCount: { increment: 1 },
+          },
+        });
+
+        const coachName =
+          [coachUser.firstName, coachUser.lastName].filter(Boolean).join(" ") || "Your coach";
+        return {
+          kind: "bypass_roster",
+          clientId: clientUser.id,
+          prospectName: lead.prospectName,
+          invite: established.invite,
+          coachName,
+        };
+      }
+
+      // established.kind === "invite" (PIPELINE mode)
       await trx.coachingRequest.update({
         where: { id: requestId },
         data: {
@@ -500,6 +594,37 @@ export async function activateLead(input: ActivateLeadInput): Promise<ActivateLe
       inviteEmail: null,
       inviteExpiresAt: null,
       emailSent: null,
+      prospectName: tx.prospectName,
+    };
+  }
+
+  if (tx.kind === "bypass_roster") {
+    let emailSent = true;
+    try {
+      const { clientActivatedInviteEmail } = await import("@/lib/email/templates");
+      const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+      const inviteUrl = `${appUrl}/invite/${tx.invite.inviteToken}`;
+      const emailContent = clientActivatedInviteEmail(tx.prospectName, tx.coachName, inviteUrl);
+      await sendEmail({ to: tx.invite.email, ...emailContent });
+    } catch (err) {
+      emailSent = false;
+      const errorKind = err instanceof Error ? err.constructor.name || "Error" : typeof err;
+      reportAnomaly(LEAD_INVITE_EMAIL_FAILED.evt, {
+        ids: { requestId, coachId: coachUserId },
+        context: { errorKind },
+        allow: LEAD_INVITE_EMAIL_FAILED.allow,
+      });
+    }
+
+    return {
+      ok: true,
+      outcome: "already_on_roster",
+      stageChanged: true,
+      onRoster: true,
+      clientId: tx.clientId,
+      inviteEmail: tx.invite.email,
+      inviteExpiresAt: tx.invite.expiresAt,
+      emailSent,
       prospectName: tx.prospectName,
     };
   }
