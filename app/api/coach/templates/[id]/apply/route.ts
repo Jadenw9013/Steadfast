@@ -1,3 +1,4 @@
+import { checkMealPlanWriter, mealPlanWriterRefusalResponse } from "@/lib/meal-plans/writer-gate";
 import { NextResponse } from "next/server";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -51,6 +52,9 @@ export async function POST(req: Request, { params }: Params) {
       return NextResponse.json({ error: "Client not found" }, { status: 404 });
     }
 
+    const writer = await checkMealPlanWriter(user.id, clientId);
+    if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
+
     // Compute start of current ISO week (Monday)
     const today = new Date();
     const dow = today.getDay(); // 0=Sun … 6=Sat
@@ -83,7 +87,7 @@ export async function POST(req: Request, { params }: Params) {
           await tx.trainingProgramBlock.create({
             data: {
               dayId: pDay.id,
-              type: block.type as any,
+              type: block.type,
               title: block.title,
               content: block.content,
               sortOrder: block.sortOrder,

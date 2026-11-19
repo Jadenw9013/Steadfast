@@ -319,6 +319,7 @@ export async function verifyCoachAccessToClient(clientId: string) {
     where: {
       coachId_clientId: { coachId: coach.id, clientId },
     },
+    select: { id: true },
   });
 
   if (!assignment) throw new Error("Not assigned to this client");
@@ -339,6 +340,7 @@ export async function verifyCoachAccessToCheckIn(checkInId: string) {
     where: {
       coachId_clientId: { coachId: coach.id, clientId: checkIn.clientId },
     },
+    select: { id: true },
   });
 
   if (!assignment) throw new Error("Not assigned to this client");

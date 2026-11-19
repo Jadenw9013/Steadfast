@@ -19,3 +19,13 @@ export async function readBoundedBody(request: Request, limit: number): Promise<
   for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
   return bytes;
 }
+
+export async function readBoundedJson(request: Request, limit: number) {
+  try {
+    const bytes = await readBoundedBody(request, limit);
+    return { ok: true as const, value: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
+  } catch (error) {
+    const tooLarge = error instanceof Error && error.message === "Request too large";
+    return { ok: false as const, status: tooLarge ? 413 : 400, error: tooLarge ? "Request too large" : "Invalid JSON body" };
+  }
+}

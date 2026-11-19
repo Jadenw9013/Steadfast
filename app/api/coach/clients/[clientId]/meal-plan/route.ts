@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkMealPlanWriter, mealPlanWriterRefusalResponse } from "@/lib/meal-plans/writer-gate";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -13,6 +14,7 @@ import {
   createMealPlanDraft,
   getMealPlanSaveTarget,
   saveMealPlanDraftContent,
+  MealPlanPublishedDuringSaveError,
 } from "@/lib/meal-plans/drafts";
 import { ROUTE_FAILED } from "@/lib/observability/events";
 import { reportServerError } from "@/lib/observability/report";
@@ -228,6 +230,9 @@ export async function POST(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const writer = await checkMealPlanWriter(user.id, clientId);
+    if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
+
     const body = await req.json();
     const parsed = createDraftSchema.safeParse(body);
     if (!parsed.success) {
@@ -314,6 +319,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const writer = await checkMealPlanWriter(user.id, clientId);
+    if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
+
     const body = await req.json();
     const parsed = saveDraftSchema.safeParse(body);
     if (!parsed.success) {
@@ -348,6 +356,9 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
     return NextResponse.json({ success: true });
   } catch (err) {
+    if (err instanceof MealPlanPublishedDuringSaveError) {
+      return NextResponse.json({ error: err.message, code: "PLAN_CHANGED" }, { status: 409 });
+    }
     reportServerError(ROUTE_FAILED.evt, err, {
       route: "/api/coach/clients/[id]/meal-plan",
       method: "PUT",
@@ -385,6 +396,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     }
 
     const { searchParams } = new URL(req.url);
+    const writer = await checkMealPlanWriter(user.id, clientId);
+    if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
     const mealPlanId = searchParams.get("mealPlanId");
     if (!mealPlanId) {
       return NextResponse.json(
@@ -410,7 +423,10 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       );
     }
 
-    await db.mealPlan.delete({ where: { id: mealPlanId } });
+    const deleted = await db.mealPlan.deleteMany({ where: { id: mealPlanId, clientId, status: "DRAFT" } });
+    if (deleted.count === 0) {
+      return NextResponse.json({ error: "The plan changed. Refresh before deleting it." }, { status: 409 });
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     reportServerError(ROUTE_FAILED.evt, err, {

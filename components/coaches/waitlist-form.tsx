@@ -16,15 +16,19 @@ export function WaitlistForm({ coachProfileId }: { coachProfileId: string }) {
         const formData = new FormData(e.currentTarget);
 
         try {
-            await submitWaitlistEntry({
+            const result = await submitWaitlistEntry({
                 coachProfileId,
                 prospectName: formData.get("name") as string,
                 prospectEmail: formData.get("email") as string,
                 note: (formData.get("note") as string) || undefined,
             });
+            if ("error" in result) {
+                setError(result.error.message);
+                return;
+            }
             setSubmitted(true);
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        } catch {
+            setError("Something went wrong. Please try again.");
         } finally {
             setIsSubmitting(false);
         }

@@ -351,128 +351,18 @@ export default async function ClientDashboard() {
           todayAdherence?.meals?.filter(
             (m) => m.completed && planMeals.some((p) => p.mealName === m.mealNameSnapshot)
           ).length ?? 0;
-        const mealsRemaining = Math.max(0, totalMealCount - mealsLogged);
-        const mealProgress = totalMealCount > 0 ? (mealsLogged / totalMealCount) * 100 : 0;
-
-        // ── Training data (program-level, no day assumption) ──
-        const trainingDays = trainingProgram?.days?.filter((d) => d.dayName !== "__CARDIO__") ?? [];
-        const totalExercises = trainingDays.reduce((sum, d) => sum + (d.blocks?.length ?? 0), 0);
-
-        return (
-          <section
-            className="animate-fade-in"
-            style={{ animationDelay: "60ms" }}
-            aria-label="Today's plan"
-          >
-            <p className="mb-3 px-1 text-[10px] font-black uppercase tracking-[0.16em] text-zinc-500">
-              TODAY&apos;S PLAN
-            </p>
-            <div className="space-y-3">
-              {/* ── Nutrition Card ── */}
-              {mealPlan ? (
-                <Link
-                  href="/client/meal-plan"
-                  className="group sf-glass-card block px-4 py-4 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50"
-                  aria-label="View your meal plan"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/10">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">Nutrition</p>
-                        <p className="text-base font-bold text-white leading-tight">Meal Plan</p>
-                      </div>
-                    </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-500 transition-all group-hover:text-zinc-300 group-hover:translate-x-0.5" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                  </div>
-                  <p className="mt-2.5 text-xs text-zinc-400">
-                    {totalMealCount} meals · {mealsLogged} logged
-                  </p>
-                  {/* Progress bar */}
-                  <div className="mt-2.5 h-1 w-full overflow-hidden rounded-full bg-white/[0.06]">
-                    <div
-                      className="h-full rounded-full bg-emerald-500 transition-all"
-                      style={{ width: `${mealProgress}%` }}
-                    />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-500">{mealsLogged} of {totalMealCount} logged</span>
-                    {mealsRemaining > 0 && (
-                      <span className="font-semibold text-emerald-400">{mealsRemaining} remaining</span>
-                    )}
-                  </div>
-                </Link>
-              ) : null}
-
-              {/* ── Training Card ── */}
-              {trainingProgram && trainingDays.length > 0 ? (
-                <Link
-                  href="/client/training"
-                  className="group sf-glass-card block px-4 py-4 transition-all active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500/50"
-                  aria-label="View your training program"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 5v11"/><path d="M18 5v11"/><path d="M2 9h4"/><path d="M18 9h4"/><path d="M2 15h4"/><path d="M18 15h4"/><path d="M6 9h12"/><path d="M6 15h12"/></svg>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-400">Training</p>
-                        <p className="text-base font-bold text-white leading-tight">Workout</p>
-                      </div>
-                    </div>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-zinc-500 transition-all group-hover:text-zinc-300 group-hover:translate-x-0.5" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
-                  </div>
-                  <p className="mt-2.5 text-xs text-zinc-400">
-                    {trainingDays.length} days · {totalExercises} exercises
-                  </p>
-                  <div className="mt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-zinc-500">Pick a day to start</span>
-                    <span className="font-semibold text-blue-400">View program</span>
-                  </div>
-                </Link>
-              ) : null}
-            </div>
-          </section>
-        );
+        const trainingDays = trainingProgram?.days?.filter((day) => day.dayName !== "__CARDIO__") ?? [];
+        const totalExercises = trainingDays.reduce((sum, day) => sum + (day.blocks?.length ?? 0), 0);
+        return <TodayPlanCards hasMealPlan={!!mealPlan} totalMeals={totalMealCount} loggedMeals={mealsLogged} trainingDays={trainingDays.length} totalExercises={totalExercises} />;
       })()}
 
-      {/* Cardio Prescription strip */}
       {(() => {
-        const cardioDay = trainingProgram?.days?.find((d) => d.dayName === "__CARDIO__");
-        const b = cardioDay?.blocks?.[0];
-        if (!b) return null;
-        const [modality = "", frequency = "", duration = "", intensity = ""] = (b.title ?? "").split("|");
-        if (!modality && !frequency && !duration && !intensity) return null;
-        const chips = [
-          modality && { label: "Type", value: modality.trim() },
-          frequency && { label: "Frequency", value: frequency.trim() },
-          duration && { label: "Duration", value: duration.trim() },
-          intensity && { label: "Intensity", value: intensity.trim() },
-        ].filter(Boolean) as { label: string; value: string }[];
-        return (
-          <section className="animate-fade-in" style={{ animationDelay: "70ms" }} aria-label="Cardio prescription">
-            <div className="rounded-2xl border border-green-500/20 bg-green-500/[0.05] px-5 py-4">
-              <div className="mb-3 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-green-400">Cardio Prescription</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {chips.map(({ label, value }) => (
-                  <span key={label} className="inline-flex items-center gap-1.5 rounded-lg border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-semibold text-green-300">
-                    <span className="font-normal text-green-500/60">{label}</span>
-                    {value}
-                  </span>
-                ))}
-              </div>
-              {b.content && (
-                <p className="mt-2.5 text-xs leading-relaxed text-green-400/60">{b.content}</p>
-              )}
-            </div>
-          </section>
-        );
+        const cardioDay = trainingProgram?.days?.find((day) => day.dayName === "__CARDIO__");
+        const block = cardioDay?.blocks?.[0];
+        if (!block) return null;
+        const [modality = "", frequency = "", duration = "", intensity = ""] = (block.title ?? "").split("|");
+        if (![modality, frequency, duration, intensity, block.content].some((value) => value?.trim())) return null;
+        return <CardioSummary modality={modality} frequency={frequency} duration={duration} intensity={intensity} notes={block.content ?? ""} />;
       })()}
 
       {/* Guidance & Support */}
@@ -620,3 +510,4 @@ export default async function ClientDashboard() {
     </div>
   );
 }
+import { TodayPlanCards, CardioSummary } from "@/components/client/today-plan-cards";

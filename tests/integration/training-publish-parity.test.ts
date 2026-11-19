@@ -557,7 +557,12 @@ suite("training-program publish parity (action vs REST vs workout import) with r
     expect(await statusOf(programId)).toBe("DRAFT");
 
     const { coach, client: coachsClient } = await fixture();
-    await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+    const providerLink = await db.coachClient.create({ data: { coachId: coach.id, clientId: client.id } });
+    await db.clientCoachingContext.upsert({
+      where: { clientId: client.id },
+      create: { clientId: client.id, mode: "HUMAN", activeCoachClientId: providerLink.id },
+      update: { mode: "HUMAN", activeCoachClientId: providerLink.id, resolutionRequired: false },
+    });
     mocks.authUserId = coach.clerkId;
 
     // Malformed body → 422 with details

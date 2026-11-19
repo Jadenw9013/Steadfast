@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { parseWeekStartDate, formatDateUTC } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
+import { checkMealPlanWriter } from "@/lib/meal-plans/writer-gate";
 import { revalidatePath } from "next/cache";
 import { notifyMealPlanUpdated } from "@/lib/sms/notify";
 import { getCurrentDbUser } from "@/lib/auth/roles";
@@ -16,6 +17,7 @@ import {
   createMealPlanDraft,
   getMealPlanSaveTarget,
   saveMealPlanDraftContent,
+  MealPlanPublishedDuringSaveError,
 } from "@/lib/meal-plans/drafts";
 import {
   emptyPlanMessage,
@@ -49,6 +51,8 @@ export async function createDraftMealPlan(input: unknown) {
 
   const { clientId, weekStartDate } = parsed.data;
   const coach = await verifyCoachAccessToClient(clientId);
+  const writer = await checkMealPlanWriter(coach.id, clientId);
+  if (!writer.ok) throw new Error(writer.error);
 
   const weekOf = parseWeekStartDate(weekStartDate);
 
@@ -95,15 +99,23 @@ export async function saveDraftMealPlan(input: unknown) {
   const target = await getMealPlanSaveTarget(mealPlanId);
   if (!target) throw new Error("Meal plan not found");
 
-  await verifyCoachAccessToClient(target.clientId);
+  const coach = await verifyCoachAccessToClient(target.clientId);
+  const writer = await checkMealPlanWriter(coach.id, target.clientId);
+  if (!writer.ok) return writer;
 
   // CB04 fork-on-published lives entirely in lib/meal-plans/drafts.ts.
-  const result = await saveMealPlanDraftContent(target, {
-    items,
-    macroTargets,
-    planExtras,
-    supportContent,
-  });
+  let result;
+  try {
+    result = await saveMealPlanDraftContent(target, {
+      items,
+      macroTargets,
+      planExtras,
+      supportContent,
+    });
+  } catch (error) {
+    if (error instanceof MealPlanPublishedDuringSaveError) return { error: error.message, code: "PLAN_CHANGED" };
+    throw error;
+  }
 
   revalidatePath("/coach", "layout");
   return result.forkedNewDraftId
@@ -124,6 +136,8 @@ export async function publishMealPlan(input: unknown) {
   if (!target) throw new Error("Meal plan not found");
 
   const coach = await verifyCoachAccessToClient(target.clientId);
+  const writer = await checkMealPlanWriter(coach.id, target.clientId);
+  if (!writer.ok) return writer;
 
   // CB04 — publishing lives entirely in lib/meal-plans/publish.ts so this
   // action and the iOS-facing REST route can't diverge again.
@@ -179,6 +193,7 @@ const restoreVersionSchema = z.object({
 export async function restoreMealPlanVersion(input: unknown): Promise<
   | { success: true; draftMealPlanId: string; weekStartDate: string; replacedDraftIds: string[] }
   | { error: string; code: "SOURCE_NOT_RESTORABLE" }
+  | import("@/lib/meal-plans/writer-gate-messages").MealPlanWriterRefusal
   | { error: string; code: "DRAFT_EXISTS"; existingDraftId: string }
 > {
   const parsed = restoreVersionSchema.safeParse(input);
@@ -186,6 +201,8 @@ export async function restoreMealPlanVersion(input: unknown): Promise<
 
   const { clientId, sourceMealPlanId, weekStartDate, replaceExistingDraft } = parsed.data;
   const coach = await verifyCoachAccessToClient(clientId);
+  const writer = await checkMealPlanWriter(coach.id, clientId);
+  if (!writer.ok) return writer;
 
   const source = await getMealPlanVersionDetail(sourceMealPlanId);
   if (!source) throw new Error("Meal plan not found");

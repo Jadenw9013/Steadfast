@@ -137,7 +137,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_B);
 
-      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null, publishedSignature: null });
       const fired = eventsNamed(TRAINING_WEEK_EMPTY.evt);
       expect(fired).toHaveLength(1);
       expect(fired[0].context).toEqual({
@@ -188,7 +188,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_A);
 
-      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null, publishedSignature: null });
       expect(eventsNamed(TRAINING_WEEK_EMPTY.evt)).toHaveLength(0);
     });
 
@@ -207,7 +207,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_A);
 
-      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null, publishedSignature: expect.any(String) });
       expect(eventsNamed(TRAINING_WEEK_EMPTY.evt)).toHaveLength(0);
     });
 
@@ -218,7 +218,7 @@ suite("observability beacons (T-920) — the three production incidents as code"
 
       const result = await getTrainingProgramForReview(client.id, WEEK_A);
 
-      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null });
+      expect(result).toEqual({ source: "empty", program: null, carriedOverFrom: null, publishedSignature: null });
       expect(eventsNamed(TRAINING_WEEK_EMPTY.evt)).toHaveLength(0);
       expect(countSpy.mock.calls.length).toBeLessThanOrEqual(1);
     });

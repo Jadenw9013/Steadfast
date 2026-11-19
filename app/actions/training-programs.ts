@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { parseWeekStartDate } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
+import { checkMealPlanWriter } from "@/lib/meal-plans/writer-gate";
 import {
   getTrainingProgramPublishTarget,
   publishTrainingProgramTarget,
@@ -51,7 +52,9 @@ export async function saveTrainingProgram(input: unknown) {
     equipment,
     templateSourceId,
   } = parsed.data;
-  await verifyCoachAccessToClient(clientId);
+  const coach = await verifyCoachAccessToClient(clientId);
+  const writer = await checkMealPlanWriter(coach.id, clientId);
+  if (!writer.ok) return writer;
 
   const weekOf = parseWeekStartDate(weekStartDate);
 
@@ -90,6 +93,8 @@ export async function publishTrainingProgram(input: unknown) {
   if (!target) throw new Error("Training program not found");
 
   const coach = await verifyCoachAccessToClient(target.clientId);
+  const writer = await checkMealPlanWriter(coach.id, target.clientId);
+  if (!writer.ok) return writer;
 
   // CB05 supersede + race guard live in lib/training-programs/publish.ts, the
   // only writer of TrainingProgram.status = "PUBLISHED" (T-739). The

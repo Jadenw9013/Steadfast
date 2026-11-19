@@ -30,6 +30,11 @@ vi.mock("@clerk/nextjs/server", () => ({
 const mail = vi.hoisted(() => ({ sendEmail: vi.fn().mockResolvedValue({ success: true }) }));
 vi.mock("@/lib/email/sendEmail", () => ({ sendEmail: mail.sendEmail }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/headers", () => ({ headers: async () => new Headers() }));
+vi.mock("@/lib/security/public-submissions", async (original) => ({
+  ...await original<typeof import("@/lib/security/public-submissions")>(),
+  checkPublicSubmission: async () => null,
+}));
 
 import { db } from "@/lib/db";
 import {
@@ -137,6 +142,7 @@ async function createC1(profileId: string, name: string, emailAddr?: string): Pr
     prospectEmailAddr: emailAddr,
     intakeAnswers: { goals: "Get fit and build habits" },
   });
+  if ("error" in req) throw new Error(req.error.message);
   return req.id;
 }
 

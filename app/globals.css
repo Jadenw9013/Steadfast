@@ -816,8 +816,8 @@ html {
     opacity: 0.85;
   }
 
-  .sf-glass-card:active {
-    transform: scale(0.985);
+  .sf-glass-card:is(a[href], button):active {
+    transform: none;
     opacity: 0.92;
     transition-duration: 0.08s;
   }
@@ -1373,7 +1373,7 @@ a,
   z-index: 1;
 }
 
-.sf-glass-card:hover {
+.sf-glass-card:is(a[href], button):hover {
   border-color: var(--sf-glass-border-hover);
   transform: translateY(-2px);
   background:
@@ -1388,8 +1388,8 @@ a,
     0 4px 8px rgba(0, 0, 0, 0.10);
 }
 
-.sf-glass-card:active {
-  transform: translateY(0px) scale(0.99);
+.sf-glass-card:is(a[href], button):active {
+  transform: none;
   transition-duration: 0.1s;
 }
 

@@ -1,4 +1,5 @@
 import { verifiedPrimaryEmail } from "./verified-email";
+import { claimPendingUser } from "./claim-pending-user";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import type { Roles } from "@/types/globals.d";
@@ -49,14 +50,14 @@ export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}
       if (existingByEmail.isDeactivated && !options.allowInactive) {
         throw new Error("Account is pending deletion");
       }
-      const updated = await db.user.update({
-        where: { id: existingByEmail.id },
-        data: {
-          clerkId: userId,
-          firstName: clerkUser.firstName ?? existingByEmail.firstName,
-          lastName: clerkUser.lastName ?? existingByEmail.lastName,
-        },
+      const updated = await claimPendingUser({
+        id: existingByEmail.id,
+        pendingClerkId: existingByEmail.clerkId,
+        clerkId: userId,
+        firstName: clerkUser.firstName ?? existingByEmail.firstName,
+        lastName: clerkUser.lastName ?? existingByEmail.lastName,
       });
+      if (!updated) throw new Error("Account identity changed. Please sign in again or contact support.");
       return updated;
     }
     throw new Error("An account with this email already exists. Sign in to that account or contact support.");
@@ -68,9 +69,6 @@ export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}
       email,
       firstName: clerkUser.firstName,
       lastName: clerkUser.lastName,
-      activeRole,
-      isCoach,
-      isClient: !isCoach,
     },
     create: {
       clerkId: userId,

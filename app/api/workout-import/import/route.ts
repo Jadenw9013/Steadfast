@@ -1,3 +1,4 @@
+import { checkMealPlanWriter, mealPlanWriterRefusalResponse } from "@/lib/meal-plans/writer-gate";
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
@@ -133,11 +134,14 @@ export async function POST(req: NextRequest) {
       // Verify coach-client assignment
       const assignment = await db.coachClient.findUnique({
         where: { coachId_clientId: { coachId: coach.id, clientId: targetClientId } },
+        select: { id: true },
       });
       if (!assignment) {
         return NextResponse.json({ error: "Not assigned to this client" }, { status: 403 });
       }
 
+      const writer = await checkMealPlanWriter(coach.id, targetClientId);
+      if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
       const weekOf = getCurrentWeekMonday();
 
       // Delete any existing draft for this week

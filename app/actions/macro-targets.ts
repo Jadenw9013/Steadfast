@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { parseWeekStartDate } from "@/lib/utils/date";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
+import { checkMealPlanWriter } from "@/lib/meal-plans/writer-gate";
 import { revalidatePath } from "next/cache";
 
 const upsertMacroSchema = z.object({
@@ -24,7 +25,9 @@ export async function upsertMacroTarget(input: unknown) {
   const { clientId, weekStartDate, calories, protein, carbs, fats } =
     parsed.data;
 
-  await verifyCoachAccessToClient(clientId);
+  const coach = await verifyCoachAccessToClient(clientId);
+  const writer = await checkMealPlanWriter(coach.id, clientId);
+  if (!writer.ok) return writer;
 
   const weekOf = parseWeekStartDate(weekStartDate);
 

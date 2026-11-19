@@ -104,7 +104,7 @@ export function RequestForm({ coachProfileId, prefill }: {
         setIsSubmitting(true);
         setError(null);
         try {
-            await submitCoachingRequest({
+            const result = await submitCoachingRequest({
                 coachProfileId,
                 prospectName: data.prospectName,
                 prospectEmail: data.prospectPhone,
@@ -116,9 +116,14 @@ export function RequestForm({ coachProfileId, prefill }: {
                     injuries: data.injuries,
                 },
             });
+            if ("error" in result) {
+                setError(result.error.message);
+                setIsSubmitting(false);
+                return;
+            }
             setSuccess(true);
-        } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : "Failed to submit request.");
+        } catch {
+            setError("Failed to submit request. Please try again later.");
             setIsSubmitting(false);
         }
     }

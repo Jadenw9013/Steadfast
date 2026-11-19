@@ -4,6 +4,8 @@ import crypto from "node:crypto";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { checkPublicSubmission, phoneNumberSchema } from "@/lib/security/public-submissions";
 import { ConsultationStage } from "@/app/generated/prisma/enums";
 import { sendEmail } from "@/lib/email/sendEmail";
 import {
@@ -71,8 +73,8 @@ async function getCoachProfileId(userId: string): Promise<string> {
 const coachingRequestSchema = z.object({
     coachProfileId: z.string().cuid(),
     prospectName: z.string().min(2, "Name must be at least 2 characters").max(100),
-    prospectEmail: z.string().min(7, "Please enter a valid phone number").max(30),
-    prospectEmailAddr: z.string().email().optional(),
+    prospectEmail: phoneNumberSchema,
+    prospectEmailAddr: z.string().email().max(254).optional(),
     prospectPhone: z.string().max(30).optional(),
     intakeAnswers: z.object({
         goals: z.string().min(5, "Please elaborate on your goals").max(1000),
@@ -86,7 +88,7 @@ export type CoachingRequestData = z.infer<typeof coachingRequestSchema>;
 const waitlistSchema = z.object({
     coachProfileId: z.string().cuid(),
     prospectName: z.string().min(2, "Name must be at least 2 characters").max(100),
-    prospectEmail: z.string().email("Invalid email address"),
+    prospectEmail: z.string().email("Invalid email address").max(254),
     note: z.string().max(500).optional(),
 });
 
@@ -95,7 +97,9 @@ export type WaitlistData = z.infer<typeof waitlistSchema>;
 export async function submitCoachingRequest(data: CoachingRequestData) {
     // Unauthenticated public route.
     // Validate schema strictly to prevent loose payload injection.
-    const validated = coachingRequestSchema.parse(data);
+    const parsed = coachingRequestSchema.safeParse(data);
+    if (!parsed.success) return { error: { code: "INVALID_INPUT", message: "Please check your name, phone number, email, and goals." } };
+    const validated = parsed.data;
     const normalizedPhone = validated.prospectEmail.trim();
 
     // Check if profile exists and is published
@@ -116,6 +120,9 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
     if (!profile.acceptingClients) {
         throw new Error("This coach is not currently accepting new clients.");
     }
+
+    const refusal = await checkPublicSubmission(await headers(), profile.id, normalizedPhone);
+    if (refusal) return refusal;
 
     // Rate limit: prevent multiple pending requests from the same email to the same coach
     const existingPending = await db.coachingRequest.findFirst({
@@ -160,7 +167,7 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
         validated.prospectName,
         normalizedPhone,
         validated.prospectEmailAddr?.toLowerCase() ?? null,
-        validated.prospectPhone ?? null,
+        normalizedPhone,
         JSON.stringify(cleanAnswers),
         "PENDING",
         "PENDING",
@@ -204,7 +211,9 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
 }
 
 export async function submitWaitlistEntry(data: WaitlistData) {
-    const validated = waitlistSchema.parse(data);
+    const parsed = waitlistSchema.safeParse(data);
+    if (!parsed.success) return { error: { code: "INVALID_INPUT", message: "Please check your name and email." } };
+    const validated = parsed.data;
     const normalizedEmail = validated.prospectEmail.toLowerCase();
 
     // Check profile exists and is published
@@ -216,6 +225,9 @@ export async function submitWaitlistEntry(data: WaitlistData) {
     if (!profile || !profile.isPublished) {
         throw new Error("Coach profile is unavailable");
     }
+
+    const refusal = await checkPublicSubmission(await headers(), profile.id, normalizedEmail);
+    if (refusal) return refusal;
 
     // Rate limit: prevent duplicate waitlist from same email
     const existing = await db.coachingRequest.findFirst({

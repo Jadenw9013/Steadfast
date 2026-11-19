@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { isCurrentCoachInTransaction } from "@/lib/coach-client/write-access";
 import { Prisma } from "@/app/generated/prisma/client";
 import type { MealPlanStatus, PlanMode } from "@/app/generated/prisma/client";
 import { reportAnomaly } from "@/lib/observability/report";
@@ -255,6 +256,7 @@ export async function publishMealPlanTarget(
   let supersededCount: number;
   try {
     supersededCount = await db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${target.clientId} FOR UPDATE`;
       // T-2060 r1: the author must still coach this client, checked and
       // locked inside the same transaction as the flip. FOR SHARE conflicts
       // with the row lock a CoachClient DELETE takes, so a concurrent removal
@@ -267,7 +269,7 @@ export async function publishMealPlanTarget(
         SELECT "id" FROM "CoachClient"
          WHERE "coachId" = ${opts.publishedByCoachId} AND "clientId" = ${target.clientId}
          FOR SHARE`;
-      if (link.length === 0) throw new NotAssigned();
+      if (link.length === 0 || !(await isCurrentCoachInTransaction(tx, opts.publishedByCoachId, target.clientId))) throw new NotAssigned();
       // Exclude the target itself: a losing racer in a concurrent
       // double-publish must never demote the row the winner just published.
       // The `weekOf` filter and the `id: { not }` exclusion are both

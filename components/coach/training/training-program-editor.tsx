@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { publicationState } from "@/lib/meal-plans/publication-state";
+import { trainingEditorSignature } from "@/lib/training-programs/editor-signature";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { TrainingDayCard } from "./training-day-card";
@@ -177,12 +179,14 @@ export function TrainingProgramEditor({
   initialProgram,
   templates = [],
   carriedOverFromWeek = null,
+  publishedSignature: initialPublishedSignature = null,
 }: {
   clientId: string;
   weekStartDate: string;
   initialProgram: InitialProgram;
   templates?: TemplateOption[];
   carriedOverFromWeek?: string | null;
+  publishedSignature?: string | null;
 }) {
   const router = useRouter();
 
@@ -372,6 +376,7 @@ export function TrainingProgramEditor({
   }
 
   async function handlePublish() {
+    if (saving || publishing || (mode !== "assign" && !publication.canPublish)) return;
     setPublishing(true);
     setError(null);
     try {
@@ -405,7 +410,12 @@ export function TrainingProgramEditor({
       const id = result.programId;
       setProgramId(id);
 
-      await publishTrainingProgram({ programId: id });
+      const published = await publishTrainingProgram({ programId: id });
+      if ("error" in published) {
+        setError(published.error);
+        return;
+      }
+      setConfirmedPublication({ signature: trainingEditorSignature(payload), seed: initialPublishedSignature });
       setStatus("PUBLISHED");
       setMode("edit");
       router.refresh();
@@ -415,6 +425,14 @@ export function TrainingProgramEditor({
       setPublishing(false);
     }
   }
+
+  const currentSignature = trainingEditorSignature({
+    days: getDaysPayload(), weeklyFrequency: weeklyFrequency ? Number(weeklyFrequency) : null,
+    clientNotes, injuries, equipment, templateSourceId: selectedTemplateId,
+  });
+  const [confirmedPublication, setConfirmedPublication] = useState<{ signature: string; seed: string | null } | null>(null);
+  const publishedSignature = confirmedPublication?.seed === initialPublishedSignature ? confirmedPublication.signature : initialPublishedSignature;
+  const publication = publicationState(currentSignature, publishedSignature);
 
   // ── Empty state ──────────────────────────────────────────────────────────
   if (mode === "empty") {
@@ -684,10 +702,10 @@ export function TrainingProgramEditor({
           <button
             type="button"
             onClick={handlePublish}
-            disabled={saving || publishing}
+            disabled={saving || publishing || !publication.canPublish}
             className="rounded-lg bg-zinc-100 px-3 py-1.5 text-xs font-semibold text-zinc-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
           >
-            {publishing ? "Publishing…" : status === "PUBLISHED" ? "Republish" : "Publish"}
+            {publishing ? "Publishing…" : publication.canPublish ? "Publish" : "Published"}
           </button>
         </div>
       </div>
@@ -871,6 +889,7 @@ export function TrainingProgramEditor({
       )}
 
       {/* Actions */}
+      <p role="status" aria-live="polite" className={`text-sm ${publication.canPublish ? "text-amber-300" : "text-emerald-400"}`}>{publication.message}</p>
       {error && (
         <p className="text-xs font-medium text-red-500" role="alert">
           {error}
@@ -888,10 +907,10 @@ export function TrainingProgramEditor({
         <button
           type="button"
           onClick={handlePublish}
-          disabled={saving || publishing}
+          disabled={saving || publishing || !publication.canPublish}
           className="flex-1 rounded-xl bg-zinc-100 py-3 text-sm font-semibold text-zinc-900 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500"
         >
-          {publishing ? "Publishing…" : status === "PUBLISHED" ? "Republish" : "Publish"}
+          {publishing ? "Publishing…" : publication.canPublish ? "Publish" : "Published"}
         </button>
       </div>
     </div>

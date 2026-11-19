@@ -16,6 +16,7 @@ import {
   AUTOFILL_NO_SOURCE_MESSAGE,
 } from "@/lib/meal-plans/editor-state";
 import { MealPlanActions } from "./meal-plan-actions";
+import { publicationState } from "@/lib/meal-plans/publication-state";
 import {
   macroTargetsToEditable,
   flattenMacroMeals,
@@ -211,6 +212,12 @@ export function MacroPlanEditor({
   const [privacyConsent, setPrivacyConsent] = useState(false);
 
   const isUnsaved = draftId === null;
+  const currentSignature = macroEditorSignature(meals, supportContent);
+  const [confirmedPublication, setConfirmedPublication] = useState<{ signature: string; seed: typeof effectivePlan.publishedContent } | null>(null);
+  const publishedSignature = confirmedPublication && confirmedPublication.seed === effectivePlan.publishedContent
+    ? confirmedPublication.signature
+    : effectivePlan.publishedContent?.mode === "MACROS" ? effectivePlan.publishedContent.signature : null;
+  const publication = publicationState(currentSignature, publishedSignature);
   // Foods from a prior MEAL_PLAN-mode edit of this same plan (if any) — the source autofill estimates from.
   const hasExistingItems = effectivePlan.items.length > 0;
 
@@ -263,7 +270,9 @@ export function MacroPlanEditor({
   }
 
   async function handleSave() {
+    if (saving || publishing) return;
     setSaving(true);
+    setPublishError(null);
     try {
       if (draftId) {
         // `|| undefined`, not `?? undefined`: an emptied box must not clear the
@@ -275,11 +284,15 @@ export function MacroPlanEditor({
         const result = await saveDraftMealPlan({
           mealPlanId: draftId,
           macroTargets: flattenMacroMeals(meals),
-          supportContent: supportContent || undefined,
+          supportContent: supportContent.trim() === "" ? null : supportContent,
         });
         // Someone else published/superseded this draft in the meantime —
         // the server forked a fresh one rather than corrupting the live
         // plan. Adopt its id.
+        if ("error" in result) {
+          setPublishError(typeof result.error === "string" ? result.error : "Save failed. Please check your inputs.");
+          return;
+        }
         if ("forkedNewDraftId" in result && result.forkedNewDraftId) {
           setDraftId(result.forkedNewDraftId);
         }
@@ -287,12 +300,15 @@ export function MacroPlanEditor({
         await ensureDraft();
       }
       router.refresh();
+    } catch {
+      setPublishError("Save failed. Please try again.");
     } finally {
       setSaving(false);
     }
   }
 
   async function handlePublish() {
+    if (!publication.canPublish || saving || publishing) return;
     // Before `setPublishing(true)` and before any server call — including
     // `ensureDraft()` — so a rejected publish never creates a draft row (T-103).
     const problem = findMealNameProblem(meals.map((m) => m.mealName));
@@ -313,12 +329,21 @@ export function MacroPlanEditor({
       const saveResult = await saveDraftMealPlan({
         mealPlanId: id,
         macroTargets: flattenMacroMeals(meals),
-        supportContent: supportContent || undefined,
+        supportContent: supportContent.trim() === "" ? null : supportContent,
       });
       if ("forkedNewDraftId" in saveResult && saveResult.forkedNewDraftId) {
         id = saveResult.forkedNewDraftId;
       }
-      await publishMealPlan({ mealPlanId: id, notifyClient });
+      if ("error" in saveResult) {
+        setPublishError(typeof saveResult.error === "string" ? saveResult.error : "Please check your inputs before publishing.");
+        return;
+      }
+      const publishResult = await publishMealPlan({ mealPlanId: id, notifyClient });
+      if ("error" in publishResult) {
+        setPublishError(publishResult.error);
+        return;
+      }
+      setConfirmedPublication({ signature: currentSignature, seed: effectivePlan.publishedContent });
       setDraftId(null);
       router.refresh();
     } catch {
@@ -553,6 +578,8 @@ export function MacroPlanEditor({
         publishing={publishing}
         itemCount={meals.length}
         isUnsaved={isUnsaved}
+        canPublish={publication.canPublish}
+        publicationMessage={publication.message}
         notifyClient={notifyClient}
         onNotifyChange={setNotifyClient}
         onSave={handleSave}

@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   currentUser: vi.fn(),
   findUnique: vi.fn(),
   update: vi.fn(),
+  updateMany: vi.fn(),
   upsert: vi.fn(),
 }));
 
@@ -13,7 +14,7 @@ vi.mock("@clerk/nextjs/server", () => ({
   currentUser: mocks.currentUser,
 }));
 vi.mock("@/lib/db", () => ({
-  db: { user: { findUnique: mocks.findUnique, update: mocks.update, upsert: mocks.upsert } },
+  db: { user: { findUnique: mocks.findUnique, update: mocks.update, updateMany: mocks.updateMany, upsert: mocks.upsert } },
 }));
 
 import { getCurrentDbUser } from "@/lib/auth/roles";
@@ -65,12 +66,12 @@ describe("account identity conflicts", () => {
 
   it("still claims a verified pending placeholder", async () => {
     const placeholder = { ...existing, clerkId: "pending_invite" };
-    mocks.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(placeholder);
-    mocks.update.mockResolvedValue({ ...placeholder, clerkId: "user_development" });
+    mocks.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce(placeholder).mockResolvedValueOnce({ ...placeholder, clerkId: "user_development" });
+    mocks.updateMany.mockResolvedValue({ count: 1 });
 
     await expect(getCurrentDbUser()).resolves.toMatchObject({ clerkId: "user_development" });
-    expect(mocks.update).toHaveBeenCalledWith({
-      where: { id: existing.id },
+    expect(mocks.updateMany).toHaveBeenCalledWith({
+      where: { id: existing.id, clerkId: "pending_invite", isDeactivated: false },
       data: { clerkId: "user_development", firstName: undefined, lastName: undefined },
     });
   });

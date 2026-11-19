@@ -26,6 +26,8 @@ vi.hoisted(() => {
 // before invoking the callback.
 vi.mock("@/lib/db", () => ({ db: { $transaction: mocks.transaction } }));
 
+vi.mock("@/lib/coach-client/write-access", () => ({ isCurrentCoachInTransaction: async () => true }));
+
 import { Prisma } from "@/app/generated/prisma/client";
 import {
   publishTrainingProgramTarget,
@@ -154,9 +156,10 @@ describe("publishTrainingProgramTarget — transaction failure mapping", () => {
     // Thrown out of the callback (rolls back), and checked BEFORE the supersede.
     expect(callbackThrew).toBe(true);
     expect(updateMany).not.toHaveBeenCalled();
-    const sql = (queryRaw.mock.calls[0][0] as string[]).join("?");
+    expect((queryRaw.mock.calls[0][0] as string[]).join("?")).toMatch(/FROM "User".*FOR UPDATE/);
+    const sql = (queryRaw.mock.calls[1][0] as string[]).join("?");
     expect(sql).toMatch(/FROM "CoachClient"/);
     expect(sql).toMatch(/FOR SHARE/);
-    expect(queryRaw.mock.calls[0].slice(1)).toEqual(["coach-removed", target.clientId]);
+    expect(queryRaw.mock.calls[1].slice(1)).toEqual(["coach-removed", target.clientId]);
   });
 });

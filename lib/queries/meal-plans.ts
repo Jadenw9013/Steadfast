@@ -3,6 +3,8 @@ import { parsePlanExtras, type PlanExtras } from "@/types/meal-plan-extras";
 import { resolveDefaultPlanMode, resolveEditorPlanMode } from "@/lib/meal-plans/plan-mode";
 import { resolveActiveMealPlanId } from "@/lib/meal-plans/active-plan";
 import type { PlanVisibility } from "@/lib/coach-client/plan-visibility";
+import { foodsEditorSignature, macroEditorSignature } from "@/lib/meal-plans/editor-state";
+import { groupItemsToMeals } from "@/types/meal-plan";
 
 /**
  * Return shape deliberately unchanged (T-105): selection is delegated to
@@ -46,6 +48,7 @@ export async function getMealPlanById(id: string) {
 }
 
 export type EffectiveMealPlan = {
+  publishedContent?: { mode: "MEAL_PLAN" | "MACROS"; signature: string } | null;
   source: "draft" | "published" | "empty";
   draftId: string | null;
   publishedId: string | null;
@@ -144,7 +147,7 @@ export async function getEffectiveMealPlanForReview(args: {
     // Deliberately unscoped by week — that defect is T-733, not this ticket.
     db.mealPlan.findFirst({
       where: { clientId, status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
+      orderBy: [{ weekOf: "desc" }, { publishedAt: "desc" }, { version: "desc" }],
       include,
     }),
     resolveDefaultPlanMode(coachId, clientId),
@@ -152,10 +155,17 @@ export async function getEffectiveMealPlanForReview(args: {
 
   // Computed from the DRAFT only — never from `published`. See lib/meal-plans/plan-mode.ts.
   const editorMode = resolveEditorPlanMode(draft?.planMode ?? null, clientPlanMode);
+  const publishedContent = published ? {
+    mode: published.planMode,
+    signature: published.planMode === "MACROS"
+      ? macroEditorSignature(published.macroTargets, published.supportContent || "")
+      : foodsEditorSignature(groupItemsToMeals(published.items), parsePlanExtras(published.planExtras), published.supportContent || ""),
+  } : null;
 
   if (draft) {
     return {
       source: "draft",
+      publishedContent,
       draftId: draft.id,
       publishedId: published?.id ?? null,
       clientPlanMode,
@@ -170,6 +180,7 @@ export async function getEffectiveMealPlanForReview(args: {
   if (published) {
     return {
       source: "published",
+      publishedContent,
       draftId: null,
       publishedId: published.id,
       clientPlanMode,
@@ -184,6 +195,7 @@ export async function getEffectiveMealPlanForReview(args: {
   // 3. No plan at all
   return {
     source: "empty",
+    publishedContent,
     draftId: null,
     publishedId: null,
     clientPlanMode,

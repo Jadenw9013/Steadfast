@@ -1,3 +1,4 @@
+import { claimPendingUser } from "@/lib/auth/claim-pending-user";
 import { verifiedPrimaryEmail } from "@/lib/auth/verified-email";
 import { verifyWebhook } from "@clerk/nextjs/webhooks";
 import { NextRequest } from "next/server";
@@ -46,21 +47,21 @@ export async function POST(req: NextRequest) {
         if (existingByEmail.isDeactivated) {
           return new Response("Account is pending deletion", { status: 200 });
         }
-        await db.user.update({
-          where: { id: existingByEmail.id },
-          data: {
-            clerkId: id,
-            firstName: first_name ?? existingByEmail.firstName,
-            lastName: last_name ?? existingByEmail.lastName,
-          },
+        const claimed = await claimPendingUser({
+          id: existingByEmail.id,
+          pendingClerkId: existingByEmail.clerkId,
+          clerkId: id,
+          firstName: first_name ?? existingByEmail.firstName,
+          lastName: last_name ?? existingByEmail.lastName,
         });
+        if (!claimed) return new Response("Identity conflict requires account recovery", { status: 409 });
       }
 
       if (eventType === "user.created") {
         const roleFields = resolveRoleOnCreate(public_metadata?.role);
         await db.user.upsert({
           where: { clerkId: id },
-          update: { email, firstName: first_name, lastName: last_name, ...roleFields },
+          update: { email, firstName: first_name, lastName: last_name },
           create: { clerkId: id, email, firstName: first_name, lastName: last_name, ...roleFields },
         });
       } else {

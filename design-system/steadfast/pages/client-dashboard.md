@@ -18,8 +18,8 @@ A single-column, mobile-first "today" screen for a signed-in client. It is mode-
 - **No coach assigned:** focused empty state — "Find Your Coach" CTA, prior check-in history if
   any, optional "Become a Coach" prompt. No dashboard chrome.
 - **Coach assigned:** masthead, pending-intake banner (if applicable), a primary status card
-  (on-track / due / overdue + streak), "Today's Plan" nutrition + training cards with progress
-  bars, an optional cardio-prescription strip, coach guidance/support text, a weight-progress
+  (on-track / due / overdue + streak), "Today's Plan" side-by-side nutrition + training tiles with a meal-progress
+  ring, an optional cardio-prescription summary, coach guidance/support text, a weight-progress
   chart, today's adherence checklist, recent check-ins (collapsible), and the latest coach
   message/check-in preview.
 
@@ -49,6 +49,14 @@ separate route.
   rather than introducing new semantic colors.
 
 ### Component rules
+
+- Nutrition and training use a two-column grid on mobile with equal, strictly square tiles.
+  The nutrition ring shows meals remaining and a textual completed count. Training links to
+  choosing a workout; never infer today's workout or completion from the program day count.
+- Cardio uses a neutral surface, a modality heading, and three quiet labeled values instead
+  of colored chips. Long values and notes wrap without horizontal overflow.
+- Container cards do not react to descendant clicks. Hover/press treatment belongs only to
+  actionable links and buttons.
 
 - Every actionable card is a `<Link>` with `focus-visible:ring` and a minimum touch target per
   Master (48px generally, 56px for the single primary CTA in the no-coach state).

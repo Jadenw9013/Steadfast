@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MealCard } from "./meal-card";
 import { MealPlanActions } from "./meal-plan-actions";
+import { publicationState } from "@/lib/meal-plans/publication-state";
 import { MacroPlanEditor } from "./macro-plan-editor";
 import { PlanModeToggle } from "@/components/coach/plan-mode-toggle";
 import { PlanExtrasEditor } from "./plan-extras-display";
@@ -173,6 +174,12 @@ function MealPlanEditorV2Body({
   const [highlightedMeals, setHighlightedMeals] = useState<Set<string>>(new Set());
 
   const isUnsaved = draftId === null;
+  const currentSignature = foodsEditorSignature(meals, planExtras, supportContent);
+  const [confirmedPublication, setConfirmedPublication] = useState<{ signature: string; seed: typeof effectivePlan.publishedContent } | null>(null);
+  const publishedSignature = confirmedPublication && confirmedPublication.seed === effectivePlan.publishedContent
+    ? confirmedPublication.signature
+    : effectivePlan.publishedContent?.mode === "MEAL_PLAN" ? effectivePlan.publishedContent.signature : null;
+  const publication = publicationState(currentSignature, publishedSignature);
   const totalItems = meals.reduce((sum, m) => sum + m.items.length, 0);
 
   // Everything below lives only in `useState` until an explicit Save, and the
@@ -280,19 +287,25 @@ function MealPlanEditorV2Body({
   }
 
   async function handleSave() {
+    if (saving || publishing) return;
     setSaving(true);
+    setPublishError(null);
     try {
       if (draftId) {
         const result = await saveDraftMealPlan({
           mealPlanId: draftId,
           items: flattenMeals(meals),
           planExtras: planExtras ?? undefined,
-          supportContent: supportContent || undefined,
+          supportContent: supportContent.trim() === "" ? null : supportContent,
         });
         // The draft we thought we had was actually published/superseded by
         // someone else in the meantime — the server forked a fresh draft
         // rather than corrupting the live plan. Adopt its id so the next
         // save/publish targets the right row.
+        if ("error" in result) {
+          setPublishError(typeof result.error === "string" ? result.error : "Save failed. Please check your inputs.");
+          return;
+        }
         if ("forkedNewDraftId" in result && result.forkedNewDraftId) {
           setDraftId(result.forkedNewDraftId);
         }
@@ -300,12 +313,15 @@ function MealPlanEditorV2Body({
         await ensureDraft();
       }
       router.refresh();
+    } catch {
+      setPublishError("Save failed. Please try again.");
     } finally {
       setSaving(false);
     }
   }
 
   async function handlePublish() {
+    if (!publication.canPublish || saving || publishing) return;
     // Before `setPublishing(true)` and before any server call — including
     // `ensureDraft()` — so a rejected publish never creates a draft row (T-103).
     // Only meals that will actually be sent: flattenMeals drops meals with no
@@ -337,12 +353,21 @@ function MealPlanEditorV2Body({
         mealPlanId: id,
         items: flattenMeals(meals),
         planExtras: planExtras ?? undefined,
-        supportContent: supportContent || undefined,
+        supportContent: supportContent.trim() === "" ? null : supportContent,
       });
       if ("forkedNewDraftId" in saveResult && saveResult.forkedNewDraftId) {
         id = saveResult.forkedNewDraftId;
       }
-      await publishMealPlan({ mealPlanId: id, notifyClient });
+      if ("error" in saveResult) {
+        setPublishError(typeof saveResult.error === "string" ? saveResult.error : "Please check your inputs before publishing.");
+        return;
+      }
+      const publishResult = await publishMealPlan({ mealPlanId: id, notifyClient });
+      if ("error" in publishResult) {
+        setPublishError(publishResult.error);
+        return;
+      }
+      setConfirmedPublication({ signature: currentSignature, seed: effectivePlan.publishedContent });
       // Clear stale draft ID — the plan is now PUBLISHED.
       // Next edit will create a fresh draft via ensureDraft().
       setDraftId(null);
@@ -679,6 +704,8 @@ function MealPlanEditorV2Body({
         publishing={publishing}
         itemCount={totalItems}
         isUnsaved={isUnsaved}
+        canPublish={publication.canPublish}
+        publicationMessage={publication.message}
         notifyClient={notifyClient}
         onNotifyChange={setNotifyClient}
         onSave={handleSave}

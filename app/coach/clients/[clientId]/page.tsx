@@ -473,6 +473,7 @@ export default async function ClientProfilePage({
               weekStartDate: weekDateStr,
               templates: mappedTemplates,
               initialProgram,
+              publishedSignature: trainingData.publishedSignature,
               carriedOverFromWeek: trainingData.carriedOverFrom
                 ? formatDateUTC(trainingData.carriedOverFrom)
                 : null,

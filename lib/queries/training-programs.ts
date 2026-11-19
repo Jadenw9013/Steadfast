@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { trainingEditorSignature } from "@/lib/training-programs/editor-signature";
 import { reportAnomaly } from "@/lib/observability/report";
 import { TRAINING_WEEK_EMPTY } from "@/lib/observability/events";
 import type { Prisma } from "@/app/generated/prisma/client";
@@ -35,19 +36,21 @@ export const DRAFT_TRAINING_ORDER_BY: Prisma.TrainingProgramOrderByWithRelationI
 ];
 
 export async function getTrainingProgramForReview(clientId: string, weekOf: Date) {
+  const live = await getLatestPublishedTrainingProgramForCoach(clientId);
+  const publishedSignature = live ? trainingEditorSignature(live) : null;
   const draft = await db.trainingProgram.findFirst({
     where: { clientId, weekOf, status: "DRAFT" },
     orderBy: DRAFT_TRAINING_ORDER_BY,
     include: programInclude,
   });
-  if (draft) return { source: "draft" as const, program: draft, carriedOverFrom: null };
+  if (draft) return { source: "draft" as const, program: draft, carriedOverFrom: null, publishedSignature };
 
   const published = await db.trainingProgram.findFirst({
     where: { clientId, weekOf, status: "PUBLISHED" },
     orderBy: PUBLISHED_TRAINING_ORDER_BY,
     include: programInclude,
   });
-  if (published) return { source: "published" as const, program: published, carriedOverFrom: null };
+  if (published) return { source: "published" as const, program: published, carriedOverFrom: null, publishedSignature };
 
   const carriedOver = await db.trainingProgram.findFirst({
     where: { clientId, status: "PUBLISHED", weekOf: { lt: weekOf } },
@@ -57,6 +60,7 @@ export async function getTrainingProgramForReview(clientId: string, weekOf: Date
   if (carriedOver) {
     return {
       source: "carried-over" as const,
+      publishedSignature,
       program: carriedOver,
       carriedOverFrom: carriedOver.weekOf,
     };
@@ -115,7 +119,7 @@ export async function getTrainingProgramForReview(clientId: string, weekOf: Date
     // succeed — see the comment above.
   }
 
-  return { source: "empty" as const, program: null, carriedOverFrom: null };
+  return { source: "empty" as const, program: null, carriedOverFrom: null, publishedSignature };
 }
 
 export async function getLatestPublishedTrainingProgramForCoach(clientId: string) {

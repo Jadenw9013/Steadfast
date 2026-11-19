@@ -21,6 +21,7 @@ export async function removeClient(input: unknown) {
     where: {
       coachId_clientId: { coachId: user.id, clientId: parsed.data.clientId },
     },
+    select: { id: true, clientId: true },
   });
 
   if (!assignment) throw new Error("Client not found in your roster");
@@ -53,6 +54,7 @@ export async function leaveCoach(input: unknown) {
 
   const assignment = await db.coachClient.findUnique({
     where: { id: parsed.data.coachClientId },
+    select: { id: true, coachId: true, clientId: true },
   });
 
   if (!assignment || assignment.clientId !== user.id) {

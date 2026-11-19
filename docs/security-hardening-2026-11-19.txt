@@ -1,0 +1,101 @@
+Steadfast security hardening and release audit — 2026-11-19
+
+Release scope
+Prepared in an isolated worktree based on origin/main 5f20ece.
+Unrelated team/sprint-3 work is excluded. Earlier requested mobile-card,
+container-interaction and publication-feedback changes are ported separately.
+No production account/data mutations, real notification sends, exploit payloads,
+schema changes or migrations were performed by this hardening task.
+Push and production deployment remain pending; do not treat local results as live verification.
+
+Coach/client integrity fixes
+- Reproduced five non-provider meal-plan mutation failures against release code:
+  a second assigned coach could save, publish or delete another provider's draft.
+  The regression now passes. Current-provider gates cover meal creation/save,
+  publication, restore, delete, macro targets, plan mode, training save/publication,
+  meal/workout imports and template application.
+- Unresolved, AI/NONE, deactivated and ambiguous legacy contexts fail closed.
+  One unambiguous legacy coach relationship still works without a context row.
+- Meal/training publication rechecks current-provider authority inside its
+  transaction under the same client User lock used by relationship transitions.
+- A meal draft published after an editor's pre-read can no longer be overwritten
+  by a late save; the transaction aborts before replacing children. Draft deletion
+  also rechecks DRAFT status in the delete predicate.
+- Placeholder identity claims use a conditional update. Competing identities
+  cannot overwrite the winner; repeated claims by the same identity are idempotent.
+- Replayed user.created events and JIT upsert races preserve existing coach/client
+  capabilities and the selected role, rather than resetting them from signup defaults.
+- Critical authorization/removal lookups use explicit CoachClient selects.
+
+Abuse and dependency fixes
+- Shared PostgreSQL RequestQuota budget: coach registration allows three attempts
+  per fixed 15-minute window across REST, server actions and application workers.
+  Quota failures deny registration rather than allowing an unchecked attempt.
+- Public submissions share source (5/hour), coach (30/hour), and contact (1/15min)
+  quotas across web/REST/waitlist entry points; rejection precedes writes/notifications.
+  Source identity trusts Vercel's platform header only when VERCEL=1. Other hosts
+  use a conservative shared fallback; deployments outside Vercel need a trusted
+  proxy integration before using this flow at volume.
+- Phone formatting is validated and normalized, not verified as owned/reachable.
+  JSON body limits count actual streamed bytes; malformed and oversized requests
+  are rejected without writes. Server action fields are individually bounded.
+- Next 16.4.6, Clerk 6.39.9, sharp 0.35.5, coordinated Prisma 7.10.1, and compatible
+  runtime/transitive patches are locked. Scoped overrides address Clerk themes,
+  Twilio axios/qs and source-map-js. pnpm audit --prod reports zero advisories.
+- CSP is report-only to avoid breaking sign-in/integrations. It is NOT enforced
+  protection and has no reporting collector; validate browser reports before enforcement.
+
+UI quality fixes included
+- Square side-by-side mobile meal/training tiles and a quieter cardio summary.
+- Glass-card hover/press effects apply to actionable cards, not containing panels.
+- Foods, macros and every training publish control compare against published
+  content and show persistent confirmation only after successful publication.
+- Save/publish refusals do not show a false success. Empty notes save as null.
+
+Validation
+- Full default suite: 2,039 passed; 1,006 opt-in tests skipped (not passed).
+  STEADFAST_HQ points to the existing sibling HQ checkout for worksheet tests.
+- 223 targeted database-backed tests across 13 suites passed: relationship
+  teardown/re-add, invite identities, bypass/activation funnel, cross-client
+  imports/messages, current-provider writes, account-claim concurrency, persistent
+  quotas, publication parity and training fork behavior.
+- 62 additional database-backed tests across five suites passed: active meal-plan
+  selection, editor-mode authority, supersede behavior and observability regressions.
+- All DB tests explicitly use localhost/steadfast_security_test. External messages
+  and identity providers are mocked; no production credentials/database are used.
+- Headless Chrome audit passed: 375px square tiles/no horizontal overflow; food,
+  macro and both training publish controls; successful and failed publish feedback.
+  Preview actions are synthetic, not live end-to-end publishing.
+- Production build and TypeScript check passed.
+- Changed-file lint: zero errors (23 existing warnings). Full-repository lint
+  remains non-green: 14 pre-existing errors and 69 warnings outside this fix scope.
+- Build emits two non-fatal Prisma node:path/node:url Edge-instrumentation warnings.
+  Graphify refresh unavailable: the graphify Python module is not installed.
+
+Reproduction commands
+  pnpm test
+  pnpm run type-check
+  pnpm run build
+  pnpm audit --prod
+  node tests/browser/plan-ui-preview.mjs
+  node tests/browser/plan-ui-audit.mjs
+Integration runs require SECURITY_INTEGRATION=1, AI_COACH_FIXTURE_MODE=true,
+an explicitly local test DATABASE_URL, --maxWorkers=1 and --no-file-parallelism.
+
+Limits / follow-up
+This is a bounded white-box assessment, not a complete penetration-test certification.
+No authenticated live production attack simulation, load test, Clerk dashboard,
+Supabase RLS/bucket audit, Vercel WAF audit or exhaustive billing/AI audit was done.
+Draft/import mutations have entry-point provider checks; only publication has the
+additional provider recheck under a relationship-transition lock. This release
+does not claim exhaustive serialization of every draft/import/provider race.
+Review live deploy status and read-only health after pushing. An authenticated
+coach/client smoke test should confirm normal account navigation after deployment.
+The prior production identity conflict and Manny's exact login complaint are not
+newly reproduced by these synthetic checks; no account was impersonated.
+
+Reference advisories and platform behavior
+https://github.com/advisories/GHSA-p3m5-59mp-jv5r
+https://github.com/advisories/GHSA-2464-fhr4-w9xw
+https://github.com/advisories/GHSA-vqx2-fgx2-5wq9
+https://vercel.com/docs/headers/request-headers#x-vercel-forwarded-for

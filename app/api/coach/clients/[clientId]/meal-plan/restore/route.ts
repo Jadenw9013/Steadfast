@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkMealPlanWriter, mealPlanWriterRefusalResponse } from "@/lib/meal-plans/writer-gate";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { parseWeekStartDate } from "@/lib/utils/date";
@@ -48,6 +49,8 @@ export async function POST(req: NextRequest, { params }: Params) {
     // is not valid JSON must 422 like any other malformed request, not fall
     // through to the outer catch's 500. `publish/route.ts` has the same gap;
     // fixing it there too is a follow-up, not part of this ticket.
+    const writer = await checkMealPlanWriter(user.id, clientId);
+    if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
     let body: unknown;
     try {
       body = await req.json();

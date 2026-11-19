@@ -3,7 +3,6 @@ import { db } from "@/lib/db";
 import type { MealPlanStatus, PlanMode, Prisma } from "@/app/generated/prisma/client";
 import { planExtrasSchema, type PlanExtras } from "@/types/meal-plan-extras";
 import {
-  macroTargetTransactionOps,
   type MealMacroTargetInput,
   type PlanModeInput,
 } from "@/lib/meal-plans/macro-targets";
@@ -283,6 +282,13 @@ export type SaveMealPlanDraftResult = {
  * Deliberately content-free — the items/macroTargets read only happens on the
  * fork branch, so the hot path (saving an existing draft) stays cheap.
  */
+export class MealPlanPublishedDuringSaveError extends Error {
+  constructor() {
+    super("This plan changed while saving. Refresh before editing again.");
+    this.name = "MealPlanPublishedDuringSaveError";
+  }
+}
+
 export async function getMealPlanSaveTarget(
   mealPlanId: string
 ): Promise<MealPlanSaveTarget | null> {
@@ -410,48 +416,32 @@ export async function saveMealPlanDraftContent(
 
   const mealPlanId = target.id;
 
-  // Replace all items/macroTargets (whichever was provided) + update metadata.
-  await db.$transaction([
-    ...(items !== undefined
-      ? [
-          db.mealPlanItem.deleteMany({ where: { mealPlanId } }),
-          ...items.map((item, i) =>
-            db.mealPlanItem.create({
-              data: {
-                mealPlanId,
-                mealName: item.mealName,
-                sortOrder: i,
-                foodName: item.foodName,
-                quantity: item.quantity,
-                unit: item.unit,
-                servingDescription: item.servingDescription || null,
-                calories: item.calories,
-                protein: item.protein,
-                carbs: item.carbs,
-                fats: item.fats,
-              },
-            })
-          ),
-        ]
-      : []),
-    ...(macroTargets !== undefined ? macroTargetTransactionOps(mealPlanId, macroTargets) : []),
-    ...(planExtras !== undefined || supportContent !== undefined
-      ? [
-          db.mealPlan.update({
-            where: { id: mealPlanId },
-            data: {
-              // T-841: merge defined objects one level against the raw stored
-              // JSON. An explicit null remains a no-op; supportContent's null
-              // still clears, so the pre-existing asymmetry is preserved.
-              ...(planExtras != null && {
-                planExtras: mergePlanExtras(target.planExtras, planExtras),
-              }),
-              ...(supportContent !== undefined && { supportContent }),
-            },
-          }),
-        ]
-      : []),
-  ]);
+  await db.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${target.clientId} FOR UPDATE`;
+    const guarded = await tx.mealPlan.updateMany({
+      where: { id: mealPlanId, status: "DRAFT" },
+      data: {
+        updatedAt: new Date(),
+        ...(planExtras != null && { planExtras: mergePlanExtras(target.planExtras, planExtras) }),
+        ...(supportContent !== undefined && { supportContent }),
+      },
+    });
+    if (guarded.count === 0) throw new MealPlanPublishedDuringSaveError();
+    if (items !== undefined) {
+      await tx.mealPlanItem.deleteMany({ where: { mealPlanId } });
+      if (items.length) await tx.mealPlanItem.createMany({
+        data: items.map((item, index) => ({
+          ...item, mealPlanId, sortOrder: index, servingDescription: item.servingDescription || null,
+        })),
+      });
+    }
+    if (macroTargets !== undefined) {
+      await tx.mealMacroTarget.deleteMany({ where: { mealPlanId } });
+      if (macroTargets.length) await tx.mealMacroTarget.createMany({
+        data: macroTargets.map((target, index) => ({ ...target, mealPlanId, sortOrder: index })),
+      });
+    }
+  }, { timeout: 15_000 });
 
   return { mealPlanId, forkedNewDraftId: null };
 }

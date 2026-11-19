@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { db, prismaErrorMessage } from "@/lib/db";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
+import { checkMealPlanWriter, mealPlanWriterRefusalResponse } from "@/lib/meal-plans/writer-gate";
 import {
   parsedMealPlanSchema,
   splitPortion,
@@ -61,6 +62,9 @@ export async function POST(req: NextRequest) {
       }
       throw e;
     }
+
+    const writer = await checkMealPlanWriter(coach.id, owner.upload.clientId);
+    if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
 
     // Get draft + upload
     const draft = await db.mealPlanDraft.findUnique({

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { verifyCoachAccessToClient } from "@/lib/queries/check-ins";
+import { checkMealPlanWriter } from "@/lib/meal-plans/writer-gate";
 import { planModeSchema, setClientPlanModeForCoach } from "@/lib/meal-plans/macro-targets";
 import { revalidatePath } from "next/cache";
 
@@ -17,6 +18,8 @@ export async function setClientPlanMode(input: unknown) {
 
   const { clientId, mode } = parsed.data;
   const coach = await verifyCoachAccessToClient(clientId);
+  const writer = await checkMealPlanWriter(coach.id, clientId);
+  if (!writer.ok) return writer;
 
   await setClientPlanModeForCoach(coach.id, clientId, mode);
 

@@ -1,40 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import { timingSafeEqual } from "crypto";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
 
-const becomeCoachSchema = z.object({
-  accessCode: z.string().min(1, "Access code is required"),
-});
-
-// ── Per-user rate limiting (in-memory, resets on deploy) ──────────────
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const MAX_ATTEMPTS = 3;
-const attemptMap = new Map<string, { count: number; resetAt: number }>();
-
-function isRateLimited(userId: string): boolean {
-  const now = Date.now();
-  const entry = attemptMap.get(userId);
-  if (!entry || now > entry.resetAt) {
-    attemptMap.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-  entry.count++;
-  return entry.count > MAX_ATTEMPTS;
-}
-
-/** Timing-safe string comparison to prevent side-channel attacks. */
-function safeCompare(a: string, b: string): boolean {
-  const bufA = Buffer.from(a);
-  const bufB = Buffer.from(b);
-  if (bufA.length !== bufB.length) {
-    // Compare against self to maintain constant time, then return false
-    timingSafeEqual(bufA, bufA);
-    return false;
-  }
-  return timingSafeEqual(bufA, bufB);
-}
+import { checkCoachRegistration } from "@/lib/security/coach-registration";
+import { readBoundedJson } from "@/lib/security/body";
+import { reportServerError } from "@/lib/observability/report";
 
 /**
  * POST /api/become-coach
@@ -60,44 +30,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limiting
-  if (isRateLimited(dbUser.id)) {
-    console.warn(`[become-coach] RATE LIMITED userId=${dbUser.id}`);
-    return NextResponse.json(
-      { error: "Too many attempts. Please try again later." },
-      { status: 429 }
-    );
-  }
-
   try {
-    const body = await req.json();
-    const parsed = becomeCoachSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Please enter an access code." },
-        { status: 422 }
-      );
-    }
-
-    const { accessCode } = parsed.data;
-
-    // Check if coach registration is available
-    const validCode = process.env.STEADFAST_COACH_ACCESS_CODE;
-    if (!validCode) {
-      return NextResponse.json(
-        { error: "Coach registration is not available at this time." },
-        { status: 403 }
-      );
-    }
-
-    // Timing-safe code validation
-    if (!safeCompare(accessCode.trim(), validCode.trim())) {
-      console.warn(`[become-coach] FAILED attempt userId=${dbUser.id} at=${new Date().toISOString()}`);
-      return NextResponse.json(
-        { error: "Invalid access code. Please check with your administrator." },
-        { status: 403 }
-      );
-    }
+    const body = await readBoundedJson(req, 2048);
+    if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
+    const check = await checkCoachRegistration(dbUser.id, body.value);
+    if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
 
     // Already a coach
     if (dbUser.isCoach) {
@@ -121,7 +58,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(updated);
   } catch (err) {
-    console.error("[POST /api/become-coach]", err);
+    reportServerError("sf.coach-registration.failed", err, { route: "/api/become-coach", statusCode: 500 });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }

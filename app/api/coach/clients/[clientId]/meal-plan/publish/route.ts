@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkMealPlanWriter, mealPlanWriterRefusalResponse } from "@/lib/meal-plans/writer-gate";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
@@ -43,6 +44,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     if (!assignment) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    const writer = await checkMealPlanWriter(user.id, clientId);
+    if (!writer.ok) return mealPlanWriterRefusalResponse(writer);
 
     const body = await req.json();
     const parsed = publishSchema.safeParse(body);

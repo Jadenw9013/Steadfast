@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { readBoundedJson } from "@/lib/security/body";
+import { checkPublicSubmission, phoneNumberSchema } from "@/lib/security/public-submissions";
+import { reportServerError } from "@/lib/observability/report";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { newRequestNotificationEmail } from "@/lib/email/templates";
 
 // ── POST — submit coaching request from marketplace (no auth) ─────────────────
 
 const requestSchema = z.object({
-  coachSlug: z.string().min(1, "coachSlug is required"),
+  coachSlug: z.string().min(1, "coachSlug is required").max(100),
   firstName: z.string().min(1, "firstName is required").max(100),
   lastName: z.string().max(100).optional(),
-  phoneNumber: z.string().min(7, "Phone number is required").max(30),
+  phoneNumber: phoneNumberSchema,
   message: z.string().max(1000).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const parsed = requestSchema.safeParse(body);
+    const body = await readBoundedJson(req, 8192);
+    if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
+    const parsed = requestSchema.safeParse(body.value);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
@@ -60,6 +64,9 @@ export async function POST(req: NextRequest) {
         { status: 422 }
       );
     }
+
+    const refusal = await checkPublicSubmission(req.headers, profile.id, normalizedPhone);
+    if (refusal) return NextResponse.json({ error: refusal.error.message, code: refusal.error.code }, { status: refusal.status });
 
     // Rate limit: prevent multiple pending requests from same phone
     const existingPending = await db.coachingRequest.findFirst({
@@ -149,7 +156,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[POST /api/public/coaching-request]", err);
+    reportServerError("sf.public-submission.failed", err, { route: "/api/public/coaching-request", statusCode: 500 });
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
