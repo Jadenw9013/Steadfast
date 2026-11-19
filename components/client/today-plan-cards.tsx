@@ -13,14 +13,14 @@ export function TodayPlanCards({
   const remaining = Math.max(0, totalMeals - completed);
   const progress = totalMeals > 0 ? completed / totalMeals : 0;
   const allMealsComplete = totalMeals > 0 && remaining === 0;
-  const tileClass = "group grid aspect-square min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl border border-white/[0.08] bg-zinc-900/80 p-3 transition-colors hover:border-white/20 focus-visible:ring-2 focus-visible:ring-blue-500";
+  const tileClass = "sf-plan-tile group grid aspect-square min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] rounded-2xl border p-3 focus-visible:ring-2 focus-visible:ring-blue-500";
   if (!hasMealPlan && trainingDays === 0) return null;
   return (
     <section aria-label="Today's plan">
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-zinc-400">Today&apos;s plan</h2>
       <div className="grid grid-cols-2 gap-3">
         {hasMealPlan && (
-          <Link href="/client/meal-plan" aria-label="View your meal plan" className={tileClass}>
+          <Link href="/client/meal-plan" aria-label="View your meal plan" className={tileClass} data-plan="nutrition">
             <div className="flex items-center justify-between gap-1">
               <h3 className="text-[14px] font-semibold leading-[20px] tracking-tight text-zinc-100">Meal plan</h3>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0 text-emerald-400/80" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg>
@@ -41,7 +41,7 @@ export function TodayPlanCards({
           </Link>
         )}
         {trainingDays > 0 && (
-          <Link href="/client/training" aria-label="View your training program" className={tileClass}>
+          <Link href="/client/training" aria-label="View your training program" className={tileClass} data-plan="training">
             <div className="flex items-center justify-between gap-1">
               <h3 className="text-[14px] font-semibold leading-[20px] tracking-tight text-zinc-100">Workout</h3>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0 text-blue-400/80" aria-hidden="true"><path d="M7 17 17 7M7 7h10v10" /></svg>
@@ -67,7 +67,7 @@ export function CardioSummary({ modality, frequency, duration, intensity, notes 
     { label: "Intensity", value: intensity.trim() },
   ].filter((detail) => detail.value);
   return (
-    <section aria-label="Cardio prescription" className="rounded-2xl border border-white/[0.08] bg-zinc-900/80 p-4">
+    <section aria-label="Cardio prescription" className="sf-cardio-summary rounded-2xl border p-4">
       <div className="flex items-center gap-3">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" className="shrink-0 text-emerald-400" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-7z" /></svg>
         <div className="min-w-0">

@@ -151,7 +151,7 @@ export function MobileBottomNav({
             style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         >
             {/* Glass bar — iOS ultra-thin material */}
-            <div className="relative border-t border-blue-500/[0.15] bg-black/90 backdrop-blur-2xl" style={{ backdropFilter: "blur(40px) saturate(200%)", WebkitBackdropFilter: "blur(40px) saturate(200%)" }}>
+            <div className="relative border-t border-blue-400/20 bg-[var(--sf-bg-raised)]/95 backdrop-blur-2xl" style={{ backdropFilter: "blur(40px) saturate(200%)", WebkitBackdropFilter: "blur(40px) saturate(200%)" }}>
                 <div className="flex items-stretch justify-around">
                     {items.map((item) => {
                         const active = isActive(item.href);
@@ -164,7 +164,7 @@ export function MobileBottomNav({
                                 aria-label={item.label}
                                 aria-current={active ? "page" : undefined}
                                 className={`relative flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 pb-1 pt-2 text-[10px] font-medium transition-colors ${
-                                    active ? "text-white" : "text-zinc-500 hover:text-zinc-300"
+                                    active ? "bg-blue-500/[0.08] text-blue-200" : "text-zinc-500 hover:bg-blue-500/[0.04] hover:text-zinc-300"
                                 }`}
                             >
                                 {/* Active top indicator */}
@@ -174,7 +174,7 @@ export function MobileBottomNav({
 
                                 {/* Icon — check-in gets a pulsing red dot when overdue */}
                                 <span className="relative">
-                                    <span className={active ? "text-white" : isCheckIn ? "text-zinc-300" : "text-zinc-500"}>
+                                    <span className={active ? "text-blue-300" : isCheckIn ? "text-zinc-300" : "text-zinc-500"}>
                                         {item.icon}
                                     </span>
                                     {isCheckIn && checkInOverdue && (
@@ -185,7 +185,7 @@ export function MobileBottomNav({
                                     )}
                                 </span>
 
-                                <span className={active ? "text-zinc-200" : isCheckIn ? "text-zinc-400" : "text-zinc-500"}>
+                                <span className={active ? "text-blue-200" : isCheckIn ? "text-zinc-400" : "text-zinc-500"}>
                                     {item.label}
                                 </span>
                             </Link>

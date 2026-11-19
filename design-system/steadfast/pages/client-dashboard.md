@@ -47,6 +47,9 @@ separate route.
 - Status colors: emerald for on-track/nutrition, blue for training, green for cardio, amber for
   an unfavorable weight-trend badge — keep new status-like elements within this existing palette
   rather than introducing new semantic colors.
+- Use the shared cool-charcoal palette from `app/palette.css`. Nutrition tiles have a
+  quiet mint tint, training tiles a blue tint, and cardio a neutral surface with a teal
+  wash. Hover, keyboard focus and press brighten only the actionable tile's own color.
 
 ### Component rules
 

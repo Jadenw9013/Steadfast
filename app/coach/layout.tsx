@@ -18,7 +18,7 @@ export default async function CoachLayout({
   }
 
   return (
-    <div className="min-h-[100dvh] bg-black">
+    <div className="sf-app-shell min-h-[100dvh]">
       <NavBar
         role="coach"
         canSwitchRole={user.isCoach && user.isClient}

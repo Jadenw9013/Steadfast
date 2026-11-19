@@ -9,8 +9,9 @@ try {
     for (const [total, logged] of [[0, 0], [5, 0], [5, 2], [12, 0], [5, 5], [5, 8]]) {
       await page.goto(`${base}/client?meals=${total}&logged=${logged}`);
       await page.evaluate(() => document.fonts.ready);
-      await expect(page.getByRole("link")).toHaveCount(2);
-      for (const card of await page.getByRole("link").all()) {
+      const cards = page.getByRole("region", { name: "Today's plan" }).getByRole("link");
+      await expect(cards).toHaveCount(2);
+      for (const card of await cards.all()) {
         const bounds = await card.boundingBox();
         expect(Math.abs(bounds.width - bounds.height)).toBeLessThan(1);
         const overflow = await card.evaluate((element) => {

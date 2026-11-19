@@ -49,7 +49,7 @@ export default async function ClientLayout({
   }
 
   return (
-    <div className="min-h-[100dvh] bg-black">
+    <div className="sf-app-shell min-h-[100dvh]">
       <NavBar
         role="client"
         canSwitchRole={user.isCoach && user.isClient}

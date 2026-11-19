@@ -11,6 +11,10 @@
 **Category:** B2B SaaS · Fitness Coaching Platform
 **Mode:** Dark mode only (permanently)
 
+**Palette refresh:** 2026-11-19. `app/palette.css` is loaded after `globals.css` and
+owns the current web palette. Keep structural styles in `globals.css`; change shared
+color tokens and color interaction states in `palette.css`.
+
 ---
 
 ## 🔒 Locked Constraints (never change)
@@ -22,7 +26,7 @@
 | Body font | `Sora` |
 | Mono font | `Geist Mono` |
 | Primary CTA color | `blue-600` (#2563EB) |
-| CTA hover | `blue-500` (#3B82F6) |
+| CTA hover | Brighter blue surface (#2C6DE5), preserving white-label contrast |
 | CSS framework | Tailwind v4 |
 | Min tap target | 48px (`min-h-[48px]` or `min-h-[56px]` for primary) |
 | Input font size | `font-size: max(1rem, 16px)` — prevents iOS zoom |
@@ -35,10 +39,10 @@
 
 | Role | Tailwind | Hex | Notes |
 |------|----------|-----|-------|
-| Page background | `bg-[#0a0f1e]` | `#0A0F1E` | Deep navy — primary canvas |
-| Surface / Card | `bg-zinc-900/80` | `#18181Bcc` | Frosted card surface |
-| Elevated surface | `bg-zinc-900` | `#18181B` | Modals, dropdowns |
-| Subtle surface | `bg-zinc-800/30` | `#27272Acc` | Input backgrounds, code blocks |
+| Page background | `sf-app-shell` / `--sf-bg` | `#080D16` | Cool charcoal with a quiet blue atmosphere |
+| Surface / Card | `--sf-surface` / `bg-zinc-900/80` | `#121B28` | Clearly separated from the canvas |
+| Elevated surface | `--sf-surface-elevated` | `#1A2637` | Hovered cards, modals and dropdowns |
+| Subtle surface | `bg-zinc-800/30` | `#2430414D` | Input backgrounds, code blocks |
 
 ### Borders
 
@@ -53,10 +57,10 @@
 
 | Role | Tailwind | Hex |
 |------|----------|-----|
-| Primary text | `text-zinc-100` | `#F4F4F5` |
-| Secondary text | `text-zinc-400` | `#A1A1AA` |
-| Muted text | `text-zinc-500` | `#71717A` |
-| Placeholder | `text-zinc-600` | `#52525B` |
+| Primary text | `--sf-text-primary` | `#F2F6FC` |
+| Secondary text | `text-zinc-400` | `#AEBACE` |
+| Muted text | `text-zinc-500` | `#96A6BD` |
+| Placeholder | `--sf-muted` | `#AEBACE` |
 | Inverse (on light) | `text-zinc-900` | `#18181B` |
 
 ### Semantic/Accent Colors (creative freedom)
@@ -70,6 +74,16 @@
 | Info/secondary | `text-violet-400`, `bg-violet-500/10` | Supplemental tags |
 | Neutral badge | `text-zinc-400`, `bg-zinc-800` | Inactive/historical |
 | Cyan accent | `text-cyan-400`, `bg-cyan-500/10` | Pipeline stages, status |
+
+Shared success accents use mint emerald `#52D6AC`; the primary action remains
+`#2563EB` with `#2C6DE5` on hover for the shared button components. Blue links use `#82B4FF` or `#B3D1FF` on dark
+surfaces. Warning badges use amber `#F0BD68`, danger uses rose `#FF9CA4`, and
+supplemental violet is `#B8A1ED`. Keep each meaning consistent.
+
+Color feedback belongs to actionable elements: a brighter tinted border and a
+slightly lighter surface on hover/focus, then a stronger border on press. Preserve
+keyboard focus rings and disabled states. Container panels keep a stable surface.
+Do not introduce pulsing glows or rely on color alone for statuses.
 
 ---
 

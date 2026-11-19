@@ -50,7 +50,7 @@ export function NavBar({
 
   return (
     <header
-      className="sticky top-0 z-30 border-b border-white/[0.06] bg-[#0a0a0b]/80 backdrop-blur-2xl"
+      className="sf-app-nav sticky top-0 z-30 border-b backdrop-blur-2xl"
       style={{
         backdropFilter: "blur(40px) saturate(180%)",
         WebkitBackdropFilter: "blur(40px) saturate(180%)",
@@ -89,7 +89,7 @@ export function NavBar({
                 key={link.href}
                 href={link.href}
                 className={`hidden rounded-lg px-3.5 py-1.5 text-[13px] font-medium tracking-wide transition-all duration-150 sm:block ${active
-                  ? "bg-white/[0.10] text-white shadow-sm"
+                  ? "bg-blue-500/15 text-blue-200 shadow-sm"
                   : "text-zinc-400 hover:bg-white/[0.06] hover:text-zinc-200"
                   }`}
                 aria-current={active ? "page" : undefined}
