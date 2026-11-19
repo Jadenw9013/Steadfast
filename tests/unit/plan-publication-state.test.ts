@@ -54,20 +54,35 @@ describe("publication confirmation", () => {
 });
 
 describe("client dashboard tiles", () => {
-  it.each([[0, 5], [2, 3], [5, 0], [10, 0]])("shows %i logged without exceeding the plan total", (loggedMeals, remaining) => {
+  it.each([[-2, 5], [0, 5], [2, 3], [5, 0], [10, 0]])("shows %i logged without exceeding the plan total", (loggedMeals, remaining) => {
     const html = renderToStaticMarkup(createElement(TodayPlanCards, { hasMealPlan: true, totalMeals: 5, loggedMeals, trainingDays: 4, totalExercises: 20 }));
     expect(html).toContain("grid-cols-2");
     expect(html).toContain("aspect-square");
     expect(html).toContain('role="progressbar"');
-    expect(html).toContain(`aria-valuenow="${Math.min(5, loggedMeals)}"`);
-    expect(html).toContain(`>${remaining}</span>`);
+    expect(html).toContain(`aria-valuenow="${Math.min(5, Math.max(0, loggedMeals))}"`);
+    if (remaining === 0) {
+      expect(html).toContain(">Done</span>");
+      expect(html).toContain("All meals logged");
+    } else {
+      expect(html).toContain(`>${remaining}</span>`);
+      expect(html).toContain(">left</span>");
+    }
     expect(html).toContain("Choose a day");
   });
   it("handles absent and empty plans without inventing progress", () => {
     expect(renderToStaticMarkup(createElement(TodayPlanCards, { hasMealPlan: false, totalMeals: 0, loggedMeals: 0, trainingDays: 0, totalExercises: 0 }))).toBe("");
     const html = renderToStaticMarkup(createElement(TodayPlanCards, { hasMealPlan: true, totalMeals: 0, loggedMeals: 0, trainingDays: 0, totalExercises: 0 }));
     expect(html).toContain("No meals scheduled");
+    expect(html).toContain("No meals yet");
+    expect(html).not.toContain(">Done</span>");
+    expect(html).not.toContain("stroke-dasharray");
     expect(html).not.toContain("NaN");
+  });
+  it("uses a thick track without a misleading progress dot before any meal is logged", () => {
+    const html = renderToStaticMarkup(createElement(TodayPlanCards, { hasMealPlan: true, totalMeals: 12, loggedMeals: 0, trainingDays: 0, totalExercises: 0 }));
+    expect(html).toContain('stroke-width="12"');
+    expect(html.match(/<circle\b/g)).toHaveLength(1);
+    expect(html).toContain(">12</span>");
   });
   it("renders cardio with labeled values instead of chips", () => {
     const html = renderToStaticMarkup(createElement(CardioSummary, { modality: "Stairmaster", frequency: "5 days/week", duration: "30 mins", intensity: "Level 6", notes: "" }));

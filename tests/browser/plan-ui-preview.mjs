@@ -12,6 +12,16 @@ const { build } = fromStore("esbuild@", "esbuild")("esbuild");
 const postcssRequire = fromStore("@tailwindcss+postcss@", "@tailwindcss/postcss");
 const css = await postcssRequire("postcss")([postcssRequire("@tailwindcss/postcss")()])
   .process(readFileSync(`${root}/app/globals.css`, "utf8"), { from: `${root}/app/globals.css` });
+const fontFaces = readdirSync(`${root}/.next/static/chunks`)
+  .filter((name) => name.endsWith(".css"))
+  .flatMap((name) => readFileSync(`${root}/.next/static/chunks/${name}`, "utf8").match(/@font-face\{[^}]+\}/g) ?? [])
+  .filter((face) => /font-family:(?:Sora|Chakra Petch);/.test(face));
+if (!fontFaces.length) throw new Error("Run pnpm build first so the preview can use the production fonts.");
+const fontFiles = new Map(fontFaces.map((face) => {
+  const filename = face.match(/url\(\.\.\/media\/([^)]+)\)/)[1];
+  return [`/fonts/${filename}`, readFileSync(`${root}/.next/static/media/${filename}`)];
+}));
+const fontCss = fontFaces.join("\n").replaceAll("../media/", "/fonts/") + ':root { --font-sora: "Sora", sans-serif; --font-chakra: "Chakra Petch", sans-serif; }';
 const mockActions = `
   const result = async () => ({ ok: true, success: true });
   export const createDraftMealPlan = async () => ({ mealPlanId: "synthetic-draft" });
@@ -45,10 +55,13 @@ const bundle = await build({
       const training = { id: "synthetic-training", status: "PUBLISHED", days: [{ dayName: "Upper body", blocks: [{ type: "EXERCISE", title: "Row", content: "3 sets of 10" }] }], weeklyFrequency: null, clientNotes: "", injuries: "", equipment: "", templateSourceId: "" };
       const props = { clientId: "synthetic-client", weekStartDate: "2026-11-16", effectivePlan, foods: [] };
       const path = window.location.pathname;
+      const parameters = new URLSearchParams(window.location.search);
+      const totalMeals = Number(parameters.get("meals") ?? 5);
+      const loggedMeals = Number(parameters.get("logged") ?? 2);
       createRoot(document.getElementById("root")).render(
         <main className="mx-auto space-y-5 p-4" style={{ maxWidth: path === "/client" ? 560 : 1100 }}>
           <p className="text-xs text-zinc-400">Synthetic preview — no account, database, or email writes.</p>
-          {path === "/client" ? <><TodayPlanCards hasMealPlan totalMeals={5} loggedMeals={2} trainingDays={5} totalExercises={28} /><CardioSummary modality="Stairmaster" frequency="5 days/week" duration="30 mins" intensity="Level 6" notes="" /></>
+          {path === "/client" ? <><TodayPlanCards hasMealPlan totalMeals={totalMeals} loggedMeals={loggedMeals} trainingDays={5} totalExercises={28} /><CardioSummary modality="Stairmaster" frequency="5 days/week" duration="30 mins" intensity="Level 6" notes="" /></>
             : path === "/macro" ? <MacroPlanEditor {...props} effectivePlan={{ ...effectivePlan, editorMode: "MACROS", publishedContent: { mode: "MACROS", signature: macroEditorSignature(macroTargets, "") } }} />
             : path === "/training" ? <TrainingProgramEditor clientId="synthetic-client" weekStartDate="2026-11-16" initialProgram={training} publishedSignature={trainingEditorSignature(training)} />
             : <div className="sf-glass-card p-4"><MealPlanEditorV2 {...props} /></div>}
@@ -80,6 +93,10 @@ const script = bundle.outputFiles.find((file) => file.path.endsWith(".js")).text
 const moduleCss = bundle.outputFiles.find((file) => file.path.endsWith(".css"))?.text ?? "";
 const server = createServer((request, response) => {
   const url = new URL(request.url, "http://127.0.0.1:4180");
+  if (fontFiles.has(url.pathname)) {
+    response.writeHead(200, { "Content-Type": "font/woff2" });
+    return response.end(fontFiles.get(url.pathname));
+  }
   if (url.pathname === "/preview.js") {
     response.writeHead(200, { "Content-Type": "text/javascript" });
     return response.end(script);
@@ -88,6 +105,6 @@ const server = createServer((request, response) => {
   if (url.pathname === "/mobile") {
     return response.end('<html style="background:#111;color:#ddd"><body><p>375px mobile viewport</p><iframe title="Mobile client preview" src="/client" style="width:375px;height:760px;border:1px solid #333"></iframe></body></html>');
   }
-  response.end(`<!doctype html><html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css.css}\n${moduleCss}</style></head><body><div id="root"></div><script src="/preview.js"></script></body></html>`);
+  response.end(`<!doctype html><html class="dark"><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>${css.css}\n${moduleCss}\n${fontCss}</style></head><body><div id="root"></div><script src="/preview.js"></script></body></html>`);
 });
 server.listen(4180, "127.0.0.1", () => console.log("Synthetic plan UI preview: http://127.0.0.1:4180/mobile (also /coach, /macro, /training)"));

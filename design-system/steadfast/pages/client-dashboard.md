@@ -51,7 +51,10 @@ separate route.
 ### Component rules
 
 - Nutrition and training use a two-column grid on mobile with equal, strictly square tiles.
-  The nutrition ring shows meals remaining and a textual completed count. Training links to
+  The nutrition ring scales with the available tile height (up to 112px), with a thick
+  12-unit stroke on a 120-unit view box. Keep only the count and short "left" label inside;
+  the 12px completed count sits below the ring. Zero progress has no colored end-cap,
+  completion shows a checkmark, and an empty plan is not presented as completed. Training links to
   choosing a workout; never infer today's workout or completion from the program day count.
 - Cardio uses a neutral surface, a modality heading, and three quiet labeled values instead
   of colored chips. Long values and notes wrap without horizontal overflow.
