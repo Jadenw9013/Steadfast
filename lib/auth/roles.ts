@@ -42,11 +42,10 @@ export async function getCurrentDbUser(options: { allowInactive?: boolean } = {}
 
   // A matching email is not authorization to replace another account's Clerk identity in production,
   // EXCEPT when the account was created as a placeholder (e.g. via bypass onboarding: "pending_...").
-  // In development, allow re-binding so local testing is unblocked when Clerk development identities change.
   const existingByEmail = await db.user.findUnique({ where: { email } });
   if (existingByEmail && existingByEmail.clerkId !== userId) {
     const isPendingPlaceholder = existingByEmail.clerkId.startsWith("pending_");
-    if (isPendingPlaceholder || process.env.NODE_ENV !== "production") {
+    if (isPendingPlaceholder) {
       if (existingByEmail.isDeactivated && !options.allowInactive) {
         throw new Error("Account is pending deletion");
       }
