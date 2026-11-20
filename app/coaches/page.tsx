@@ -207,12 +207,11 @@ export default async function CoachesDirectoryPage({ searchParams }: PageProps) 
                         <span className="hidden font-display text-xs font-bold uppercase tracking-[0.25em] text-zinc-100 sm:inline">Steadfast</span>
                     </Link>
                     <nav className="flex items-center gap-3">
-                        <Link href="/sign-in" className="text-sm font-medium text-zinc-400 transition-colors hover:text-white">Sign In</Link>
                         <Link
-                            href="/sign-up"
-                            className="sf-button-primary rounded-lg px-4 py-1.5 text-sm font-semibold active:scale-[0.97]"
+                            href="/sign-in"
+                            className="sf-button-primary min-h-[48px] rounded-lg px-4 py-1.5 text-sm font-semibold active:scale-[0.97]"
                         >
-                            Get Started
+                            Sign in / Get started
                         </Link>
                     </nav>
                 </div>

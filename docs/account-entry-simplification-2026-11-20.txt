@@ -1,0 +1,66 @@
+Steadfast account entry simplification — 2026-11-20
+
+Scope
+One entry for new/returning users; less marketing clutter; safe invite handoff;
+correct persisted-role routing. No schema changes, account rewrites, provider
+changes, or authentication policy changes.
+
+Implementation
+- Clerk SignIn withSignUp is explicitly enabled, using the installed SDK's
+  supported combined flow. Real development-instance rendering starts with an
+  email field and the configured Apple/Google choices.
+- A shared, single-column dark shell replaces the two split-screen marketing
+  pages. Recovery help and the existing medical disclaimer remain available as
+  disclosures, with visible Terms/Privacy links. Verification/MFA/session tasks,
+  password recovery and bot checks remain owned by Clerk.
+- All public account CTAs and the approval email use /sign-in. Ordinary old
+  signup URLs redirect there; legacy verification/OAuth/ticket routes still mount
+  SignUp so in-progress sessions aren't discarded.
+- Both signin and signup force the same validated destination. Only same-origin
+  application destinations are accepted; external/protocol-relative URLs, auth
+  loops, API paths, encoded separators, control characters and repeated params
+  fail closed to /account.
+- /account remains protected and routes using DB activeRole. The signed-in home
+  route no longer trusts stale Clerk metadata to pick a workspace. Deactivated
+  users retain their existing recovery path. A safe error boundary offers retry
+  and signout instead of another coaching request; unexpected lookup failures
+  are reported without rendering raw error text. Next's dynamic-render signals
+  are rethrown before error reporting (pinned by regression test).
+- Client invites offer one continue button and preserve the token through auth.
+  Acceptance/verified identity/consent/current-provider services are unchanged.
+  Coach and email copy no longer incorrectly imply everyone needs a new account
+  or that an email match itself creates a relationship.
+- The existing client-layout questionnaire gate and completion history are
+  unchanged. This release does not ask existing clients to redo onboarding.
+
+Validation
+- 54 new unit cases for redirect attacks, combined-component configuration,
+  compatibility URLs, invite landing behavior, authoritative role routing and
+  safe/framework error handling.
+- Default suite: 2,115 passed; 1,034 skipped (opt-in integration/smoke suites).
+- Local PostgreSQL: 97 passed / 5 files covering onboarding token security,
+  invite identity, coach-client consent, placeholder claim races and relationship
+  rules. Actual signup credentials/email delivery are not mocked as proof here.
+- Real built-app Chrome audit: 320, 375, 768 and 1440px; live development Clerk
+  widget, no horizontal overflow, input >=16px, primary target >=56px, white CTA
+  label, legal/recovery disclosures, preserved legacy invite destination, and
+  signed-out protected-page redirects. No browser page errors. No credentials
+  submitted, accounts created, verification emails sent or production rows read.
+- Production build and TypeScript pass. Changed-file lint passes. Full repo
+  lint still reports the same pre-existing 14 errors / 69 warnings.
+- Disposable database uses the checked-in SHA-pinned legacy-baseline replay:
+  81 migrations, raw SQL invariants present, no schema diff. A direct migrate
+  deploy on an empty disposable database was first refused by the historical
+  pre-baseline migration; production migrations were not touched.
+- Graph refresh attempted; unavailable because graphify is not installed.
+
+Limits
+The browser check proves rendering/navigation, not a real user's authenticated
+session, inbox delivery, password recovery email or OAuth/MFA completion. Manny
+still needs to confirm his own login. No production Clerk configuration was
+changed; its required fields and allowed authentication methods still apply.
+
+Reference
+https://clerk.com/docs/nextjs/reference/components/authentication/sign-in
+The installed @clerk/nextjs 6.39.9 types also expose withSignUp and both force
+redirect props. Next 16.4.6 bundled redirect/unstable_rethrow guides were read.

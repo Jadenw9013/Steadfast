@@ -62,7 +62,7 @@ export async function sendClientInvite(input: unknown) {
         const delivery = await sendEmail({
             to: normalizedEmail,
             subject: `${coachName} invited you to Steadfast`,
-            text: `Hi ${name},\n\n${coachName} has invited you to join them on Steadfast — a structured coaching platform for training and nutrition.\n\nAccept your invite and create your account here:\n${inviteUrl}\n\nThis link expires in 7 days.\n\n—\nSteadfast`,
+            text: `Hi ${name},\n\n${coachName} has invited you to join them on Steadfast — a structured coaching platform for training and nutrition.\n\nOpen your invite, then sign in or create your account to accept it:\n${inviteUrl}\n\nYou do not need to submit another coaching request. This link expires in 7 days.\n\n—\nSteadfast`,
         });
         emailSent = delivery.success;
     } catch { emailSent = false; }

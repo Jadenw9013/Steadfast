@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { Metadata } from "next";
+import { authEntryUrl } from "@/lib/auth/entry";
 
 export const metadata: Metadata = { title: "Join Team | Steadfast" };
 
@@ -144,7 +145,7 @@ export default async function TeamInvitePage({
     try { dbUser = await getCurrentDbUser(); } catch { /* not yet in DB */ }
   }
 
-  const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(`/invite/team/${token}`)}`;
+  const signInUrl = authEntryUrl(`/invite/team/${token}`);
 
   // ── Not authenticated ──
   if (!dbUser) {

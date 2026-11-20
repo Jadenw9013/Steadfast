@@ -12,12 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   if (userId) {
-    const role = sessionClaims?.metadata?.role;
-    if (role === "coach") redirect("/coach/dashboard");
-    redirect("/client");
+    redirect("/account");
   }
 
   return (
@@ -34,15 +32,9 @@ export default async function Home() {
           <nav className="flex items-center gap-3" aria-label="Main navigation">
             <Link
               href="/sign-in"
-              className="flex min-h-[44px] items-center px-2 text-sm font-medium text-gray-400 transition-colors hover:text-white"
+              className="flex min-h-[48px] items-center rounded-lg bg-white px-4 py-1.5 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-200 hover:shadow-sm active:scale-[0.97]"
             >
-              Sign In
-            </Link>
-            <Link
-              href="/sign-up"
-              className="flex min-h-[40px] items-center rounded-lg bg-white px-4 py-1.5 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-200 hover:shadow-sm active:scale-[0.97]"
-            >
-              Get Started
+              Sign in / Get started
             </Link>
           </nav>
         </div>
@@ -87,8 +79,8 @@ export default async function Home() {
               className="mt-10 flex animate-fade-in-up flex-col items-center gap-3 sm:flex-row sm:justify-center"
               style={{ animationDelay: "420ms" }}
             >
-              <Link href="/sign-up" className="btn-primary w-full px-8 py-3.5 sm:w-auto">
-                Create Free Account
+              <Link href="/sign-in" className="btn-primary w-full px-8 py-3.5 sm:w-auto">
+                Get Started
               </Link>
               <Link
                 href="/coaches"
@@ -240,8 +232,8 @@ export default async function Home() {
                 Create your free account or browse our coach directory.
               </p>
               <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-                <Link href="/sign-up" className="btn-primary w-full px-10 py-3.5 sm:w-auto">
-                  Create Free Account
+                <Link href="/sign-in" className="btn-primary w-full px-10 py-3.5 sm:w-auto">
+                  Get Started
                 </Link>
                 <Link
                   href="/coaches"

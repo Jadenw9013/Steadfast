@@ -31,18 +31,18 @@ ${appUrl}/coach/leads${FOOTER}`;
 }
 
 export function requestApprovedEmail(prospectName: string, coachName: string) {
-    const signUpUrl = `${appUrl}/sign-up`;
+    const signInUrl = `${appUrl}/sign-in`;
     const subject = `You're In — ${coachName} Accepted Your Request`;
     const text = `Hi ${prospectName},
 
 Great news — ${coachName} has accepted your coaching request!
 
-Next step: Create your Steadfast account to get started.
+Next step: Sign in or create your Steadfast account to get started.
 
-Sign up here:
-${signUpUrl}
+Continue here:
+${signInUrl}
 
-Use the same email address you submitted your request with so we can connect you automatically.
+Use the email address you submitted your request with. If your coach sent an invite, open that link or accept the pending invite on your dashboard. You do not need to submit another coaching request.
 
 Welcome aboard!${FOOTER}`;
 

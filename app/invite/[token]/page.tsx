@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Metadata } from "next";
+import { authEntryUrl } from "@/lib/auth/entry";
 
 export const metadata: Metadata = { title: "Accept Invite | Steadfast" };
 
@@ -161,9 +162,7 @@ export default async function InviteRedemptionPage({
         );
     }
 
-    // Not signed in — show landing page with sign-up CTA
-    const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(`/invite/${token}`)}`;
-    const signUpUrl = `/sign-up?redirect_url=${encodeURIComponent(`/invite/${token}`)}`;
+    const signInUrl = authEntryUrl(`/invite/${token}`);
 
     return (
         <div className="flex min-h-[100dvh] items-center justify-center bg-black px-5">
@@ -199,21 +198,15 @@ export default async function InviteRedemptionPage({
                                 <p className="text-sm text-zinc-500">{invite.coach.coachProfile.headline}</p>
                             )}
                             <p className="text-sm text-zinc-400">
-                                Create your account to get started with structured coaching — training, nutrition, and weekly check-ins all in one place.
+                                Sign in or create your account to accept this invite. You won&apos;t need to submit another coaching request.
                             </p>
 
                             <div className="space-y-3 pt-2">
                                 <Link
-                                    href={signUpUrl}
-                                    className="block w-full rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-all hover:bg-blue-500"
-                                >
-                                    Create Account
-                                </Link>
-                                <Link
                                     href={signInUrl}
-                                    className="block w-full rounded-xl border border-zinc-700 py-3 text-sm font-medium text-zinc-400 transition-all hover:border-zinc-600 hover:text-zinc-200"
+                                    className="flex min-h-[56px] w-full items-center justify-center rounded-xl bg-blue-600 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
                                 >
-                                    Already have an account? Sign in
+                                    Continue to accept invite
                                 </Link>
                             </div>
 

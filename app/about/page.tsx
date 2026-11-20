@@ -48,7 +48,7 @@ export default function AboutPage() {
 
                 <div className="pt-6">
                     <Link
-                        href="/sign-up"
+                        href="/sign-in"
                         className="inline-flex min-h-[44px] items-center rounded-lg bg-zinc-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2"
                     >
                         Get Started
