@@ -74,7 +74,24 @@ try {
       }
     }
   }
-  console.log("PASS: square cards and thick-ring text fit at 320–430px in six progress states; food, macro and both training publish controls; success and failure feedback.");
+  for (const failure of [false, true]) {
+    await page.goto(base + "/invite" + (failure ? "?failure" : ""));
+    await page.getByLabel("Client Name", { exact: true }).fill("Synthetic prospect");
+    await page.getByLabel("Email Address", { exact: true }).fill("synthetic@example.test");
+    await page.getByRole("button", { name: "Send Invite", exact: true }).click();
+    await expect(page.getByLabel(/Private invite link/)).toHaveValue(base + "/invite/synthetic-invite");
+    if (failure) {
+      await expect(page.getByRole("status").first()).toContainText("email wasn't sent");
+      await expect(page.getByLabel("Email Address", { exact: true })).toHaveValue("synthetic@example.test");
+    } else {
+      await expect(page.getByRole("status").first()).toContainText("accepted for delivery");
+      await expect(page.getByLabel("Email Address", { exact: true })).toHaveValue("");
+    }
+    await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: async () => { throw new Error("Synthetic clipboard refusal"); } } }));
+    await page.getByRole("button", { name: "Copy invite link" }).click();
+    await expect(page.getByText("Select the link above to copy it.", { exact: true })).toBeVisible();
+  }
+  console.log("PASS: mobile ring/layout and publication feedback; truthful invite delivery feedback, retained retry fields and clipboard fallback.");
 } finally {
   await browser.close();
 }

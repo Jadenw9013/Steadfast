@@ -3,75 +3,46 @@
 import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-
-const sendEmail = async (opts: { to: string; subject: string; text: string }) => {
-    const { Resend } = await import("resend");
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    await resend.emails.send({ from: process.env.EMAIL_FROM || "Steadfast <noreply@steadfast.app>", ...opts });
-};
+import { z } from "zod";
+import { tokenSignatureSchema } from "@/lib/intake/token-submission";
+import { IntakeTokenError } from "@/lib/intake/token-access";
+import { reportServerError } from "@/lib/observability/report";
+import { sendEmail } from "@/lib/email/sendEmail";
 
 export async function submitSignature(input: {
     token: string;
     signatureType: "TYPED" | "DRAWN";
     signatureValue: string;
 }) {
-    // Validate token server-side (never trust client)
-    const request = await db.coachingRequest.findUnique({
-        where: { formsToken: input.token },
-        include: {
-            coachProfile: { select: { id: true, userId: true, user: { select: { email: true, firstName: true } } } },
-            formSubmission: true,
-        },
-    });
-
-    if (!request) return { success: false, message: "Invalid token." };
-    if (request.formsTokenExpiresAt && request.formsTokenExpiresAt < new Date()) {
-        return { success: false, message: "This link has expired. Please contact your coach to request a new link." };
-    }
-    if (request.consultationStage === "FORMS_SIGNED") {
-        return { success: false, message: "You have already signed these forms." };
-    }
-    if (request.consultationStage !== "FORMS_SENT") {
-        return { success: false, message: "This link is no longer valid." };
-    }
-    if (!input.signatureValue.trim()) {
-        return { success: false, message: "Signature is required." };
-    }
-
-    // Get IP and user agent from headers
+    const parsed = tokenSignatureSchema.and(z.object({ token: z.string().min(1).max(128) })).safeParse(input);
+    if (!parsed.success) return { success: false, message: "Please check your signature." };
     const hdrs = await headers();
-    const ipAddress = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? hdrs.get("x-real-ip") ?? null;
-    const userAgent = hdrs.get("user-agent") ?? null;
-
+    const ipAddress = process.env.VERCEL === "1" ? hdrs.get("x-vercel-forwarded-for")?.slice(0, 64) ?? null : null;
+    const userAgent = hdrs.get("user-agent")?.slice(0, 512) ?? null;
     const now = new Date();
-
-    // Create signature record
-    await db.clientFormSignature.create({
-        data: {
-            coachingRequestId: request.id,
-            signatureType: input.signatureType,
-            signatureValue: input.signatureValue,
-            signedAt: now,
-            ipAddress,
-            userAgent,
-        },
-    });
-
-    // Update coaching request
-    await db.coachingRequest.update({
-        where: { id: request.id },
-        data: {
-            formsSignedAt: now,
-            consultationStage: "FORMS_SIGNED",
-        },
-    });
-
-    // Update form submission
-    if (request.formSubmission) {
-        await db.clientFormSubmission.update({
-            where: { id: request.formSubmission.id },
-            data: { status: "SIGNED", completedAt: now },
+    let request;
+    try {
+        request = await db.$transaction(async tx => {
+            const reference = await tx.coachingRequest.findUnique({ where: { formsToken: parsed.data.token }, select: { id: true, coachProfile: { select: { userId: true } } } });
+            if (!reference) throw new IntakeTokenError("Invalid token.");
+            await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${reference.coachProfile.userId} FOR SHARE`;
+            await tx.$queryRaw`SELECT "id" FROM "CoachingRequest" WHERE "id" = ${reference.id} FOR UPDATE`;
+            const current = await tx.coachingRequest.findUnique({
+                where: { formsToken: parsed.data.token },
+                select: { id: true, prospectId: true, prospectName: true, consultationStage: true, formsTokenExpiresAt: true, formSubmission: { select: { id: true } }, coachProfile: { select: { user: { select: { email: true, firstName: true, isCoach: true, isDeactivated: true } } } } },
+            });
+            if (!current || !current.formsTokenExpiresAt || current.formsTokenExpiresAt <= now || current.consultationStage !== "FORMS_SENT" || !current.formSubmission || !current.coachProfile.user.isCoach || current.coachProfile.user.isDeactivated) {
+                throw new IntakeTokenError("This link is no longer available. Ask your coach for a new link.");
+            }
+            await tx.clientFormSignature.create({ data: { coachingRequestId: current.id, signatureType: parsed.data.signatureType, signatureValue: parsed.data.signatureValue, signedAt: now, ipAddress, userAgent } });
+            await tx.coachingRequest.update({ where: { id: current.id }, data: { formsSignedAt: now, consultationStage: "FORMS_SIGNED" }, select: { id: true } });
+            await tx.clientFormSubmission.update({ where: { id: current.formSubmission.id }, data: { status: "SIGNED", completedAt: now } });
+            return current;
         });
+    } catch (error) {
+        if (error instanceof IntakeTokenError) return { success: false, message: error.message };
+        reportServerError("sf.intake.signature_failed", error, { route: "/onboarding/sign/[token]", method: "POST" });
+        return { success: false, message: "We couldn't save your signature. Please try again." };
     }
 
     // Send email to coach

@@ -36,6 +36,7 @@ const mockActions = `
   export const savePlanSnippet = result;
   export const getPlanSnippet = result;
   export const deletePlanSnippet = result;
+  export const sendClientInvite = async () => ({ success: true, emailSent: !window.location.search.includes("failure"), inviteToken: "synthetic-invite" });
 `;
 const bundle = await build({
   stdin: {
@@ -47,6 +48,7 @@ const bundle = await build({
       import { MacroPlanEditor } from "./components/coach/meal-plan/macro-plan-editor";
       import { TrainingProgramEditor } from "./components/coach/training/training-program-editor";
       import { MobileBottomNav } from "./components/ui/mobile-bottom-nav";
+      import { InviteForm } from "./app/coach/clients/invite/invite-form";
       import { foodsEditorSignature, macroEditorSignature } from "./lib/meal-plans/editor-state";
       import { trainingEditorSignature } from "./lib/training-programs/editor-signature";
       import { groupItemsToMeals } from "./types/meal-plan";
@@ -73,6 +75,7 @@ const bundle = await build({
               <section className="sf-stat-card"><p className="text-xs font-semibold uppercase tracking-widest text-zinc-400">Weekly consistency</p><p className="mt-2 text-3xl font-semibold tabular-nums text-zinc-100">86<span className="text-lg text-zinc-400">%</span></p><p className="mt-2 text-sm text-emerald-400">Building a steady routine</p></section>
             </div>
           </div> : path === "/client" ? <><TodayPlanCards hasMealPlan totalMeals={totalMeals} loggedMeals={loggedMeals} trainingDays={5} totalExercises={28} /><CardioSummary modality="Stairmaster" frequency="5 days/week" duration="30 mins" intensity="Level 6" notes="" /><MobileBottomNav role="client" hasCoach /></>
+            : path === "/invite" ? <InviteForm />
             : path === "/macro" ? <MacroPlanEditor {...props} effectivePlan={{ ...effectivePlan, editorMode: "MACROS", publishedContent: { mode: "MACROS", signature: macroEditorSignature(macroTargets, "") } }} />
             : path === "/training" ? <TrainingProgramEditor clientId="synthetic-client" weekStartDate="2026-11-16" initialProgram={training} publishedSignature={trainingEditorSignature(training)} />
             : <div className="sf-glass-card p-4"><MealPlanEditorV2 {...props} /></div>}

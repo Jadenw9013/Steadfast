@@ -44,7 +44,7 @@ export async function getCoachingRequestForIntake(requestId: string, coachUserId
 
 export async function getIntakePacketByToken(token: string) {
     const packet = await db.intakePacket.findUnique({
-        where: { token },
+        where: { token, coachingRequest: { consultationStage: { not: "DECLINED" }, coachProfile: { user: { isCoach: true, isDeactivated: false } } } },
         include: {
             coachingRequest: {
                 select: {

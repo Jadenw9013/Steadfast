@@ -1,4 +1,5 @@
-import { db } from "@/lib/db";
+import { getPendingClientQuestionnaire } from "@/lib/onboarding/questionnaire";
+import { getClientProvider } from "@/lib/queries/client-provider";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
@@ -13,24 +14,9 @@ export default async function OnboardingPage() {
     const user = await getCurrentDbUser();
     if (!user.isClient) redirect("/");
 
-    const coachClient = await db.coachClient.findFirst({
-        where: { clientId: user.id },
-        include: { coach: true }
-    });
-
-    if (!coachClient) redirect("/client");
-
-    const form = await db.onboardingForm.findFirst({
-        where: { coachId: coachClient.coachId, isActive: true }
-    });
-
+    const provider = await getClientProvider(user.id);
+    const form = await getPendingClientQuestionnaire(user.id, provider);
     if (!form) redirect("/client");
-
-    const response = await db.onboardingResponse.findUnique({
-        where: { clientId: user.id }
-    });
-
-    if (response) redirect("/client");
 
     return (
         <div className="min-h-[100dvh] bg-zinc-50">
@@ -41,7 +27,7 @@ export default async function OnboardingPage() {
                         Welcome to Steadfast
                     </h1>
                     <p className="mt-2 text-zinc-600">
-                        {coachClient.coach.firstName} has requested you complete this onboarding questionnaire before starting.
+                        {form.coach.firstName || "Your coach"} has requested you complete this onboarding questionnaire before starting.
                     </p>
                 </div>
 

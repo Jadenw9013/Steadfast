@@ -2,10 +2,12 @@
 
 import { useForm } from "react-hook-form";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { submitOnboardingResponse } from "@/app/actions/client-onboarding";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
+    const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -25,7 +27,7 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
             const answers = questions.map((q) => {
                 let answer = data[q.id];
                 // Ensure defaults for specific types
-                if (answer === undefined || answer === null) {
+                if (answer === undefined || answer === null || (typeof answer === "number" && Number.isNaN(answer))) {
                     answer = q.type === "boolean" ? false : "";
                 }
 
@@ -40,11 +42,17 @@ export function ClientOnboardingForm({ form: dbForm }: { form: any }) {
                 };
             });
 
-            await submitOnboardingResponse({
+            const result = await submitOnboardingResponse({
                 formId: dbForm.id,
                 answers
             });
-            // The action will automatically redirect to dashboard
+            if (!result.success) {
+                setError(result.message);
+                setIsSubmitting(false);
+                return;
+            }
+            router.push("/client");
+            router.refresh();
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to submit answers");
             setIsSubmitting(false);

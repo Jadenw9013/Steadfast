@@ -36,7 +36,7 @@ beforeEach(() => {
     return count <= limit;
   });
   mocks.profile.mockResolvedValue({ id: profileId, isPublished: true, acceptingClients: true,
-    user: { id: "coach", firstName: "Fixture", email: "coach@example.test", emailCoachingRequests: true, pushCoachingRequests: false } });
+    user: { id: "coach", firstName: "Fixture", email: "coach@example.test", emailCoachingRequests: true, pushCoachingRequests: false, isCoach: true, isDeactivated: false } });
   mocks.pending.mockResolvedValue(null);
   mocks.create.mockResolvedValue({ id: "request" });
   mocks.email.mockResolvedValue(undefined);
@@ -45,6 +45,13 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 
 describe("shared abuse prevention", () => {
+  it.each([{ isCoach: false, isDeactivated: false }, { isCoach: true, isDeactivated: true }])("refuses requests to an unavailable coach: %j", async flags => {
+    mocks.profile.mockResolvedValueOnce({ id: profileId, isPublished: true, acceptingClients: true, user: flags });
+    const route = await import("@/app/api/public/coaching-request/route");
+    expect((await route.POST(request("/api/public/coaching-request", { coachSlug: "fixture", firstName: "Fixture", phoneNumber: "4155550100" }))).status).toBe(404);
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(mocks.email).not.toHaveBeenCalled();
+  });
   it("shares coach attempts across REST, actions, and fresh workers", async () => {
     const route = await import("@/app/api/become-coach/route");
     for (let attempt = 0; attempt < 3; attempt++) expect((await route.POST(request("/api/become-coach", { accessCode: "wrong" }))).status).toBe(403);

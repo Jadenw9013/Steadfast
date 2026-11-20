@@ -7,17 +7,24 @@ export function InviteForm() {
     const [pending, startTransition] = useTransition();
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
-    const [result, setResult] = useState<{ success?: boolean; error?: string } | null>(null);
+    const [result, setResult] = useState<{ success?: boolean; error?: string; emailSent?: boolean; inviteToken?: string } | null>(null);
+    const [copyNotice, setCopyNotice] = useState("");
+    const inviteLink = result?.inviteToken ? `${window.location.origin}/invite/${encodeURIComponent(result.inviteToken)}` : "";
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setResult(null);
+        setCopyNotice("");
         startTransition(async () => {
-            const res = await sendClientInvite({ name: name.trim(), email: email.trim() });
-            setResult(res);
-            if (res && "success" in res && res.success) {
-                setName("");
-                setEmail("");
+            try {
+                const res = await sendClientInvite({ name: name.trim(), email: email.trim() });
+                setResult(res);
+                if ("success" in res && res.success && res.emailSent) {
+                    setName("");
+                    setEmail("");
+                }
+            } catch {
+                setResult({ error: "We couldn't send the invite. Please try again." });
             }
         });
     }
@@ -57,9 +64,20 @@ export function InviteForm() {
                 <p className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-400">{result.error}</p>
             )}
             {result && "success" in result && result.success && (
-                <p className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-400">
-                    ✓ Invite sent! They&apos;ll receive an email with a sign-up link valid for 7 days.
-                </p>
+                <div className="space-y-3">
+                    <p role="status" className={`rounded-xl border px-4 py-3 text-sm ${result.emailSent ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" : "border-amber-500/20 bg-amber-500/10 text-amber-300"}`}>
+                        {result.emailSent ? "Invite email accepted for delivery. Your client can use the link to connect." : "The invite is ready, but the email wasn't sent. Copy the private link below or try sending again."}
+                    </p>
+                    <label className="block space-y-2 text-sm text-zinc-300">
+                        <span>Private invite link — share only with this client</span>
+                        <input readOnly value={inviteLink} onFocus={event => event.currentTarget.select()} className="sf-input" />
+                    </label>
+                    <button type="button" className="sf-button-secondary" onClick={async () => {
+                        try { await navigator.clipboard.writeText(inviteLink); setCopyNotice("Invite link copied."); }
+                        catch { setCopyNotice("Select the link above to copy it."); }
+                    }}>Copy invite link</button>
+                    {copyNotice && <p role="status" className="text-xs text-zinc-400">{copyNotice}</p>}
+                </div>
             )}
 
             <button

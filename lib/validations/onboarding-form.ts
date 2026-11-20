@@ -52,13 +52,13 @@ export type UpsertOnboardingFormInput = z.infer<typeof upsertOnboardingFormSchem
 
 // Response validation
 export const submitOnboardingResponseSchema = z.object({
-    formId: z.string().min(1),
+    formId: z.string().min(1).max(128),
     answers: z.array(
         z.object({
-            questionId: z.string().min(1),
-            answer: z.string().or(z.number()).or(z.boolean()).or(z.array(z.string())),
+            questionId: z.string().min(1).max(50),
+            answer: z.string().max(8000).or(z.number()).or(z.boolean()).or(z.array(z.string().max(100)).max(50)),
         })
-    ),
+    ).max(50),
 });
 
 export type SubmitOnboardingResponseInput = z.infer<typeof submitOnboardingResponseSchema>;

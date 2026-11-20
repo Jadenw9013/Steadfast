@@ -4,7 +4,11 @@ import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
 import { sendEmail } from "@/lib/email/sendEmail";
-import { DOCUMENTS_UNSIGNED_MESSAGE, mergePacketSubmission, unsignedDocumentIds } from "@/lib/intake/completion";
+import { mergePacketSubmission } from "@/lib/intake/completion";
+import { submitTokenIntake } from "@/lib/intake/token-submission";
+import { IntakeTokenError, lockIntakePacket } from "@/lib/intake/token-access";
+import { enqueueStorageCleanup } from "@/lib/storage/cleanup-outbox";
+import { reportServerError } from "@/lib/observability/report";
 
 /** Resolve the current coach's CoachProfile.id. */
 async function getCoachProfileId(userId: string): Promise<string> {
@@ -317,82 +321,14 @@ export async function submitIntakePacket(input: {
     answers: Record<string, unknown>;
     documentSignatures: { intakePacketDocumentId: string; coachDocumentId: string; signatureType: "TYPED" | "DRAWN"; signatureValue: string }[];
 }) {
-    // Token-gated — no auth required
-    // IntakePacket doesn't have Json columns at top level, but its related
-    // coachingRequest does. Split the queries to avoid adapter-pg crash.
-    const packet = await db.intakePacket.findUnique({
-        where: { token: input.token },
-        include: { documents: true },
-    });
-
-    if (!packet) return { success: false, message: "Invalid link." };
-    if (packet.tokenExpiresAt < new Date()) return { success: false, message: "This link has expired. Please contact your coach for a new one." };
-    if (packet.submittedAt) return { success: false, message: "You have already submitted this form." };
-
-    // Fetch coaching request + coach info separately
-    const requestRow = await db.coachingRequest.findUnique({
-        where: { id: packet.coachingRequestId },
-        select: { id: true, prospectName: true, coachProfileId: true },
-    });
-    const coachProfile = requestRow ? await db.coachProfile.findUnique({
-        where: { id: requestRow.coachProfileId },
-        select: { userId: true, user: { select: { email: true, firstName: true } } },
-    }) : null;
-
-    // Validate all docs have signatures. Same predicate and same sentence as the
-    // iOS REST submit (`app/api/intake/[id]/submit/route.ts`), which had no such
-    // refusal at all before T-624 — behaviour here is unchanged.
-    const unsigned = unsignedDocumentIds(
-        packet.documents,
-        input.documentSignatures.map(s => s.intakePacketDocumentId)
-    );
-    if (unsigned.length > 0) return { success: false, message: DOCUMENTS_UNSIGNED_MESSAGE };
-
-    // Store answers + signatures
-    await db.$transaction(async (tx) => {
-        await tx.intakePacket.update({
-            where: { id: packet.id },
-            data: {
-                // MERGE, never replace (T-624). This form is the only place an
-                // attached document can be signed, so it is where a client who
-                // filled the intake in the iOS app is sent when the REST submit
-                // refuses them — and a wholesale `formAnswers: input.answers`
-                // would erase every flat answer they already saved there. The
-                // page prefills from the same stored answers, so the payload
-                // normally re-states them; the merge is what protects the ones
-                // this form never rendered (a question the coach removed from
-                // the template after the client answered it).
-                formAnswers: mergePacketSubmission(packet.formAnswers, input.answers) as object,
-                submittedAt: new Date(),
-            },
-        });
-
-        for (const sig of input.documentSignatures) {
-            await tx.documentSignature.create({
-                data: {
-                    intakePacketDocumentId: sig.intakePacketDocumentId,
-                    coachDocumentId: sig.coachDocumentId,
-                    signatureType: sig.signatureType,
-                    signatureValue: sig.signatureValue,
-                },
-            });
-        }
-
-        await tx.coachingRequest.update({
-            where: { id: packet.coachingRequestId },
-            data: { consultationStage: "INTAKE_SUBMITTED" },
-        });
-    });
-
-    // Email coach
+    const result = await submitTokenIntake(input);
+    if (!result.success) return result;
     try {
-        if (coachProfile?.user && requestRow) {
-            const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
-            const { intakeSubmittedNotificationEmail } = await import("@/lib/email/templates");
-            const reviewUrl = `${appUrl}/coach/leads/${packet.coachingRequestId}/review`;
-            const emailContent = intakeSubmittedNotificationEmail(requestRow.prospectName, reviewUrl);
-            await sendEmail({ to: coachProfile.user.email, ...emailContent });
-        }
+        const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_APP_URL || "";
+        const { intakeSubmittedNotificationEmail } = await import("@/lib/email/templates");
+        const reviewUrl = `${appUrl}/coach/leads/${result.notification.requestId}/review`;
+        const emailContent = intakeSubmittedNotificationEmail(result.notification.prospectName, reviewUrl);
+        await sendEmail({ to: result.notification.coachEmail, ...emailContent });
     } catch { /* email failure must not block */ }
 
     return { success: true };
@@ -496,42 +432,36 @@ export async function uploadSignedDocument(formData: FormData) {
     const intakePacketDocumentId = formData.get("intakePacketDocumentId") as string;
     const file = formData.get("file") as File | null;
 
-    if (!token || !intakePacketDocumentId || !file) {
+    if (typeof token !== "string" || !token || token.length > 128 || typeof intakePacketDocumentId !== "string" || !intakePacketDocumentId || intakePacketDocumentId.length > 128 || !(file instanceof File)) {
         return { success: false, message: "Missing required fields." };
     }
-
-    // Token-gated — no auth required
-    // IntakePacket.documents doesn't touch CoachingRequest Json — adapter-pg safe
-    const packet = await db.intakePacket.findUnique({
-        where: { token },
-        include: { documents: { include: { coachDocument: true } } },
-    });
-
-    if (!packet) return { success: false, message: "Invalid link." };
-    if (packet.tokenExpiresAt < new Date()) return { success: false, message: "This link has expired." };
-    if (packet.submittedAt) return { success: false, message: "This form has already been submitted." };
-
-    const doc = packet.documents.find(d => d.id === intakePacketDocumentId);
-    if (!doc) return { success: false, message: "Document not found." };
-    if (doc.coachDocument.type !== "FILE") return { success: false, message: "This document does not accept file uploads." };
 
     // Validate file
     if (!ALLOWED_UPLOAD_TYPES.includes(file.type)) {
         return { success: false, message: "Only PDF, JPG, and PNG files are accepted." };
     }
-    if (file.size > MAX_UPLOAD_SIZE) {
+    if (file.size === 0 || file.size > MAX_UPLOAD_SIZE || file.name.length > 200) {
         return { success: false, message: "File must be under 10MB." };
     }
 
-    const ext = file.name.split(".").pop()?.toLowerCase() || "pdf";
-    const storagePath = `signed-uploads/${packet.id}/${intakePacketDocumentId}.${ext}`;
-
-    const { uploadCoachDocument } = await import("@/lib/supabase/document-storage");
-    const buffer = Buffer.from(await file.arrayBuffer());
-    await uploadCoachDocument(storagePath, buffer, file.type);
-
-    // Update DB
-    await db.$transaction(async (tx) => {
+    let storagePath: string | null = null;
+    try {
+      const preliminary = await db.$transaction(tx => lockIntakePacket(tx, token));
+      const preliminaryDocument = preliminary.packet.documents.find(document => document.id === intakePacketDocumentId);
+      if (!preliminaryDocument || preliminaryDocument.coachDocument.type !== "FILE" || preliminaryDocument.coachDocument.coachId !== preliminary.coach.id) throw new IntakeTokenError("Document not found.");
+      const ext = file.type === "application/pdf" ? "pdf" : file.type === "image/png" ? "png" : "jpg";
+      storagePath = `signed-uploads/${preliminary.packet.id}/${crypto.randomUUID()}.${ext}`;
+      const { uploadCoachDocument } = await import("@/lib/supabase/document-storage");
+      await uploadCoachDocument(storagePath, Buffer.from(await file.arrayBuffer()), file.type);
+      await db.$transaction(async tx => {
+        const { packet, coach } = await lockIntakePacket(tx, token);
+        const doc = packet.documents.find(document => document.id === intakePacketDocumentId);
+        if (!doc || doc.coachDocument.type !== "FILE" || doc.coachDocument.coachId !== coach.id) throw new IntakeTokenError("Document not found.");
+        if (doc.uploadedSignedFilePath) await tx.storageCleanupOutbox.upsert({
+            where: { bucket_storagePath: { bucket: "coach-documents", storagePath: doc.uploadedSignedFilePath } },
+            create: { bucket: "coach-documents", storagePath: doc.uploadedSignedFilePath, reason: "signed-upload-replaced" },
+            update: {},
+        });
         await tx.intakePacketDocument.update({
             where: { id: intakePacketDocumentId },
             data: {
@@ -555,32 +485,31 @@ export async function uploadSignedDocument(formData: FormData) {
                 signedAt: new Date(),
             },
         });
-    });
-
-    return { success: true, filePath: storagePath, fileName: file.name };
+      });
+      return { success: true, filePath: storagePath, fileName: file.name };
+    } catch (error) {
+      if (storagePath) {
+        try { await enqueueStorageCleanup([{ bucket: "coach-documents", storagePath, reason: "signed-upload-refused" }]); }
+        catch (cleanupError) { reportServerError("sf.intake.upload_cleanup_failed", cleanupError, { route: "/onboarding/intake/[token]", method: "POST" }); }
+      }
+      if (error instanceof IntakeTokenError) return { success: false, message: error.message };
+      reportServerError("sf.intake.upload_failed", error, { route: "/onboarding/intake/[token]", method: "POST" });
+      return { success: false, message: "We couldn't save the signed file. Please try again." };
+    }
 }
 
 export async function removeSignedUpload(input: { token: string; intakePacketDocumentId: string }) {
-    const packet = await db.intakePacket.findUnique({
-        where: { token: input.token },
-        include: { documents: true },
-    });
-
-    if (!packet) return { success: false, message: "Invalid link." };
-    if (packet.tokenExpiresAt < new Date()) return { success: false, message: "This link has expired." };
-    if (packet.submittedAt) return { success: false, message: "This form has already been submitted." };
-
-    const doc = packet.documents.find(d => d.id === input.intakePacketDocumentId);
-    if (!doc || !doc.uploadedSignedFilePath) return { success: false, message: "No uploaded file found." };
-
-    // Delete from Supabase
     try {
-        const { deleteCoachDocumentFile } = await import("@/lib/supabase/document-storage");
-        await deleteCoachDocumentFile(doc.uploadedSignedFilePath);
-    } catch { /* deletion failure must not block */ }
-
-    // Clear DB fields + remove signature
-    await db.$transaction(async (tx) => {
+      if (typeof input?.token !== "string" || !input.token || input.token.length > 128 || typeof input.intakePacketDocumentId !== "string") return { success: false, message: "Invalid link." };
+      await db.$transaction(async tx => {
+        const { packet } = await lockIntakePacket(tx, input.token);
+        const doc = packet.documents.find(document => document.id === input.intakePacketDocumentId);
+        if (!doc?.uploadedSignedFilePath) throw new IntakeTokenError("No uploaded file found.");
+        await tx.storageCleanupOutbox.upsert({
+            where: { bucket_storagePath: { bucket: "coach-documents", storagePath: doc.uploadedSignedFilePath } },
+            create: { bucket: "coach-documents", storagePath: doc.uploadedSignedFilePath, reason: "signed-upload-removed" },
+            update: {},
+        });
         await tx.intakePacketDocument.update({
             where: { id: input.intakePacketDocumentId },
             data: {
@@ -592,7 +521,11 @@ export async function removeSignedUpload(input: { token: string; intakePacketDoc
         await tx.documentSignature.deleteMany({
             where: { intakePacketDocumentId: input.intakePacketDocumentId },
         });
-    });
-
-    return { success: true };
+      });
+      return { success: true };
+    } catch (error) {
+      if (error instanceof IntakeTokenError) return { success: false, message: error.message };
+      reportServerError("sf.intake.remove_upload_failed", error, { route: "/onboarding/intake/[token]", method: "POST" });
+      return { success: false, message: "We couldn't remove the signed file. Please try again." };
+    }
 }

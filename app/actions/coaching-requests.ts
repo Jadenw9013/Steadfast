@@ -109,11 +109,11 @@ export async function submitCoachingRequest(data: CoachingRequestData) {
             id: true,
             isPublished: true,
             acceptingClients: true,
-            user: { select: { id: true, firstName: true, email: true, emailCoachingRequests: true, pushCoachingRequests: true } },
+            user: { select: { id: true, firstName: true, email: true, emailCoachingRequests: true, pushCoachingRequests: true, isCoach: true, isDeactivated: true } },
         },
     });
 
-    if (!profile || !profile.isPublished) {
+    if (!profile || !profile.isPublished || !profile.user.isCoach || profile.user.isDeactivated) {
         throw new Error("Coach profile is unavailable");
     }
 
@@ -219,10 +219,10 @@ export async function submitWaitlistEntry(data: WaitlistData) {
     // Check profile exists and is published
     const profile = await db.coachProfile.findUnique({
         where: { id: validated.coachProfileId },
-        include: { user: { select: { firstName: true } } },
+        include: { user: { select: { firstName: true, isCoach: true, isDeactivated: true } } },
     });
 
-    if (!profile || !profile.isPublished) {
+    if (!profile || !profile.isPublished || !profile.user.isCoach || profile.user.isDeactivated) {
         throw new Error("Coach profile is unavailable");
     }
 
@@ -291,28 +291,6 @@ export async function approveCoachingRequest(requestId: string) {
         throw new Error("This request is no longer pending.");
     }
 
-    const updated = await db.coachingRequest.update({
-        where: { id: requestId },
-        data: { status: "APPROVED" },
-        select: { id: true, status: true },
-    });
-
-    console.info(JSON.stringify({
-        event: "marketplace.request.approved",
-        requestId: requestId,
-        coachProfileId: request.coachProfileId,
-        status: "APPROVED",
-        timestamp: new Date().toISOString(),
-    }));
-
-    // Send approval email to prospect (generic sign-up nudge; the tokenized
-    // invite email below is what actually links the account on acceptance)
-    const coachName = user.firstName || "Your coach";
-    try {
-        const approvalEmail = requestApprovedEmail(request.prospectName, coachName);
-        await sendEmail({ to: request.prospectEmail, ...approvalEmail });
-    } catch { /* email failure must not break approval */ }
-
     // Issue a consent-required invite (never an immediate link — CB01: coach
     // approval alone must not grant access to an existing account).
     const linkResult = await linkOrInviteProspect(
@@ -321,6 +299,25 @@ export async function approveCoachingRequest(requestId: string) {
         requestId,
         "Converted from marketplace request.",
     );
+    if ("noEmailOnFile" in linkResult) throw new Error("Add an email address before approving this lead.");
+
+    const updated = await db.coachingRequest.update({
+        where: { id: requestId },
+        data: { status: "APPROVED" },
+        select: { id: true, status: true },
+    });
+    console.info(JSON.stringify({
+        event: "marketplace.request.approved",
+        requestId,
+        coachProfileId: request.coachProfileId,
+        status: "APPROVED",
+        timestamp: new Date().toISOString(),
+    }));
+    const coachName = user.firstName || "Your coach";
+    try {
+        const approvalEmail = requestApprovedEmail(request.prospectName, coachName);
+        await sendEmail({ to: linkResult.email, ...approvalEmail });
+    } catch { /* email failure must not break approval */ }
 
     if (!linkResult.linked) {
         await db.coachingRequest.update({
@@ -442,11 +439,6 @@ export async function resendInvite(requestId: string) {
 
     if (request.status !== "APPROVED") {
         return { success: false, message: "Only approved requests can receive invites." };
-    }
-
-    // Race condition guard: re-check if prospect signed up between page load and action
-    if (request.prospectId) {
-        return { success: false, message: "This person has already signed up and is connected." };
     }
 
     // Issue (or re-send) a consent-required invite. Even if the prospect has
@@ -587,6 +579,7 @@ export async function acceptClient(requestId: string) {
         requestId,
         "Accepted from lead.",
     );
+    if ("noEmailOnFile" in linkResult) throw new Error("Add an email address before accepting this lead.");
 
     await db.coachingRequest.update({
         where: { id: requestId },

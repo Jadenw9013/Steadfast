@@ -285,7 +285,7 @@ export async function linkOrInviteProspect(
  * the user row was just created in the same request.
  */
 export async function acceptClientInviteForUser(
-  invite: Pick<ClientInvite, "id" | "coachId" | "email" | "status" | "expiresAt" | "requestId">,
+  invite: Pick<ClientInvite, "id" | "coachId" | "email" | "status" | "expiresAt" | "requestId" | "inviteToken">,
   user: { id: string; email: string },
   options?: {
     /** Every address on the signed-in Clerk account, as written. Omit or pass
@@ -320,6 +320,7 @@ export async function acceptClientInviteForUser(
     await tx.$queryRaw`SELECT "id" FROM "ClientInvite" WHERE "id" = ${invite.id} FOR UPDATE`;
     const current = await tx.clientInvite.findUnique({ where: { id: invite.id } });
     if (!current) return { success: false, error: "This invite is no longer available." };
+    if (current.inviteToken !== invite.inviteToken) return { success: false, error: "This invite has been replaced. Use the latest link from your coach." };
     const coach = await tx.user.findUnique({
       where: { id: current.coachId },
       select: { firstName: true, lastName: true, isDeactivated: true, isCoach: true },

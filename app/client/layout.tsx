@@ -1,7 +1,7 @@
 import { getClientProvider, rendersAiWorkspace } from "@/lib/queries/client-provider";
 import { redirect } from "next/navigation";
 import { getCurrentDbUser } from "@/lib/auth/roles";
-import { db } from "@/lib/db";
+import { getPendingClientQuestionnaire } from "@/lib/onboarding/questionnaire";
 import { NavBar } from "@/components/ui/nav-bar";
 import { MobileBottomNav } from "@/components/ui/mobile-bottom-nav";
 
@@ -22,41 +22,18 @@ export default async function ClientLayout({
   const provider = await getClientProvider(user.id);
   const aiCoaching = rendersAiWorkspace(provider);
 
-  // Enforce Onboarding Questionnaire completion before allowing dashboard access
-  // NOTE: explicit select avoids selecting Int[]/Json columns that can trip up
-  // the @prisma/adapter-pg driver in certain Next.js dev configurations.
-  const coachClient = await db.coachClient.findFirst({
-    where: { clientId: user.id, id: provider.activeCoachClientId ?? "unassigned" },
-    select: { id: true, coachId: true },
-  });
-
-  if (coachClient) {
-    const activeForm = await db.onboardingForm.findFirst({
-      where: { coachId: coachClient.coachId, isActive: true },
-      select: { id: true },
-    });
-
-    if (activeForm) {
-      const response = await db.onboardingResponse.findUnique({
-        where: { clientId: user.id },
-        select: { id: true },
-      });
-
-      if (!response) {
-        redirect("/onboarding");
-      }
-    }
-  }
+  const questionnaire = await getPendingClientQuestionnaire(user.id, provider);
+  if (questionnaire) redirect("/onboarding");
 
   return (
     <div className="sf-app-shell min-h-[100dvh]">
       <NavBar
         role="client"
         canSwitchRole={user.isCoach && user.isClient}
-        hasCoach={!!coachClient} aiCoaching={aiCoaching}
+        hasCoach={!!provider.activeCoachClientId} aiCoaching={aiCoaching}
       />
       <main id="main-content" className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-8 sm:pb-8 sm:pt-8">{children}</main>
-      <MobileBottomNav role="client" hasCoach={!!coachClient} aiCoaching={aiCoaching} />
+      <MobileBottomNav role="client" hasCoach={!!provider.activeCoachClientId} aiCoaching={aiCoaching} />
     </div>
   );
 }

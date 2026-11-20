@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useSyncExternalStore } from "react";
 import { submitSignature } from "@/app/actions/signature";
 import Link from "next/link";
 
@@ -23,7 +23,15 @@ function formatValue(value: unknown): string {
     return String(value);
 }
 
+const subscribeToBrowserState = () => () => {};
+const signingTimeSnapshot = () => new Date().toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" });
+const serverSigningTimeSnapshot = () => "";
+const speechSupportSnapshot = () => "speechSynthesis" in globalThis;
+const serverSpeechSupportSnapshot = () => false;
+
 export function SignaturePage({ token, prospectName, coachName, answers, prospectHasAccount }: Props) {
+    const signingTime = useSyncExternalStore(subscribeToBrowserState, signingTimeSnapshot, serverSigningTimeSnapshot);
+    const speechSupported = useSyncExternalStore(subscribeToBrowserState, speechSupportSnapshot, serverSpeechSupportSnapshot);
     const [tab, setTab] = useState<"type" | "draw">("type");
     const [typedName, setTypedName] = useState("");
     const [agreed, setAgreed] = useState(false);
@@ -211,9 +219,9 @@ export function SignaturePage({ token, prospectName, coachName, answers, prospec
                     <p className="text-sm text-zinc-500 mt-1">{prospectName}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                    {"speechSynthesis" in globalThis && (
+                    {speechSupported && (
                         <button onClick={readAloud} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-all min-h-[48px]" aria-label="Read page aloud">
-                            🔊
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></svg>
                         </button>
                     )}
                     <button onClick={toggleFontSize} className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-semibold text-zinc-400 hover:text-zinc-200 hover:border-zinc-500 transition-all min-h-[48px]" aria-label={`Switch to ${fontSize === "normal" ? "larger" : "normal"} text`}>
@@ -352,7 +360,7 @@ export function SignaturePage({ token, prospectName, coachName, answers, prospec
 
                 {/* Timestamp */}
                 <p className="text-xs text-zinc-600">
-                    Signing on {new Date().toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" })}
+                    {signingTime ? `Signing on ${signingTime}` : "Your signature will be timestamped when you confirm."}
                 </p>
 
                 {/* Error */}

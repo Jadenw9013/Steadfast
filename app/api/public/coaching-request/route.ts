@@ -46,12 +46,14 @@ export async function POST(req: NextRequest) {
             email: true,
             emailCoachingRequests: true,
             pushCoachingRequests: true,
+            isCoach: true,
+            isDeactivated: true,
           },
         },
       },
     });
 
-    if (!profile || !profile.isPublished) {
+    if (!profile || !profile.isPublished || !profile.user.isCoach || profile.user.isDeactivated) {
       return NextResponse.json(
         { error: "Coach profile is unavailable" },
         { status: 404 }

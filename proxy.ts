@@ -16,6 +16,10 @@ export const PUBLIC_ROUTE_PATTERNS = [
   "/api/cron(.*)",
   "/api/public(.*)",
   "/api/health",
+  "/invite/:token",
+  "/invite/team/:token",
+  "/onboarding/intake/:token",
+  "/onboarding/sign/:token",
   ...(process.env.NODE_ENV === "development" ? [
     "/api/dev/test-sms(.*)",
     "/api/dev/sms-smoke(.*)"

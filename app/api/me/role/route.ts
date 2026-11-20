@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentDbUser } from "@/lib/auth/roles";
 import { db } from "@/lib/db";
+import { readBoundedJson } from "@/lib/security/body";
+import { reportServerError } from "@/lib/observability/report";
 
 const roleSchema = z.object({
   role: z.enum(["COACH", "CLIENT"]),
@@ -16,8 +18,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
-    const parsed = roleSchema.safeParse(body);
+    const body = await readBoundedJson(req, 1024);
+    if (!body.ok) return NextResponse.json({ error: body.error }, { status: body.status });
+    const parsed = roleSchema.safeParse(body.value);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
@@ -54,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(updated);
   } catch (err) {
-    console.error("[POST /api/me/role]", err);
+    reportServerError("sf.auth.set_role_failed", err, { route: "/api/me/role", method: "POST" });
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

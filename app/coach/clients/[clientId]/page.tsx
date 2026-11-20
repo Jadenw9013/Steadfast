@@ -7,6 +7,7 @@ import { getTrainingProgramForReview } from "@/lib/queries/training-programs";
 import { getCoachTemplatesForPicker } from "@/lib/queries/training-templates";
 import { getWeightHistory } from "@/lib/queries/weight-history";
 import { getClientIntake } from "@/lib/queries/client-intake";
+import { getCoachQuestionnaireResponse } from "@/lib/onboarding/questionnaire";
 import { getIntakePacketForClient } from "@/lib/queries/intake";
 import { IntakeSummaryPanel } from "@/components/coach/clients/intake-summary-panel";
 import { formatDateUTC, getLocalDate } from "@/lib/utils/date";
@@ -14,7 +15,6 @@ import { getCoachClientForAdherence, getAdherenceSummary } from "@/lib/queries/a
 import { getRecentExerciseProgress } from "@/lib/queries/exercise-results";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { db } from "@/lib/db";
 import { CoachNotesEditor } from "@/components/coach/coach-notes-editor";
 import { WeightProgress } from "@/components/charts/weight-progress";
 import { RemoveClientButton } from "@/components/coach/remove-client-button";
@@ -78,10 +78,7 @@ export default async function ClientProfilePage({
     getTrainingProgramForReview(clientId, weekOf),
     getCoachTemplatesForPicker(coach.id),
     getWeightHistory(clientId),
-    db.onboardingResponse.findUnique({
-      where: { clientId },
-      include: { form: true },
-    }),
+    getCoachQuestionnaireResponse(coach.id, clientId),
     getClientIntake(clientId),
     getCoachClientForAdherence(coach.id, clientId),
     getAdherenceSummary(clientId, clientTodayDate),

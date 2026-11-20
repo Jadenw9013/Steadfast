@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
  */
 export async function getCoachingRequestByToken(token: string) {
     return db.coachingRequest.findUnique({
-        where: { formsToken: token },
+        where: { formsToken: token, coachProfile: { user: { isCoach: true, isDeactivated: false } } },
         select: {
             id: true,
             prospectName: true,

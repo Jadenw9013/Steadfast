@@ -1,5 +1,5 @@
 import { getIntakePacketByToken } from "@/lib/queries/intake";
-import { flattenPacketAnswers } from "@/lib/intake/completion";
+import { flattenPacketAnswers, resolveIntakeTemplate } from "@/lib/intake/completion";
 import IntakePacketPage from "./intake-packet-page";
 
 export default async function IntakeTokenPage({
@@ -51,9 +51,10 @@ export default async function IntakeTokenPage({
     const coachName = [packet.coachingRequest.coachProfile.user.firstName, packet.coachingRequest.coachProfile.user.lastName].filter(Boolean).join(" ") || "Your coach";
     const prospectName = packet.coachingRequest.prospectName;
 
-    const sections = template
-        ? (template.sections as unknown as { id: string; title: string; questions: { id: string; label: string; type: string; required: boolean }[] }[])
-        : [];
+    const sections = resolveIntakeTemplate(template).sections.map(section => ({
+        ...section,
+        questions: section.questions.map(question => ({ ...question, required: question.required === true })),
+    }));
 
     const documents = await Promise.all(packet.documents.map(async d => {
         let fileDownloadUrl: string | null = null;

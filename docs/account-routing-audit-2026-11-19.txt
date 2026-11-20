@@ -1,0 +1,133 @@
+Steadfast account routing and onboarding security audit — November 19, 2026
+
+Scope
+Reviewed coach/client role routing, account identity claims, current-provider
+selection, questionnaire gating, coaching requests, pipeline activation/bypass,
+invite redemption/resend, token intake, signatures and signed uploads.
+Attack simulations used synthetic records in localhost/steadfast_security_test.
+Authentication, email, push and storage were mocked in integration tests.
+Production checks used signed-out GETs and an explicitly READ ONLY transaction;
+no production account, relationship, questionnaire or document was modified.
+No database schema change or migration is required.
+
+Confirmed findings and fixes
+1. HIGH: a valid intake token could submit an extra signature against a different
+   client's packet document, or substitute the underlying coach document ID.
+   Document membership and both IDs are now checked inside the locked transaction.
+   Previously stored inconsistent signatures fail closed and emit an anomaly.
+
+2. HIGH: questionnaire reads on a coach's client page were client-scoped rather
+   than coach-scoped, allowing another assigned coach's response to be displayed.
+   Reads now require the response and its form to belong to the requesting coach.
+
+3. MEDIUM: signed-out prospects could not open intake/signature/invite landing
+   pages; the global authentication gate blocked the designed token flows.
+   Only the exact token entry routes are now public. Generic onboarding,
+   coach/client workspaces and authenticated APIs remain protected. Invitation
+   acceptance still requires the intended client's authenticated consent service.
+
+4. MEDIUM: token intake accepted missing required answers, blank signatures,
+   repeated concurrent submissions and unavailable coaches. An old token could
+   also move ACTIVE or DECLINED leads back into INTAKE_SUBMITTED.
+   The service now validates bounded payloads and the same required-question
+   definition used by mobile; rechecks token/state under locks; accepts only one
+   submission; refuses declined/unavailable flows; preserves later lead stages.
+
+5. MEDIUM: the questionnaire page chose the first relationship while the client
+   layout chose the active provider. Its action accepted inactive forms, stale
+   coaches and empty required answers. The page and layout now share one current-
+   provider-aware query; submission checks active form, current relationship,
+   question IDs/types/options and completeness. Retries preserve saved answers.
+
+6. MEDIUM: resendInvite used prospectId as evidence of a relationship. A client
+   who had signed up but not accepted the coach was incorrectly called connected
+   and could not receive a resend. The relationship/invite service now decides.
+   Approve/accept also refuse a phone-only lead when no safe invite email exists,
+   instead of advancing status and counting an invitation that cannot be sent.
+
+7. MEDIUM: a FILE upload already created a signature row, but final submission
+   tried to create it again. File signatures now require an actual stored upload
+   and preserve the existing record. Forged upload markers are refused.
+   Uploads use unique storage paths and recheck packet state after storage I/O;
+   completed submissions cannot be overwritten or cleared by a late upload.
+   Replaced/removed/refused files are queued for durable storage cleanup.
+
+8. MEDIUM: signing wrote the signature, request stage and form state separately.
+   A failure between writes could strand the form and make retry hit a duplicate.
+   All three now commit or roll back together; concurrent replays return a safe
+   refusal. A fault-injection test confirms rollback followed by a clean retry.
+
+9. LOW: malformed role JSON and expired sessions could become misleading 500s.
+   Both role transports bound JSON size, preserve capability checks, return
+   400/401/403 as appropriate and report unexpected failures without raw errors.
+
+10. LOW: browser-only speech support inserted a read-aloud button into the
+    initial client render that was absent on the server. Browser debugging
+    confirmed React expected that button where the server rendered the font
+    size control. Speech detection now uses a stable server snapshot. The page's
+    locale-dependent current timestamp also uses a stable server snapshot and
+    the browser's local time afterward.
+
+11. MEDIUM: the current direct-invite form claimed an email was sent even when
+    the provider returned failure, and any expired PENDING invite blocked future
+    attempts for that address. Direct invites now renew expired tokens, reuse a
+    live invitation for retries, report actual provider acceptance and expose a
+    private link the coach can copy. Durable budgets cap sends at 20/hour per
+    coach and 3/hour per coach/recipient. Redemption rechecks the presented token
+    against the locked current row so a stale snapshot cannot redeem a rotated
+    token. The older coaching-request resend action is also corrected, but is
+    not currently imported by a web UI; its regression is not proof of the cause
+    of the previously reported client's login issue.
+
+Evidence
+- Negative controls: 11 of 14 initial adversarial cases failed on the original
+  code, plus both invite-resend/phone-only approval cases failed before their fix.
+  Additional cases added after implementation are regression coverage, not
+  independent negative controls.
+- Targeted database integration: 249 passed in 15 files, including 28 new cases
+  for cross-client tampering, replay, expired tokens, provider changes, privacy,
+  upload races, forged markers and signature rollback/retry.
+- Default test suite: 2,060 passed; 1,034 opt-in integration/smoke cases skipped
+  by that run (the 249 targeted database tests above ran separately). Real action tests replace the earlier
+  coaching-handoff tests that only duplicated their own guard logic.
+  The final run limits Vitest to two workers after an unrestricted run alongside
+  a build exhausted worker startup timeouts; assertions were not relaxed.
+- Production build and TypeScript check pass. Changed/new TypeScript lint has
+  zero errors; full-repository lint still has 14 pre-existing errors/69 warnings.
+- Fresh pnpm audit --prod: zero advisories across all severity levels.
+- A real 375px Chrome session against the built local app completed the emailed
+  intake and signing actions, confirmed database transitions, checked replay
+  handling and reported zero browser exceptions. Both flows ran signed out.
+  The reusable test is tests/browser/account-routing-audit.mjs (run with pnpm
+  exec tsx, an explicit local DATABASE_URL, and the built local server on 4190).
+- The synthetic plan UI browser audit also verifies invite email success/failure
+  feedback, retaining fields for retry, and the clipboard-permission fallback.
+
+Read-only production consistency checks
+All six checked counts were zero: role/capability mismatches, ambiguous coach
+relationships, unresolved HUMAN contexts, mismatched document signature IDs,
+mismatched questionnaire/form owners, and unavailable published coaches.
+The owner and previously reported client both have a bound non-placeholder
+identity, an active HUMAN provider, one coach relationship, no resolution flag,
+and no deactivation. This verifies database linkage, not an interactive Clerk
+password/SSO login. No production records were repaired or re-linked.
+These structural checks do not establish whether a historically valid-looking
+signature was submitted by its rightful person, or whether an earlier read was
+authorized. They are not evidence that past exploitation never occurred.
+
+Limits and follow-up
+This is a bounded source review and local attack simulation, not a guarantee of
+no vulnerabilities. No authenticated production account was impersonated; real
+Clerk password/SSO/2FA, email delivery, Supabase bucket policies, WAF settings,
+load testing and exhaustive billing/AI review are outside this run.
+Large-file uploads above the framework/hosting request limit were not verified;
+the existing 10MB file-size copy is not evidence that the deployed transport can
+accept a 10MB multipart Server Action. Verify that separately before promising it.
+The legacy questionnaire schema still stores one response per client account;
+this release preserves that model and existing answers. Automatically requiring
+a fresh questionnaire for every coach change needs a separate history-preserving
+schema design. No historical health answers are overwritten here.
+If storage succeeds while the database and its cleanup outbox both become
+unavailable, cleanup cannot be made atomic across those two services; the failure
+is observable and needs operational follow-up. No storage service was attacked.
+Graphify refresh remains unavailable because its Python module is not installed.
